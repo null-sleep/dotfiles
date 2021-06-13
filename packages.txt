@@ -1,0 +1,92 @@
+pacman-mirrors -f && sudo pacman -Syyu
+pacman -S yay base-devel git zsh
+
+yay -S alacritty
+yay -S avahi
+yay -S bat
+yay -S clangd
+yay -S discord
+yay -S fzf
+yay -S gcc
+yay -S gnome-keyring
+yay -S google-chrome
+yay -S htop
+yay -S hyperfine
+yay -S jre-openjdk-headless jre-openjdk jdk-openjdk openjdk-doc openjdk-src
+yay -S kate
+yay -S make
+yay -S openssh-gssapi
+yay -S pavucontrol-qt
+yay -S pdfgrep
+yay -S poppler
+yay -S qtkeychain
+yay -S ripgrep
+yay -S sshfs
+yay -S telegram-desktop
+yay -S tmux
+yay -S tree
+yay -S unzip
+yay -S visual-studio-code-bin
+yay -S vlc 
+yay -S wget
+yay -S xorg-xinput
+yay -S zip
+
+[optional]
+Work laptops may want to manage these installations themselves
+
+yay -S docker
+yay -S qbittorrent
+yay -S zoom
+
+[linux or platform specific]
+yay -S flameshot
+yay -S kemoticons
+yay -S gnome gnome-extra
+yay -S bluez bluez-utils
+yay -S ocs-url
+yay -S kdebase (unecessary?)
+---------------------
+
+
+Get docker going, to test scripts, experiment
+    Do we need to have it as 2 stage due to base-devel ( yay -S microsoft-edge-dev i think needed it)
+    (https://linuxhint.com/docker_arch_linux/) There are some other interesting setup things too, this should be enough
+    sudo systemctl start docker.service
+    sudo systemctl enable docker.service
+    sudo groupadd docker
+    sudo usermod -aG docker <username>
+    echo "Don’t forget to logout and log back. Until then use sudo with docker commands."
+
+ssh keys
+
+Arch / apt / brew package search for replacement / alt name
+Prefer yay over arch so lets see if we can move som packages over from yay to yay
+yay on apt? hmmm, brew? hmmm
+
+Rust, C++, Go, Scala, Java setup (curl https://sh.rustup.rs -sSf | sh -s -- -y, https://github.com/rust-lang/rustup/issues/297)
+    Also rustup pnly https://rust-lang.github.io/rustup/
+PATHS and stuff, cargo, go, etc
+
+Shortcuts and ouse sensitivity
+~/.profile, vscode is backed up luckily
+other dotfiles anf packages configs like fzf
+git shortcuts, zsh plugins etc
+fzf (https://wiki.archlinux.org/index.php/fzf#Installation)
+
+nohup / screen management
+
+scripts accepts argument for ssh setup so you can have ssh key copied and github
+page opened ready to go.
+
+Gitconfig, usernames and stuff, EDITOR-nvim or something
+Dracula for kitty, etc
+
+future:
+setup backups of folder and stuff?
+Do you want to install X? at beginning for some packages
+
+references:
+https://github.com/kdeldycke/dotfiles/blob/main/install.sh
+https://github.com/9at8/dotfiles
+https://github.com/arora-aman/dotfiles/blob/master/install.sh
