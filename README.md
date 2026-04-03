@@ -40,3 +40,23 @@ stow zsh
 ```
 
 Note: Secrets (`CLIENT_ID`, `CLIENT_SECRET`, etc.) are kept in `~/.zshenv` which is not managed by stow.
+
+## Stow
+
+To exclude files or folders from being symlinked, create a `.stow-local-ignore` file in the package directory (e.g. `nvim/.stow-local-ignore`):
+
+```
+node_modules
+*.zwc
+```
+
+Patterns are Perl-style regex, one per line. Note: adding this file overrides stow's default ignore list (which skips `.git`, `README.*`, etc.), so include those if needed. See `man stow` under "IGNORE LISTS" for the full defaults.
+
+If stow already created symlinks before you added the ignore (e.g. `node_modules` was already symlinked), restow the package to pick up the change:
+
+```bash
+cd ~/src/dotfiles
+stow -R nvim
+```
+
+`-R` (restow) unstows and re-stows, recreating symlinks while respecting the updated `.stow-local-ignore`.
