@@ -7,7 +7,9 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ```bash
 brew install stow
 cd ~/src/dotfiles
+# Install dependencies for each tool
 stow nvim
+stow zsh
 ```
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -26,20 +28,15 @@ Neo Vim >= 12.0
 
 ```bash
 brew install nvim rg fzf fd font-hack-nerd-font
-cd ~/src/dotfiles
-stow nvim
 ```
 
 ## ZSH
 
 TODO: Add ZSH install steps
 
-```bash
-cd ~/src/dotfiles
-stow zsh
-```
+Add `source ~/.zshrc_config.zsh` in you `zshrc`
 
-Note: Secrets (`CLIENT_ID`, `CLIENT_SECRET`, etc.) are kept in `~/.zshenv` which is not managed by stow.
+Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
 
 ## Stow
 
