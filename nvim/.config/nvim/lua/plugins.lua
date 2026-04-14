@@ -24,31 +24,40 @@ vim.api.nvim_create_autocmd('PackChanged', {
   end,
 })
 
--- Enable native treesitter highlighting and folding per buffer
-local ts_group = vim.api.nvim_create_augroup('NativeTreesitterSetup', { clear = true })
+-- Returns true if the buffer is too large for treesitter to handle safely
+local function is_large_buffer(buf)
+  if vim.api.nvim_buf_line_count(buf) > 50000 then
+    return true
+  end
+  local ok, stats = pcall(vim.uv.fs_stat, vim.api.nvim_buf_get_name(buf))
+  return ok and stats and stats.size > (1.5 * 1024 * 1024)
+end
 
+-- Attach treesitter highlighting, auto-installing the parser if missing
+local function enable_highlighting(buf)
+  local lang = vim.treesitter.language.get_lang(vim.bo[buf].filetype)
+  if not lang then return end
+  local ok = pcall(vim.treesitter.start, buf, lang)
+  if not ok then
+    pcall(vim.cmd, 'TSInstall ' .. lang)
+  end
+end
+
+-- Use treesitter AST for code folding (files open fully expanded)
+local function enable_folding()
+  vim.wo.foldmethod = 'expr'
+  vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+  vim.wo.foldlevel = 99
+end
+
+local ts_group = vim.api.nvim_create_augroup('NativeTreesitterSetup', { clear = true })
 vim.api.nvim_create_autocmd('FileType', {
   group = ts_group,
-  desc = 'Enable native treesitter syntax highlighting',
+  desc = 'Enable native treesitter highlighting and folding',
   pattern = '*',
   callback = function(args)
-    local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
-    if not lang then return end
-    local ok = pcall(vim.treesitter.start, args.buf, lang)
-    if not ok then
-      -- Parser not installed, attempt to install it
-      pcall(vim.cmd, 'TSInstall ' .. lang)
-    end
-  end,
-})
-
-vim.api.nvim_create_autocmd('FileType', {
-  group = ts_group,
-  desc = 'Enable native treesitter AST folding',
-  pattern = '*',
-  callback = function()
-    vim.wo.foldmethod = 'expr'
-    vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-    vim.wo.foldlevel = 99
+    if is_large_buffer(args.buf) then return end
+    enable_highlighting(args.buf)
+    enable_folding()
   end,
 })
