@@ -31,6 +31,11 @@ opt.sidescrolloff = 8                  -- keep 8 columns left/right of cursor
 --   diff = "╱",                       -- deleted lines in diff mode
 --   eob = " ",                        -- hides ~ tildes after end of file
 -- }
+opt.autoread = true                    -- auto reload files changed outside nvim
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
+  command = 'checktime',
+})
+
 opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
 opt.swapfile = false                   -- no swap files (undofile handles recovery)
