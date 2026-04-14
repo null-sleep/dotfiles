@@ -40,7 +40,9 @@ Highlighting and folding are handled natively:
 - **Highlighting**: `vim.treesitter.start()` is attached per buffer via a `FileType` autocmd
 - **Folding**: AST-based folding via `vim.treesitter.foldexpr()` (files open fully expanded)
 - **Large files**: treesitter is skipped for buffers >50k lines or >1.5MB to prevent UI lag
-- **Auto-install**: missing parsers from `ensure_installed` are installed automatically on startup
+- **Auto-install on startup**: missing parsers from `ensure_installed` are installed automatically on startup
+- **Auto-install on open**: if a file is opened and its parser isn't installed, `TSInstall` is triggered automatically
+- **Auto-recompile on update**: a `PackChanged` autocmd detects when `nvim-treesitter` is updated and re-runs `TSUpdate` to recompile parsers
 
 Parsers are locked in `nvim-pack-lock.json` — commit this file to pin versions across machines.
 
