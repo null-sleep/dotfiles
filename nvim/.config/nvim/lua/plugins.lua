@@ -11,6 +11,12 @@ vim.pack.add({
   {
     src = gh('nvim-lua/plenary.nvim'),
   },
+  {
+    src = gh('nvim-telescope/telescope.nvim'),
+  },
+  {
+    src = gh('nvim-telescope/telescope-fzf-native.nvim'),
+  },
 })
 
 vim.cmd.packadd('nvim-web-devicons')
@@ -32,6 +38,28 @@ vim.api.nvim_create_autocmd('PackChanged', {
   end,
 })
 
+-- Compile fzf-native after install or update
+vim.api.nvim_create_autocmd('PackChanged', {
+  group = pack_group,
+  desc = 'Compile fzf-native after install or update',
+  callback = function(ev)
+    if ev.data.spec.name == 'telescope-fzf-native.nvim' and ev.data.kind == 'update' then
+      local plugin_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
+      vim.fn.system({ 'make', '-C', plugin_path })
+    end
+  end,
+})
+
+-- Compile fzf-native on first install if not already built
+pcall(function()
+  local fzf_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
+  local so_path = fzf_path .. '/build/libfzf.so'
+  local dylib_path = fzf_path .. '/build/libfzf.dylib'
+  if not vim.uv.fs_stat(so_path) and not vim.uv.fs_stat(dylib_path) then
+    vim.fn.system({ 'make', '-C', fzf_path })
+  end
+end)
+
 -- Install any missing parsers from the ensure_installed list
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
@@ -48,6 +76,20 @@ pcall(function()
     require('nvim-treesitter').install(to_install)
   end
 end)
+
+-- Load telescope and fzf-native
+vim.cmd.packadd('plenary.nvim')
+vim.cmd.packadd('telescope.nvim')
+vim.cmd.packadd('telescope-fzf-native.nvim')
+
+require('telescope').setup({
+  defaults = {
+    layout_strategy = 'horizontal',
+    file_ignore_patterns = { '%.git/', 'node_modules/' },
+  },
+})
+
+pcall(require('telescope').load_extension, 'fzf')
 
 -- Returns true if the buffer is too large for treesitter to handle safely
 local function is_large_buffer(buf)
