@@ -55,6 +55,7 @@ zstyle ':completion:*' completer _expand_alias _complete _ignored
 
 # Path Updates
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
 
 ## Claude env vars
 # export CLAUDE_CODE_USE_BEDROCK=1
@@ -113,6 +114,7 @@ alias gpf='git push --force-with-lease'
 alias gc='git commit'
 alias gca='git commit --amend'
 # alias gca='git commit --amend --no-edit'
+alias gco='git checkout'
 alias gcaa='git commit -a --amend --no-edit'
 alias gaa='git add --all'
 alias gau='git add -u' # Add only tracked files
@@ -147,8 +149,10 @@ fix_dock() {
 }
 
 # Create cache and completions dir and add to $fpath
-mkdir -p "$ZSH_CACHE_DIR/completions"
-(( ${fpath[(Ie)"$ZSH_CACHE_DIR/completions"]} )) || fpath=("$ZSH_CACHE_DIR/completions" $fpath)
+if [[ -n "$ZSH_CACHE_DIR" ]]; then
+  mkdir -p "$ZSH_CACHE_DIR/completions"
+  (( ${fpath[(Ie)"$ZSH_CACHE_DIR/completions"]} )) || fpath=("$ZSH_CACHE_DIR/completions" $fpath)
+fi
 
 # GO environment
 # GO111MODULE=on
