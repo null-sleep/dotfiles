@@ -120,7 +120,6 @@ alias gaa='git add --all'
 alias gau='git add -u' # Add only tracked files
 alias yolo='gcaa && gpf'
 alias gnb='git checkout -b'
-alias gds='git diff --staged'
 alias grb='git fetch origin &&  git rebase origin/$GIT_BASE_BRANCH'
 alias grbc='git rebase --continue'
 alias grba='git rebase --abort'
@@ -135,6 +134,15 @@ gd() {
     git diff
   else
     git diff HEAD~$1
+  fi
+}
+
+# Show git diff (including staged changes) for last n commits, default 1
+gds() {
+  if [ -z "$1" ]; then
+    git diff --staged
+  else
+    git diff --staged HEAD~$1
   fi
 }
 
