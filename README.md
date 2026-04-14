@@ -57,6 +57,42 @@ Parsers are locked in `nvim-pack-lock.json` — commit this file to pin versions
 | `:Inspect` | Show highlight groups under the cursor |
 | `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
 
+### Telescope
+
+Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-native` (compiled C extension) for faster sorting. Leader key is `<Space>`.
+
+**Keymaps:**
+
+| Keymap | Action |
+|---|---|
+| `<Space>sf` | Find files by name |
+| `<Space>sg` | Live grep (search file contents) |
+| `<Space>sb` | Switch between open buffers |
+| `<Space>sh` | Search help tags |
+| `<Space>sr` | Resume last search |
+
+**Inside the telescope window:**
+
+| Key | Action |
+|---|---|
+| Type anything | Fuzzy filter results |
+| `<C-n>` / `<C-p>` | Move down / up |
+| `<CR>` | Open in current window |
+| `<C-v>` | Open in vertical split |
+| `<C-x>` | Open in horizontal split |
+| `<C-t>` | Open in new tab |
+| `<Esc>` | Close |
+
+**Tips:**
+- In `<Space>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`
+- `<Space>sr` reopens the last search with the same query — useful when you close telescope and want to get back
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `:checkhealth telescope` | Verify telescope and fzf-native are working |
+
 ## ZSH
 
 TODO: Add ZSH install steps
