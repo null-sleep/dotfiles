@@ -17,6 +17,9 @@ vim.pack.add({
   {
     src = gh('nvim-telescope/telescope-fzf-native.nvim'),
   },
+  { src = gh('mason-org/mason.nvim') },
+  { src = gh('mason-org/mason-lspconfig.nvim') },
+  { src = gh('neovim/nvim-lspconfig') },
 })
 
 vim.cmd.packadd('nvim-web-devicons')
