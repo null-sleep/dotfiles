@@ -30,6 +30,31 @@ Neo Vim >= 12.0
 brew install nvim rg fzf fd font-hack-nerd-font tree-sitter-cli
 ```
 
+### Treesitter
+
+Treesitter is configured using nvim 0.12's native API — no plugin config table needed.
+The `nvim-treesitter` plugin is registered via `vim.pack` (nvim's built-in package manager)
+and is used solely for parser management (installing/updating parsers).
+
+Highlighting and folding are handled natively:
+- **Highlighting**: `vim.treesitter.start()` is attached per buffer via a `FileType` autocmd
+- **Folding**: AST-based folding via `vim.treesitter.foldexpr()` (files open fully expanded)
+- **Large files**: treesitter is skipped for buffers >50k lines or >1.5MB to prevent UI lag
+- **Auto-install**: missing parsers from `ensure_installed` are installed automatically on startup
+
+Parsers are locked in `nvim-pack-lock.json` — commit this file to pin versions across machines.
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `:TSUpdate` | Update all installed parsers |
+| `:TSUpdate <lang>` | Update a specific parser |
+| `:TSInstall <lang>` | Install a parser manually |
+| `:InspectTree` | View the parsed AST for the current buffer |
+| `:Inspect` | Show highlight groups under the cursor |
+| `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
+
 ## ZSH
 
 TODO: Add ZSH install steps
