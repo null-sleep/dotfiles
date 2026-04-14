@@ -1,12 +1,20 @@
 local gh = require('utils').gh
 
--- Install treesitter parsers via vim.pack
 vim.pack.add({
   {
     src = gh('nvim-treesitter/nvim-treesitter'),
     version = 'main', -- Required for nvim 0.12 compatibility
   },
+  {
+    src = gh('nvim-tree/nvim-web-devicons'),
+  },
+  {
+    src = gh('nvim-lua/plenary.nvim'),
+  },
 })
+
+vim.cmd.packadd('nvim-web-devicons')
+require('nvim-web-devicons').setup()
 
 -- Re-compile parsers automatically when nvim-treesitter is updated
 local pack_group = vim.api.nvim_create_augroup('NativePackHooks', { clear = true })
