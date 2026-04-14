@@ -24,6 +24,23 @@ vim.api.nvim_create_autocmd('PackChanged', {
   end,
 })
 
+-- Install any missing parsers from the ensure_installed list
+local ensure_installed = {
+  'lua', 'python', 'javascript', 'typescript', 'go',
+  'rust', 'markdown', 'json', 'yaml', 'ini', 'graphql',
+}
+
+pcall(function()
+  vim.cmd.packadd('nvim-treesitter')
+  local already_installed = require('nvim-treesitter.config').get_installed()
+  local to_install = vim.iter(ensure_installed)
+    :filter(function(p) return not vim.tbl_contains(already_installed, p) end)
+    :totable()
+  if #to_install > 0 then
+    require('nvim-treesitter').install(to_install)
+  end
+end)
+
 -- Returns true if the buffer is too large for treesitter to handle safely
 local function is_large_buffer(buf)
   if vim.api.nvim_buf_line_count(buf) > 50000 then

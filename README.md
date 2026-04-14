@@ -27,7 +27,7 @@ Then run `stow tmux`.
 Neo Vim >= 12.0
 
 ```bash
-brew install nvim rg fzf fd font-hack-nerd-font
+brew install nvim rg fzf fd font-hack-nerd-font tree-sitter-cli
 ```
 
 ## ZSH
