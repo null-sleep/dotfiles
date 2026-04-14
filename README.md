@@ -93,6 +93,50 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 |---|---|
 | `:checkhealth telescope` | Verify telescope and fzf-native are working |
 
+### LSP (Language Server Protocol)
+
+IDE features powered by nvim's built-in LSP client. Three plugins work together:
+- **mason.nvim** — installs and manages language servers (`:Mason` to open UI)
+- **mason-lspconfig.nvim** — bridges mason and lspconfig, auto-installs servers on startup
+- **nvim-lspconfig** — pre-configured setups for each language server
+
+Configured servers: `lua_ls`, `pyright`, `ts_ls`, `gopls`, `rust_analyzer`
+
+To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vim.lsp.config()` call.
+
+**Mason commands:**
+
+| Command | Description |
+|---|---|
+| `:Mason` | Open mason UI to install/update/remove servers |
+| `:MasonInstall <server>` | Install a specific server |
+| `:MasonUninstall <server>` | Remove a server |
+| `:MasonUpdate` | Update all installed servers |
+
+**LSP keymaps** (active only in buffers with an attached server):
+
+| Keymap | Action |
+|---|---|
+| `gd` | Go to definition |
+| `gD` | Go to declaration |
+| `gi` | Go to implementation |
+| `gy` | Go to type definition |
+| `gr` | References (opens in telescope) |
+| `K` | Hover docs |
+| `<C-k>` | Signature help |
+| `<Space>rn` | Rename symbol |
+| `<Space>ca` | Code actions |
+| `<Space>e` | Show diagnostic float |
+| `[d` / `]d` | Jump to previous / next diagnostic |
+| `<Space>q` | Send diagnostics to location list |
+
+**Diagnostic commands:**
+
+| Command | Description |
+|---|---|
+| `:checkhealth lsp` | Verify LSP health and active clients |
+| `:lua print(vim.inspect(vim.lsp.get_clients()))` | Show all active LSP clients |
+
 ## ZSH
 
 TODO: Add ZSH install steps
