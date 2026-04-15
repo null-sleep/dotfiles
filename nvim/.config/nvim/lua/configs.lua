@@ -42,10 +42,3 @@ opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
 opt.swapfile = false                   -- no swap files (undofile handles recovery)
 
--- Colorscheme — theme sources are registered in lua/themes.lua.
--- packadd loads the active theme into the runtimepath before applying it.
--- plugins.lua registers all themes with vim.pack.add but they land in opt/,
--- so an explicit packadd is required here (configs.lua runs before plugins.lua).
-local themes = require('themes')
-vim.cmd.packadd(themes.active)
-vim.cmd.colorscheme(themes.active)
