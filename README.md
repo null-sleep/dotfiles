@@ -27,8 +27,15 @@ Then run `stow tmux`.
 Neo Vim >= 12.0
 
 ```bash
-brew install nvim rg fzf fd font-hack-nerd-font tree-sitter-cli
+brew install nvim rg fzf fd font-hack-nerd-font tree-sitter-cli curl git
 ```
+
+On first launch nvim will:
+1. Download all plugins via `vim.pack` (native package manager)
+2. Compile `telescope-fzf-native` via `make`
+3. Install treesitter parsers for configured languages
+4. Download the `blink.cmp` fuzzy binary (pre-built, requires `curl`)
+5. Install LSP servers via mason (requires internet)
 
 ### Treesitter
 
@@ -136,6 +143,41 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 |---|---|
 | `:checkhealth lsp` | Verify LSP health and active clients |
 | `:lua print(vim.inspect(vim.lsp.get_clients()))` | Show all active LSP clients |
+
+### Autocompletion (blink.cmp)
+
+Completion engine written in Rust — faster than nvim-cmp with better fuzzy matching.
+Installed via `vim.pack` pinned to the latest `v1.x.x` release tag.
+
+On first launch, blink.cmp automatically downloads a pre-built Rust binary for fuzzy matching
+(requires `curl` and `git`). You'll see a notification while it downloads. No manual steps needed.
+
+**Sources:** LSP, file paths, snippets, buffer words
+
+**Keymaps (inside completion menu):**
+
+| Key | Action |
+|---|---|
+| `<Tab>` | Next item (falls back to normal Tab when menu is closed) |
+| `<S-Tab>` | Previous item |
+| `<CR>` | Accept selected item (falls back to normal Enter) |
+| `<C-u>` / `<C-d>` | Scroll documentation popup up / down |
+| `<C-space>` | Manually trigger completion |
+| `<C-e>` | Cancel / close completion menu |
+
+**Signature help** is enabled automatically — shows function parameter hints when typing inside `()`.
+
+**If the binary fails to download** (no internet, corporate proxy, etc.), blink.cmp silently falls
+back to a pure Lua implementation with no action required. To force a re-download:
+```
+:lua require('blink.cmp.fuzzy.download').ensure_downloaded(function() end)
+```
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `:checkhealth blink.cmp` | Verify blink.cmp and fuzzy binary status |
 
 ## ZSH
 
