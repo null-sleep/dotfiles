@@ -36,5 +36,5 @@ require('lualine').setup({
   },
 
   -- Auto-hide statusline in these plugin windows and show a minimal one instead.
-  extensions = { 'quickfix', 'mason', 'telescope' },
+  extensions = { 'quickfix', 'mason' },
 })
