@@ -108,4 +108,34 @@ M.setup = {
   end,
 }
 
+-- Highlight overrides — applied after colorscheme so they always win.
+-- Two levels:
+--   M.overrides.global  — applied for every theme
+--   M.overrides[theme]  — applied only when that plugin is active (keyed by plugin name)
+--
+-- Each entry is a table of { GroupName = { attr = value, ... } }.
+-- See :help nvim_set_hl for all valid attributes.
+-- Examples: { fg = '#ff0000' }, { bold = true }, { link = 'Comment' }
+M.overrides = {
+  global = {
+    -- Examples (uncomment to use):
+    -- Comment    = { italic = true },
+    -- LineNr     = { fg = '#888888' },
+  },
+
+  catppuccin = {
+    -- Examples:
+    -- Normal     = { bg = 'NONE' },  -- transparent background
+  },
+
+  tokyonight = {},
+  ['rose-pine'] = {},
+  kanagawa = {},
+  dracula = {},
+  gruvbox = {},
+  solarized = {},
+  zenbones = {},
+  ['github-nvim-theme'] = {},
+}
+
 return M
