@@ -25,7 +25,7 @@ require('lualine').setup({
     lualine_a = { 'mode' },
     lualine_b = { 'branch', 'diff', 'diagnostics' },
     lualine_c = { { 'filename', path = 1 } },  -- path=1: relative path
-    lualine_x = { 'lsp_status', 'filetype' },
+    lualine_x = { 'lsp_status' },
     lualine_y = { 'searchcount', 'progress' },
     lualine_z = { 'location' },
   },
