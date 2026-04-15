@@ -22,10 +22,11 @@ M.sources = {
 -- Set M.active to any variant name directly (e.g. 'catppuccin-latte').
 M.variants = {
   catppuccin = {
-    'catppuccin-latte',    -- light
-    'catppuccin-frappe',   -- dark, low contrast
-    'catppuccin-macchiato',-- dark, medium contrast
-    'catppuccin-mocha',    -- dark, high contrast (default)
+    'catppuccin',          -- alias for mocha (default)
+    'catppuccin-latte',    -- light; warm creamy whites with pastel accents
+    'catppuccin-frappe',   -- dark, low contrast; muted cool grays with soft pastels
+    'catppuccin-macchiato',-- dark, medium contrast; deeper grays, more vivid accents
+    'catppuccin-mocha',    -- dark, high contrast; richest darks with vibrant pastel accents
   },
   tokyonight = {
     'tokyonight',          -- dark (default)
@@ -60,18 +61,18 @@ M.variants = {
     'github_light_colorblind',
   },
   zenbones = {
-    'zenbones',      -- base; minimal palette, highlights via contrast + font variation
-    'zenwritten',    -- zero hue/saturation version of zenbones
-    'neobones',      -- inspired by neovim.io
-    'vimbones',      -- inspired by vim.org
-    'rosebones',     -- inspired by Rosé Pine
-    'forestbones',   -- inspired by Everforest
-    'nordbones',     -- inspired by Nord
-    'tokyobones',    -- inspired by Tokyo Night
-    'seoulbones',    -- inspired by Seoul256
-    'duckbones',     -- inspired by Spaceduck
-    'zenburned',     -- inspired by Zenburn
-    'kanagawabones', -- inspired by Kanagawa
+    'zenbones',      -- warm earth tones; low saturation, highlights via contrast + font variation
+    'zenwritten',    -- fully desaturated/grayscale; zero hue, maximum readability
+    'neobones',      -- cool blue-black bg, neon green accents; high contrast, inspired by neovim.io
+    'vimbones',      -- warm cream light theme; earthy muted tones (rose, sage, burnt orange), inspired by vim.org
+    'rosebones',     -- warm dark purple bg, rosy pinks and mauves; romantic aesthetic, inspired by Rosé Pine
+    'forestbones',   -- cool dark bg, forest greens and earth tones; nature-inspired, inspired by Everforest
+    'nordbones',     -- cool arctic blues and cyans on gray-blue bg; minimal, inspired by Nord
+    'tokyobones',    -- vivid blues, pinks and teals on very dark blue bg; modern, inspired by Tokyo Night
+    'seoulbones',    -- soft pastel pinks, teals and greens on medium gray; gentle contrast, inspired by Seoul256
+    'duckbones',     -- bright oranges, cyans and purples on very dark bg; high contrast, inspired by Spaceduck
+    'zenburned',     -- warm beige fg on medium-dark gray bg; muted earth tones, comfortable, inspired by Zenburn
+    'kanagawabones', -- warm gold/pale yellow fg on dark purple-gray bg; muted with purple undertones, inspired by Kanagawa
   },
   solarized = {
     'solarized',           -- uses background=light/dark to switch
