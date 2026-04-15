@@ -13,6 +13,10 @@
       "rev": "ae752c13e95fb7c5f58da4b5123cb804ea7568ee",
       "src": "https://github.com/Mofiqul/dracula.nvim"
     },
+    "everforest-nvim": {
+      "rev": "cf08aa67fc96946a01177ae483b7631733b4b5e6",
+      "src": "https://github.com/neanias/everforest-nvim"
+    },
     "github-nvim-theme": {
       "rev": "c106c9472154d6b2c74b74565616b877ae8ed31d",
       "src": "https://github.com/projekt0n/github-nvim-theme"
@@ -25,6 +29,10 @@
       "rev": "aef7f5cec0a40dbe7f3304214850c472e2264b10",
       "src": "https://github.com/rebelot/kanagawa.nvim"
     },
+    "lualine.nvim": {
+      "rev": "a905eeebc4e63fdc48b5135d3bf8aea5618fb21c",
+      "src": "https://github.com/nvim-lualine/lualine.nvim"
+    },
     "mason-lspconfig.nvim": {
       "rev": "0a3b42c3e503df87aef6d6513e13148381495c3a",
       "src": "https://github.com/mason-org/mason-lspconfig.nvim"
@@ -32,6 +40,18 @@
     "mason.nvim": {
       "rev": "b03fb0f20bc1d43daf558cda981a2be22e73ac42",
       "src": "https://github.com/mason-org/mason.nvim"
+    },
+    "midnight.nvim": {
+      "rev": "fe062a6f2e5bd77cd8a260f61e6e12789eaf4f13",
+      "src": "https://github.com/dasupradyumna/midnight.nvim"
+    },
+    "modus-themes.nvim": {
+      "rev": "17a64464c27c1be605adca13dbe48f2f402fe107",
+      "src": "https://github.com/miikanissi/modus-themes.nvim"
+    },
+    "nordic.nvim": {
+      "rev": "9f757428264ef1fcd1703e17702d3a28f307a2f7",
+      "src": "https://github.com/AlexvZyl/nordic.nvim"
     },
     "nvim-lspconfig": {
       "rev": "8a9378a822719346a0288fa004dab302ca3c0a8f",
@@ -45,6 +65,14 @@
     "nvim-web-devicons": {
       "rev": "c72328a5494b4502947a022fe69c0c47e53b6aa6",
       "src": "https://github.com/nvim-tree/nvim-web-devicons"
+    },
+    "onedark.nvim": {
+      "rev": "df4792accde9db0043121f32628bcf8e645d9aea",
+      "src": "https://github.com/navarasu/onedark.nvim"
+    },
+    "oxocarbon.nvim": {
+      "rev": "a7ba74849a00546a311f8c146320b433900393e7",
+      "src": "https://github.com/nyoom-engineering/oxocarbon.nvim"
     },
     "plenary.nvim": {
       "rev": "74b06c6c75e4eeb3108ec01852001636d85a932b",
@@ -69,6 +97,10 @@
     "tokyonight.nvim": {
       "rev": "cdc07ac78467a233fd62c493de29a17e0cf2b2b6",
       "src": "https://github.com/folke/tokyonight.nvim"
+    },
+    "vscode.nvim": {
+      "rev": "aa1102a7e15195c9cca22730b09224a7f7745ba8",
+      "src": "https://github.com/Mofiqul/vscode.nvim"
     },
     "zenbones.nvim": {
       "rev": "22b7fb75593412e0dc81b4bdefae718e9e84aa82",
