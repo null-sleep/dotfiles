@@ -1,6 +1,7 @@
 local gh = require('utils').gh
+local themes = require('themes')
 
-vim.pack.add({
+vim.pack.add(vim.list_extend({
   {
     src = gh('nvim-treesitter/nvim-treesitter'),
     version = 'main', -- Required for nvim 0.12 compatibility
@@ -21,7 +22,7 @@ vim.pack.add({
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
-})
+}, themes.sources))
 
 vim.cmd.packadd('nvim-web-devicons')
 require('nvim-web-devicons').setup()
