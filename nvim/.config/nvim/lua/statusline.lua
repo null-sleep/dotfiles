@@ -23,8 +23,8 @@ require('lualine').setup({
 
   sections = {
     lualine_a = { 'mode' },
-    lualine_b = { 'branch', 'diff', 'diagnostics' },
-    lualine_c = { { 'filename', path = 1 } },  -- path=1: relative path
+    lualine_b = { { 'filename', path = 1 } },  -- path=1: relative path
+    lualine_c = { 'branch', 'diff', 'diagnostics' },
     lualine_x = { 'lsp_status' },
     lualine_y = { 'searchcount', 'progress' },
     lualine_z = { 'location' },
