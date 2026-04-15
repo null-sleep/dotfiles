@@ -116,6 +116,9 @@ M.setup = {
 -- Each entry is a table of { GroupName = { attr = value, ... } }.
 -- See :help nvim_set_hl for all valid attributes.
 -- Examples: { fg = '#ff0000' }, { bold = true }, { link = 'Comment' }
+--
+-- Tip: to find the highlight group name for anything on screen,
+-- position the cursor on it and run :Inspect
 M.overrides = {
   global = {
     -- Examples (uncomment to use):
