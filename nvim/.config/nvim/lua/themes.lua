@@ -201,6 +201,8 @@ M.setup = {
       styles = {
         comments = { italic = true },
       },
+      on_colors = function(_) end,
+      on_highlights = function(_, _) end,
     })
   end,
 }
