@@ -24,8 +24,10 @@ vim.pack.add(vim.list_extend({
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
 }, themes.sources))
 
--- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath
+-- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
+-- Some themes require a setup() call before colorscheme; run it if defined in themes.lua.
 vim.cmd.packadd(themes.active)
+if themes.setup[themes.active] then themes.setup[themes.active]() end
 vim.cmd.colorscheme(themes.active)
 
 vim.cmd.packadd('nvim-web-devicons')
