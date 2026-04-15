@@ -16,6 +16,14 @@ M.sources = {
   { src = gh('projekt0n/github-nvim-theme'),         name = 'github-nvim-theme' },
   { src = gh('zenbones-theme/zenbones.nvim') },
   { src = gh('maxmx03/solarized.nvim') },
+  -- high contrast
+  { src = gh('nyoom-engineering/oxocarbon.nvim') },
+  { src = gh('miikanissi/modus-themes.nvim') },
+  { src = gh('dasupradyumna/midnight.nvim') },
+  { src = gh('navarasu/onedark.nvim') },
+  { src = gh('Mofiqul/vscode.nvim') },
+  { src = gh('neanias/everforest-nvim') },
+  { src = gh('AlexvZyl/nordic.nvim') },
 }
 
 -- Available variants per theme — informational, not used programmatically.
@@ -84,6 +92,44 @@ M.variants = {
   gruvbox = {
     'gruvbox',             -- uses background=light/dark to switch
   },
+  -- high contrast
+  oxocarbon = {
+    'oxocarbon',           -- uses background=light/dark to switch; pitch black bg (dark), bright white (light); electric cyan/purple accents; IBM Carbon design language
+  },
+  ['modus-themes'] = {
+    -- dark
+    'modus_vivendi',           -- dark default; WCAG AAA contrast (7:1 minimum); neutral bg, high legibility
+    'modus_vivendi_tinted',    -- dark with subtle warm tint on bg
+    'modus_vivendi_deuteranopia', -- dark, red-green colorblind safe
+    'modus_vivendi_tritanopia',   -- dark, blue-yellow colorblind safe
+    -- light
+    'modus_operandi',          -- light default; WCAG AAA contrast; clean white bg, maximum legibility
+    'modus_operandi_tinted',   -- light with subtle warm tint on bg
+    'modus_operandi_deuteranopia', -- light, red-green colorblind safe
+    'modus_operandi_tritanopia',   -- light, blue-yellow colorblind safe
+  },
+  midnight = {
+    'midnight',            -- single dark variant; very dark blue-black bg; desaturated cool palette, warmer syntax accents; GUI only
+  },
+  onedark = {
+    'onedark',             -- dark default; cool-toned, balanced saturation; Atom One Dark palette
+    -- variants set via setup() style option, not separate colorscheme names
+    -- 'darker': deeper blacks, higher contrast
+    -- 'cool':   cooler blue undertones
+    -- 'deep':   dark navy bg with vivid accents
+    -- 'warm':   warm gray bg, reduced blue
+    -- 'warmer': even warmer, amber tones
+    -- 'light':  light bg, muted warm palette
+  },
+  vscode = {
+    'vscode',              -- uses background=light/dark to switch; exact VS Code Dark+/Light+ palette; cool-toned dark, muted saturation
+  },
+  everforest = {
+    'everforest',          -- uses background=light/dark + setup() background option (hard/medium/soft) to control contrast; natural greens and earthy tones; warm, moderate saturation
+  },
+  nordic = {
+    'nordic',              -- single variant; warmer deeper Nord with Aurora accents; reduced blue saturation; cool with vibrant highlights
+  },
 }
 
 -- Maps every variant name back to its plugin name, so plugins.lua can find
@@ -105,6 +151,31 @@ M.setup = {
   end,
   ['github-nvim-theme'] = function()
     require('github-theme').setup()
+  end,
+  -- onedark requires both setup() and load() — style selects the variant
+  onedark = function()
+    require('onedark').setup({
+      style = 'dark',  -- dark | darker | cool | deep | warm | warmer | light
+      code_style = {
+        comments = 'italic',
+      },
+    })
+    require('onedark').load()
+  end,
+  -- everforest contrast is controlled here rather than via colorscheme name
+  everforest = function()
+    require('everforest').setup({
+      background = 'hard',  -- hard | medium | soft
+    })
+  end,
+  -- modus-themes: style controls which base variant loads when using 'auto'
+  ['modus-themes'] = function()
+    require('modus-themes').setup({
+      style = 'auto',  -- auto (follows background), modus_operandi, modus_vivendi
+      styles = {
+        comments = { italic = true },
+      },
+    })
   end,
 }
 
@@ -139,6 +210,14 @@ M.overrides = {
   solarized = {},
   zenbones = {},
   ['github-nvim-theme'] = {},
+  -- high contrast
+  oxocarbon = {},
+  ['modus-themes'] = {},
+  midnight = {},
+  onedark = {},
+  vscode = {},
+  everforest = {},
+  nordic = {},
 }
 
 return M
