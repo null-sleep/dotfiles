@@ -35,6 +35,9 @@ antigen theme robbyrussell
 # Antigen configuration ends
 antigen apply
 
+# Remove git alias set by oh-my-zsh git plugin to allow git function definitions
+unalias git 2>/dev/null
+
 # Set limit on the number of open file descriptors
 ulimit -n 1024
 
@@ -56,6 +59,7 @@ zstyle ':completion:*' completer _expand_alias _complete _ignored
 # Path Updates
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
 
 ## Claude env vars
 # export CLAUDE_CODE_USE_BEDROCK=1
