@@ -22,6 +22,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
+  { src = gh('nvim-lualine/lualine.nvim') },
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
