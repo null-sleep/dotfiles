@@ -34,7 +34,8 @@ vim.cmd.packadd(active_plugin)
 if themes.background[themes.active] then
   vim.opt.background = themes.background[themes.active]
 end
-if themes.setup[active_plugin] then themes.setup[active_plugin]() end
+local active_theme = themes.themes[active_plugin]
+if active_theme and active_theme.setup then active_theme.setup() end
 vim.cmd.colorscheme(themes.active)
 
 -- Apply highlight overrides — global first, then per-theme on top.
@@ -44,9 +45,9 @@ local function apply_overrides(overrides)
     vim.api.nvim_set_hl(0, group, attrs)
   end
 end
-apply_overrides(themes.overrides.global)
-if themes.overrides[active_plugin] then
-  apply_overrides(themes.overrides[active_plugin])
+apply_overrides(themes.global_overrides)
+if active_theme and active_theme.overrides then
+  apply_overrides(active_theme.overrides)
 end
 
 vim.cmd.packadd('nvim-web-devicons')
