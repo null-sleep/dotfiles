@@ -60,18 +60,18 @@ M.variants = {
     'github_light_colorblind',
   },
   zenbones = {
-    'zenbones',
-    'zenwritten',
-    'neobones',
-    'vimbones',
-    'rosebones',
-    'forestbones',
-    'nordbones',
-    'tokyobones',
-    'seoulbones',
-    'duckbones',
-    'zenburned',
-    'kanagawabones',
+    'zenbones',      -- base; minimal palette, highlights via contrast + font variation
+    'zenwritten',    -- zero hue/saturation version of zenbones
+    'neobones',      -- inspired by neovim.io
+    'vimbones',      -- inspired by vim.org
+    'rosebones',     -- inspired by Rosé Pine
+    'forestbones',   -- inspired by Everforest
+    'nordbones',     -- inspired by Nord
+    'tokyobones',    -- inspired by Tokyo Night
+    'seoulbones',    -- inspired by Seoul256
+    'duckbones',     -- inspired by Spaceduck
+    'zenburned',     -- inspired by Zenburn
+    'kanagawabones', -- inspired by Kanagawa
   },
   solarized = {
     'solarized',           -- uses background=light/dark to switch
