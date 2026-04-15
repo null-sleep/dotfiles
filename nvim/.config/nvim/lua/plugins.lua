@@ -25,9 +25,11 @@ vim.pack.add(vim.list_extend({
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
--- Some themes require a setup() call before colorscheme; run it if defined in themes.lua.
-vim.cmd.packadd(themes.active)
-if themes.setup[themes.active] then themes.setup[themes.active]() end
+-- M.active may be a variant name (e.g. 'catppuccin-latte'); resolve back to the plugin
+-- name for packadd and setup(), then apply the variant name as the colorscheme.
+local active_plugin = themes.plugin[themes.active] or themes.active
+vim.cmd.packadd(active_plugin)
+if themes.setup[active_plugin] then themes.setup[active_plugin]() end
 vim.cmd.colorscheme(themes.active)
 
 vim.cmd.packadd('nvim-web-devicons')
