@@ -132,6 +132,32 @@ M.variants = {
   },
 }
 
+-- Background hint per variant — plugins.lua sets vim.opt.background automatically.
+-- Only needed for themes that use background=light/dark instead of separate names.
+-- Themes with distinct variant names (catppuccin-latte, tokyonight-day, etc.) don't
+-- need entries here — their name is unambiguous.
+M.background = {
+  -- gruvbox
+  gruvbox            = 'dark',
+  -- solarized
+  solarized          = 'dark',
+  -- oxocarbon
+  oxocarbon          = 'dark',
+  -- vscode
+  vscode             = 'dark',
+  -- everforest (hard/medium/soft set in M.setup)
+  everforest         = 'dark',
+  -- modus — explicit variant names already encode light/dark, but list here for clarity
+  modus_vivendi               = 'dark',
+  modus_vivendi_tinted        = 'dark',
+  modus_vivendi_deuteranopia  = 'dark',
+  modus_vivendi_tritanopia    = 'dark',
+  modus_operandi              = 'light',
+  modus_operandi_tinted       = 'light',
+  modus_operandi_deuteranopia = 'light',
+  modus_operandi_tritanopia   = 'light',
+}
+
 -- Maps every variant name back to its plugin name, so plugins.lua can find
 -- the right setup() entry even when M.active is set to a variant.
 M.plugin = {}

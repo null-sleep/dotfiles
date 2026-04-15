@@ -29,6 +29,11 @@ vim.pack.add(vim.list_extend({
 -- name for packadd and setup(), then apply the variant name as the colorscheme.
 local active_plugin = themes.plugin[themes.active] or themes.active
 vim.cmd.packadd(active_plugin)
+-- Set background before setup()/colorscheme so themes that use light/dark switching
+-- pick up the right palette. M.background only needs entries for ambiguous names.
+if themes.background[themes.active] then
+  vim.opt.background = themes.background[themes.active]
+end
 if themes.setup[active_plugin] then themes.setup[active_plugin]() end
 vim.cmd.colorscheme(themes.active)
 
