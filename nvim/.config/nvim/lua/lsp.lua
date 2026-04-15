@@ -51,7 +51,12 @@ local function on_attach(_, buf)
   map('n', 'gr', ok and builtin.lsp_references or vim.lsp.buf.references, 'LSP: References')
 end
 
--- capabilities: swap for cmp_nvim_lsp.default_capabilities() when adding nvim-cmp
+-- nvim 0.11+ with vim.lsp.config handles capabilities automatically, so no
+-- explicit blink.cmp capabilities merge is required. In older setups (or with
+-- nvim-lspconfig v2), you would replace this line with:
+--   require('blink.cmp').get_lsp_capabilities(nil, true)
+-- which merges blink's completionItem capabilities (snippet support, etc.)
+-- on top of vim.lsp.protocol.make_client_capabilities().
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 
 -- diagnostic display

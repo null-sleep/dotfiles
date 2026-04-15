@@ -20,6 +20,7 @@ vim.pack.add({
   { src = gh('mason-org/mason.nvim') },
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
+  { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
 })
 
 vim.cmd.packadd('nvim-web-devicons')
