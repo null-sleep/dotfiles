@@ -4,4 +4,5 @@ require('keymaps')
 require('completion')
 require('lsp')
 require('statusline')
+require('session')
 

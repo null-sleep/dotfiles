@@ -23,6 +23,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('neovim/nvim-lspconfig') },
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
   { src = gh('nvim-lualine/lualine.nvim') },
+  { src = gh('folke/persistence.nvim') },
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
