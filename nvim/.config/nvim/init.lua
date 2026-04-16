@@ -5,4 +5,5 @@ require('completion')
 require('lsp')
 require('statusline')
 require('session')
+require('git')
 
