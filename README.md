@@ -179,6 +179,34 @@ back to a pure Lua implementation with no action required. To force a re-downloa
 |---|---|
 | `:checkhealth blink.cmp` | Verify blink.cmp and fuzzy binary status |
 
+### Git Signs and Scrollbar (gitsigns.nvim + satellite.nvim)
+
+**gitsigns.nvim** shows changed, added, and deleted lines in the gutter next to line numbers:
+
+| Sign | Meaning |
+|---|---|
+| `┃` | Added line |
+| `┃` | Changed line |
+| `_` / `‾` | Deleted line (below / above) |
+| `~` | Changed and deleted |
+| `┆` | Untracked file |
+
+**satellite.nvim** adds a scrollbar on the right edge of the focused window with colour-coded marks showing where things are across the whole file:
+
+- Git changes (add/change/delete) — matches gitsigns colours
+- LSP diagnostics (error/warn/info/hint)
+- Search results
+- Quickfix list items
+
+Useful for navigating large files — you can see at a glance where modified code, errors, and search matches are without scrolling.
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `:SatelliteRefresh` | Force refresh scrollbar if out of sync |
+| `:SatelliteDisable` / `:SatelliteEnable` | Toggle scrollbar |
+
 ### Session Management (persistence.nvim)
 
 Automatically saves and restores open buffers per directory. Sessions are saved on quit and
