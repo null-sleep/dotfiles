@@ -146,9 +146,12 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 
 **Diagnostic toggles:**
 
+Diagnostic virtual text and gutter signs are **off by default** — underlines remain active
+so diagnostics are still visible on hover (`K` or `<Space>e`).
+
 | Keymap | Action |
 |---|---|
-| `<Space>td` | Toggle inline diagnostic annotations (virtual text) on/off |
+| `<Space>td` | Toggle diagnostic virtual text and gutter signs on/off |
 
 ### Autocompletion (blink.cmp)
 
