@@ -179,6 +179,59 @@ back to a pure Lua implementation with no action required. To force a re-downloa
 |---|---|
 | `:checkhealth blink.cmp` | Verify blink.cmp and fuzzy binary status |
 
+### Session Management (persistence.nvim)
+
+Automatically saves and restores open buffers per directory. Sessions are saved on quit and
+can be restored on next launch. With `branch = true`, each git branch gets its own session —
+switching branches won't mix up your open files.
+
+**Sessions are saved automatically on quit.** To restore, use the keymaps below after opening
+nvim in the same directory.
+
+**Keymaps:**
+
+| Keymap | Action |
+|---|---|
+| `<Space>qs` | Restore session for the current directory |
+| `<Space>qS` | Pick from all saved sessions |
+| `<Space>ql` | Restore the last session (regardless of directory) |
+| `<Space>qd` | Stop saving — quit without persisting current state |
+
+### Statusline (lualine.nvim)
+
+Statusline that automatically matches the active colorscheme. Shows mode, filename, git branch,
+diff counts, diagnostics, LSP status, search count, progress, and cursor position.
+
+**Layout:**
+
+```
+| mode | filename | branch diff diagnostics | ... | lsp_status | searchcount progress | line:col |
+```
+
+- **LSP status** — only visible when a language server is attached to the current buffer
+- **Search count** — only visible while a `/` search is active
+- Theme updates automatically when you change `M.active` in `lua/themes.lua`
+
+### Themes
+
+All themes are configured in `lua/themes.lua`. To switch themes, change `M.active`:
+
+```lua
+M.active = 'catppuccin'        -- default dark
+M.active = 'catppuccin-latte'  -- light variant
+M.active = 'tokyonight-day'    -- light variant
+M.active = 'rose-pine-dawn'    -- light variant
+```
+
+See `M.variants` in `lua/themes.lua` for all available colorscheme names with descriptions.
+
+To customise a theme, edit its `setup` function or `overrides` table in `lua/themes.lua`.
+
+**Tip:** position the cursor on any UI element and run `:Inspect` to find its highlight group name for overrides.
+
+**Installed themes:** catppuccin, tokyonight, gruvbox, rose-pine, kanagawa, dracula, solarized,
+github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode, everforest, nordic.
+
 ## ZSH
 
 TODO: Add ZSH install steps
