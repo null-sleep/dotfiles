@@ -24,12 +24,12 @@ opt.scrolloff = 10                     -- keep 10 lines above/below cursor
 -- to the left and right of the cursor when side-scrolling long lines.
 opt.sidescrolloff = 8                  -- keep 8 columns left/right of cursor
 opt.fillchars = {
-  foldopen  = "",                     -- icon for open folds
-  foldclose = "",                     -- icon for closed folds
-  fold      = " ",                    -- fill character for fold lines
-  foldsep   = " ",                    -- separator between fold columns
-  diff      = "╱",                    -- deleted lines in diff mode
-  eob       = " ",                    -- hides ~ tildes after end of file
+  foldopen  = '▾',                    -- icon for open folds
+  foldclose = '▸',                    -- icon for closed folds
+  fold      = ' ',                    -- fill character for fold lines
+  foldsep   = ' ',                    -- separator between fold columns
+  diff      = '╱',                    -- deleted lines in diff mode
+  eob       = ' ',                    -- hides ~ tildes after end of file
 }
 opt.autoread = true                    -- auto reload files changed outside nvim
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
