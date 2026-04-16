@@ -16,7 +16,7 @@ require('gitsigns').setup({
 vim.cmd.packadd('satellite.nvim')
 
 require('satellite').setup({
-  current_only = false,   -- show scrollbar on all windows, not just the focused one
+  current_only = true,    -- show scrollbar only on the focused window
   winblend     = 50,      -- scrollbar transparency (0 = opaque, 100 = invisible)
   width        = 2,
   excluded_filetypes = { 'TelescopePrompt', 'mason', 'lazy' },
