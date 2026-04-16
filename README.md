@@ -144,6 +144,12 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 | `:checkhealth lsp` | Verify LSP health and active clients |
 | `:lua print(vim.inspect(vim.lsp.get_clients()))` | Show all active LSP clients |
 
+**Diagnostic toggles:**
+
+| Keymap | Action |
+|---|---|
+| `<Space>td` | Toggle inline diagnostic annotations (virtual text) on/off |
+
 ### Autocompletion (blink.cmp)
 
 Completion engine written in Rust — faster than nvim-cmp with better fuzzy matching.
