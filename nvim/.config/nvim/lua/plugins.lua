@@ -24,6 +24,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
   { src = gh('nvim-lualine/lualine.nvim') },
   { src = gh('folke/persistence.nvim') },
+  { src = gh('folke/which-key.nvim') },
   { src = gh('lewis6991/gitsigns.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
 }, themes.sources))
