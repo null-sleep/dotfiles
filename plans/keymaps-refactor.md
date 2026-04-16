@@ -66,6 +66,57 @@ Add `<leader>?` as a top-level which-key entry (not a group, just a single key).
 
 ---
 
+### 4. Audit conflicts and establish opinionated prefix conventions
+
+**Goal:** `<Space>x_` prefixes should be semantically consistent. Not pedantic — flexibility
+where it makes sense — but the prefix should give a strong hint about what the key does.
+
+**Proposed prefix map:**
+
+| Prefix | Purpose | Notes |
+|---|---|---|
+| `<leader>s` | Search (telescope) | Already consistent |
+| `<leader>t` | Toggle | Already in use for diagnostics. Should be the only toggle prefix |
+| `<leader>g` | Go to (LSP navigation) | `gd`, `gr` etc are unprefixed — reserve `<leader>g` for broader git/go-to actions |
+| `<leader>h` | Git Hunk | Already planned for gitsigns |
+| `<leader>c` | Code actions | `<leader>ca` already in use |
+| `<leader>r` | Rename/Refactor | `<leader>rn` already in use |
+| `<leader>d` | Diagnostics | Float, list, jump |
+| `<leader>q` | Session (Quit/restore) | Free `<leader>q` for session exclusively |
+| `<leader>?` | Help/Cheatsheet | Top-level, no subgroup needed |
+
+**Conflicts to resolve:**
+- `<leader>q` — used by both persistence (session) and `vim.diagnostic.setloclist` (LSP). Fix: move diagnostic list to `<leader>dl`
+- `<leader>td` — planned for gitsigns toggle_deleted but already used for diagnostics toggle. Fix: rename diagnostics toggle to `<leader>td` stays, gitsigns toggle_deleted moves to `<leader>tD` (capital D)
+- `<leader>e` — currently LSP show diagnostic float. Could move to `<leader>de` to sit under diagnostics prefix
+
+**How others approach this:**
+
+The most widely referenced community convention is **LazyVim's keymap scheme** (folke's opinionated
+nvim distribution). It uses:
+- `<leader>b` — buffers
+- `<leader>c` — code (LSP actions)
+- `<leader>f` — find/files (telescope)
+- `<leader>g` — git
+- `<leader>l` — LSP
+- `<leader>q` — quit/session
+- `<leader>s` — search
+- `<leader>t` — terminal (not toggles — toggles live under `<leader>u` for "UI")
+- `<leader>u` — UI toggles (line numbers, wrap, diagnostics, etc.)
+- `<leader>w` — windows
+- `<leader>x` — diagnostics/quickfix (trouble.nvim)
+
+**Key insight from LazyVim:** toggles live under `<leader>u` (UI), not `<leader>t` (terminal).
+This is worth considering — if you ever add a terminal plugin, `<leader>t` would conflict.
+Options:
+1. Keep `<leader>t` for toggles and use `<leader>T` or another prefix for terminal
+2. Move toggles to `<leader>u` (UI) following LazyVim convention
+
+Recommendation: keep `<leader>t` for toggles for now (no terminal plugin yet), but note the
+potential conflict and decide when adding one.
+
+---
+
 ## Files to change
 - `nvim/.config/nvim/lua/keymaps.lua` — reorganise, add sections, move session keymaps here
 - `nvim/.config/nvim/lua/session.lua` — remove keymaps (keep only setup)
