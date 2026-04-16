@@ -24,6 +24,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
   { src = gh('nvim-lualine/lualine.nvim') },
   { src = gh('folke/persistence.nvim') },
+  { src = gh('lewis6991/gitsigns.nvim') },
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
