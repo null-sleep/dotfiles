@@ -77,6 +77,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Space>sb` | Switch between open buffers |
 | `<Space>sh` | Search help tags |
 | `<Space>sr` | Resume last search |
+| `<Space>s/` | Fuzzy search inside current buffer |
 
 **Inside the telescope window:**
 
@@ -233,6 +234,20 @@ nvim in the same directory.
 | `<Space>qS` | Pick from all saved sessions |
 | `<Space>ql` | Restore the last session (regardless of directory) |
 | `<Space>qd` | Stop saving — quit without persisting current state |
+
+### Keymap Discovery (which-key.nvim)
+
+Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
+grouped by category. Helps discover keymaps without needing to remember them all.
+
+| Prefix | Group |
+|---|---|
+| `<Space>s` | Search |
+| `<Space>q` | Session |
+| `<Space>t` | Toggle |
+| `<Space>h` | Git hunk |
+
+Dismiss the popup with `<Esc>`. The popup appears after 300ms by default.
 
 ### Statusline (lualine.nvim)
 
