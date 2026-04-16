@@ -7,10 +7,13 @@ vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help ta
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
 
--- Toggle LSP diagnostic virtual text (inline annotations).
+-- Toggle LSP diagnostics (virtual text + gutter signs).
 -- Note: when gitsigns on_attach keymaps are added, <leader>td will be used
 -- for toggle_deleted — at that point rename this to <leader>tv.
 vim.keymap.set('n', '<leader>td', function()
   local current = vim.diagnostic.config().virtual_text
-  vim.diagnostic.config({ virtual_text = not current })
-end, { desc = 'Toggle: Diagnostic virtual text' })
+  vim.diagnostic.config({
+    virtual_text = not current,
+    signs        = not current,
+  })
+end, { desc = 'Toggle: Diagnostics' })
