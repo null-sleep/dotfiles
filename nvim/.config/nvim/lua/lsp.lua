@@ -60,9 +60,11 @@ end
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 
 -- diagnostic display
+-- virtual_text and signs are off by default — toggle with <Space>td.
+-- Underline and float remain active so you can still hover to see diagnostics.
 vim.diagnostic.config({
-  virtual_text     = { prefix = '●', source = 'if_many' },
-  signs            = true,
+  virtual_text     = false,
+  signs            = false,
   underline        = true,
   update_in_insert = false,  -- no flicker while typing (matches updatetime = 300)
   severity_sort    = true,
