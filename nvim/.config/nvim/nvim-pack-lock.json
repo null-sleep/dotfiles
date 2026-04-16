@@ -90,6 +90,10 @@
       "rev": "9504524e5ed0e326534698f637f9d038ba4cd0ee",
       "src": "https://github.com/rose-pine/neovim"
     },
+    "satellite.nvim": {
+      "rev": "62b0aa1a941e35e694e8a50b589150bcca8c084d",
+      "src": "https://github.com/lewis6991/satellite.nvim"
+    },
     "solarized.nvim": {
       "rev": "c0dfe1cbfabd93b546baf5f1408f5df7e02e2050",
       "src": "https://github.com/maxmx03/solarized.nvim"
