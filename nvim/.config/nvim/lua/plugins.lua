@@ -121,7 +121,17 @@ vim.cmd.packadd('telescope-fzf-native.nvim')
 require('telescope').setup({
   defaults = {
     layout_strategy = 'horizontal',
+    layout_config = {
+      horizontal = { width = 0.9 },
+    },
     file_ignore_patterns = { '%.git/', 'node_modules/' },
+    -- path_display controls how file paths are shown in results:
+    --   'truncate'       — clip from the left, filename/rightmost path always visible
+    --   'filename_first' — show filename before path: "file.go  path/to/"
+    --   'smart'          — show only enough path to make each result unique
+    --   'shorten'        — abbreviate each dir to first letter: "p/c/a/file.go"
+    --   'tail'           — filename only, no path
+    path_display = { 'smart' },
   },
 })
 
