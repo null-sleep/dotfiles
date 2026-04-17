@@ -22,12 +22,23 @@ dotfiles/tmux/.config/tmux/tmux.conf
 
 Then run `stow tmux`.
 
+## Fonts
+
+```bash
+# Hack Nerd Font (used by nvim for icons and glyphs)
+brew install font-hack-nerd-font
+
+# SF Mono Square (SF Mono patched with Nerd Font glyphs and square CJK characters)
+brew tap delphinus/sfmono-square
+brew install sfmono-square
+```
+
 ## Neo Vim
 
 Neo Vim >= 12.0
 
 ```bash
-brew install nvim rg fzf fd font-hack-nerd-font tree-sitter-cli curl git
+brew install nvim rg fzf fd tree-sitter-cli curl git
 ```
 
 On first launch nvim will:
