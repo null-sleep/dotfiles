@@ -7,4 +7,5 @@ require('statusline')
 require('session')
 require('git')
 require('whichkey')
+require('autosave')
 

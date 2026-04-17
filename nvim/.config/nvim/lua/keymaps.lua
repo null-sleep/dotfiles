@@ -6,6 +6,7 @@ vim.keymap.set('n', '<leader>sb', builtin.buffers,     { desc = 'Search: Buffers
 vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
+vim.keymap.set('n', '<leader>sm', builtin.git_status,                  { desc = 'Search: Modified files' })
 
 -- Toggle LSP diagnostics (virtual text + gutter signs).
 -- Note: when gitsigns on_attach keymaps are added, <leader>td will be used
