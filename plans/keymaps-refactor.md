@@ -117,6 +117,101 @@ potential conflict and decide when adding one.
 
 ---
 
+### 5. Learn and optimise which-key usage
+
+**Goal:** Understand which-key well enough to use it as a live keymap reference, then configure
+it so it surfaces as much useful information as possible.
+
+#### How which-key works
+
+- Press `<Space>` and wait 300ms — a popup appears showing all registered leader keymaps
+- Press a prefix (e.g. `<Space>s`) — popup narrows to show only that group
+- Works for any key sequence, not just `<leader>` — try `g`, `[`, `]`, `z` in normal mode
+- Keys with a `desc` field in `vim.keymap.set` show up automatically — no extra registration needed
+- `wk.add()` only needs to be called for group labels and buffer-local keymaps (which don't auto-register)
+
+**Other useful triggers:**
+- `g` — shows all `g*` motions (gd, gr, gc, etc.)
+- `[` / `]` — shows all bracket jumps (diagnostics, hunks, buffers)
+- `z` — shows fold commands and spell operations
+- `"` / `@` — shows registers and macros
+
+which-key intercepts any key press in normal mode and waits to see if you type more — it's not
+specific to `<leader>`. Keys with built-in Neovim bindings (like `g`, `[`, `z`) will already
+show up automatically. The `group = 'name'` label in `wk.add` adds a heading to that section
+of the popup, making it easier to scan. Without it, the keys still appear but under a generic
+`+g` header.
+
+#### What makes a which-key setup great
+
+1. **Every keymap has a `desc`** — which-key shows the raw key if desc is missing, which is unhelpful.
+   All `vim.keymap.set` calls should have `desc = 'Group: Action'` format.
+
+2. **Group labels for all prefixes** — without a group label, the prefix just shows as `+prefix`.
+   Register every `<leader>x` prefix you use with `wk.add({ '<leader>x', group = 'Name' })`.
+
+3. **Icons on groups** — which-key v3 supports per-group icons (Nerd Font glyphs). Makes the
+   popup scannable at a glance. Add `icon = ''` to each group entry.
+
+4. **Buffer-local keymaps registered explicitly** — LSP keymaps set with `buffer = buf` in
+   `on_attach` don't appear in which-key unless registered. Fix: call `wk.add()` from inside
+   `on_attach`, passing `buffer = buf`.
+
+5. **`noremap = true` everywhere** — which-key respects this; inconsistency causes unexpected behaviour.
+
+#### Changes needed to whichkey.lua
+
+- Add icons to existing 4 groups
+- Add group labels for all LSP/diagnostic prefixes: `<leader>r`, `<leader>c`, `<leader>d`
+- Add `g` prefix group to document LSP navigation keys (`gd`, `gr`, `gi`, `gy`)
+- Add `[` / `]` group for jump keys
+
+#### Register LSP keymaps buffer-locally
+
+In `lsp.lua` `on_attach`, after the `map()` calls:
+```lua
+local wk = require('which-key')
+wk.add({
+  { 'gd',          desc = 'LSP: Go to definition',     buffer = buf },
+  { 'gD',          desc = 'LSP: Go to declaration',    buffer = buf },
+  { 'gi',          desc = 'LSP: Go to implementation', buffer = buf },
+  { 'gy',          desc = 'LSP: Go to type definition',buffer = buf },
+  { 'gr',          desc = 'LSP: References',           buffer = buf },
+  { 'K',           desc = 'LSP: Hover docs',           buffer = buf },
+  { '<C-k>',       desc = 'LSP: Signature help',       buffer = buf },
+  { '<leader>r',   group = 'Rename',    icon = '󰑕',    buffer = buf },
+  { '<leader>c',   group = 'Code',      icon = '',    buffer = buf },
+  { '<leader>d',   group = 'Diagnostics', icon = '',  buffer = buf },
+})
+```
+
+This ensures `<Space>r`, `<Space>c`, `<Space>d` only appear in the popup when a LSP server
+is active (buffer-local = not shown globally), which avoids noise in non-code files.
+
+#### Final whichkey.lua target state
+
+```lua
+wk.add({
+  -- Global groups (always visible)
+  { '<leader>s', group = 'Search',    icon = '' },
+  { '<leader>q', group = 'Session',   icon = '' },
+  { '<leader>t', group = 'Toggle',    icon = '' },
+  { '<leader>h', group = 'Git hunk',  icon = '' },
+  { '<leader>?', desc  = 'Open cheatsheet' },
+
+  -- Non-leader prefixes (normal mode)
+  { 'g',  group = 'Go to / LSP nav' },
+  { '[',  group = 'Jump prev' },
+  { ']',  group = 'Jump next' },
+  { 'z',  group = 'Fold / spell' },
+})
+```
+
+LSP groups (`<leader>r`, `<leader>c`, `<leader>d`) registered buffer-locally from `on_attach`
+so they only show when a language server is attached.
+
+---
+
 ## Files to change
 - `nvim/.config/nvim/lua/keymaps.lua` — reorganise, add sections, move session keymaps here
 - `nvim/.config/nvim/lua/session.lua` — remove keymaps (keep only setup)
