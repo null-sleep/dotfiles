@@ -27,6 +27,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('folke/which-key.nvim') },
   { src = gh('lewis6991/gitsigns.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
+  { src = gh('okuuva/auto-save.nvim') },
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
@@ -131,7 +132,15 @@ require('telescope').setup({
     --   'smart'          — show only enough path to make each result unique
     --   'shorten'        — abbreviate each dir to first letter: "p/c/a/file.go"
     --   'tail'           — filename only, no path
-    path_display = { 'smart' },
+    path_display = { 'truncate' },
+    git_icons = {
+      added     = '+',
+      changed   = '~',
+      deleted   = '-',
+      renamed   = '→',
+      unmerged  = '!',
+      untracked = '?',
+    },
   },
 })
 
