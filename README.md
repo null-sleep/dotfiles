@@ -246,6 +246,7 @@ nvim in the same directory.
 | `<Space>ql` | Restore the last session (regardless of directory) |
 | `<Space>qd` | Stop saving — quit without persisting current state |
 
+
 ### Keymap Discovery (which-key.nvim)
 
 Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
@@ -294,6 +295,58 @@ To customise a theme, edit its `setup` function or `overrides` table in `lua/the
 
 **Installed themes:** catppuccin, tokyonight, gruvbox, rose-pine, kanagawa, dracula, solarized,
 github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode, everforest, nordic.
+
+### Navigation
+
+**Scrolling:**
+
+| Key | Action |
+|---|---|
+| `Ctrl+d` | Scroll down half page |
+| `Ctrl+u` | Scroll up half page |
+| `Ctrl+f` | Scroll down full page |
+| `Ctrl+b` | Scroll up full page |
+
+**Jumping:**
+
+| Key | Action |
+|---|---|
+| `gg` | Top of file |
+| `G` | Bottom of file |
+| `{number}G` | Jump to line number |
+| `%` | Jump to matching bracket |
+| `{` / `}` | Previous / next blank line |
+
+**Viewport (move screen, cursor stays):**
+
+| Key | Action |
+|---|---|
+| `zz` | Center current line on screen |
+| `zt` | Current line to top |
+| `zb` | Current line to bottom |
+
+**Search:**
+
+| Key | Action |
+|---|---|
+| `/term` | Search forward |
+| `n` / `N` | Next / previous match |
+| `*` / `#` | Next / previous occurrence of word under cursor |
+
+**Common remaps:**
+
+| Remap | What it does | Why |
+|---|---|---|
+| `jk` → `<Esc>` | Exit insert mode without reaching for Escape | Faster than `<Esc>`, keeps hands on home row |
+| `<C-h/j/k/l>` → split nav | Navigate between splits | Default `<C-w>h` is two keystrokes |
+| `H` / `L` → prev/next buffer | Cycle open buffers | Default H/L (screen top/bottom) are rarely used |
+| `<` / `>` in visual → stay in visual | Indent without losing selection | Default drops you back to normal mode |
+| `J` in visual → move lines down | Move selected lines down | More intuitive than `:m '>+1` |
+| `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
+| `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |
+| `p` in visual → paste without yanking | Paste over selection, keep register | Default replaces your clipboard with deleted text |
+
+These are not configured yet — listed here for reference when customising `keymaps.lua`.
 
 ## ZSH
 
