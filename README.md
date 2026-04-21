@@ -103,6 +103,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Esc>` | Close |
 
 **Tips:**
+- Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
 - In `<Space>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`
 - `<Space>sr` reopens the last search with the same query — useful when you close telescope and want to get back
 
@@ -247,6 +248,18 @@ nvim in the same directory.
 | `<Space>qd` | Stop saving — quit without persisting current state |
 
 
+### General Keymaps
+
+| Keymap | Action |
+|---|---|
+| `:Q` / `<Space>qq` | Quit all |
+| `y` / `Y` | Yank to system clipboard (dd, x, c stay in Neovim register) |
+| `p` (visual) | Paste without clobbering register |
+| `<` / `>` (visual) | Indent/dedent and stay in visual mode |
+| `Ctrl+h/j/k/l` | Navigate between splits |
+| `<Space>yp` | Yank relative file path |
+| `<Space>yP` | Yank absolute file path |
+
 ### Keymap Discovery (which-key.nvim)
 
 Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
@@ -258,6 +271,11 @@ grouped by category. Helps discover keymaps without needing to remember them all
 | `<Space>q` | Session |
 | `<Space>t` | Toggle |
 | `<Space>h` | Git hunk |
+| `<Space>y` | Yank |
+| `<Space>r` | Refactor |
+| `<Space>c` | Code |
+| `g` | Go to |
+| `[` / `]` | Previous / Next |
 
 Dismiss the popup with `<Esc>`. The popup appears after 300ms by default.
 
@@ -347,6 +365,37 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 | `p` in visual → paste without yanking | Paste over selection, keep register | Default replaces your clipboard with deleted text |
 
 These are not configured yet — listed here for reference when customising `keymaps.lua`.
+
+## iTerm2 Panes
+
+**Splitting:**
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+D` | Split vertically (side by side) |
+| `Cmd+Shift+D` | Split horizontally (top/bottom) |
+
+**Switching panes:**
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+[` / `Cmd+]` | Cycle through panes |
+| `Cmd+Option+Arrow` | Move to pane in that direction |
+
+**Tabs:**
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+T` | New tab |
+| `Cmd+W` | Close current pane/tab |
+| `Cmd+1-9` | Jump to tab by number |
+| `Cmd+Left/Right` | Previous/next tab |
+
+**Resizing panes:**
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+Ctrl+Arrow` | Resize pane in that direction |
 
 ## ZSH
 

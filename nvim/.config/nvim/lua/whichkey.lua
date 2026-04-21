@@ -9,8 +9,14 @@ wk.setup({
 
 -- Group labels — shown as headings in the which-key popup
 wk.add({
-  { '<leader>s', group = 'Search' },
-  { '<leader>q', group = 'Session' },
-  { '<leader>t', group = 'Toggle' },
-  { '<leader>h', group = 'Git hunk' },
+  { '<leader>s',  group = 'Search' },
+  { '<leader>q',  group = 'Session' },
+  { '<leader>t',  group = 'Toggle' },
+  { '<leader>h',  group = 'Git hunk' },
+  { '<leader>y',  group = 'Yank' },
+  { '<leader>r',  group = 'Refactor' },
+  { '<leader>c',  group = 'Code' },
+  { 'g',          group = 'Go to' },
+  { '[',          group = 'Previous' },
+  { ']',          group = 'Next' },
 })

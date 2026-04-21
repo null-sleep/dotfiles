@@ -28,6 +28,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('lewis6991/gitsigns.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('okuuva/auto-save.nvim') },
+  { src = gh('MeanderingProgrammer/render-markdown.nvim') },
 }, themes.sources))
 
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
@@ -142,9 +143,23 @@ require('telescope').setup({
       untracked = '?',
     },
   },
+  -- Include hidden files/dirs (e.g. .github/) in search results.
+  -- .git/ and node_modules/ are still excluded via file_ignore_patterns above.
+  pickers = {
+    find_files = {
+      hidden = true,
+    },
+    live_grep = {
+      additional_args = { '--hidden' },
+    },
+  },
 })
 
 pcall(require('telescope').load_extension, 'fzf')
+
+-- Render markdown with icons, headings, code blocks, tables
+vim.cmd.packadd('render-markdown.nvim')
+require('render-markdown').setup({})
 
 -- Returns true if the buffer is too large for treesitter to handle safely
 local function is_large_buffer(buf)

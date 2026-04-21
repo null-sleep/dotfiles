@@ -7,6 +7,29 @@ vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help ta
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sm', builtin.git_status,                  { desc = 'Search: Modified files' })
+vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc = 'Search: Symbols (workspace)' })
+vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
+
+-- Yank to system clipboard (dd, x, c stay in Neovim register)
+vim.keymap.set({'n', 'v'}, 'y', '"+y', { desc = 'Yank to system clipboard' })
+vim.keymap.set('n', 'Y', '"+Y', { desc = 'Yank line to system clipboard' })
+
+-- Stay in visual mode after indent/dedent
+vim.keymap.set('v', '<', '<gv', { desc = 'Dedent and reselect' })
+vim.keymap.set('v', '>', '>gv', { desc = 'Indent and reselect' })
+
+-- Paste over selection without clobbering the register
+vim.keymap.set('v', 'p', '"_dP', { desc = 'Paste without yanking replaced text' })
+
+-- Split navigation
+vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move to left split' })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Move to split below' })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Move to split above' })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
+
+-- Quit
+vim.api.nvim_create_user_command('Q', 'qa', {})
+vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { desc = 'Quit all' })
 
 -- Toggle LSP diagnostics (virtual text + gutter signs).
 -- Note: when gitsigns on_attach keymaps are added, <leader>td will be used
@@ -18,3 +41,12 @@ vim.keymap.set('n', '<leader>td', function()
     signs        = not current,
   })
 end, { desc = 'Toggle: Diagnostics' })
+
+-- Yank file paths to system clipboard
+vim.keymap.set('n', '<leader>yp', function()
+  vim.fn.setreg('+', vim.fn.expand('%'))
+end, { desc = 'Yank: Relative path' })
+
+vim.keymap.set('n', '<leader>yP', function()
+  vim.fn.setreg('+', vim.fn.expand('%:p'))
+end, { desc = 'Yank: Absolute path' })
