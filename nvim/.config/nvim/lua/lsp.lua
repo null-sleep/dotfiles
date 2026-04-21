@@ -90,7 +90,11 @@ vim.lsp.config('ts_ls',          base)
 
 vim.lsp.config('gopls', vim.tbl_deep_extend('force', base, {
   settings = {
-    gopls = { analyses = { unusedparams = true, shadow = true }, staticcheck = true },
+    gopls = {
+      analyses    = { unusedparams = true, shadow = true },
+      staticcheck = true,
+      symbolScope = 'workspace',
+    },
   },
 }))
 
