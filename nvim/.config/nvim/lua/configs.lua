@@ -1,5 +1,8 @@
 vim.g.mapleader = ' '
 
+-- Disable unused providers to suppress checkhealth warnings
+vim.g.loaded_python3_provider = 0
+
 local opt = vim.opt
 
 opt.number = true                      -- show line numbers
