@@ -57,6 +57,17 @@ rustup component add clippy rustfmt rust-analyzer rust-src
 
 Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
 
+## Colima
+
+Free container runtime for macOS — a Docker Desktop alternative.
+
+```bash
+brew install colima docker
+colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
+```
+
+The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
+
 ## Neo Vim
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
