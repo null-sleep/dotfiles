@@ -139,6 +139,12 @@ gds() {
   fi
 }
 
+# Show diff of only the Nth commit (default: last commit)
+gdn() {
+  local n="${1:-1}"
+  git diff HEAD~$n HEAD~$(($n - 1))
+}
+
 # Claude Alias
 alias c=claude
 
