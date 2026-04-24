@@ -33,6 +33,30 @@ brew tap delphinus/sfmono-square
 brew install sfmono-square
 ```
 
+## Languages
+
+Language runtimes required by nvim LSP servers and treesitter.
+
+```bash
+# Go
+brew install go
+
+# Node (for ts_ls)
+brew install node
+
+# Python (for pyright)
+brew install python
+
+# Elixir (includes Erlang)
+brew install elixir
+
+# Rust (via rustup — do not use brew install rust)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup component add clippy rustfmt rust-analyzer rust-src
+```
+
+Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
+
 ## Neo Vim
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
@@ -429,7 +453,7 @@ To import color themes manually: **iTerm2 → Settings → Profiles → Colors �
 
 ```bash
 # Dependencies
-brew install fzf ripgrep direnv go
+brew install fzf ripgrep direnv
 
 # Install Antigen (zsh plugin manager)
 mkdir -p ~/.antigen
