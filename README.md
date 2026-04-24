@@ -35,10 +35,20 @@ brew install sfmono-square
 
 ## Neo Vim
 
-Neo Vim >= 12.0
+Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
 
 ```bash
 brew install nvim rg fzf fd tree-sitter-cli curl git
+```
+
+Compile tools: `telescope-fzf-native` needs `make` (ships with Xcode Command Line Tools — run `xcode-select --install` if missing).
+
+Then stow and launch:
+
+```bash
+cd ~/src/dotfiles
+stow nvim
+nvim
 ```
 
 On first launch nvim will:
