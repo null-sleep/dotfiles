@@ -377,7 +377,24 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 
 These are not configured yet — listed here for reference when customising `keymaps.lua`.
 
-## iTerm2 Panes
+## iTerm2
+
+### Setup
+
+Color themes (Dracula, Nord) and an exported settings snapshot are stored in `iterm2/`.
+
+To sync settings automatically across machines:
+
+1. **iTerm2 → Settings → General → Preferences**
+2. Check **"Load preferences from a custom folder or URL"**
+3. Set path to `~/src/dotfiles/iterm2`
+4. Check **"Save changes to folder when iTerm2 quits"**
+
+This writes a `com.googlecode.iterm2.plist` to the folder. On a new machine, clone the repo and point iTerm2 to the same path — all profiles, keybindings, and appearance settings will load automatically.
+
+To import color themes manually: **iTerm2 → Settings → Profiles → Colors → Color Presets → Import** and select the `.itermcolors` files.
+
+### Panes
 
 **Splitting:**
 
