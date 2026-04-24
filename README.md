@@ -415,6 +415,16 @@ source ~/.zshrc_config.zsh
 
 Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
 
+### Excluding machine-specific configs from stow
+
+Some configs (e.g. `.zshrc_bitgo.zsh`) should only be stowed on certain machines. To exclude a file, create `zsh/.stow-local-ignore` with one pattern per line:
+
+```
+\.zshrc_bitgo\.zsh
+```
+
+Then restow to apply: `stow -R zsh`. This file is gitignored so it stays local to each machine.
+
 ## Stow
 
 To exclude files or folders from being symlinked, create a `.stow-local-ignore` file in the package directory (e.g. `nvim/.stow-local-ignore`):

@@ -156,9 +156,5 @@ fi
 export GOPATH=$HOME/go
 export PATH=$PATH:$(go env GOPATH)/bin
 
-# Evals
-
-eval "$(direnv hook zsh)"
-
 # Source company-specific config if present
 [[ -f ~/.zshrc_bitgo.zsh ]] && source ~/.zshrc_bitgo.zsh
