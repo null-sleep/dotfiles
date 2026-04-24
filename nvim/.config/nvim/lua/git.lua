@@ -16,8 +16,17 @@ require('gitsigns').setup({
       vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
     end
 
-    map('n', '<leader>hb', function() gs.blame_line({ full = true }) end, 'Git hunk: Blame line')
-    map('n', '<leader>tb', gs.toggle_current_line_blame,                  'Toggle: Inline blame')
+    -- Navigation
+    map('n', ']c', function() gs.nav_hunk('next') end, 'Git hunk: Next')
+    map('n', '[c', function() gs.nav_hunk('prev') end, 'Git hunk: Previous')
+
+    -- Actions
+    map('n', '<leader>hs', gs.stage_hunk,                                  'Git hunk: Stage')
+    map('n', '<leader>hr', gs.reset_hunk,                                  'Git hunk: Reset')
+    map('n', '<leader>hu', gs.undo_stage_hunk,                             'Git hunk: Undo stage')
+    map('n', '<leader>hp', gs.preview_hunk,                                'Git hunk: Preview')
+    map('n', '<leader>hb', function() gs.blame_line({ full = true }) end,  'Git hunk: Blame line')
+    map('n', '<leader>tb', gs.toggle_current_line_blame,                   'Toggle: Inline blame')
   end,
 })
 
