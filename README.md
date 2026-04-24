@@ -63,7 +63,12 @@ Free container runtime for macOS — a Docker Desktop alternative.
 
 ```bash
 brew install colima docker
+
+# Apple Silicon
 colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
+
+# Intel
+colima start --cpu 2 --memory 4
 ```
 
 The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
