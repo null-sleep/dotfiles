@@ -42,7 +42,7 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHo
   command = 'checktime',
 })
 -- Poll for external changes every 1s (catches edits when nvim has no focus)
-local timer = vim.uv.new_timer()
+local timer = assert(vim.uv.new_timer())
 timer:start(1000, 1000, vim.schedule_wrap(function()
   if vim.api.nvim_get_mode().mode == 'n' then
     vim.cmd('checktime')
