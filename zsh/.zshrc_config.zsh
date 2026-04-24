@@ -1,42 +1,46 @@
-source ~/.antigen/antigen.zsh
+if [[ -f ~/.antigen/antigen.zsh ]]; then
+  source ~/.antigen/antigen.zsh
 
-antigen use oh-my-zsh
+  antigen use oh-my-zsh
 
-# Install autocompletion for ripgrep
-# https://github.com/odefault_bundhmyzsh/ohmyzsh/tree/master/plugins/ripgrep
-antigen bundle ripgrep
+  # Install autocompletion for ripgrep
+  # https://github.com/odefault_bundhmyzsh/ohmyzsh/tree/master/plugins/ripgrep
+  antigen bundle ripgrep
 
-# Prefix a command with sudo by double-tapping ESC
-# https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/sudo
-# antigen bundle sudo
+  # Prefix a command with sudo by double-tapping ESC
+  # https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/sudo
+  # antigen bundle sudo
 
-# Syntax highlighting on the prompt as you type commands
-antigen bundle zsh-users/zsh-syntax-highlighting
+  # Syntax highlighting on the prompt as you type commands
+  antigen bundle zsh-users/zsh-syntax-highlighting
 
-antigen bundle z
-antigen bundle git
-antigen bundle brew
-antigen bundle macos
-antigen bundle iterm2
-antigen bundle themes
-antigen bundle docker
-antigen bundle podman
-antigen bundle kubectl
-antigen bundle command-not-found
-antigen bundle zsh-users/zsh-autosuggestions
+  antigen bundle z
+  antigen bundle git
+  antigen bundle brew
+  antigen bundle macos
+  antigen bundle iterm2
+  antigen bundle themes
+  antigen bundle docker
+  antigen bundle podman
+  antigen bundle kubectl
+  antigen bundle command-not-found
+  antigen bundle zsh-users/zsh-autosuggestions
+
+  # Theme
+  ZSH_THEME="robbyrussell"
+  antigen theme robbyrussell
+
+  # Antigen configuration ends
+  antigen apply
+
+  # Remove git alias set by oh-my-zsh git plugin to allow git function definitions
+  unalias git 2>/dev/null
+else
+  echo "Antigen not found. Run: mkdir -p ~/.antigen && curl -L git.io/antigen > ~/.antigen/antigen.zsh"
+fi
 
 # antigen bundle ptavares/zsh-direnv
 [[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
-
-# Theme
-ZSH_THEME="robbyrussell"
-antigen theme robbyrussell
-
-# Antigen configuration ends
-antigen apply
-
-# Remove git alias set by oh-my-zsh git plugin to allow git function definitions
-unalias git 2>/dev/null
 
 # Set limit on the number of open file descriptors
 ulimit -n 1024
