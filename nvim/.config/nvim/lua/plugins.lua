@@ -31,6 +31,20 @@ vim.pack.add(vim.list_extend({
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
 }, themes.sources))
 
+-- Warn about orphaned plugins (on disk but not in vim.pack.add list)
+vim.defer_fn(function()
+  local orphans = vim.iter(vim.pack.get({ info = false }))
+    :filter(function(x) return not x.active end)
+    :map(function(x) return x.spec.name end)
+    :totable()
+  if #orphans > 0 then
+    vim.notify(
+      'Orphaned plugins (remove with :lua vim.pack.del({...})):\n  ' .. table.concat(orphans, '\n  '),
+      vim.log.levels.WARN
+    )
+  end
+end, 1000)
+
 -- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
 -- M.active may be a variant name (e.g. 'catppuccin-latte'); resolve back to the plugin
 -- name for packadd and setup(), then apply the variant name as the colorscheme.
