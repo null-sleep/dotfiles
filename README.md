@@ -401,29 +401,38 @@ These are not configured yet — listed here for reference when customising `key
 ## ZSH
 
 ```bash
-brew install z
+# Dependencies
+brew install fzf ripgrep direnv go
 
 # Install Antigen (zsh plugin manager)
+mkdir -p ~/.antigen
 curl -L git.io/antigen > ~/.antigen/antigen.zsh
+
+# Install zsh-direnv plugin
+git clone https://github.com/ptavares/zsh-direnv.git ~/.zsh-direnv
 ```
 
-Then add to your `~/.zshrc`:
+Then stow and create your `~/.zshrc`:
 
 ```bash
-source ~/.zshrc_config.zsh
+cd ~/src/dotfiles
+stow zsh
+
+# Create ~/.zshrc if it doesn't exist
+echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 ```
 
-Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
+### Company-specific config
 
-### Excluding machine-specific configs from stow
-
-Some configs (e.g. `.zshrc_work.zsh`) should only be stowed on certain machines. To exclude a file, create `zsh/.stow-local-ignore` with one pattern per line:
+The general config conditionally sources `~/.zshrc_work.zsh` if it exists. On machines where you don't want it, exclude it from stow by creating `zsh/.stow-local-ignore`:
 
 ```
 \.zshrc_work\.zsh
 ```
 
 Then restow to apply: `stow -R zsh`. This file is gitignored so it stays local to each machine.
+
+Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
 
 ## Stow
 
