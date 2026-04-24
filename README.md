@@ -399,9 +399,18 @@ These are not configured yet — listed here for reference when customising `key
 
 ## ZSH
 
-TODO: Add ZSH install steps
+```bash
+brew install z
 
-Add `source ~/.zshrc_config.zsh` in you `zshrc`
+# Install Antigen (zsh plugin manager)
+curl -L git.io/antigen > ~/.antigen/antigen.zsh
+```
+
+Then add to your `~/.zshrc`:
+
+```bash
+source ~/.zshrc_config.zsh
+```
 
 Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
 
