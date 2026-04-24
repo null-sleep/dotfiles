@@ -9,6 +9,7 @@ vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 
 vim.keymap.set('n', '<leader>sm', builtin.git_status,                  { desc = 'Search: Modified files' })
 vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
+vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
 
 -- Yank to system clipboard (dd, x, c stay in Neovim register)
 vim.keymap.set({'n', 'v'}, 'y', '"+y', { desc = 'Yank to system clipboard' })
