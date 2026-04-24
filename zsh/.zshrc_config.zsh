@@ -1,4 +1,4 @@
-source /Users/dhruvjauhar/antigen.zsh
+source ~/.antigen/antigen.zsh
 
 antigen use oh-my-zsh
 
@@ -26,7 +26,7 @@ antigen bundle command-not-found
 antigen bundle zsh-users/zsh-autosuggestions
 
 # antigen bundle ptavares/zsh-direnv
-source ~/.zsh-direnv/zsh-direnv.plugin.zsh
+[[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
 
 # Theme
 ZSH_THEME="robbyrussell"
@@ -58,8 +58,10 @@ zstyle ':completion:*' completer _expand_alias _complete _ignored
 
 # Path Updates
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
+# Homebrew: Apple Silicon uses /opt/homebrew, Intel uses /usr/local (already in PATH by default)
+[[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
+# Rust
+export PATH="$HOME/.cargo/bin:$PATH"
 
 ## Claude env vars
 # export CLAUDE_CODE_USE_BEDROCK=1
@@ -141,6 +143,8 @@ gd() {
   fi
 }
 
+# Remove alias from `antigen bundle git` if it exists to allow function definition
+unalias gds 2>/dev/null
 # Show git diff (including staged changes) for last n commits, default 1
 gds() {
   if [ -z "$1" ]; then
