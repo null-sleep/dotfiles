@@ -131,7 +131,7 @@ IDE features powered by nvim's built-in LSP client. Three plugins work together:
 - **mason-lspconfig.nvim** — bridges mason and lspconfig, auto-installs servers on startup
 - **nvim-lspconfig** — pre-configured setups for each language server
 
-Configured servers: `lua_ls`, `pyright`, `ts_ls`, `gopls`, `rust_analyzer`
+Configured servers: `lua_ls`, `pyright`, `ts_ls`, `gopls`, `rust_analyzer`, `elixirls`
 
 To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vim.lsp.config()` call.
 

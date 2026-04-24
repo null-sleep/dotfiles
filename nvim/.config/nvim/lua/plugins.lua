@@ -115,7 +115,7 @@ end)
 -- Install any missing parsers from the ensure_installed list
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
-  'rust', 'markdown', 'json', 'yaml', 'ini', 'graphql',
+  'rust', 'elixir', 'markdown', 'json', 'yaml', 'ini', 'graphql',
 }
 
 pcall(function()

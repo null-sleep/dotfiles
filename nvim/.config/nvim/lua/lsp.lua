@@ -23,6 +23,7 @@ require('mason-lspconfig').setup({
     'ts_ls',
     'gopls',
     'rust_analyzer',
+    'elixirls',
   },
   automatic_installation = true,
 })
@@ -102,4 +103,6 @@ vim.lsp.config('rust_analyzer', vim.tbl_deep_extend('force', base, {
   settings = { ['rust-analyzer'] = { checkOnSave = { command = 'clippy' } } },
 }))
 
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer' })
+vim.lsp.config('elixirls',      base)
+
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls' })
