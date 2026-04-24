@@ -31,9 +31,20 @@ opt.fillchars = {
   eob       = ' ',                    -- hides ~ tildes after end of file
 }
 opt.autoread = true                    -- auto reload files changed outside nvim
-vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
+-- FocusGained:  terminal regains focus (e.g. alt-tab back)
+-- BufEnter:     switching to a buffer (e.g. changing splits/tabs)
+-- CursorHold:   cursor idle for 'updatetime' ms in normal mode
+-- CursorHoldI:  same but in insert mode
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI' }, {
   command = 'checktime',
 })
+-- Poll for external changes every 1s (catches edits when nvim has no focus)
+local timer = vim.uv.new_timer()
+timer:start(1000, 1000, vim.schedule_wrap(function()
+  if vim.api.nvim_get_mode().mode == 'n' then
+    vim.cmd('checktime')
+  end
+end))
 
 opt.splitright = true                  -- vertical splits open to the right
 opt.splitbelow = true                  -- horizontal splits open below
