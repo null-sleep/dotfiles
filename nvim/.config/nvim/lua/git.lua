@@ -9,6 +9,15 @@ require('gitsigns').setup({
     changedelete = { text = '~' },
     untracked    = { text = '┆' },
   },
+  on_attach = function(buf)
+    local gs = require('gitsigns')
+    local map = function(mode, lhs, rhs, desc)
+      vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
+    end
+
+    map('n', '<leader>hb', function() gs.blame_line({ full = true }) end, 'Git hunk: Blame line')
+    map('n', '<leader>tb', gs.toggle_current_line_blame,                  'Toggle: Inline blame')
+  end,
 })
 
 -- Scrollbar with git, diagnostic, search and cursor marks.
