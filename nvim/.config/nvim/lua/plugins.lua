@@ -1,34 +1,38 @@
 local gh = require('utils').gh
 local themes = require('themes')
 
+-- Register plugins with vim.pack (nvim 0.12 native package manager).
+-- Theme sources are appended from themes.lua.
 vim.pack.add(vim.list_extend({
-  {
-    src = gh('nvim-treesitter/nvim-treesitter'),
-    version = 'main', -- Required for nvim 0.12 compatibility
-  },
-  {
-    src = gh('nvim-tree/nvim-web-devicons'),
-  },
-  {
-    src = gh('nvim-lua/plenary.nvim'),
-  },
-  {
-    src = gh('nvim-telescope/telescope.nvim'),
-  },
-  {
-    src = gh('nvim-telescope/telescope-fzf-native.nvim'),
-  },
+  -- Treesitter
+  { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main' },
+
+  -- Telescope (fuzzy finder)
+  { src = gh('nvim-lua/plenary.nvim') },
+  { src = gh('nvim-telescope/telescope.nvim') },
+  { src = gh('nvim-telescope/telescope-fzf-native.nvim') },
+
+  -- LSP
   { src = gh('mason-org/mason.nvim') },
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
+
+  -- Completion
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
+
+  -- UI
+  { src = gh('nvim-tree/nvim-web-devicons') },
   { src = gh('nvim-lualine/lualine.nvim') },
-  { src = gh('folke/persistence.nvim') },
-  { src = gh('folke/which-key.nvim') },
-  { src = gh('lewis6991/gitsigns.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
-  { src = gh('okuuva/auto-save.nvim') },
+  { src = gh('folke/which-key.nvim') },
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
+
+  -- Git
+  { src = gh('lewis6991/gitsigns.nvim') },
+
+  -- Workflow
+  { src = gh('folke/persistence.nvim') },
+  { src = gh('okuuva/auto-save.nvim') },
 }, themes.sources))
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)
@@ -45,16 +49,21 @@ vim.defer_fn(function()
   end
 end, 1000)
 
--- Apply colorscheme — must be after vim.pack.add so the plugin is on the runtimepath.
--- M.active may be a variant name (e.g. 'catppuccin-latte'); resolve back to the plugin
--- name for packadd and setup(), then apply the variant name as the colorscheme.
+-------------------------------------------------------------------------------
+-- Theme
+-------------------------------------------------------------------------------
+
+-- M.active may be a variant name (e.g. 'catppuccin-latte'); resolve back to
+-- the plugin name for packadd and setup(), then apply the variant as colorscheme.
 local active_plugin = themes.plugin[themes.active] or themes.active
 vim.cmd.packadd(active_plugin)
--- Set background before setup()/colorscheme so themes that use light/dark switching
--- pick up the right palette. M.background only needs entries for ambiguous names.
+
+-- Set background before setup()/colorscheme so themes that use light/dark
+-- switching pick up the right palette.
 if themes.background[themes.active] then
   vim.opt.background = themes.background[themes.active]
 end
+
 local active_theme = themes.themes[active_plugin]
 if active_theme and active_theme.setup then active_theme.setup() end
 vim.cmd.colorscheme(themes.active)
@@ -71,8 +80,16 @@ if active_theme and active_theme.overrides then
   apply_overrides(active_theme.overrides)
 end
 
+-------------------------------------------------------------------------------
+-- Icons
+-------------------------------------------------------------------------------
+
 vim.cmd.packadd('nvim-web-devicons')
 require('nvim-web-devicons').setup()
+
+-------------------------------------------------------------------------------
+-- Treesitter
+-------------------------------------------------------------------------------
 
 -- Re-compile parsers automatically when nvim-treesitter is updated
 local pack_group = vim.api.nvim_create_augroup('NativePackHooks', { clear = true })
@@ -89,28 +106,6 @@ vim.api.nvim_create_autocmd('PackChanged', {
     end
   end,
 })
-
--- Compile fzf-native after install or update
-vim.api.nvim_create_autocmd('PackChanged', {
-  group = pack_group,
-  desc = 'Compile fzf-native after install or update',
-  callback = function(ev)
-    if ev.data.spec.name == 'telescope-fzf-native.nvim' and ev.data.kind == 'update' then
-      local plugin_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
-      vim.fn.system({ 'make', '-C', plugin_path })
-    end
-  end,
-})
-
--- Compile fzf-native on first install if not already built
-pcall(function()
-  local fzf_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
-  local so_path = fzf_path .. '/build/libfzf.so'
-  local dylib_path = fzf_path .. '/build/libfzf.dylib'
-  if not vim.uv.fs_stat(so_path) and not vim.uv.fs_stat(dylib_path) then
-    vim.fn.system({ 'make', '-C', fzf_path })
-  end
-end)
 
 -- Install any missing parsers from the ensure_installed list
 local ensure_installed = {
@@ -129,53 +124,7 @@ pcall(function()
   end
 end)
 
--- Load telescope and fzf-native
-vim.cmd.packadd('plenary.nvim')
-vim.cmd.packadd('telescope.nvim')
-vim.cmd.packadd('telescope-fzf-native.nvim')
-
-require('telescope').setup({
-  defaults = {
-    layout_strategy = 'horizontal',
-    layout_config = {
-      horizontal = { width = 0.9 },
-    },
-    file_ignore_patterns = { '%.git/', 'node_modules/' },
-    -- path_display controls how file paths are shown in results:
-    --   'truncate'       — clip from the left, filename/rightmost path always visible
-    --   'filename_first' — show filename before path: "file.go  path/to/"
-    --   'smart'          — show only enough path to make each result unique
-    --   'shorten'        — abbreviate each dir to first letter: "p/c/a/file.go"
-    --   'tail'           — filename only, no path
-    path_display = { 'truncate' },
-    git_icons = {
-      added     = '+',
-      changed   = '~',
-      deleted   = '-',
-      renamed   = '→',
-      unmerged  = '!',
-      untracked = '?',
-    },
-  },
-  -- Include hidden files/dirs (e.g. .github/) in search results.
-  -- .git/ and node_modules/ are still excluded via file_ignore_patterns above.
-  pickers = {
-    find_files = {
-      hidden = true,
-    },
-    live_grep = {
-      additional_args = { '--hidden' },
-    },
-  },
-})
-
-pcall(require('telescope').load_extension, 'fzf')
-
--- Render markdown with icons, headings, code blocks, tables
-vim.cmd.packadd('render-markdown.nvim')
-require('render-markdown').setup({})
-
--- Returns true if the buffer is too large for treesitter to handle safely
+-- Skip treesitter for buffers >50k lines or >1.5MB
 local function is_large_buffer(buf)
   if vim.api.nvim_buf_line_count(buf) > 50000 then
     return true
@@ -212,3 +161,77 @@ vim.api.nvim_create_autocmd('FileType', {
     enable_folding()
   end,
 })
+
+-------------------------------------------------------------------------------
+-- Telescope
+-------------------------------------------------------------------------------
+
+-- Compile fzf-native after install or update
+vim.api.nvim_create_autocmd('PackChanged', {
+  group = pack_group,
+  desc = 'Compile fzf-native after install or update',
+  callback = function(ev)
+    if ev.data.spec.name == 'telescope-fzf-native.nvim' and ev.data.kind == 'update' then
+      local plugin_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
+      vim.fn.system({ 'make', '-C', plugin_path })
+    end
+  end,
+})
+
+-- Compile fzf-native on first install if not already built
+pcall(function()
+  local fzf_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
+  local so_path = fzf_path .. '/build/libfzf.so'
+  local dylib_path = fzf_path .. '/build/libfzf.dylib'
+  if not vim.uv.fs_stat(so_path) and not vim.uv.fs_stat(dylib_path) then
+    vim.fn.system({ 'make', '-C', fzf_path })
+  end
+end)
+
+vim.cmd.packadd('plenary.nvim')
+vim.cmd.packadd('telescope.nvim')
+vim.cmd.packadd('telescope-fzf-native.nvim')
+
+require('telescope').setup({
+  defaults = {
+    layout_strategy = 'horizontal',
+    layout_config = {
+      horizontal = { width = 0.9 },
+    },
+    file_ignore_patterns = { '%.git/', 'node_modules/' },
+    -- path_display options:
+    --   'truncate'       — clip from the left, filename always visible
+    --   'filename_first' — show filename before path: "file.go  path/to/"
+    --   'smart'          — show only enough path to make each result unique
+    --   'shorten'        — abbreviate dirs: "p/c/a/file.go"
+    --   'tail'           — filename only
+    path_display = { 'truncate' },
+    git_icons = {
+      added     = '+',
+      changed   = '~',
+      deleted   = '-',
+      renamed   = '→',
+      unmerged  = '!',
+      untracked = '?',
+    },
+  },
+  -- Include hidden files/dirs (e.g. .github/) in search results.
+  -- .git/ and node_modules/ are still excluded via file_ignore_patterns above.
+  pickers = {
+    find_files = {
+      hidden = true,
+    },
+    live_grep = {
+      additional_args = { '--hidden' },
+    },
+  },
+})
+
+pcall(require('telescope').load_extension, 'fzf')
+
+-------------------------------------------------------------------------------
+-- Render Markdown
+-------------------------------------------------------------------------------
+
+vim.cmd.packadd('render-markdown.nvim')
+require('render-markdown').setup({})
