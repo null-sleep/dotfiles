@@ -193,15 +193,15 @@ colima_check_and_start
 # Supress output and run in background example 
 # (&>/dev/null colima_check_and_start &)
 
-# Kill Grafana MCP chrome instance
-kill-grafana-chrome() {
+# Kill all MCP Chrome instances (grafana, redash, etc.)
+kill-mcp-chrome() {
   local pids
-  pids=(${(f)"$(pgrep -f 'user-data-dir=/Users/'"$USER"'/.grafana_mcp_chrome')"})
+  pids=(${(f)"$(pgrep -f 'user-data-dir=/Users/'"$USER"'/\.[^"]*_mcp_chrome')"})
   if [[ ${#pids} -eq 0 ]]; then
-    echo "No grafana-mcp Chrome instance found."
+    echo "No MCP Chrome instances found."
     return 0
   fi
-  echo "Killing grafana-mcp Chrome (PIDs: ${pids[*]})"
+  echo "Killing MCP Chrome instances (PIDs: ${pids[*]})"
   kill "${pids[@]}"
 }
 

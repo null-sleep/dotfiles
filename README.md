@@ -89,6 +89,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Space>sh` | Search help tags |
 | `<Space>sr` | Resume last search |
 | `<Space>s/` | Fuzzy search inside current buffer |
+| `<Space>so` | Recent files |
 
 **Inside the telescope window:**
 
