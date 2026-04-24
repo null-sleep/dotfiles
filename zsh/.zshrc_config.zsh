@@ -44,18 +44,6 @@ ulimit -n 1024
 # Enable alias expansion in completions by pressing tab
 zstyle ':completion:*' completer _expand_alias _complete _ignored
 
-
-# Kubectl
-# alias k=kubectl
-# autoload -Uz compinit
-# compinit
-# # cloudplatform: add Shopify clusters to your local kubernetes config
-# export KUBECONFIG=${KUBECONFIG:+$KUBECONFIG:}/Users/dhruv/.kube/config:/Users/dhruv/.kube/config.shopify.cloudplatform
-# for file in /Users/dhruv/src/github.com/Shopify/cloudplatform/workflow-utils/*.bash; do source ${file}; done
-# kubectl-short-aliases
-# source <(kubectl completion zsh)
-# compdef __start_kubectl k
-
 # Path Updates
 export PATH="$HOME/.local/bin:$PATH"
 # Homebrew: Apple Silicon uses /opt/homebrew, Intel uses /usr/local (already in PATH by default)
@@ -63,20 +51,13 @@ export PATH="$HOME/.local/bin:$PATH"
 # Rust
 export PATH="$HOME/.cargo/bin:$PATH"
 
-## Claude env vars
-# export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_REGION=us-west-2
-export AWS_PROFILE=dev
-
-## Go Private
-export GOPRIVATE=github.com/lumina-tech/*,github.com/bitgo/*
-
 # Open configs
-alias zshrc="cursor ~/.zshrc"
-alias zshconf="cursor ~/.zshrc_config.zsh"
+alias zshrc="nvim ~/.zshrc"
+alias zshconf="nvim ~/.zshrc_config.zsh"
 
 # Editor
 alias vim=nvim
+alias vi=nvim
 
 # Set editor based on terminal context
 if [[ "$TERM_PROGRAM" == "vscode" ]]; then
@@ -103,7 +84,7 @@ source <(fzf --zsh)
 
 # Git
 
-export GIT_BASE_BRANCH="master" # "main"
+export GIT_BASE_BRANCH="main"
 
 ## Git Aliases
 alias g=git
@@ -174,41 +155,10 @@ fi
 # GO111MODULE=on
 export GOPATH=$HOME/go
 export PATH=$PATH:$(go env GOPATH)/bin
-GOPRIVATE=github.com/lumina-tech/*,github.com/bitgo/*
-
-# Colima
-colima_start() {
-  colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
-}
-
-colima_check_and_start() {
-  if ! colima status 2>&1 | grep -q 'colima is running'; then
-    echo "ATTENTION: Colima is not running!!!"
-    echo "Please run `colima_start` to start it"
-  fi
-}
-
-colima_check_and_start
-
-# Supress output and run in background example 
-# (&>/dev/null colima_check_and_start &)
-
-# Kill all MCP Chrome instances (grafana, redash, etc.)
-kill-mcp-chrome() {
-  local pids
-  pids=(${(f)"$(pgrep -f 'user-data-dir=/Users/'"$USER"'/\.[^"]*_mcp_chrome')"})
-  if [[ ${#pids} -eq 0 ]]; then
-    echo "No MCP Chrome instances found."
-    return 0
-  fi
-  echo "Killing MCP Chrome instances (PIDs: ${pids[*]})"
-  kill "${pids[@]}"
-}
-
-# BG Admin
-alias bga='/Users/dhruvjauhar/src/bitgo-admin/bin/bgadmin'
 
 # Evals
 
 eval "$(direnv hook zsh)"
-eval "$(atlas init zsh)"
+
+# Source company-specific config if present
+[[ -f ~/.zshrc_bitgo.zsh ]] && source ~/.zshrc_bitgo.zsh
