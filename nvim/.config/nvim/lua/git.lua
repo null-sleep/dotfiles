@@ -1,13 +1,14 @@
 vim.cmd.packadd('gitsigns.nvim')
 
 require('gitsigns').setup({
+  attach_to_untracked = true,
   signs = {
-    add          = { text = '┃' },
-    change       = { text = '┃' },
-    delete       = { text = '_' },
-    topdelete    = { text = '‾' },
-    changedelete = { text = '~' },
-    untracked    = { text = '┆' },
+    add          = { text = '▎' },
+    change       = { text = '▎' },
+    delete       = { text = '▂' },
+    topdelete    = { text = '▔' },
+    changedelete = { text = '▎' },
+    untracked    = { text = '░' },
   },
   on_attach = function(buf)
     local gs = require('gitsigns')
