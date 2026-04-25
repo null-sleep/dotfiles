@@ -1,4 +1,12 @@
 if [[ -f ~/.antigen/antigen.zsh ]]; then
+  # Set OMZ paths explicitly before antigen runs so they get baked correctly
+  # into ~/.antigen/init.zsh. Otherwise antigen can cache empty values, which
+  # breaks plugins like docker (writes completions to /completions/_docker)
+  # and the robbyrussell theme (prompt_subst never gets enabled).
+  export ZSH="$HOME/.antigen/bundles/robbyrussell/oh-my-zsh"
+  export ZSH_CACHE_DIR="$ZSH/cache"
+  mkdir -p "$ZSH_CACHE_DIR/completions"
+
   source ~/.antigen/antigen.zsh
 
   antigen use oh-my-zsh
@@ -18,6 +26,7 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   antigen bundle git
   antigen bundle brew
   antigen bundle macos
+  antigen bundle mise
   antigen bundle iterm2
   antigen bundle themes
   antigen bundle docker
@@ -155,12 +164,6 @@ fix_dock() {
   killall Dock
 }
 
-# Create cache and completions dir and add to $fpath
-if [[ -n "$ZSH_CACHE_DIR" ]]; then
-  mkdir -p "$ZSH_CACHE_DIR/completions"
-  (( ${fpath[(Ie)"$ZSH_CACHE_DIR/completions"]} )) || fpath=("$ZSH_CACHE_DIR/completions" $fpath)
-fi
-
 # GO environment
 # GO111MODULE=on
 export GOPATH=$HOME/go
@@ -168,3 +171,4 @@ export PATH=$PATH:$(go env GOPATH)/bin
 
 # Source company-specific config if present
 [[ -f ~/.zshrc_work.zsh ]] && source ~/.zshrc_work.zsh
+[[ -f ~/.zshrc_shared.zsh ]] && source ~/.zshrc_shared.zsh
