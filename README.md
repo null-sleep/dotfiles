@@ -471,7 +471,9 @@ To import color themes manually: **iTerm2 → Settings → Profiles → Colors �
 # Dependencies
 brew install fzf ripgrep direnv
 
-# Install Antigen (zsh plugin manager)
+# Install Antigen (zsh plugin manager). Antigen will clone oh-my-zsh and all
+# configured plugins into ~/.antigen/bundles on first shell launch — no need
+# to install oh-my-zsh separately.
 mkdir -p ~/.antigen
 curl -L git.io/antigen > ~/.antigen/antigen.zsh
 
@@ -489,17 +491,27 @@ stow zsh
 echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 ```
 
-### Company-specific config
+Open a new shell. On the first launch antigen clones every bundle (takes ~20s) and writes a cached loader to `~/.antigen/init.zsh`. Subsequent launches just source the cache.
 
-The general config conditionally sources `~/.zshrc_bitgo.zsh` if it exists. On machines where you don't want it, exclude it from stow by creating `zsh/.stow-local-ignore`:
+### Per-machine config
 
+`.zshrc_config.zsh` conditionally sources two optional files:
+
+- **`~/.zshrc_halp.zsh`** — stowed from this repo. Shared per-project tooling. Lives in version control.
+- **`~/.zshrc_bitgo.zsh`** — *not* stowed. `zsh/.stow-local-ignore` excludes it so each work machine drops its own copy at `~/.zshrc_bitgo.zsh`. The repo copy is a reference template.
+
+Secrets go in `~/.zshenv`, which is not managed by stow.
+
+### Troubleshooting antigen
+
+If you see `tee: /completions/_docker: No such file or directory` on shell startup, or your prompt shows a literal `$(git_prompt_info)` instead of rendering, antigen has cached an empty `$ZSH` / `$ZSH_CACHE_DIR`. Wipe and rebuild the cache:
+
+```bash
+rm -f ~/.antigen/init.zsh ~/.antigen/init.zsh.zwc ~/.antigen/.zcompdump ~/.antigen/.zcompdump.zwc
+exec zsh
 ```
-\.zshrc_bitgo\.zsh
-```
 
-Then restow to apply: `stow -R zsh`. This file is gitignored so it stays local to each machine.
-
-Note: Secrets are stored in `~/.zshenv` which is not managed by stow.
+`.zshrc_config.zsh` exports those vars explicitly before `antigen apply` so the regenerated cache captures the right paths.
 
 ## Stow
 

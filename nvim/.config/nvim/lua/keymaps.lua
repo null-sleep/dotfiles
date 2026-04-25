@@ -43,6 +43,10 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
+-- Show all keybindings
+vim.keymap.set('n', '<leader>?', function() require('which-key').show({ global = true }) end,
+  { desc = 'Help: All mappings' })
+
 -- Yank file paths to system clipboard
 vim.keymap.set('n', '<leader>yp', function()
   vim.fn.setreg('+', vim.fn.expand('%'))
