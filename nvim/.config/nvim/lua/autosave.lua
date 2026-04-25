@@ -7,7 +7,9 @@ require('auto-save').setup({
     defer_save     = { 'InsertLeave', 'TextChanged' }, -- save after delay on these
   },
   debounce_delay = 1000,  -- ms to wait after last change before saving (matches VS Code setting)
-  -- do not autosave these filetypes
+  -- Skip auto-save for special UI buffers where saving mid-edit would cause
+  -- problems (e.g. gitcommit would save an incomplete message), and for
+  -- read-only buffers like help pages and diffs.
   condition = function(buf)
     local excluded = { 'oil', 'TelescopePrompt', 'mason', 'gitcommit', 'harpoon' }
     local ft = vim.bo[buf].filetype

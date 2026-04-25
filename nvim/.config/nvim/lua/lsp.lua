@@ -34,18 +34,22 @@ local function on_attach(_, buf)
     vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
   end
 
+  -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
   map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
+  -- gD jumps to the declaration (signature without body) — useful in Go (interface)
+  -- and Rust (trait). In Python/Elixir there is no distinction so gD behaves like gd.
   map('n', 'gD',               vim.lsp.buf.declaration,     'LSP: Go to declaration')
   map('n', 'gi',               vim.lsp.buf.implementation,  'LSP: Go to implementation')
   map('n', 'gy',               vim.lsp.buf.type_definition, 'LSP: Go to type definition')
   map('n', 'K',                vim.lsp.buf.hover,           'LSP: Hover docs')
-  map('n', '<C-k>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
+  map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
   map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
   map({'n','v'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
-  map('n', '<leader>e',        vim.diagnostic.open_float,   'LSP: Show diagnostic')
-  map('n', '[d',               vim.diagnostic.goto_prev,    'LSP: Previous diagnostic')
-  map('n', ']d',               vim.diagnostic.goto_next,    'LSP: Next diagnostic')
-  map('n', '<leader>q',        vim.diagnostic.setloclist,   'LSP: Diagnostic list')
+  -- jump = true moves cursor to the exact diagnostic position after opening the float
+  map('n', '<leader>e',        function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
+  map('n', '[d',               function() vim.diagnostic.jump({ count = -1 }) end, 'LSP: Previous diagnostic')
+  map('n', ']d',               function() vim.diagnostic.jump({ count =  1 }) end, 'LSP: Next diagnostic')
+  map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
 
   -- Use telescope for references if available, fallback to plain LSP
   local ok, builtin = pcall(require, 'telescope.builtin')
