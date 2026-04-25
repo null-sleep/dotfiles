@@ -21,7 +21,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
 
   -- UI
-  { src = gh('nvim-tree/nvim-web-devicons') },
+  { src = gh('echasnovski/mini.icons') },
   { src = gh('nvim-lualine/lualine.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
@@ -33,6 +33,7 @@ vim.pack.add(vim.list_extend({
   -- Workflow
   { src = gh('folke/persistence.nvim') },
   { src = gh('okuuva/auto-save.nvim') },
+  { src = gh('windwp/nvim-autopairs') },
 }, themes.sources))
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)
@@ -42,8 +43,10 @@ vim.defer_fn(function()
     :map(function(x) return x.spec.name end)
     :totable()
   if #orphans > 0 then
+    local quoted = vim.tbl_map(function(n) return '"' .. n .. '"' end, orphans)
     vim.notify(
-      'Orphaned plugins (remove with :lua vim.pack.del({...})):\n  ' .. table.concat(orphans, '\n  '),
+      'Orphaned plugins — remove with:\n  :lua vim.pack.del({' .. table.concat(quoted, ', ') .. '})\n\n'
+        .. table.concat(orphans, '\n'),
       vim.log.levels.WARN
     )
   end
@@ -84,8 +87,10 @@ end
 -- Icons
 -------------------------------------------------------------------------------
 
-vim.cmd.packadd('nvim-web-devicons')
-require('nvim-web-devicons').setup()
+vim.cmd.packadd('mini.icons')
+require('mini.icons').setup()
+-- mock_nvim_web_devicons makes mini.icons a drop-in for plugins expecting nvim-web-devicons
+require('mini.icons').mock_nvim_web_devicons()
 
 -------------------------------------------------------------------------------
 -- Treesitter
@@ -235,3 +240,11 @@ pcall(require('telescope').load_extension, 'fzf')
 
 vim.cmd.packadd('render-markdown.nvim')
 require('render-markdown').setup({})
+
+-------------------------------------------------------------------------------
+-- Auto-pairs
+-------------------------------------------------------------------------------
+
+vim.cmd.packadd('nvim-autopairs')
+-- check_ts: use treesitter to skip pairing inside strings and comments
+require('nvim-autopairs').setup({ check_ts = true })

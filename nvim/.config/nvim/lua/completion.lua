@@ -21,9 +21,16 @@ require('blink.cmp').setup({
   },
 
   completion = {
+    -- auto_show: open docs popup automatically when hovering a completion item
     documentation = { auto_show = true, auto_show_delay_ms = 200 },
+    -- auto_brackets: append () after completing a function and place cursor inside
+    accept = { auto_brackets = { enabled = true } },
+    -- ghost_text: shows top completion suggestion faded inline as you type; accept with <Right>
+    -- Tab/Shift-Tab still navigate the dropdown as usual
+    ghost_text = { enabled = true },
   },
 
+  -- signature: show parameter hints while typing inside a function call
   signature = { enabled = true },
 
   -- Use Rust fuzzy matcher when binary is available, silently fall back to Lua.

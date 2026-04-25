@@ -1,3 +1,6 @@
+-- Note: which-key uses an explicit trigger list (see whichkey.lua). If you add
+-- a new single-char group in whichkey.lua's wk.add(), add it to triggers too.
+
 -- Telescope
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<leader>sf', builtin.find_files,  { desc = 'Search: Files' })
