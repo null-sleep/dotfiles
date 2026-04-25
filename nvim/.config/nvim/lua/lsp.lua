@@ -34,26 +34,36 @@ local function on_attach(_, buf)
     vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
   end
 
+  -- Enable inlay hints (parameter names, inferred types) — useful for Rust/Go/TS
+  vim.lsp.inlay_hint.enable(true, { bufnr = buf })
+  map('n', '<leader>ti', function()
+    vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
+  end, 'Toggle: Inlay hints')
+
   -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
   map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
-  -- gD jumps to the declaration (signature without body) — useful in Go (interface)
-  -- and Rust (trait). In Python/Elixir there is no distinction so gD behaves like gd.
+  -- gD jumps to the declaration (signature without body) — useful in Rust (trait).
+  -- Not supported by all LSPs: gopls and pyright don't implement textDocument/declaration
+  -- since Go/Python have no separate declaration concept (declaration == definition).
   map('n', 'gD',               vim.lsp.buf.declaration,     'LSP: Go to declaration')
-  map('n', 'gi',               vim.lsp.buf.implementation,  'LSP: Go to implementation')
   map('n', 'gy',               vim.lsp.buf.type_definition, 'LSP: Go to type definition')
   map('n', 'K',                vim.lsp.buf.hover,           'LSP: Hover docs')
+  -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
+  -- If the terminal hangs after pressing it, run `stty -ixon` in your shell rc.
   map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
   map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
   map({'n','v'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
+  map({'n','v'}, '<leader>cf', vim.lsp.buf.format,          'LSP: Format')
   -- jump = true moves cursor to the exact diagnostic position after opening the float
   map('n', '<leader>e',        function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
   map('n', '[d',               function() vim.diagnostic.jump({ count = -1 }) end, 'LSP: Previous diagnostic')
   map('n', ']d',               function() vim.diagnostic.jump({ count =  1 }) end, 'LSP: Next diagnostic')
   map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
 
-  -- Use telescope for references if available, fallback to plain LSP
+  -- Use telescope for multi-result LSP actions, fallback to plain LSP
   local ok, builtin = pcall(require, 'telescope.builtin')
-  map('n', 'gr', ok and builtin.lsp_references or vim.lsp.buf.references, 'LSP: References')
+  map('n', 'gr', ok and builtin.lsp_references      or vim.lsp.buf.references,     'LSP: References')
+  map('n', 'gi', ok and builtin.lsp_implementations or vim.lsp.buf.implementation, 'LSP: Go to implementation')
 end
 
 -- nvim 0.11+ with vim.lsp.config handles capabilities automatically, so no
@@ -73,7 +83,9 @@ vim.diagnostic.config({
   underline        = true,
   update_in_insert = false,  -- no flicker while typing (matches updatetime = 300)
   severity_sort    = true,
-  float            = { border = 'rounded', source = 'always' },
+  -- source = 'if_many': only show the diagnostic source label (eg. pyright, eslint)
+  -- when multiple sources produce diagnostics on the same line
+  float            = { border = 'rounded', source = 'if_many' },
 })
 
 -- per-server configuration using vim.lsp.config (nvim-lspconfig v3 / nvim 0.11+)
