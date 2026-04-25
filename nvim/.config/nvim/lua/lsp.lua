@@ -34,7 +34,12 @@ local function on_attach(client, buf)
     vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
   end
 
-  -- Enable inlay hints (parameter names, inferred types) — useful for Rust/Go/TS
+  -- Enable inlay hints (parameter names, inferred types) — useful for Rust/Go/TS.
+  -- Toggle with <leader>ti when they get noisy.
+  -- If they feel too distracting buffer-wide, alternatives are:
+  --   1. Insert mode only — auto-enable on InsertEnter, disable on InsertLeave
+  --   2. Disable noisy categories per-LSP (e.g. keep parameterNames, drop
+  --      assignVariableTypes/compositeLiteralTypes which add the most clutter)
   vim.lsp.inlay_hint.enable(true, { bufnr = buf })
   map('n', '<leader>ti', function()
     vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
@@ -124,6 +129,16 @@ vim.lsp.config('gopls', vim.tbl_deep_extend('force', base, {
       analyses    = { unusedparams = true, shadow = true },
       staticcheck = true,
       symbolScope = 'workspace',
+      -- Inlay hints — gopls has these all disabled by default
+      hints = {
+        assignVariableTypes    = true,
+        compositeLiteralFields = true,
+        compositeLiteralTypes  = true,
+        constantValues         = true,
+        functionTypeParameters = true,
+        parameterNames         = true,
+        rangeVariableTypes     = true,
+      },
     },
   },
 }))
