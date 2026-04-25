@@ -29,7 +29,7 @@ require('mason-lspconfig').setup({
 })
 
 -- on_attach: buffer-local keymaps applied when a server attaches to a buffer
-local function on_attach(_, buf)
+local function on_attach(client, buf)
   local map = function(mode, lhs, rhs, desc)
     vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
   end
@@ -39,6 +39,19 @@ local function on_attach(_, buf)
   map('n', '<leader>ti', function()
     vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
   end, 'Toggle: Inlay hints')
+
+  -- Document highlight: when cursor pauses on a symbol, highlight other occurrences
+  -- in the buffer. Uses LspReferenceText/Read/Write highlight groups (theme-styled).
+  -- Triggers on CursorHold (300ms idle, see updatetime), clears on CursorMoved.
+  if client:supports_method('textDocument/documentHighlight') then
+    local group = vim.api.nvim_create_augroup('LspDocumentHighlight_' .. buf, { clear = true })
+    vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+      group = group, buffer = buf, callback = vim.lsp.buf.document_highlight,
+    })
+    vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+      group = group, buffer = buf, callback = vim.lsp.buf.clear_references,
+    })
+  end
 
   -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
   map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
