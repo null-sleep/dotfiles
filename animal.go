@@ -44,6 +44,9 @@ func main() {
 	dog := Dog{name: "Rex"}
 	cat := Cat{name: "Whiskers"}
 
+	_ = dog.Sound()
+	_ = cat.Sound()
+
 	describe(dog)
 	describe(cat)
 }
