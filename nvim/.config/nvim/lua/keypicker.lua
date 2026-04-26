@@ -65,8 +65,10 @@ local function build_results()
   local ok, builtins = pcall(require, 'builtins')
   if ok and builtins then
     for _, entry in ipairs(builtins) do
-      if not seen[entry.lhs] then
-        seen[entry.lhs] = true
+      -- Normalize to match which-key's internal format (e.g. <C-l> → <C-L>)
+      local norm = vim.fn.keytrans(vim.api.nvim_replace_termcodes(entry.lhs, true, true, true))
+      if not seen[norm] then
+        seen[norm] = true
         local kw = keywords[entry.lhs] or ''
         local grp = entry.group or ''
         local ordinal = grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. entry.lhs

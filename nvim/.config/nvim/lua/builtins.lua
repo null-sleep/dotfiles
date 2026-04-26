@@ -137,7 +137,7 @@ return {
   { lhs = 'yaw',    group = 'Yank combos',         desc = 'Yank a word (including surrounding space)' },
   { lhs = 'yip',    group = 'Yank combos',         desc = 'Yank inner paragraph' },
 
-  { lhs = ':vs',    group = 'Split/Window',        desc = 'Split window vertically (same file or :vs file)' },
-  { lhs = ':q',     group = 'Split/Window',        desc = 'Quit current window/split' },
-  { lhs = ':only',  group = 'Split/Window',        desc = 'Close all windows except current' },
+  { lhs = ':vs',        group = 'Split/Window',        desc = 'Split window vertically (type filename or Enter for same file)' },
+  { lhs = ':q<CR>',    group = 'Split/Window',        desc = 'Quit current window/split' },
+  { lhs = ':only<CR>', group = 'Split/Window',        desc = 'Close all windows except current' },
 }
