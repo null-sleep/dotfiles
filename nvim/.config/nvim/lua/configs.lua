@@ -58,3 +58,5 @@ opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
 opt.swapfile = false                   -- no swap files (undofile handles recovery)
 
+require('utils').check_nvim_update()
+
