@@ -65,6 +65,8 @@ end, { desc = 'Toggle: Diagnostics' })
 -- Show all keybindings
 vim.keymap.set('n', '<leader>?', function() require('which-key').show({ global = true }) end,
   { desc = 'Help: All mappings' })
+vim.keymap.set('n', '<leader>sk', function() require('keypicker').open() end,
+  { desc = 'Search: Keymaps' })
 
 -- Yank helpers (paths, code references, GitHub permalinks)
 local yank = require('yank')

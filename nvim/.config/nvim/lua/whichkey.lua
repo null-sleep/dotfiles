@@ -42,3 +42,11 @@ wk.add({
   { 'yC',  desc = 'Yank: Claude reference (absolute path)', mode = { 'n', 'x' } },
   { 'yu',  desc = 'Yank: GitHub permalink',                 mode = { 'n', 'x' } },
 })
+
+-- Extra search keywords for keypicker — keyed by lhs, value is a
+-- space-separated string of aliases that don't appear in the desc.
+local keywords = {
+  ['<leader>qq'] = 'close exit',
+}
+
+return { keywords = keywords }
