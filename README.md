@@ -10,6 +10,7 @@ cd ~/src/dotfiles
 # Install dependencies for each tool
 stow nvim
 stow zsh
+stow kitty
 ```
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -512,6 +513,49 @@ To import color themes manually: **iTerm2 → Settings → Profiles → Colors �
 | Shortcut | Action |
 |---|---|
 | `Cmd+Ctrl+Arrow` | Resize pane in that direction |
+
+## Kitty
+
+GPU-accelerated terminal emulator. Config is managed via stow.
+
+```bash
+brew install --cask kitty
+cd ~/src/dotfiles
+stow kitty
+```
+
+Settings are ported from the iTerm2 profile (Hack Nerd Font Mono 15pt, 125×25 window, bar cursor). To pick a color theme interactively:
+
+```bash
+kitten themes
+```
+
+This writes `~/.config/kitty/current-theme.conf` which kitty auto-includes. The config lives at `~/.config/kitty/kitty.conf` (symlinked by stow).
+
+### Keymaps
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+N` | New window |
+| `Cmd+T` | New tab |
+| `Cmd+W` | Close tab/window |
+| `Cmd+Enter` | New OS window |
+| `Cmd+D` | No built-in split — use tabs or launch a second window |
+| `Cmd+1-9` | Jump to tab by number |
+| `Cmd+Shift+]` / `Cmd+Shift+[` | Next / previous tab |
+| `Ctrl+Shift+Enter` | New window (split within tab, requires layout change) |
+| `Ctrl+Shift+]` / `Ctrl+Shift+[` | Next / previous window in tab |
+
+**Layouts** (cycle with `Ctrl+Shift+L`): tall, fat, grid, horizontal, vertical, stack.
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `kitten themes` | Browse and apply color themes |
+| `kitten diff file1 file2` | Side-by-side diff |
+| `kitten ssh host` | SSH with full kitty features on remote |
+| `kitty +kitten icat image.png` | Display image in terminal |
 
 ## ZSH
 
