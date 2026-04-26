@@ -55,7 +55,8 @@ local function build_results()
 
     local bc = breadcrumb(node)
     local kw = keywords[keys] or ''
-    local ordinal = bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. keys
+    -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+    local ordinal = keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw
 
     seen[keys] = true
     table.insert(results, { keys = keys, desc = desc, ordinal = ordinal })
@@ -71,7 +72,8 @@ local function build_results()
         seen[norm] = true
         local kw = keywords[entry.lhs] or ''
         local grp = entry.group or ''
-        local ordinal = grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. entry.lhs
+        -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+        local ordinal = entry.lhs .. ' ' .. grp .. ' ' .. entry.desc .. ' ' .. kw
         table.insert(results, { keys = entry.lhs, desc = entry.desc, ordinal = ordinal })
       end
     end
