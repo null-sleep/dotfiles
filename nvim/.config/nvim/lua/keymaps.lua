@@ -17,9 +17,18 @@ vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc 
 -- Clear search highlights
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
 
--- Yank to system clipboard (dd, x, c stay in Neovim register)
-vim.keymap.set({'n', 'v'}, 'y', '"+y', { desc = 'Yank to system clipboard' })
-vim.keymap.set('n', 'Y', '"+Y', { desc = 'Yank line to system clipboard' })
+-- Yank to system clipboard (dd, x, c stay in Neovim register).
+-- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
+-- honoured — only bare y/Y without a register prefix go to clipboard.
+vim.keymap.set({'n', 'v'}, 'y', function()
+  if vim.v.register ~= '"' then return 'y' end
+  return '"+y'
+end, { expr = true, desc = 'Yank to system clipboard (unless register specified)' })
+
+vim.keymap.set('n', 'Y', function()
+  if vim.v.register ~= '"' then return 'Y' end
+  return '"+Y'
+end, { expr = true, desc = 'Yank line to system clipboard (unless register specified)' })
 
 -- Stay in visual mode after indent/dedent
 vim.keymap.set('v', '<', '<gv', { desc = 'Dedent and reselect' })
@@ -39,8 +48,6 @@ vim.api.nvim_create_user_command('Q', 'qa', {})
 vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { desc = 'Quit all' })
 
 -- Toggle LSP diagnostics (virtual text + gutter signs).
--- Note: when gitsigns on_attach keymaps are added, <leader>td will be used
--- for toggle_deleted — at that point rename this to <leader>tv.
 vim.keymap.set('n', '<leader>td', function()
   local current = vim.diagnostic.config().virtual_text
   vim.diagnostic.config({

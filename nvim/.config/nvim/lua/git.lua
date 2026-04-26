@@ -16,9 +16,24 @@ require('gitsigns').setup({
       vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
     end
 
-    -- Navigation
-    map('n', ']c', function() gs.nav_hunk('next') end, 'Git hunk: Next')
-    map('n', '[c', function() gs.nav_hunk('prev') end, 'Git hunk: Previous')
+    -- Navigation — ]c/[c are also vim's native diff-chunk motions, so in diff
+    -- mode (vimdiff, :diffsplit, :Gitsigns diffthis) we fall back to the
+    -- built-in behaviour. bang = true avoids triggering this mapping recursively.
+    -- Pattern from gitsigns README.
+    map('n', ']c', function()
+      if vim.wo.diff then
+        vim.cmd.normal({ ']c', bang = true })
+      else
+        gs.nav_hunk('next')
+      end
+    end, 'Git hunk: Next')
+    map('n', '[c', function()
+      if vim.wo.diff then
+        vim.cmd.normal({ '[c', bang = true })
+      else
+        gs.nav_hunk('prev')
+      end
+    end, 'Git hunk: Previous')
 
     -- Actions
     map('n', '<leader>hs', gs.stage_hunk,                                  'Git hunk: Stage')

@@ -10,6 +10,7 @@ opt.number = true                      -- show line numbers
 opt.ignorecase = true                  -- case-insensitive search...
 opt.smartcase = true                   -- ...unless you type a capital
 opt.expandtab = true                   -- use spaces instead of tabs
+opt.tabstop = 4                        -- Tab key inserts 4 spaces (default 8)
 opt.shiftwidth = 4                     -- indent by 4 spaces
 opt.undofile = true                    -- undo changes for a closed file
 opt.undolevels = 10000                 -- increase undo history (default 1000)
