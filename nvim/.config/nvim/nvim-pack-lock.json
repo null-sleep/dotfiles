@@ -13,6 +13,10 @@
       "rev": "426dbebe06b5c69fd846ceb17b42e12f890aedf1",
       "src": "https://github.com/catppuccin/nvim"
     },
+    "cyberdream.nvim": {
+      "rev": "39f69ebcd8de69c741bb7a65353aa37dd0680ad1",
+      "src": "https://github.com/scottmckendry/cyberdream.nvim"
+    },
     "dracula.nvim": {
       "rev": "ae752c13e95fb7c5f58da4b5123cb804ea7568ee",
       "src": "https://github.com/Mofiqul/dracula.nvim"
@@ -64,6 +68,10 @@
     "modus-themes.nvim": {
       "rev": "17a64464c27c1be605adca13dbe48f2f402fe107",
       "src": "https://github.com/miikanissi/modus-themes.nvim"
+    },
+    "nightfox.nvim": {
+      "rev": "ba47d4b4c5ec308718641ba7402c143836f35aa9",
+      "src": "https://github.com/EdenEast/nightfox.nvim"
     },
     "nordic.nvim": {
       "rev": "9f757428264ef1fcd1703e17702d3a28f307a2f7",

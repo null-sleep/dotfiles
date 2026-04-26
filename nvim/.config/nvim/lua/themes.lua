@@ -19,8 +19,17 @@ local gh = require('utils').gh
 
 local M = {}
 
--- The active colorscheme. Set to any variant name from the variants list below.
-M.active = 'catppuccin'
+-- Persistence: read saved theme from state file, fall back to default.
+local state_file = vim.fn.stdpath('data') .. '/theme.txt'
+local default_theme = 'catppuccin'
+
+local function read_saved_theme()
+  local ok, lines = pcall(vim.fn.readfile, state_file)
+  if ok and lines[1] and lines[1] ~= '' then return lines[1] end
+  return default_theme
+end
+
+M.active = read_saved_theme()
 
 -- Global highlight overrides — applied for every theme, after colorscheme.
 -- Format: { HighlightGroup = { fg = '#hex', bg = '#hex', bold = true, ... } }
@@ -33,7 +42,12 @@ M.global_overrides = {
 -- Per-theme configuration. Each entry has:
 --   src        (required) GitHub repo path
 --   name       (optional) explicit pack name, only needed when repo slug differs from plugin name
---   variants   (optional) list of all colorscheme names this plugin provides, with descriptions
+--   variants   (optional) list of all colorscheme names this plugin provides, with descriptions.
+--              For themes that only register one colorscheme name but support light/dark via
+--              vim.opt.background, add virtual variant names (e.g. 'gruvbox-light') and map
+--              them to the real colorscheme name in the `colorscheme` table below.
+--   colorscheme (optional) map of virtual variant name → real colorscheme name, for variants
+--              that don't correspond to a registered colorscheme (e.g. 'gruvbox-light' → 'gruvbox')
 --   background (optional) map of variant name → 'light'|'dark', for themes that switch via
 --              vim.opt.background rather than distinct colorscheme names
 --   setup      (optional) function called before colorscheme is applied
@@ -73,9 +87,11 @@ M.themes = {
   gruvbox = {
     src = gh('ellisonleao/gruvbox.nvim'),
     variants = {
-      'gruvbox',             -- warm amber/orange palette; uses background=light/dark to switch
+      'gruvbox',             -- warm amber/orange palette; dark
+      'gruvbox-light',       -- warm amber/orange palette; light
     },
-    background = { gruvbox = 'dark' },
+    colorscheme = { ['gruvbox-light'] = 'gruvbox' },
+    background  = { gruvbox = 'dark', ['gruvbox-light'] = 'light' },
   },
 
   ['rose-pine'] = {
@@ -95,6 +111,27 @@ M.themes = {
       'kanagawa-wave',       -- original dark; deep ink blue bg, warm gold/red accents
       'kanagawa-dragon',     -- darker; even deeper bg, higher contrast
       'kanagawa-lotus',      -- light; soft warm whites, muted ink tones
+    },
+  },
+
+  nightfox = {
+    src = gh('EdenEast/nightfox.nvim'),
+    variants = {
+      'nightfox',            -- dark; cool blue-purple palette
+      'dayfox',              -- light; warm soft tones
+      'dawnfox',             -- light; rosy warm palette
+      'duskfox',             -- dark; muted purple twilight tones
+      'nordfox',             -- dark; Nord-inspired arctic blues
+      'terafox',             -- dark; earthy greens and warm tones
+      'carbonfox',           -- dark; neutral carbon grays with vivid accents
+    },
+  },
+
+  cyberdream = {
+    src = gh('scottmckendry/cyberdream.nvim'),
+    variants = {
+      'cyberdream',          -- dark; neon accents on dark bg
+      'cyberdream-light',    -- light variant
     },
   },
 
@@ -118,9 +155,11 @@ M.themes = {
   solarized = {
     src = gh('maxmx03/solarized.nvim'),
     variants = {
-      'solarized',           -- classic warm palette; uses background=light/dark to switch
+      'solarized',           -- classic warm palette; dark
+      'solarized-light',     -- classic warm palette; light
     },
-    background = { solarized = 'dark' },
+    colorscheme = { ['solarized-light'] = 'solarized' },
+    background  = { solarized = 'dark', ['solarized-light'] = 'light' },
   },
 
   ['github-nvim-theme'] = {
@@ -147,6 +186,9 @@ M.themes = {
 
   zenbones = {
     src = gh('zenbones-theme/zenbones.nvim'),
+    -- Use pre-baked VimScript highlights instead of the lush.nvim dynamic path,
+    -- which would require lush as an extra dependency.
+    setup = function() vim.g.bones_compat = 1 end,
     variants = {
       'zenbones',      -- warm earth tones; low saturation, highlights via contrast + font variation
       'zenwritten',    -- fully desaturated/grayscale; zero hue, maximum readability
@@ -170,9 +212,11 @@ M.themes = {
   oxocarbon = {
     src = gh('nyoom-engineering/oxocarbon.nvim'),
     variants = {
-      'oxocarbon',           -- IBM Carbon design; pitch black bg (dark) or bright white (light); electric cyan/purple accents
+      'oxocarbon',           -- IBM Carbon design; pitch black bg, electric cyan/purple accents
+      'oxocarbon-light',     -- IBM Carbon design; bright white bg, electric cyan/purple accents
     },
-    background = { oxocarbon = 'dark' },
+    colorscheme = { ['oxocarbon-light'] = 'oxocarbon' },
+    background  = { oxocarbon = 'dark', ['oxocarbon-light'] = 'light' },
   },
 
   ['modus-themes'] = {
@@ -228,30 +272,33 @@ M.themes = {
       -- 'warmer': even warmer, amber tones
       -- 'light':  light bg, muted warm palette
     },
-    -- onedark requires both setup() AND load() — style selects the variant
+    -- onedark style is configured via setup(); M.apply() handles colorscheme.
     setup = function()
       require('onedark').setup({
         style      = 'dark',  -- dark | darker | cool | deep | warm | warmer | light
         code_style = { comments = 'italic' },
       })
-      require('onedark').load()
     end,
   },
 
   vscode = {
     src = gh('Mofiqul/vscode.nvim'),
     variants = {
-      'vscode',              -- exact VS Code Dark+/Light+ palette; cool-toned dark, muted saturation; uses background=light/dark to switch
+      'vscode',              -- exact VS Code Dark+ palette; cool-toned, muted saturation
+      'vscode-light',        -- exact VS Code Light+ palette
     },
-    background = { vscode = 'dark' },
+    colorscheme = { ['vscode-light'] = 'vscode' },
+    background  = { vscode = 'dark', ['vscode-light'] = 'light' },
   },
 
   everforest = {
     src = gh('neanias/everforest-nvim'),
     variants = {
-      'everforest',          -- natural greens and earthy tones; warm, moderate saturation; uses background=light/dark + setup() background (hard|medium|soft) for contrast
+      'everforest',          -- natural greens and earthy tones; dark, hard contrast
+      'everforest-light',    -- natural greens and earthy tones; light, hard contrast
     },
-    background = { everforest = 'dark' },
+    colorscheme = { ['everforest-light'] = 'everforest' },
+    background  = { everforest = 'dark', ['everforest-light'] = 'light' },
     -- contrast level is controlled here — hard | medium | soft
     setup = function()
       require('everforest').setup({
@@ -299,6 +346,104 @@ for _, t in pairs(M.themes) do
       M.background[variant] = bg
     end
   end
+end
+
+-- virtual variant name → real colorscheme name  (e.g. 'gruvbox-light' → 'gruvbox')
+-- For themes that use vim.opt.background to switch light/dark but only register
+-- one colorscheme name. Variants not in this table use their own name directly.
+M.colorscheme = {}
+for _, t in pairs(M.themes) do
+  if t.colorscheme then
+    for variant, cs in pairs(t.colorscheme) do
+      M.colorscheme[variant] = cs
+    end
+  end
+end
+
+--------------------------------------------------------------------------
+-- Operations
+--------------------------------------------------------------------------
+
+--- Apply a theme variant: packadd → background → setup → colorscheme → overrides.
+---
+--- Designed to be called repeatedly during live preview (theme-picker scrolling).
+--- Verified safe because:
+---   packadd:  re-sources plugin/ scripts each call, but none of our current
+---             themes have problematic plugin/ scripts (github-nvim-theme
+---             registers commands idempotently; all others have no plugin/ dir).
+---             When adding a new theme: if it has a plugin/ dir with side effects
+---             (autocommands, global state) that accumulate on repeated source,
+---             it will misbehave during live preview. Check with :packadd + :scriptnames.
+---   setup():  all five current setup functions (dracula, github-nvim-theme,
+---             modus-themes, onedark, everforest) use replace/overwrite patterns —
+---             no accumulating autocommands, no growing global state.
+---             When adding a new theme with a setup(): verify it is idempotent
+---             (no additive autocommands, no append-only state). If not, the
+---             picker will degrade for that theme (flicker, leaked state, slowdown).
+---   Note:     some themes (onedark) call setup() internally from their
+---             colors/<name>.lua file, so setup() may run twice per apply. This is
+---             harmless — all our themes' setup functions are idempotent.
+---   colorscheme: pcall-wrapped so a broken theme during preview shows a warning
+---             instead of crashing Neovim.
+function M.apply(variant)
+  local plugin_key = M.plugin[variant] or variant
+  local theme = M.themes[plugin_key]
+  if not theme then return end
+
+  -- packadd takes the pack directory name, which is theme.name when the repo
+  -- slug differs from the plugin name (e.g. catppuccin/nvim → name='catppuccin').
+  vim.cmd.packadd(theme.name or plugin_key)
+
+  -- Explicit background reset: prevents a previous theme's background='light'
+  -- from leaking into themes that don't specify one.
+  -- Note: changing background can fire a ColorScheme event for the *current*
+  -- colorscheme if the value actually changes (e.g. light→dark). This is
+  -- harmless — the vim.cmd.colorscheme() call below immediately overwrites it.
+  vim.opt.background = M.background[variant] or 'dark'
+
+  if theme.setup then pcall(theme.setup) end
+
+  -- Resolve virtual variant names (e.g. 'gruvbox-light' → 'gruvbox') for themes
+  -- that use vim.opt.background to switch but only register one colorscheme name.
+  local cs = M.colorscheme[variant] or variant
+  local ok, err = pcall(vim.cmd.colorscheme, cs)
+  if not ok then
+    vim.notify('theme-picker: ' .. err, vim.log.levels.WARN)
+    return
+  end
+
+  -- Overrides must run after colorscheme so they aren't clobbered.
+  for group, attrs in pairs(M.global_overrides) do
+    vim.api.nvim_set_hl(0, group, attrs)
+  end
+  if theme.overrides then
+    for group, attrs in pairs(theme.overrides) do
+      vim.api.nvim_set_hl(0, group, attrs)
+    end
+  end
+end
+
+--- Persist a variant name to the state file so it survives restarts.
+--- stdpath('data') (typically ~/.local/share/nvim/) always exists — no mkdir needed.
+--- To reset to the default theme, delete the state file.
+function M.save(variant)
+  vim.fn.writefile({ variant }, state_file)
+  M.active = variant
+end
+
+--- Sorted list of all variant names (deterministic alphabetical order).
+--- pairs() over M.themes is non-deterministic, so we collect and sort.
+function M.all_variants()
+  local list = {}
+  for _, t in pairs(M.themes) do
+    if t.variants then
+      for _, v in ipairs(t.variants) do
+        list[#list + 1] = v
+      end
+    end
+  end
+  table.sort(list)
+  return list
 end
 
 return M

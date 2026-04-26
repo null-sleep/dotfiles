@@ -57,32 +57,7 @@ end, 1000)
 -- Theme
 -------------------------------------------------------------------------------
 
--- M.active may be a variant name (e.g. 'catppuccin-latte'); resolve back to
--- the plugin name for packadd and setup(), then apply the variant as colorscheme.
-local active_plugin = themes.plugin[themes.active] or themes.active
-vim.cmd.packadd(active_plugin)
-
--- Set background before setup()/colorscheme so themes that use light/dark
--- switching pick up the right palette.
-if themes.background[themes.active] then
-  vim.opt.background = themes.background[themes.active]
-end
-
-local active_theme = themes.themes[active_plugin]
-if active_theme and active_theme.setup then active_theme.setup() end
-vim.cmd.colorscheme(themes.active)
-
--- Apply highlight overrides — global first, then per-theme on top.
--- Must run after colorscheme so they are not clobbered by the theme.
-local function apply_overrides(overrides)
-  for group, attrs in pairs(overrides) do
-    vim.api.nvim_set_hl(0, group, attrs)
-  end
-end
-apply_overrides(themes.global_overrides)
-if active_theme and active_theme.overrides then
-  apply_overrides(active_theme.overrides)
-end
+themes.apply(themes.active)
 
 -------------------------------------------------------------------------------
 -- Icons
