@@ -49,6 +49,7 @@ timer:start(1000, 1000, vim.schedule_wrap(function()
   end
 end))
 
+opt.whichwrap:append('<,>,[,],h,l')    -- cursor wraps to next/prev line at end/start
 opt.splitright = true                  -- vertical splits open to the right
 opt.splitbelow = true                  -- horizontal splits open below
 
