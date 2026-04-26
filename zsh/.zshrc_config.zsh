@@ -154,6 +154,13 @@ gdn() {
   git diff HEAD~$n HEAD~$(($n - 1))
 }
 
+# Switch to a git worktree via fzf
+gw() {
+  local target
+  target=$(git worktree list | fzf --prompt="worktree> " | awk '{print $1}')
+  [[ -n "$target" ]] && cd "$target"
+}
+
 # Claude Alias
 alias c=claude
 

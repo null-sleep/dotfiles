@@ -14,6 +14,9 @@ vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc 
 vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
 vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
 
+-- Clear search highlights
+vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
+
 -- Yank to system clipboard (dd, x, c stay in Neovim register)
 vim.keymap.set({'n', 'v'}, 'y', '"+y', { desc = 'Yank to system clipboard' })
 vim.keymap.set('n', 'Y', '"+Y', { desc = 'Yank line to system clipboard' })
