@@ -11,16 +11,9 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
 
   antigen use oh-my-zsh
 
-  # Install autocompletion for ripgrep
-  # https://github.com/odefault_bundhmyzsh/ohmyzsh/tree/master/plugins/ripgrep
-  antigen bundle ripgrep
-
   # Prefix a command with sudo by double-tapping ESC
   # https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/sudo
   # antigen bundle sudo
-
-  # Syntax highlighting on the prompt as you type commands
-  antigen bundle zsh-users/zsh-syntax-highlighting
 
   antigen bundle z
   antigen bundle git
@@ -34,6 +27,10 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   antigen bundle kubectl
   antigen bundle command-not-found
   antigen bundle zsh-users/zsh-autosuggestions
+
+  # Syntax highlighting must be loaded after all other plugins (especially
+  # zsh-autosuggestions) so it can wrap their widgets correctly.
+  antigen bundle zsh-users/zsh-syntax-highlighting
 
   # Theme
   ZSH_THEME="robbyrussell"
@@ -51,8 +48,8 @@ fi
 # antigen bundle ptavares/zsh-direnv
 [[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
 
-# Set limit on the number of open file descriptors
-ulimit -n 1024
+# Raise open file descriptor limit if below 10240 (some older macOS defaults to 256)
+[[ $(ulimit -n) -lt 10240 ]] && ulimit -n 10240
 
 # Enable alias expansion in completions by pressing tab
 zstyle ':completion:*' completer _expand_alias _complete _ignored
@@ -92,7 +89,7 @@ else
 fi
 
 # FZF
-source <(fzf --zsh)
+command -v fzf >/dev/null && source <(fzf --zsh)
 
 
 # Git
@@ -174,7 +171,7 @@ fix_dock() {
 # GO environment
 # GO111MODULE=on
 export GOPATH=$HOME/go
-export PATH=$PATH:$(go env GOPATH)/bin
+export PATH="$PATH:$GOPATH/bin"
 
 # Source company-specific config if present
 [[ -f ~/.zshrc_bitgo.zsh ]] && source ~/.zshrc_bitgo.zsh

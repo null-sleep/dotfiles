@@ -42,5 +42,5 @@ kill-mcp-chrome() {
 alias bga='/Users/dhruvjauhar/src/bitgo-admin/bin/bgadmin'
 
 ## Run evals
-eval "$(atlas init zsh)"
-eval "$(direnv hook zsh)"
+command -v atlas >/dev/null && eval "$(atlas init zsh)"
+command -v direnv >/dev/null && eval "$(direnv hook zsh)"
