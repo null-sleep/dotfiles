@@ -42,6 +42,8 @@ local function build_results()
 
   local seen = {}  -- track lhs to deduplicate across sources (case-sensitive)
 
+  -- `return false` prunes the subtree; bare `return` skips just this node
+  -- but continues into children.
   mode.tree:walk(function(node)
     if node.hidden then return false end
     local desc = node.desc or ''
@@ -109,6 +111,7 @@ function M.open()
         if entry then
           vim.schedule(function()
             local k = vim.api.nvim_replace_termcodes(entry.value.keys, true, true, true)
+            -- 'm' = remap keys, 't' = handle as if typed (triggers mappings)
             vim.api.nvim_feedkeys(k, 'mt', false)
           end)
         end

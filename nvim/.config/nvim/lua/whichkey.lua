@@ -49,4 +49,5 @@ local keywords = {
   ['<leader>qq'] = 'close exit',
 }
 
+-- Exported for keypicker.lua: `require('whichkey').keywords`
 return { keywords = keywords }
