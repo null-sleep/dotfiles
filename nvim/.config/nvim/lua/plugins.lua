@@ -22,6 +22,7 @@ vim.pack.add(vim.list_extend({
 
   -- UI
   { src = gh('echasnovski/mini.icons') },
+  { src = gh('echasnovski/mini.notify') },
   { src = gh('nvim-lualine/lualine.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
@@ -93,6 +94,21 @@ require('mini.icons').setup()
 require('mini.icons').mock_nvim_web_devicons()
 
 -------------------------------------------------------------------------------
+-- Notifications
+-------------------------------------------------------------------------------
+
+-- Floating-window notifications that auto-dismiss without stealing focus or
+-- triggering hit-enter prompts (default vim.notify echoes to cmdline and
+-- prompts on long messages).
+vim.cmd.packadd('mini.notify')
+-- lsp_progress.enable = false suppresses noisy `$/progress` notifications from
+-- language servers (e.g. lua_ls scanning 5000+ workspace files at startup).
+require('mini.notify').setup({
+  lsp_progress = { enable = false },
+})
+vim.notify = require('mini.notify').make_notify()
+
+-------------------------------------------------------------------------------
 -- Treesitter
 -------------------------------------------------------------------------------
 
@@ -138,14 +154,12 @@ local function is_large_buffer(buf)
   return ok and stats and stats.size > (1.5 * 1024 * 1024)
 end
 
--- Attach treesitter highlighting, auto-installing the parser if missing
+-- Attach treesitter highlighting; silently no-op if parser isn't installed.
+-- For unlisted languages, run `:TSInstall <lang>` once and add to ensure_installed.
 local function enable_highlighting(buf)
   local lang = vim.treesitter.language.get_lang(vim.bo[buf].filetype)
   if not lang then return end
-  local ok = pcall(vim.treesitter.start, buf, lang)
-  if not ok then
-    pcall(vim.cmd, 'TSInstall ' .. lang)
-  end
+  pcall(vim.treesitter.start, buf, lang)
 end
 
 -- Use treesitter AST for code folding (files open fully expanded)
@@ -155,11 +169,22 @@ local function enable_folding()
   vim.wo.foldlevel = 99
 end
 
+-- Expand ensure_installed langs into their registered filetypes (e.g. the
+-- 'typescript' parser may attach to both 'typescript' and 'typescriptreact').
+-- Falls back to the lang name itself when no filetype is registered yet.
+local ts_filetypes = vim.iter(ensure_installed)
+  :map(function(lang)
+    local fts = vim.treesitter.language.get_filetypes(lang)
+    return #fts > 0 and fts or { lang }
+  end)
+  :flatten()
+  :totable()
+
 local ts_group = vim.api.nvim_create_augroup('NativeTreesitterSetup', { clear = true })
 vim.api.nvim_create_autocmd('FileType', {
   group = ts_group,
   desc = 'Enable native treesitter highlighting and folding',
-  pattern = '*',
+  pattern = ts_filetypes,
   callback = function(args)
     if is_large_buffer(args.buf) then return end
     enable_highlighting(args.buf)

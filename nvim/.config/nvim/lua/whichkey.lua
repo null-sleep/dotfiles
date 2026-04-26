@@ -27,10 +27,18 @@ wk.add({
   { '<leader>q',  group = 'Session' },
   { '<leader>t',  group = 'Toggle' },
   { '<leader>h',  group = 'Git hunk' },
-  { '<leader>y',  group = 'Yank' },
   { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
   { 'g',          group = 'Go to' },
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
+
+  -- Yank-prefix descriptions (documentation only — `y` is intentionally not
+  -- in `triggers`, so these don't pop up after pressing `y`; they appear in
+  -- `<leader>?` global mappings list). Active in normal and visual modes.
+  { 'yp',  desc = 'Yank: Relative path',                    mode = { 'n', 'x' } },
+  { 'yP',  desc = 'Yank: Absolute path',                    mode = { 'n', 'x' } },
+  { 'yc',  desc = 'Yank: Claude reference (@path:lines)',   mode = { 'n', 'x' } },
+  { 'yC',  desc = 'Yank: Claude reference (absolute path)', mode = { 'n', 'x' } },
+  { 'yu',  desc = 'Yank: GitHub permalink',                 mode = { 'n', 'x' } },
 })
