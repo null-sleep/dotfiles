@@ -286,10 +286,7 @@ M.plugin = {}
 for key, t in pairs(M.themes) do
   if t.variants then
     for _, variant in ipairs(t.variants) do
-      -- skip comment-only entries (lines starting with --)
-      if not variant:match('^%-%-') then
-        M.plugin[variant] = key
-      end
+      M.plugin[variant] = key
     end
   end
 end
