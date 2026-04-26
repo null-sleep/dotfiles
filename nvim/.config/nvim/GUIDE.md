@@ -45,6 +45,9 @@ dependencies at the right time. Where order matters (e.g. `lsp.lua` does
 `packadd` for mason -> mason-lspconfig -> lspconfig in dependency order),
 the file handles sequencing itself.
 
+Plugin versions are pinned in `nvim-pack-lock.json` (commit SHAs). Commit
+this file after updating plugins to keep versions consistent across machines.
+
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
@@ -229,3 +232,13 @@ All keymaps have `desc` strings. To discover them:
 
 Which-key uses an explicit trigger list (see `whichkey.lua`). If you add a
 new single-char group in `wk.add()`, add its trigger too.
+
+### Clipboard split
+
+`y`/`Y` copy to the system clipboard, but `d`, `x`, `c`, and `dd` stay in
+Neovim's default register. Visual-mode `p` pastes without clobbering the
+clipboard either. This is non-standard -- most configs use
+`clipboard=unnamedplus` (everything goes to system clipboard) or don't touch
+it. The failure mode is silent: if you `dd` a line expecting it on your
+system clipboard, you'll paste whatever was there before. Use `"+d`
+explicitly when you need to cut-to-clipboard.
