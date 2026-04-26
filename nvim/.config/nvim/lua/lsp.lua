@@ -65,6 +65,11 @@ vim.api.nvim_create_autocmd('LspAttach', {
       })
     end
 
+    -- Codelens: virtual text annotations (run tests, implement interface, etc.)
+    -- grx (nvim 0.12 default) runs the codelens under cursor.
+    -- enable() handles refresh on BufEnter/BufWritePost automatically.
+    vim.lsp.codelens.enable(true, { bufnr = buf })
+
     -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
     map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
     -- gD jumps to the declaration (signature without body) — useful in Rust (trait).
