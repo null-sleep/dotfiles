@@ -53,11 +53,10 @@ end, { desc = 'Toggle: Diagnostics' })
 vim.keymap.set('n', '<leader>?', function() require('which-key').show({ global = true }) end,
   { desc = 'Help: All mappings' })
 
--- Yank file paths to system clipboard
-vim.keymap.set('n', '<leader>yp', function()
-  vim.fn.setreg('+', vim.fn.expand('%'))
-end, { desc = 'Yank: Relative path' })
-
-vim.keymap.set('n', '<leader>yP', function()
-  vim.fn.setreg('+', vim.fn.expand('%:p'))
-end, { desc = 'Yank: Absolute path' })
+-- Yank helpers (paths, code references, GitHub permalinks)
+local yank = require('yank')
+vim.keymap.set({'n', 'x'}, 'yp', yank.relative_path,        { desc = 'Yank: Relative path' })
+vim.keymap.set({'n', 'x'}, 'yP', yank.absolute_path,        { desc = 'Yank: Absolute path' })
+vim.keymap.set({'n', 'x'}, 'yc', yank.claude_ref,           { desc = 'Yank: Claude reference (@path:lines)' })
+vim.keymap.set({'n', 'x'}, 'yC', yank.claude_ref_absolute,  { desc = 'Yank: Claude reference (absolute path)' })
+vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitHub permalink' })
