@@ -3,8 +3,10 @@
 
 -- Telescope
 local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>sf', builtin.find_files,  { desc = 'Search: Files' })
-vim.keymap.set('n', '<leader>sg', builtin.live_grep,   { desc = 'Search: Grep' })
+vim.keymap.set('n', '<leader>sf', function() require('filterpicker').find_files() end,
+  { desc = 'Search: Files' })
+vim.keymap.set('n', '<leader>sg', function() require('filterpicker').live_grep() end,
+  { desc = 'Search: Grep' })
 vim.keymap.set('n', '<leader>sb', builtin.buffers,     { desc = 'Search: Buffers' })
 vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
@@ -15,6 +17,8 @@ vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc 
 vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
 vim.keymap.set('n', '<leader>st', function() require('themepicker').open() end,
   { desc = 'Search: Themes' })
+vim.keymap.set('n', '<leader>sF', function() require('filterpicker').pick() end,
+  { desc = 'Search: Toggle filters' })
 
 -- Clear search highlights
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
