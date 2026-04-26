@@ -16,6 +16,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('mason-org/mason.nvim') },
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
+  { src = gh('folke/lazydev.nvim') },
 
   -- Completion
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
@@ -107,6 +108,7 @@ vim.api.nvim_create_autocmd('PackChanged', {
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
   'rust', 'elixir', 'markdown', 'json', 'yaml', 'ini', 'graphql',
+  'html', 'css', 'bash', 'vim', 'toml',
 }
 
 pcall(function()

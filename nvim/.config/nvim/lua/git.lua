@@ -36,6 +36,9 @@ require('gitsigns').setup({
     end, 'Git hunk: Previous')
 
     -- Actions
+    -- stage_hunk/reset_hunk also accept a range for visual-mode partial staging:
+    --   map('v', '<leader>hs', function() gs.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, ...)
+    --   map('v', '<leader>hr', function() gs.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, ...)
     map('n', '<leader>hs', gs.stage_hunk,                                  'Git hunk: Stage')
     map('n', '<leader>hr', gs.reset_hunk,                                  'Git hunk: Reset')
     map('n', '<leader>hu', gs.undo_stage_hunk,                             'Git hunk: Undo stage')
@@ -53,7 +56,7 @@ require('satellite').setup({
   current_only = true,    -- show scrollbar only on the focused window
   winblend     = 50,      -- scrollbar transparency (0 = opaque, 100 = invisible)
   width        = 2,
-  excluded_filetypes = { 'TelescopePrompt', 'mason', 'lazy' },
+  excluded_filetypes = { 'TelescopePrompt', 'mason' },
   handlers = {
     cursor     = { enable = true },
     search     = { enable = true },

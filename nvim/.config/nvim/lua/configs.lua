@@ -1,5 +1,3 @@
-vim.g.mapleader = ' '
-
 -- Disable unused providers to suppress checkhealth warnings
 vim.g.loaded_python3_provider = 0
 
@@ -18,7 +16,6 @@ opt.undolevels = 10000                 -- increase undo history (default 1000)
 -- stay in Neovim's default register so they don't clobber the clipboard.
 opt.cursorline = true                  -- highlight current line
 opt.updatetime = 300                   -- faster CursorHold and swap writes (default 4000ms)
-opt.autowrite = true                   -- auto save when switching buffers or running commands
 -- Minimum lines to keep visible above and below the cursor when scrolling
 -- vertically. Prevents the cursor from reaching the screen edge, so you
 -- always have context around the line you're editing.
@@ -39,12 +36,19 @@ opt.autoread = true                    -- auto reload files changed outside nvim
 -- BufEnter:     switching to a buffer (e.g. changing splits/tabs)
 -- CursorHold:   cursor idle for 'updatetime' ms in normal mode
 -- CursorHoldI:  same but in insert mode
+-- clear = true: wipe any existing autocmds in this group so re-sourcing
+-- this file doesn't create duplicates.
+local checktime_group = vim.api.nvim_create_augroup('UserChecktime', { clear = true })
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI' }, {
+  group = checktime_group,
+  desc = 'Reload files changed outside Neovim',
   command = 'checktime',
 })
--- Poll for external changes every 1s (catches edits when nvim has no focus)
-local timer = assert(vim.uv.new_timer())
-timer:start(1000, 1000, vim.schedule_wrap(function()
+-- Poll for external changes every 1s (catches edits when nvim has no focus).
+-- Stored on _G so re-sourcing stops the old timer before creating a new one.
+if _G._checktime_timer then _G._checktime_timer:stop() end
+_G._checktime_timer = assert(vim.uv.new_timer())
+_G._checktime_timer:start(1000, 1000, vim.schedule_wrap(function()
   if vim.api.nvim_get_mode().mode == 'n' then
     vim.cmd('checktime')
   end

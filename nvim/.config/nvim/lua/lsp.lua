@@ -3,6 +3,11 @@ vim.cmd.packadd('mason.nvim')
 vim.cmd.packadd('mason-lspconfig.nvim')
 vim.cmd.packadd('nvim-lspconfig')
 
+-- lazydev: dynamically provides Neovim API type annotations to lua_ls,
+-- replacing the static workspace.library + diagnostics.globals config.
+vim.cmd.packadd('lazydev.nvim')
+require('lazydev').setup()
+
 -- mason: server installer UI
 require('mason').setup({
   ui = {
@@ -49,10 +54,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
     --   1. Insert mode only — auto-enable on InsertEnter, disable on InsertLeave
     --   2. Disable noisy categories per-LSP (e.g. keep parameterNames, drop
     --      assignVariableTypes/compositeLiteralTypes which add the most clutter)
-    vim.lsp.inlay_hint.enable(true, { bufnr = buf })
-    map('n', '<leader>ti', function()
-      vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
-    end, 'Toggle: Inlay hints')
+    if client:supports_method('textDocument/inlayHint') then
+      vim.lsp.inlay_hint.enable(true, { bufnr = buf })
+      map('n', '<leader>ti', function()
+        vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
+      end, 'Toggle: Inlay hints')
+    end
 
     -- Document highlight: when cursor pauses on a symbol, highlight other occurrences
     -- in the buffer. Uses LspReferenceText/Read/Write highlight groups (theme-styled).
@@ -70,15 +77,21 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Codelens: virtual text annotations (run tests, implement interface, etc.)
     -- grx (nvim 0.12 default) runs the codelens under cursor.
     -- enable() handles refresh on BufEnter/BufWritePost automatically.
-    vim.lsp.codelens.enable(true, { bufnr = buf })
+    if client:supports_method('textDocument/codeLens') then
+      vim.lsp.codelens.enable(true, { bufnr = buf })
+    end
 
     -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
     map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
     -- gD jumps to the declaration (signature without body) — useful in Rust (trait).
     -- Not supported by all LSPs: gopls and pyright don't implement textDocument/declaration
     -- since Go/Python have no separate declaration concept (declaration == definition).
-    map('n', 'gD',               vim.lsp.buf.declaration,     'LSP: Go to declaration')
-    map('n', 'gy',               vim.lsp.buf.type_definition, 'LSP: Go to type definition')
+    if client:supports_method('textDocument/declaration') then
+      map('n', 'gD',             vim.lsp.buf.declaration,     'LSP: Go to declaration')
+    end
+    if client:supports_method('textDocument/typeDefinition') then
+      map('n', 'gy',             vim.lsp.buf.type_definition, 'LSP: Go to type definition')
+    end
     -- K (hover), [d/]d (diagnostic jump) are nvim 0.12 defaults — not remapped here.
     -- The defaults also support count: 3]d jumps 3 diagnostics forward.
     -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
@@ -86,7 +99,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
     map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
     map({'n','v'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
-    map({'n','v'}, '<leader>cf', vim.lsp.buf.format,          'LSP: Format')
+    if client:supports_method('textDocument/formatting') then
+      map({'n','v'}, '<leader>cf', vim.lsp.buf.format,        'LSP: Format')
+    end
     -- jump = true moves cursor to the exact diagnostic position after opening the float
     map('n', '<leader>e',        function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
     map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
@@ -96,7 +111,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- (grn, gra, grt, grx) keeps working and vim's gi (last insert) is preserved.
     local ok, builtin = pcall(require, 'telescope.builtin')
     map('n', 'grr', ok and builtin.lsp_references      or vim.lsp.buf.references,     'LSP: References')
-    map('n', 'gri', ok and builtin.lsp_implementations or vim.lsp.buf.implementation, 'LSP: Go to implementation')
+    if client:supports_method('textDocument/implementation') then
+      map('n', 'gri', ok and builtin.lsp_implementations or vim.lsp.buf.implementation, 'LSP: Go to implementation')
+    end
   end,
 })
 
@@ -119,10 +136,9 @@ vim.diagnostic.config({
 vim.lsp.config('lua_ls', {
   settings = {
     Lua = {
-      runtime     = { version = 'LuaJIT' },
-      workspace   = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file('', true) },
-      diagnostics = { globals = { 'vim' } },
-      telemetry   = { enable = false },
+      runtime   = { version = 'LuaJIT' },
+      workspace = { checkThirdParty = false },
+      telemetry = { enable = false },
     },
   },
 })
