@@ -24,7 +24,7 @@ wk.setup({
 -- pause on every gcc with no real benefit.
 wk.add({
   { '<leader>s',  group = 'Search' },
-  { '<leader>q',  group = 'Session' },
+  { '<leader>q',  group = 'Session/Quit' },
   { '<leader>t',  group = 'Toggle' },
   { '<leader>h',  group = 'Git hunk' },
   { '<leader>r',  group = 'Refactor' },

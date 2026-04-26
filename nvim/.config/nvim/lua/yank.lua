@@ -1,7 +1,10 @@
 -- Yank helpers — write to system clipboard ('+' register) and notify.
 --
+-- Normal mode: path helpers work as-is; line-based helpers (claude_ref,
+-- github_url) use the cursor line as a single-line reference.
+-- Visual mode: line-based helpers use the selection range.
+--
 -- Deferred ideas (not built yet):
---   * Normal-mode variants of claude_ref / github_url for the current line.
 --   * Branch-name URL variant (e.g. <leader>yU) alongside the SHA permalink.
 --   * Inline-snippet form for claude_ref that includes a fenced code block.
 

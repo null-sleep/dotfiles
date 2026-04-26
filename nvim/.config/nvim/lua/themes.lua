@@ -247,8 +247,6 @@ M.themes = {
       require('modus-themes').setup({
         style  = 'auto',  -- auto (follows background) | modus_operandi | modus_vivendi
         styles = { comments = { italic = true } },
-        on_colors     = function(_) end,
-        on_highlights = function(_, _) end,
       })
     end,
   },
