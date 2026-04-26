@@ -140,6 +140,10 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Space>sr` | Resume last search |
 | `<Space>s/` | Fuzzy search inside current buffer |
 | `<Space>so` | Recent files |
+| `<Space>sm` | Modified files (git status) |
+| `<Space>ss` | Symbols (workspace) |
+| `<Space>sS` | Symbols (document) |
+| `<Space>st` | Theme picker (live preview) |
 
 **Inside the telescope window:**
 
@@ -166,10 +170,11 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 
 ### LSP (Language Server Protocol)
 
-IDE features powered by nvim's built-in LSP client. Three plugins work together:
+IDE features powered by nvim's built-in LSP client. Four plugins work together:
 - **mason.nvim** — installs and manages language servers (`:Mason` to open UI)
 - **mason-lspconfig.nvim** — bridges mason and lspconfig, auto-installs servers on startup
 - **nvim-lspconfig** — pre-configured setups for each language server
+- **lazydev.nvim** — provides Neovim API type annotations to lua_ls (no manual workspace config needed)
 
 Configured servers: `lua_ls`, `pyright`, `ts_ls`, `gopls`, `rust_analyzer`, `elixirls`
 
@@ -190,16 +195,18 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 |---|---|
 | `gd` | Go to definition |
 | `gD` | Go to declaration |
-| `gi` | Go to implementation |
+| `gri` | Go to implementation (opens in telescope) |
 | `gy` | Go to type definition |
-| `gr` | References (opens in telescope) |
+| `grr` | References (opens in telescope) |
+| `grx` | Run codelens under cursor |
 | `K` | Hover docs |
-| `<C-k>` | Signature help |
+| `<C-s>` | Signature help |
 | `<Space>rn` | Rename symbol |
 | `<Space>ca` | Code actions |
+| `<Space>cf` | Format buffer or selection |
 | `<Space>e` | Show diagnostic float |
 | `[d` / `]d` | Jump to previous / next diagnostic |
-| `<Space>q` | Send diagnostics to location list |
+| `<Space>cd` | Send diagnostics to location list |
 
 **Diagnostic commands:**
 
@@ -213,9 +220,17 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 Diagnostic virtual text and gutter signs are **off by default** — underlines remain active
 so diagnostics are still visible on hover (`K` or `<Space>e`).
 
+**LSP features** (enabled automatically when the server supports them):
+
+- **Inlay hints** — parameter names, inferred types (useful for Rust/Go/TS). Toggle with `<Space>ti` when noisy.
+- **Document highlight** — when cursor pauses on a symbol (~300ms), other occurrences in the buffer are highlighted.
+- **Codelens** — virtual text annotations (run tests, implement interface, etc.). `grx` runs the codelens under cursor.
+
 | Keymap | Action |
 |---|---|
 | `<Space>td` | Toggle diagnostic virtual text and gutter signs on/off |
+| `<Space>ti` | Toggle inlay hints on/off |
+| `<Space>tb` | Toggle inline git blame |
 
 ### Autocompletion (blink.cmp)
 
@@ -258,11 +273,22 @@ back to a pure Lua implementation with no action required. To force a re-downloa
 
 | Sign | Meaning |
 |---|---|
-| `┃` | Added line |
-| `┃` | Changed line |
-| `_` / `‾` | Deleted line (below / above) |
-| `~` | Changed and deleted |
-| `┆` | Untracked file |
+| `▎` | Added line |
+| `▎` | Changed line |
+| `▂` / `▔` | Deleted line (below / above) |
+| `▎` | Changed and deleted |
+| `░` | Untracked file |
+
+**Git hunk keymaps:**
+
+| Keymap | Action |
+|---|---|
+| `]c` / `[c` | Jump to next / previous hunk |
+| `<Space>hs` | Stage hunk |
+| `<Space>hr` | Reset hunk |
+| `<Space>hu` | Undo stage hunk |
+| `<Space>hp` | Preview hunk |
+| `<Space>hb` | Blame line (full commit info) |
 
 **satellite.nvim** adds a scrollbar on the right edge of the focused window with colour-coded marks showing where things are across the whole file:
 
@@ -299,6 +325,27 @@ nvim in the same directory.
 | `<Space>qd` | Stop saving — quit without persisting current state |
 
 
+### Auto-save (auto-save.nvim)
+
+Buffers are saved automatically on focus loss, leaving insert mode, and after text changes (1s debounce).
+Special buffers (telescope, mason, gitcommit) are excluded. No keymaps — it just works in the background.
+
+### Auto-pairs (nvim-autopairs)
+
+Automatically closes brackets, quotes, and other pairs. Treesitter-aware — won't auto-pair inside
+strings or comments where it would be wrong.
+
+### Notifications (mini.notify)
+
+Floating notification windows that auto-dismiss. Replaces vim's default `vim.notify` which echoes
+to the command line and prompts on long messages. LSP progress notifications are suppressed to
+avoid noise from language servers scanning the workspace.
+
+### Markdown Rendering (render-markdown.nvim)
+
+Renders markdown files in the buffer with formatted headings, bold, italic, code blocks, and lists.
+Active automatically when opening `.md` files.
+
 ### General Keymaps
 
 | Keymap | Action |
@@ -308,8 +355,13 @@ nvim in the same directory.
 | `p` (visual) | Paste without clobbering register |
 | `<` / `>` (visual) | Indent/dedent and stay in visual mode |
 | `Ctrl+h/j/k/l` | Navigate between splits |
-| `<Space>yp` | Yank relative file path |
-| `<Space>yP` | Yank absolute file path |
+| `<Esc>` | Clear search highlights |
+| `<Space>?` | Show all keymaps (which-key) |
+| `yp` | Yank relative file path |
+| `yP` | Yank absolute file path |
+| `yc` | Yank Claude @-reference with line numbers |
+| `yC` | Yank Claude @-reference (absolute path) |
+| `yu` | Yank GitHub permalink |
 
 ### Keymap Discovery (which-key.nvim)
 
@@ -319,10 +371,9 @@ grouped by category. Helps discover keymaps without needing to remember them all
 | Prefix | Group |
 |---|---|
 | `<Space>s` | Search |
-| `<Space>q` | Session |
+| `<Space>q` | Session/Quit |
 | `<Space>t` | Toggle |
 | `<Space>h` | Git hunk |
-| `<Space>y` | Yank |
 | `<Space>r` | Refactor |
 | `<Space>c` | Code |
 | `g` | Go to |
@@ -343,11 +394,11 @@ diff counts, diagnostics, LSP status, search count, progress, and cursor positio
 
 - **LSP status** — only visible when a language server is attached to the current buffer
 - **Search count** — only visible while a `/` search is active
-- Theme updates automatically when you change `M.active` in `lua/themes.lua`
+- Theme updates automatically when you switch themes (via `<Space>st` or `lua/themes.lua`)
 
 ### Themes
 
-All themes are configured in `lua/themes.lua`. To switch themes, change `M.active`:
+All themes are configured in `lua/themes.lua`. Switch themes interactively with `<Space>st` (live preview as you scroll), or edit `M.active` directly:
 
 ```lua
 M.active = 'catppuccin'        -- default dark
@@ -356,13 +407,15 @@ M.active = 'tokyonight-day'    -- light variant
 M.active = 'rose-pine-dawn'    -- light variant
 ```
 
+The active theme is persisted to `~/.local/share/nvim/theme.txt` and restored on next launch. The theme picker (`<Space>st`) saves automatically on selection.
+
 See `M.variants` in `lua/themes.lua` for all available colorscheme names with descriptions.
 
 To customise a theme, edit its `setup` function or `overrides` table in `lua/themes.lua`.
 
 **Tip:** position the cursor on any UI element and run `:Inspect` to find its highlight group name for overrides.
 
-**Installed themes:** catppuccin, tokyonight, gruvbox, rose-pine, kanagawa, dracula, solarized,
+**Installed themes:** catppuccin, tokyonight, gruvbox, rose-pine, kanagawa, nightfox, cyberdream, dracula, solarized,
 github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode, everforest, nordic.
 
 ### Navigation
@@ -402,20 +455,15 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 | `n` / `N` | Next / previous match |
 | `*` / `#` | Next / previous occurrence of word under cursor |
 
-**Common remaps:**
+**Remaps not yet configured** — listed here for reference when customising `keymaps.lua`:
 
 | Remap | What it does | Why |
 |---|---|---|
 | `jk` → `<Esc>` | Exit insert mode without reaching for Escape | Faster than `<Esc>`, keeps hands on home row |
-| `<C-h/j/k/l>` → split nav | Navigate between splits | Default `<C-w>h` is two keystrokes |
 | `H` / `L` → prev/next buffer | Cycle open buffers | Default H/L (screen top/bottom) are rarely used |
-| `<` / `>` in visual → stay in visual | Indent without losing selection | Default drops you back to normal mode |
 | `J` in visual → move lines down | Move selected lines down | More intuitive than `:m '>+1` |
 | `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
 | `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |
-| `p` in visual → paste without yanking | Paste over selection, keep register | Default replaces your clipboard with deleted text |
-
-These are not configured yet — listed here for reference when customising `keymaps.lua`.
 
 ## iTerm2
 
