@@ -25,9 +25,9 @@ require('mason-lspconfig').setup({
     'rust_analyzer',
     'elixirls',
   },
-  -- automatic_enable defaults to true: mason-lspconfig will call vim.lsp.enable()
-  -- for all installed servers. We still call vim.lsp.enable() explicitly below
-  -- for clarity and to control the exact server list.
+  -- Disable automatic_enable so our explicit vim.lsp.enable() below is the
+  -- single source of truth for which servers are active.
+  automatic_enable = false,
 })
 
 -- LspAttach: buffer-local keymaps and features applied when any LSP server
