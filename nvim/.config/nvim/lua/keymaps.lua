@@ -49,6 +49,11 @@ vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Move to split below' })
 vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Move to split above' })
 vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
 
+-- Buffer navigation
+vim.keymap.set('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Previous buffer' })
+vim.keymap.set('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next buffer' })
+vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate buffer' })
+
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
 vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { desc = 'Quit all' })
