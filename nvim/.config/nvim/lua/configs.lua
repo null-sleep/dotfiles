@@ -44,11 +44,13 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHo
   desc = 'Reload files changed outside Neovim',
   command = 'checktime',
 })
--- Poll for external changes every 1s (catches edits when nvim has no focus).
+-- Poll for external changes every 500ms (catches edits when nvim has no focus).
+-- Checks ALL open buffers against disk; reloads silently when 'autoread' is set.
+-- Only fires in normal mode to avoid disrupting insert/visual/cmdline edits.
 -- Stored on _G so re-sourcing stops the old timer before creating a new one.
 if _G._checktime_timer then _G._checktime_timer:stop() end
 _G._checktime_timer = assert(vim.uv.new_timer())
-_G._checktime_timer:start(1000, 1000, vim.schedule_wrap(function()
+_G._checktime_timer:start(500, 500, vim.schedule_wrap(function()
   if vim.api.nvim_get_mode().mode == 'n' then
     vim.cmd('checktime')
   end
