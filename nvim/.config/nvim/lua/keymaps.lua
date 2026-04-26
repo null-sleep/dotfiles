@@ -13,6 +13,8 @@ vim.keymap.set('n', '<leader>sm', builtin.git_status,                  { desc = 
 vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
 vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
+vim.keymap.set('n', '<leader>st', function() require('themepicker').open() end,
+  { desc = 'Search: Themes' })
 
 -- Clear search highlights
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
