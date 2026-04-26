@@ -138,6 +138,7 @@ end
 function M.find_files()
   local f = M.get()
   if f then
+    -- find_command bypasses Telescope's file_ignore_patterns, so re-exclude .git/ and node_modules/ here.
     local cmd = { 'rg', '--files', '--hidden', '--glob', '!.git/', '--glob', '!node_modules/' }
     for _, g in ipairs(f.globs) do
       table.insert(cmd, '--glob')
