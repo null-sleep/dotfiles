@@ -43,11 +43,11 @@ wk.add({
   { 'yu',  desc = 'Yank: GitHub permalink',                 mode = { 'n', 'x' } },
 })
 
--- Extra search keywords for keypicker — keyed by lhs, value is a
+-- Extra search keywords for pickers/keybindings.lua — keyed by lhs, value is a
 -- space-separated string of aliases that don't appear in the desc.
 local keywords = {
   ['<leader>qq'] = 'close exit',
 }
 
--- Exported for keypicker.lua: `require('whichkey').keywords`
+-- Exported for pickers/keybindings.lua: `require('whichkey').keywords`
 return { keywords = keywords }

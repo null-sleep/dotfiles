@@ -3,20 +3,21 @@
 
 -- Telescope
 local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>sf', function() require('filterpicker').find_files() end,
+vim.keymap.set('n', '<leader>sf', function() require('pickers.filter').find_files() end,
   { desc = 'Search: Files' })
-vim.keymap.set('n', '<leader>sg', function() require('filterpicker').live_grep() end,
+vim.keymap.set('n', '<leader>sg', function() require('pickers.filter').live_grep() end,
   { desc = 'Search: Grep' })
 vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
-vim.keymap.set('n', '<leader>sm', builtin.git_status,                  { desc = 'Search: Modified files' })
+vim.keymap.set('n', '<leader>sm', function() require('pickers.gitstatus').open() end,
+  { desc = 'Search: Modified files' })
 vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
 vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
-vim.keymap.set('n', '<leader>st', function() require('themepicker').open() end,
+vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
   { desc = 'Search: Themes' })
-vim.keymap.set('n', '<leader>sF', function() require('filterpicker').pick() end,
+vim.keymap.set('n', '<leader>sF', function() require('pickers.filter').pick() end,
   { desc = 'Search: Toggle filters' })
 
 -- Clear search highlights
@@ -52,7 +53,7 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
 vim.keymap.set('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Previous buffer' })
 vim.keymap.set('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next buffer' })
 vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate buffer' })
-vim.keymap.set('n', '<leader>m', function() require('bufferpicker').open() end,
+vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
   { desc = 'Buffer picker' })
 
 -- Quit
@@ -71,7 +72,7 @@ end, { desc = 'Toggle: Diagnostics' })
 -- Show all keybindings
 vim.keymap.set('n', '<leader>?', function() require('which-key').show({ global = true }) end,
   { desc = 'Help: All mappings' })
-vim.keymap.set('n', '<leader>sk', function() require('keypicker').open() end,
+vim.keymap.set('n', '<leader>sk', function() require('pickers.keybindings').open() end,
   { desc = 'Search: Keymaps' })
 
 -- Yank helpers (paths, code references, GitHub permalinks)
