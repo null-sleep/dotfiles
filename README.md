@@ -233,11 +233,27 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 |---|---|
 | Type anything | Fuzzy filter results |
 | `<C-n>` / `<C-p>` | Move down / up |
-| `<CR>` | Open in current window |
+| `<CR>` | Open highlighted entry (or all multi-selected entries) |
 | `<C-v>` | Open in vertical split |
 | `<C-x>` | Open in horizontal split |
 | `<C-t>` | Open in new tab |
+| `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
+| `<C-q>` | Send all current results to the quickfix list and open it |
+| `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
+| `<M-d>` | In the buffer picker (`<Space>m`): delete the highlighted buffer (or all multi-selected) |
 | `<Esc>` | Close |
+
+**Multi-select workflows:**
+- `<Tab>` marks an entry (a `+` appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
+- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs; `<M-q>` sends just the selected entries to the quickfix list.
+- `<C-q>` ignores tab marks and dumps the entire result list into qflist — handy after a grep when you want every match.
+- Common pattern: `<Space>sg` → search → `<Tab>` the matches you want → `<M-q>` → `:cdo s/old/new/g | update`.
+
+**Per-picker notes:**
+- `<Space>sf` / `<Space>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
+- `<Space>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
+- `<Space>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
+- `<Space>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
 
 **Tips:**
 - Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
