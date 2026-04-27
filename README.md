@@ -91,6 +91,68 @@ colima start --cpu 2 --memory 4
 
 The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_bitgo.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
 
+## Claude Squad
+
+Terminal app for running multiple AI coding agents (Claude Code, Codex, Gemini, Aider) in parallel. Each session gets an isolated [git worktree](https://git-scm.com/docs/git-worktree) and its own [tmux](https://github.com/tmux/tmux) session — no branch conflicts, and tasks keep running in the background. See [smtg-ai/claude-squad](https://github.com/smtg-ai/claude-squad).
+
+### Setup
+
+```bash
+# Prerequisites
+brew install tmux gh
+
+# Install claude-squad and symlink as `cs`
+brew install claude-squad
+ln -s "$(brew --prefix)/bin/claude-squad" "$(brew --prefix)/bin/cs"
+
+# Auth for `gh` (push branches from sessions)
+gh auth login
+```
+
+### Keymaps
+
+**Sessions:**
+
+| Key | Action |
+|---|---|
+| `n` | New session |
+| `N` | New session with a starting prompt |
+| `D` | Kill (delete) selected session |
+| `↑`/`k`, `↓`/`j` | Navigate sessions |
+
+**Actions:**
+
+| Key | Action |
+|---|---|
+| `↵` / `o` | Attach to selected session (re-prompt) |
+| `Ctrl+q` | Detach from session |
+| `p` | Commit and push branch to GitHub |
+| `c` | Checkout — commits changes and pauses the session |
+| `r` | Resume a paused session |
+| `?` | Help menu |
+
+**Navigation:**
+
+| Key | Action |
+|---|---|
+| `tab` | Switch between preview and diff tabs |
+| `Shift+↑` / `Shift+↓` | Scroll diff view |
+| `q` | Quit |
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `cs debug` | Print config and data paths |
+| `cs reset` | Wipe all stored sessions (use if state gets corrupted) |
+| `cs version` | Print version |
+
+### Tips
+
+- **Background work**: detach with `Ctrl+q` and the agent keeps running. Come back later with `↵`/`o`.
+- **Review before pushing**: hit `tab` to see the diff, then `s` to commit + push or `c` to checkout the branch locally.
+- **Failed to start session**: if you see `timed out waiting for tmux session`, update the underlying agent (`claude`, `codex`, etc.) — the error is almost always a stale binary.
+
 ## Neo Vim
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
