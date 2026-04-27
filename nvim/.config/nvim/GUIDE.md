@@ -24,7 +24,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `init.lua` | Sets leader key, requires all modules in dependency order |
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
 | `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
-| `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
+| `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
+| `bufferpicker.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
 | `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
@@ -238,8 +239,10 @@ Keymaps are split across files by feature:
 
 - **`keymaps.lua`** -- global keymaps: Telescope search (`<leader>s*`),
   clipboard yank, split navigation (`<C-h/j/k/l>`), buffer navigation
-  (`H`/`L` for prev/next, `<leader><leader>` for alternate), visual
-  indent, diagnostic toggle (`<leader>td`), yank helpers (`yp`, `yc`, `yu`)
+  (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
+  for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
+  visual indent, diagnostic toggle (`<leader>td`), yank helpers
+  (`yp`, `yc`, `yu`)
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>cf`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)

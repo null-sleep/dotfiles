@@ -136,7 +136,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 |---|---|
 | `<Space>sf` | Find files by name |
 | `<Space>sg` | Live grep (search file contents) |
-| `<Space>sb` | Switch between open buffers |
+| `<Space>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) |
 | `<Space>sh` | Search help tags |
 | `<Space>sr` | Resume last search |
 | `<Space>s/` | Fuzzy search inside current buffer |
@@ -490,6 +490,14 @@ To sync settings automatically across machines:
 This writes a `com.googlecode.iterm2.plist` to the folder. On a new machine, clone the repo and point iTerm2 to the same path — all profiles, keybindings, and appearance settings will load automatically.
 
 To import color themes manually: **iTerm2 → Settings → Profiles → Colors → Color Presets → Import** and select the `.itermcolors` files.
+
+### Option-as-Meta
+
+For nvim mappings using `<M-...>` (e.g. `<M-1>`..`<M-9>` to jump to a buffer in `<Space>sb`) to work, iTerm2 needs to send Option as Meta instead of typing special characters (`¡`, `™`, etc.):
+
+**iTerm2 → Settings → Profiles → Keys → General → Left Option key: `Esc+`**
+
+Set Right Option to `Esc+` too if you use it. Verify by pressing `Option+1` in nvim insert mode — it should do nothing (or show as `<M-1>` in `:map`) rather than insert `¡`.
 
 ### Panes
 

@@ -7,7 +7,6 @@ vim.keymap.set('n', '<leader>sf', function() require('filterpicker').find_files(
   { desc = 'Search: Files' })
 vim.keymap.set('n', '<leader>sg', function() require('filterpicker').live_grep() end,
   { desc = 'Search: Grep' })
-vim.keymap.set('n', '<leader>sb', builtin.buffers,     { desc = 'Search: Buffers' })
 vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
@@ -53,6 +52,8 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
 vim.keymap.set('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Previous buffer' })
 vim.keymap.set('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next buffer' })
 vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate buffer' })
+vim.keymap.set('n', '<leader>m', function() require('bufferpicker').open() end,
+  { desc = 'Buffer picker' })
 
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
