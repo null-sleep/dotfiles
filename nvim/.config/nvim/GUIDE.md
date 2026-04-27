@@ -25,20 +25,22 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
 | `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
 | `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
-| `bufferpicker.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
+| `pickers/buffer.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
+| `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
+| `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
 | `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks |
-| `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `keypicker.lua` for aliasing keymaps whose `desc` lacks searchable terms |
-| `filterpicker.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
-| `keypicker.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
-| `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `keypicker.lua` since nvim has no API to enumerate built-ins |
+| `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
+| `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
+| `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
+| `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins |
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s), filetype exclusions |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
-| `themepicker.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
+| `pickers/theme.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
 | `utils.lua` | `gh()` URL builder, async nvim update check via Homebrew |
 | `yank.lua` | Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks |
 
@@ -82,7 +84,7 @@ or config reloads):
 
 ### Picker state with revert-on-cancel
 
-`themepicker.lua` and `filterpicker.lua` share a pattern: the picker mutates
+`pickers/theme.lua` and `pickers/filter.lua` share a pattern: the picker mutates
 session state live as the cursor moves (theme switches, preset toggles), but
 `<Esc>` reverts to the snapshot taken at open time. The trick is overriding
 `close_windows` on the picker so cancellation runs before windows tear down,
@@ -91,8 +93,8 @@ pickers that need preview-style live state should follow the same shape.
 
 ### Why `builtins.lua` exists
 
-`keypicker.lua` walks which-key's internal tree to enumerate keymaps. That
-covers user mappings and which-key's own preset groups (operators, motions,
+`pickers/keybindings.lua` walks which-key's internal tree to enumerate keymaps.
+That covers user mappings and which-key's own preset groups (operators, motions,
 text objects, z/g/window/nav) but misses fundamental built-ins like `Ctrl+d`
 or `gg` that are hardcoded in C and have no Lua representation. `builtins.lua`
 is a manually curated list cross-referenced against `:help normal-index`,
@@ -272,7 +274,7 @@ and optional `setup`/`overrides` for per-theme customization.
 - **Persistence:** The active theme is saved to `stdpath('data')/theme.txt`
   and restored on startup. Delete the file to reset to the default
   (`catppuccin`).
-- **Live picker:** `<leader>st` opens a Telescope picker (`themepicker.lua`)
+- **Live picker:** `<leader>st` opens a Telescope picker (`pickers/theme.lua`)
   with live preview. Scrolling applies themes in real-time; `<CR>` confirms
   and persists, `<Esc>` restores the original.
 - **Background switching:** Some themes (gruvbox, solarized, oxocarbon,
@@ -293,7 +295,7 @@ Keymaps are split across files by feature:
   (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
   for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
   visual indent, diagnostic toggle (`<leader>td`), yank helpers
-  (`yp`, `yc`, `yu`)
+  (`yp`, `yc`, `yu`). Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)
