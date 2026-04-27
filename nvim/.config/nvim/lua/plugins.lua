@@ -203,9 +203,10 @@ vim.cmd.packadd('telescope-fzf-native.nvim')
 
 require('telescope').setup({
   defaults = {
-    layout_strategy = 'horizontal',
+    sorting_strategy = 'ascending',
+    layout_strategy  = 'horizontal',
     layout_config = {
-      horizontal = { width = 0.9 },
+      horizontal = { width = 0.9, prompt_position = 'top' },
     },
     file_ignore_patterns = { '%.git/', 'node_modules/' },
     -- path_display options:
