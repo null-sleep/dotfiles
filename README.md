@@ -351,6 +351,28 @@ nvim in the same directory.
 Buffers are saved automatically on focus loss, leaving insert mode, and after text changes (1s debounce).
 Special buffers (telescope, mason, gitcommit) are excluded. No keymaps — it just works in the background.
 
+### Terminal (toggleterm.nvim)
+
+A togglable floating terminal that persists state across hides.
+
+**Keymaps:**
+
+| Keymap | Action |
+|---|---|
+| `<C-\>` | Toggle terminal (normal, insert, or terminal mode) |
+| `<Space>tt` | Toggle terminal (discoverable via which-key) |
+| `<Esc>` (in terminal) | Exit terminal mode → normal mode |
+| `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
+
+**Tips:**
+
+- **Hide vs close**: `<C-\>` hides the terminal (state persists). Type `exit` at the shell prompt to close it entirely.
+- **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
+- **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
+- **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
+- **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.
+- **`<Esc>` caveat**: the `<Esc>` mapping exits terminal mode in all terminal buffers. TUI programs opened inside the terminal (e.g. `vim`, `htop`, `fzf`) also need `<Esc>` for their own UI — use `<C-\><C-n>` manually in those cases, or add a filetype guard in `lua/terminal.lua`.
+
 ### Auto-pairs (nvim-autopairs)
 
 Automatically closes brackets, quotes, and other pairs. Treesitter-aware — won't auto-pair inside
