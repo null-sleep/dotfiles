@@ -65,11 +65,11 @@ in unconfigured languages (or with missing binaries) fall back to LSP
 formatting where supported, or no-op cleanly.
 
 ```bash
-brew install stylua                                          # Lua
 brew install ruff                                           # Python
-go install golang.org/x/tools/cmd/goimports@latest         # Go imports (gofmt ships with go)
+go install golang.org/x/tools/cmd/goimports@latest          # Go imports (gofmt ships with go)
 npm install -g @fsouza/prettierd                            # JS, TS, JSON, YAML (daemon-mode)
 # rustfmt ships with rustup
+# Lua: formatted by lua_ls (LSP fallback) — no extra install
 ```
 
 Run `:ConformInfo` inside Neovim to see which formatters are configured

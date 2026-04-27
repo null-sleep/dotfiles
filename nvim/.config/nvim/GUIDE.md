@@ -178,7 +178,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save** is ON by default for configured filetypes (Lua, Python, Go, Rust, JS/TS/JSON/YAML) via conform.nvim. `<leader>tf` toggles format-on-save globally; `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat` (per-buffer) are the underlying flags. Run `:ConformInfo` to see which formatter binaries are detected on `$PATH`.
+- **Format-on-save** is ON by default for configured filetypes (Python, Go, Rust, JS/TS/JSON/YAML) via conform.nvim; Lua is formatted by lua_ls via LSP fallback. `<leader>tf` toggles format-on-save globally; `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat` (per-buffer) are the underlying flags. Run `:ConformInfo` to see which formatter binaries are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
@@ -214,6 +214,53 @@ output, temporarily add `vim.lsp.set_log_level('debug')` to `lsp.lua`.
 | `:lua vim.print(vim.lsp.get_clients())` | List active LSP clients |
 | `:lua vim.print(vim.lsp.get_clients()[1].server_capabilities)` | Inspect capabilities |
 | `:lua vim.cmd.edit(vim.lsp.get_log_path())` | Open LSP log file |
+
+
+## Format-on-save
+
+conform.nvim runs CLI formatters per filetype on every `BufWritePre`
+(manual `:w` and auto-save writes both). Setup lives in `format.lua`.
+
+`formatters_by_ft[ft]` is a list of formatter names that run sequentially.
+Append `stop_after_first = true` for "first available wins" (used for
+prettierd → prettier so prettier doesn't run when prettierd already
+formatted the buffer). Filetypes not listed fall through to
+`default_format_opts.lsp_format = 'fallback'`, which calls
+`vim.lsp.buf.format()` if a formatting-capable LSP is attached — this is
+how Lua is formatted (by lua_ls).
+
+### Adding a formatter for a new language
+
+Example: adding `shfmt` for shell scripts.
+
+1. **Install the binary** -- e.g. `brew install shfmt`. conform shells
+   out, so it must be on `$PATH`. Run `:ConformInfo` to confirm
+   detection after installing.
+
+2. **`format.lua` -- `formatters_by_ft`** -- add an entry:
+   ```lua
+   sh = { 'shfmt' },
+   ```
+   For chains, list formatters in run order (e.g.
+   `python = { 'ruff_organize_imports', 'ruff_format' }`). For "first
+   available wins" (e.g. daemon + binary), add `stop_after_first = true`.
+
+3. **`README.md` -- "Format-on-save tools"** -- add the install command
+   so other machines can replicate.
+
+4. **Verify** -- restart nvim -> `:ConformInfo` (formatter listed and
+   binary detected?) -> open a file of that filetype, edit, `:w` ->
+   confirm it formatted.
+
+If the formatter needs non-default args or a custom command, define an
+override under conform's `formatters` setup key (see `:help
+conform-formatters`).
+
+### Removing a formatter
+
+Reverse: remove the `formatters_by_ft` entry, remove the README install
+line, optionally uninstall the binary. Filetypes with no entry fall back
+to LSP formatting via `lsp_format = 'fallback'`.
 
 
 ## Themes
