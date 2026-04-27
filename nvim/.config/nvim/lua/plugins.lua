@@ -36,6 +36,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('folke/persistence.nvim') },
   { src = gh('okuuva/auto-save.nvim') },
   { src = gh('windwp/nvim-autopairs') },
+  { src = gh('stevearc/conform.nvim') },
 }, themes.sources))
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)

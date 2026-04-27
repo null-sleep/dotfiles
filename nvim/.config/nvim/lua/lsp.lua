@@ -99,9 +99,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
     map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
     map({'n','v'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
-    if client:supports_method('textDocument/formatting') then
-      map({'n','v'}, '<leader>cf', vim.lsp.buf.format,        'LSP: Format')
-    end
     -- jump = true moves cursor to the exact diagnostic position after opening the float
     map('n', '<leader>e',        function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
     map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
