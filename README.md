@@ -58,6 +58,23 @@ rustup component add clippy rustfmt rust-analyzer rust-src
 
 Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
 
+### Format-on-save tools
+
+conform.nvim runs CLI formatters; install as needed per language. Files
+in unconfigured languages (or with missing binaries) fall back to LSP
+formatting where supported, or no-op cleanly.
+
+```bash
+brew install stylua                                          # Lua
+brew install ruff                                           # Python
+go install golang.org/x/tools/cmd/goimports@latest         # Go imports (gofmt ships with go)
+npm install -g @fsouza/prettierd                            # JS, TS, JSON, YAML (daemon-mode)
+# rustfmt ships with rustup
+```
+
+Run `:ConformInfo` inside Neovim to see which formatters are configured
+per filetype and which binaries are detected on `$PATH`.
+
 ## Colima
 
 Free container runtime for macOS — a Docker Desktop alternative.

@@ -28,6 +28,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `bufferpicker.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
 | `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
+| `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks |
@@ -55,7 +56,7 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-statusline -> session -> git -> whichkey -> autosave.
+format -> statusline -> session -> git -> whichkey -> autosave.
 
 
 ## Design Decisions
@@ -106,7 +107,7 @@ which-key clean (no dead keymaps) and avoids errors from calling
 unsupported methods.
 
 Features gated this way: inlay hints, document highlight, codelens,
-declaration, type definition, formatting, implementation.
+declaration, type definition, implementation.
 
 
 ## LSP
@@ -177,7 +178,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save is NOT configured** -- `<leader>cf` is manual only.
+- **Format-on-save** is ON by default for configured filetypes (Lua, Python, Go, Rust, JS/TS/JSON/YAML) via conform.nvim. `<leader>tf` toggles format-on-save globally; `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat` (per-buffer) are the underlying flags. Run `:ConformInfo` to see which formatter binaries are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
@@ -200,6 +201,9 @@ may take seconds for the server to initialize.
 **Log inspection:**
 `:lua vim.cmd.edit(vim.lsp.get_log_path())` to open the LSP log. For verbose
 output, temporarily add `vim.lsp.set_log_level('debug')` to `lsp.lua`.
+
+**Formatter not running:**
+`:ConformInfo` shows configured formatters per filetype and which binaries are detected on `$PATH`. `:checkhealth conform` runs the plugin's full health check. If format-on-save is off globally, `vim.g.disable_autoformat` is `true` — use `<leader>tf` to toggle it back on.
 
 **Useful commands:**
 
@@ -244,8 +248,9 @@ Keymaps are split across files by feature:
   visual indent, diagnostic toggle (`<leader>td`), yank helpers
   (`yp`, `yc`, `yu`)
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
-  (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>cf`, `<leader>rn`),
+  (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)
+- **`format.lua`** -- global keymaps: `<leader>cf` (manual format via conform.nvim, not LSP-gated, works in all buffers), `<leader>tf` (toggle format-on-save)
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`session.lua`** -- session keymaps (`<leader>q*`)
