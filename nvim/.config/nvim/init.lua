@@ -8,6 +8,7 @@ require('format')
 require('statusline')
 require('session')
 require('git')
+require('terminal')
 require('whichkey')
 require('autosave')
 
