@@ -24,13 +24,16 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `init.lua` | Sets leader key, requires all modules in dependency order |
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
 | `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
-| `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
+| `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
 | `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks |
-| `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation |
+| `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `keypicker.lua` for aliasing keymaps whose `desc` lacks searchable terms |
+| `filterpicker.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
+| `keypicker.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
+| `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `keypicker.lua` since nvim has no API to enumerate built-ins |
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s), filetype exclusions |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
 | `themepicker.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
@@ -74,6 +77,24 @@ or config reloads):
 
 - **Timers** use globals with stop-before-create: `if _G._checktime_timer then _G._checktime_timer:stop() end` before creating a new one. Prevents timer leaks on re-source.
 - **Autocmds** use `nvim_create_augroup` with `clear = true`. The augroup is wiped before re-adding its autocmds, so re-source never duplicates handlers.
+
+### Picker state with revert-on-cancel
+
+`themepicker.lua` and `filterpicker.lua` share a pattern: the picker mutates
+session state live as the cursor moves (theme switches, preset toggles), but
+`<Esc>` reverts to the snapshot taken at open time. The trick is overriding
+`close_windows` on the picker so cancellation runs before windows tear down,
+plus a `need_restore` flag flipped to false in the confirm action. New
+pickers that need preview-style live state should follow the same shape.
+
+### Why `builtins.lua` exists
+
+`keypicker.lua` walks which-key's internal tree to enumerate keymaps. That
+covers user mappings and which-key's own preset groups (operators, motions,
+text objects, z/g/window/nav) but misses fundamental built-ins like `Ctrl+d`
+or `gg` that are hardcoded in C and have no Lua representation. `builtins.lua`
+is a manually curated list cross-referenced against `:help normal-index`,
+fed into the picker so the same fuzzy search surfaces both layers.
 
 ### Capability gating
 
@@ -216,8 +237,9 @@ and optional `setup`/`overrides` for per-theme customization.
 Keymaps are split across files by feature:
 
 - **`keymaps.lua`** -- global keymaps: Telescope search (`<leader>s*`),
-  clipboard yank, split navigation (`<C-h/j/k/l>`), visual indent,
-  diagnostic toggle (`<leader>td`), yank helpers (`yp`, `yc`, `yu`)
+  clipboard yank, split navigation (`<C-h/j/k/l>`), buffer navigation
+  (`H`/`L` for prev/next, `<leader><leader>` for alternate), visual
+  indent, diagnostic toggle (`<leader>td`), yank helpers (`yp`, `yc`, `yu`)
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>cf`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)

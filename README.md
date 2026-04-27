@@ -145,6 +145,8 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Space>ss` | Symbols (workspace) |
 | `<Space>sS` | Symbols (document) |
 | `<Space>st` | Theme picker (live preview) |
+| `<Space>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
+| `<Space>sF` | Toggle file-type filter presets (scopes `<Space>sf` and `<Space>sg`) |
 
 **Inside the telescope window:**
 
@@ -162,6 +164,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 - Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
 - In `<Space>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`
 - `<Space>sr` reopens the last search with the same query — useful when you close telescope and want to get back
+- `<Space>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<Space>sf` and `<Space>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `lua/filterpicker.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
 
 **Commands:**
 
@@ -356,8 +359,11 @@ Active automatically when opening `.md` files.
 | `p` (visual) | Paste without clobbering register |
 | `<` / `>` (visual) | Indent/dedent and stay in visual mode |
 | `Ctrl+h/j/k/l` | Navigate between splits |
+| `H` / `L` | Previous / next buffer |
+| `<Space><Space>` | Switch to alternate buffer (`<C-^>`) |
 | `<Esc>` | Clear search highlights |
-| `<Space>?` | Show all keymaps (which-key) |
+| `<Space>?` | Show all keymaps (which-key popup) |
+| `<Space>sk` | Fuzzy-search all keymaps (Telescope picker, includes built-in motions) |
 | `yp` | Yank relative file path |
 | `yP` | Yank absolute file path |
 | `yc` | Yank Claude @-reference with line numbers |
@@ -368,6 +374,9 @@ Active automatically when opening `.md` files.
 
 Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
 grouped by category. Helps discover keymaps without needing to remember them all.
+
+For fuzzy search instead of hierarchical browsing, use `<Space>sk` — opens a Telescope picker
+over all mappings (which-key entries plus built-in normal-mode commands curated in `lua/builtins.lua`).
 
 | Prefix | Group |
 |---|---|
@@ -461,7 +470,6 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 | Remap | What it does | Why |
 |---|---|---|
 | `jk` → `<Esc>` | Exit insert mode without reaching for Escape | Faster than `<Esc>`, keeps hands on home row |
-| `H` / `L` → prev/next buffer | Cycle open buffers | Default H/L (screen top/bottom) are rarely used |
 | `J` in visual → move lines down | Move selected lines down | More intuitive than `:m '>+1` |
 | `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
 | `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |
