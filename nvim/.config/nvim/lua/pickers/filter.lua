@@ -25,7 +25,7 @@ local finders      = require('telescope.finders')
 local conf         = require('telescope.config').values
 local actions      = require('telescope.actions')
 local action_state = require('telescope.actions.state')
-local builtin      = builtin
+local builtin      = require('telescope.builtin')
 
 local M = {}
 

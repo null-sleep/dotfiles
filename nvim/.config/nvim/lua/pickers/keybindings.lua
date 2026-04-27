@@ -96,7 +96,8 @@ function M.open()
   end
 
   pickers.new({}, {
-    prompt_title = 'Keybindings',
+    prompt_title  = 'Keybindings',
+    layout_config = { width = 0.6, height = 0.4 },
     finder = finders.new_table({
       results = cached_results,
       entry_maker = function(item)

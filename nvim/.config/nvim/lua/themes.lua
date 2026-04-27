@@ -74,7 +74,8 @@ M.themes = {
   },
 
   tokyonight = {
-    src = gh('folke/tokyonight.nvim'),
+    src  = gh('folke/tokyonight.nvim'),
+    name = 'tokyonight.nvim',
     variants = {
       'tokyonight',          -- dark (default)
       'tokyonight-night',    -- darkest
@@ -85,7 +86,8 @@ M.themes = {
   },
 
   gruvbox = {
-    src = gh('ellisonleao/gruvbox.nvim'),
+    src  = gh('ellisonleao/gruvbox.nvim'),
+    name = 'gruvbox.nvim',
     variants = {
       'gruvbox',             -- warm amber/orange palette; dark
       'gruvbox-light',       -- warm amber/orange palette; light
@@ -105,7 +107,8 @@ M.themes = {
   },
 
   kanagawa = {
-    src = gh('rebelot/kanagawa.nvim'),
+    src  = gh('rebelot/kanagawa.nvim'),
+    name = 'kanagawa.nvim',
     variants = {
       'kanagawa',            -- dark (default)
       'kanagawa-wave',       -- original dark; deep ink blue bg, warm gold/red accents
@@ -115,7 +118,8 @@ M.themes = {
   },
 
   nightfox = {
-    src = gh('EdenEast/nightfox.nvim'),
+    src  = gh('EdenEast/nightfox.nvim'),
+    name = 'nightfox.nvim',
     variants = {
       'nightfox',            -- dark; cool blue-purple palette
       'dayfox',              -- light; warm soft tones
@@ -128,7 +132,8 @@ M.themes = {
   },
 
   cyberdream = {
-    src = gh('scottmckendry/cyberdream.nvim'),
+    src  = gh('scottmckendry/cyberdream.nvim'),
+    name = 'cyberdream.nvim',
     variants = {
       'cyberdream',          -- dark; neon accents on dark bg
       'cyberdream-light',    -- light variant
@@ -137,6 +142,7 @@ M.themes = {
 
   dracula = {
     src = gh('Mofiqul/dracula.nvim'),
+    name = 'dracula.nvim',
     variants = {
       'dracula',             -- classic dark; vivid purples, pinks and greens on near-black bg
       'dracula-soft',        -- same palette, slightly softened contrast
@@ -153,7 +159,8 @@ M.themes = {
   --------------------------------------------------------------------------
 
   solarized = {
-    src = gh('maxmx03/solarized.nvim'),
+    src  = gh('maxmx03/solarized.nvim'),
+    name = 'solarized.nvim',
     variants = {
       'solarized',           -- classic warm palette; dark
       'solarized-light',     -- classic warm palette; light
@@ -185,7 +192,8 @@ M.themes = {
   },
 
   zenbones = {
-    src = gh('zenbones-theme/zenbones.nvim'),
+    src  = gh('zenbones-theme/zenbones.nvim'),
+    name = 'zenbones.nvim',
     -- Use pre-baked VimScript highlights instead of the lush.nvim dynamic path,
     -- which would require lush as an extra dependency.
     setup = function() vim.g.bones_compat = 1 end,
@@ -210,7 +218,8 @@ M.themes = {
   --------------------------------------------------------------------------
 
   oxocarbon = {
-    src = gh('nyoom-engineering/oxocarbon.nvim'),
+    src  = gh('nyoom-engineering/oxocarbon.nvim'),
+    name = 'oxocarbon.nvim',
     variants = {
       'oxocarbon',           -- IBM Carbon design; pitch black bg, electric cyan/purple accents
       'oxocarbon-light',     -- IBM Carbon design; bright white bg, electric cyan/purple accents
@@ -221,6 +230,7 @@ M.themes = {
 
   ['modus-themes'] = {
     src  = gh('miikanissi/modus-themes.nvim'),
+    name = 'modus-themes.nvim',
     variants = {
       -- dark — WCAG AAA contrast (7:1 minimum)
       'modus_vivendi',               -- neutral dark bg; maximum legibility
@@ -252,14 +262,16 @@ M.themes = {
   },
 
   midnight = {
-    src = gh('dasupradyumna/midnight.nvim'),
+    src  = gh('dasupradyumna/midnight.nvim'),
+    name = 'midnight.nvim',
     variants = {
       'midnight',            -- single dark variant; very dark blue-black bg; desaturated cool palette, warmer syntax accents; GUI only
     },
   },
 
   onedark = {
-    src = gh('navarasu/onedark.nvim'),
+    src  = gh('navarasu/onedark.nvim'),
+    name = 'onedark.nvim',
     variants = {
       'onedark',             -- Atom One Dark palette; cool-toned, balanced saturation
       -- variants are set via setup() style option, not separate colorscheme names:
@@ -280,7 +292,8 @@ M.themes = {
   },
 
   vscode = {
-    src = gh('Mofiqul/vscode.nvim'),
+    src  = gh('Mofiqul/vscode.nvim'),
+    name = 'vscode.nvim',
     variants = {
       'vscode',              -- exact VS Code Dark+ palette; cool-toned, muted saturation
       'vscode-light',        -- exact VS Code Light+ palette
@@ -290,7 +303,8 @@ M.themes = {
   },
 
   everforest = {
-    src = gh('neanias/everforest-nvim'),
+    src  = gh('neanias/everforest-nvim'),
+    name = 'everforest-nvim',
     variants = {
       'everforest',          -- natural greens and earthy tones; dark, hard contrast
       'everforest-light',    -- natural greens and earthy tones; light, hard contrast
@@ -306,7 +320,8 @@ M.themes = {
   },
 
   nordic = {
-    src = gh('AlexvZyl/nordic.nvim'),
+    src  = gh('AlexvZyl/nordic.nvim'),
+    name = 'nordic.nvim',
     variants = {
       'nordic',              -- warmer deeper Nord; Aurora accents over muted bg; reduced blue saturation; cool with vibrant highlights
     },
