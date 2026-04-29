@@ -12,7 +12,8 @@ vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sm', function() require('pickers.gitstatus').open() end,
   { desc = 'Search: Modified files' })
-vim.keymap.set('n', '<leader>ss', builtin.lsp_dynamic_workspace_symbols, { desc = 'Search: Symbols (workspace)' })
+vim.keymap.set('n', '<leader>ss', function() require('pickers.symbols').workspace() end,
+  { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sS', builtin.lsp_document_symbols,          { desc = 'Search: Symbols (document)' })
 vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
 vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
