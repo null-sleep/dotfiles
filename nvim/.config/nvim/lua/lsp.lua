@@ -134,6 +134,7 @@ vim.lsp.config('lua_ls', {
   settings = {
     Lua = {
       runtime   = { version = 'LuaJIT' },
+      -- Suppress "Apply <framework> library?" prompts (LÖVE, OpenResty, etc.)
       workspace = { checkThirdParty = false },
       telemetry = { enable = false },
     },
