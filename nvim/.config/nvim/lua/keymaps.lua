@@ -71,6 +71,11 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
+-- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
+vim.keymap.set('n', '<leader>ts',
+  function() require('pickers.symbols').toggle_buffer_only() end,
+  { desc = 'Toggle: Symbol search scope (all LSPs ↔ buffer)' })
+
 -- Show all keybindings
 vim.keymap.set('n', '<leader>?', function() require('which-key').show({ global = true }) end,
   { desc = 'Help: All mappings' })
