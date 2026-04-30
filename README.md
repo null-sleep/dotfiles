@@ -443,11 +443,14 @@ A togglable floating terminal that persists state across hides.
 | `<Space>tt` | Toggle terminal (discoverable via which-key) |
 | `<Esc>` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
+| `<C-]>` (in terminal) | Cycle to next terminal |
+| `<C-[>` (in terminal) | Cycle to previous terminal |
 
 **Tips:**
 
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). Type `exit` at the shell prompt to close it entirely.
 - **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
+- **Cycle between terminals**: `<C-]>` / `<C-[>` cycle next/previous through open terminals (wrap around). Works in both terminal and normal mode within the terminal buffer.
 - **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
 - **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
 - **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.

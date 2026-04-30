@@ -31,19 +31,45 @@ require('toggleterm').setup({
   -- horizontal/vertical splits to control the split height/width.
 })
 
+-- Cycle through open toggleterm instances. Closes the current terminal and
+-- opens the next/previous one (wraps around). Reads vim.b.toggle_number
+-- (set by toggleterm on each terminal buffer) to find the current position
+-- in the sorted terminal list.
+local function cycle_term(direction)
+  local terminal = require('toggleterm.terminal')
+  local terms = terminal.get_all(true) -- sorted by id
+  if #terms <= 1 then return end
+  local current_id = vim.b.toggle_number
+  local current_idx = 1
+  for i, t in ipairs(terms) do
+    if t.id == current_id then current_idx = i end
+  end
+  local next_idx = ((current_idx - 1 + direction) % #terms) + 1
+  terms[current_idx]:close()
+  terms[next_idx]:open()
+end
+
 -- Terminal-mode keymaps (buffer-local, set when any terminal opens).
 -- NOTE: <Esc> exits terminal mode in all terminal buffers. If you add
 -- lazygit or other TUI integrations, guard this with a filetype check:
 --   if vim.bo[args.buf].filetype == 'toggleterm' then ... end
 vim.api.nvim_create_autocmd('TermOpen', {
-  desc = 'Terminal keymaps: Esc and split navigation',
+  desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
   callback = function()
     local opts = { buffer = 0 }
-    vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], opts)
-    vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], opts)
-    vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], opts)
-    vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], opts)
-    vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], opts)
+    vim.keymap.set('t', '<Esc>',  [[<C-\><C-n>]], opts)
+    vim.keymap.set('t', '<C-h>',  [[<Cmd>wincmd h<CR>]], opts)
+    vim.keymap.set('t', '<C-j>',  [[<Cmd>wincmd j<CR>]], opts)
+    vim.keymap.set('t', '<C-k>',  [[<Cmd>wincmd k<CR>]], opts)
+    vim.keymap.set('t', '<C-l>',  [[<Cmd>wincmd l<CR>]], opts)
+    -- <C-]>/<C-[> cycle next/previous terminal. Both modes so cycling works
+    -- whether you're in terminal mode or have pressed <Esc> to normal mode.
+    -- <C-[> is the terminal encoding of Esc but is safe to rebind here since
+    -- <Esc> above already handles exit-terminal-mode.
+    vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
+    vim.keymap.set('t', '<C-[>', function() cycle_term(-1) end, opts)
+    vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts)
+    vim.keymap.set('n', '<C-[>', function() cycle_term(-1) end, opts)
   end,
 })
 
