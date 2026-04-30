@@ -140,4 +140,6 @@ return {
   { lhs = ':vs<CR>',   group = 'Split/Window',        desc = 'Split window vertically with current buffer' },
   { lhs = ':q<CR>',    group = 'Split/Window',        desc = 'Quit current window/split' },
   { lhs = ':only<CR>', group = 'Split/Window',        desc = 'Close all windows except current' },
+
+  { lhs = 'jk',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
 }

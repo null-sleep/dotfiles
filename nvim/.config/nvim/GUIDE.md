@@ -192,7 +192,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 
 **Server doesn't start:**
 `:Mason` -- is it installed? `:checkhealth lsp` -- any errors?
-`:set filetype?` -- correct filetype? Some servers need a root marker (`go.mod`
+`:set filetype?` -- correct filetype? Use `:set filetype=<type>` to force it manually (e.g. `:set filetype=yaml`). Some servers need a root marker (`go.mod`
 for gopls, `Cargo.toml` for rust_analyzer) to detect the project root.
 
 **Diagnostics not visible:**
@@ -297,7 +297,8 @@ Keymaps are split across files by feature:
   (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
   for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
   visual indent, toggle keymaps (`<leader>td` diagnostics, `<leader>ts`
-  symbol scope), yank helpers (`yp`, `yc`, `yu`). Custom pickers live in `pickers/`.
+  symbol scope), yank helpers (`yp`, `yc`, `yu`), `jk` in insert mode to
+  exit to normal mode. Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)

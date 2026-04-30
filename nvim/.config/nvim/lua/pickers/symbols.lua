@@ -101,6 +101,8 @@ local VERTICAL_LAYOUT = {
 -- Material-design-leaning glyphs that render at letter-height. Overrides
 -- mini.icons' codicon set for this picker only — codicons are designed for
 -- VSCode's narrow sidebar and look smaller than text in terminal nerd fonts.
+-- These are Unicode private-use-area code points (nf-md-* range); actual
+-- glyph rendering is font-specific. Sizing here is tuned for Hack Nerd Font.
 -- Highlight groups still come from mini.icons so colors match the rest of
 -- the editor.
 local KIND_ICONS      = {

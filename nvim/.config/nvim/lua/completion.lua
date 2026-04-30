@@ -23,6 +23,10 @@ require('blink.cmp').setup({
   completion = {
     -- auto_show: open docs popup automatically when hovering a completion item
     documentation = { auto_show = true, auto_show_delay_ms = 200 },
+    -- preselect: don't auto-highlight the first item so <CR> only accepts when explicitly tabbed to
+    list = {
+      selection = { preselect = false },
+    },
     -- auto_brackets: append () after completing a function and place cursor inside
     accept = { auto_brackets = { enabled = true } },
     -- ghost_text: shows top completion suggestion faded inline as you type; accept with <Right>
