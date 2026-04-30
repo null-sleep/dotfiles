@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -n "$NVIM" ]; then
+  nvim --server "$NVIM" --remote-wait "$@"
+else
+  nvim "$@"
+fi
