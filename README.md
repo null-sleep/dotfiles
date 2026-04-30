@@ -448,7 +448,7 @@ A togglable floating terminal that persists state across hides.
 
 **Tips:**
 
-- **Hide vs close**: `<C-\>` hides the terminal (state persists). Type `exit` at the shell prompt to close it entirely.
+- **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>` sends EOF to the shell and closes it entirely — faster than typing `exit`.
 - **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
 - **Cycle between terminals**: `<C-]>` / `<C-[>` cycle next/previous through open terminals (wrap around). Works in both terminal and normal mode within the terminal buffer.
 - **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
