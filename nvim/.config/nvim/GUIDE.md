@@ -28,12 +28,14 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/buffer.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
 | `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
+| `pickers/symbols.lua` | Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only |
 | `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks |
+| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
@@ -58,7 +60,7 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-format -> statusline -> session -> git -> whichkey -> autosave.
+format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
 
 
 ## Design Decisions
@@ -294,8 +296,8 @@ Keymaps are split across files by feature:
   clipboard yank, split navigation (`<C-h/j/k/l>`), buffer navigation
   (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
   for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
-  visual indent, diagnostic toggle (`<leader>td`), yank helpers
-  (`yp`, `yc`, `yu`). Custom pickers live in `pickers/`.
+  visual indent, toggle keymaps (`<leader>td` diagnostics, `<leader>ts`
+  symbol scope), yank helpers (`yp`, `yc`, `yu`). Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
   diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)
