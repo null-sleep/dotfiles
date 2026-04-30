@@ -505,6 +505,25 @@ These keymaps are only active in `gitcommit` and `gitrebase` buffers.
 | `yC` | Yank Claude @-reference (absolute path) |
 | `yu` | Yank GitHub permalink |
 
+### Spell Checking
+
+Built into Neovim — no plugin needed. Off by default. Toggle with `<Space>tz`.
+
+| Key | Action |
+|---|---|
+| `]s` / `[s` | Next / previous misspelled word |
+| `1z=` | Accept top suggestion instantly (no menu) |
+| `z=` | Open correction menu for word under cursor |
+| `zg` | Add word to personal dictionary |
+| `zw` | Mark word as misspelled |
+
+Personal dictionary lives at `nvim/.config/nvim/spell/en.utf-8.add` inside the
+dotfiles repo. Commit it to persist custom words across machines — `zg` appends
+to it automatically.
+
+`]s`/`[s` appear in the `[`/`]` which-key popup. `zg`, `z=`, `1z=`, and `zw`
+are searchable via `<Space>sk` — type "spell", "typo", or "spelling".
+
 ### Keymap Discovery (which-key.nvim)
 
 Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
@@ -604,7 +623,6 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 
 | Remap | What it does | Why |
 |---|---|---|
-| `jk` → `<Esc>` | Exit insert mode without reaching for Escape | Faster than `<Esc>`, keeps hands on home row |
 | `J` in visual → move lines down | Move selected lines down | More intuitive than `:m '>+1` |
 | `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
 | `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |

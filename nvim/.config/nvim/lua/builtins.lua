@@ -142,4 +142,11 @@ return {
   { lhs = ':only<CR>', group = 'Split/Window',        desc = 'Close all windows except current' },
 
   { lhs = 'jk',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
+
+  { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
+  { lhs = '[s',   group = 'Spell',  desc = 'Previous misspelled word' },
+  { lhs = 'zg',   group = 'Spell',  desc = 'Add word under cursor to dictionary' },
+  { lhs = 'zw',   group = 'Spell',  desc = 'Mark word under cursor as misspelled' },
+  { lhs = 'z=',   group = 'Spell',  desc = 'Suggest corrections for word under cursor' },
+  { lhs = '1z=',  group = 'Spell',  desc = 'Accept top spelling suggestion (no menu)' },
 }

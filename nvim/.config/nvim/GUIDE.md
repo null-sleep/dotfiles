@@ -43,6 +43,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
 | `pickers/theme.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
+| `spell.lua` | Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary |
 | `utils.lua` | `gh()` URL builder, async nvim update check via Homebrew |
 | `yank.lua` | Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks |
 
@@ -324,3 +325,24 @@ clipboard either. This is non-standard -- most configs use
 it. The failure mode is silent: if you `dd` a line expecting it on your
 system clipboard, you'll paste whatever was there before. Use `"+d`
 explicitly when you need to cut-to-clipboard.
+
+### Spell checking
+
+Off by default. Toggle with `<leader>tz` (US English). Built into Neovim — no plugin needed.
+
+| Key | Action |
+|---|---|
+| `]s` / `[s` | Next / previous misspelled word |
+| `1z=` | Accept top suggestion instantly (no menu) |
+| `z=` | Open correction menu for word under cursor |
+| `zg` | Add word to personal dictionary |
+| `zw` | Mark word as misspelled (add to wrong-words list) |
+
+**Personal dictionary** is stored at `nvim/.config/nvim/spell/en.utf-8.add`
+inside the dotfiles repo — commit it to persist custom words (code terms,
+names, jargon) across machines. `zg` appends to this file automatically.
+
+`]s`/`[s` appear in the `[`/`]` which-key popup. `zg`, `z=`, `1z=`, and
+`zw` are not in the popup (adding `z` as a trigger would add 300ms latency to
+all fold and scroll commands), but all spell commands are searchable via
+`<leader>sk` — type "spell", "typo", or "spelling".

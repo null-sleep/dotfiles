@@ -33,6 +33,10 @@ wk.add({
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
 
+  -- Spell navigation: register here so ]s / [s appear in the [/] which-key popup.
+  { ']s', desc = 'Spell: Next misspelled word' },
+  { '[s', desc = 'Spell: Previous misspelled word' },
+
   -- Yank-prefix descriptions (documentation only — `y` is intentionally not
   -- in `triggers`, so these don't pop up after pressing `y`; they appear in
   -- `<leader>?` global mappings list). Active in normal and visual modes.
@@ -47,6 +51,13 @@ wk.add({
 -- space-separated string of aliases that don't appear in the desc.
 local keywords = {
   ['<leader>qq'] = 'close exit',
+  ['<leader>tz'] = 'spell typo spelling',
+  [']s']         = 'spell typo spelling',
+  ['[s']         = 'spell typo spelling',
+  ['zg']         = 'spell typo spelling dictionary add word',
+  ['zw']         = 'spell typo spelling wrong',
+  ['z=']         = 'spell typo spelling suggest corrections',
+  ['1z=']        = 'spell typo spelling fix accept',
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords`

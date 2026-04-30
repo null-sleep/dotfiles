@@ -65,6 +65,14 @@ vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end
 vim.api.nvim_create_user_command('Q', 'qa', {})
 vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { desc = 'Quit all' })
 
+-- Toggle spell checking
+vim.keymap.set('n', '<leader>tz', function()
+  vim.opt.spell = not vim.opt.spell:get()
+end, { desc = 'Toggle: Spell check' })
+
+-- Add word to dictionary, skipping duplicates
+vim.keymap.set('n', 'zg', require('spell').add_word, { desc = 'Spell: Add word to dictionary' })
+
 -- Toggle LSP diagnostics (virtual text + gutter signs).
 vim.keymap.set('n', '<leader>td', function()
   local current = vim.diagnostic.config().virtual_text
