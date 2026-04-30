@@ -221,8 +221,8 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 | `<Space>s/` | Fuzzy search inside current buffer |
 | `<Space>so` | Recent files |
 | `<Space>sm` | Modified files (git status) |
-| `<Space>ss` | Symbols (workspace) |
-| `<Space>sS` | Symbols (document) |
+| `<Space>ss` | Symbols (workspace) — fans query to all active LSPs; type `name path` to also filter by file |
+| `<Space>sS` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
 | `<Space>st` | Theme picker (live preview) |
 | `<Space>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
 | `<Space>sF` | Toggle file-type filter presets (scopes `<Space>sf` and `<Space>sg`) |
@@ -259,7 +259,8 @@ Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-nati
 - Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
 - In `<Space>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`
 - `<Space>sr` reopens the last search with the same query — useful when you close telescope and want to get back
-- `<Space>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<Space>sf` and `<Space>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `lua/filterpicker.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
+- `<Space>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<Space>sf` and `<Space>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `lua/pickers/filter.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
+- `<Space>ss` uses a two-token prompt: the first word is the symbol name query sent to the LSP; everything after the first space narrows results by file path. E.g. `render utils` finds symbols named "render" in files matching "utils". By default the query fans out to every active LSP client in the session (not just the current buffer's). `<Space>ts` toggles to buffer-only mode.
 
 **Commands:**
 
@@ -330,6 +331,7 @@ so diagnostics are still visible on hover (`K` or `<Space>e`).
 | `<Space>td` | Toggle diagnostic virtual text and gutter signs on/off |
 | `<Space>ti` | Toggle inlay hints on/off |
 | `<Space>tb` | Toggle inline git blame |
+| `<Space>ts` | Toggle symbol search scope (all active LSPs ↔ buffer LSP only) |
 
 ### Autocompletion (blink.cmp)
 
