@@ -60,6 +60,12 @@ opt.whichwrap:append('<,>,[,],h,l')    -- cursor wraps to next/prev line at end/
 opt.splitright = true                  -- vertical splits open to the right
 opt.splitbelow = true                  -- horizontal splits open below
 
+opt.spell = false                      -- spell checking off by default; toggle with <leader>tz
+opt.spelllang = 'en_us'                -- language: US English
+-- Explicit path so zg additions land in the stowed dotfiles folder and can
+-- be committed. nvim creates the file on first zg if it doesn't exist.
+opt.spellfile = vim.fn.stdpath('config') .. '/spell/en.utf-8.add'
+
 opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
 opt.swapfile = false                   -- no swap files (undofile handles recovery)

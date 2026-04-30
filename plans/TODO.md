@@ -1,7 +1,13 @@
 # TODO
 
 1. Code Outline Support
-2. Git Integration and Workflow (hunk navigation, diff view - split and unified)
+  - aerial.nvim, can replace <leader>sS
+2.a Git Integration and Workflow (hunk navigation, diff view - split and unified)
+  - lazygit in toggleterm: bind <leader>gg to open lazygit in a floating terminal
+  - neogit + diffview.nvim:  Magit-style native nvim git UI
+  - enable spell check when reviewing?
+2.b GitHub Integration: octo.nvim — lets you view, comment and review GitHub PRs
+  - Heavy plugin may want to avoid or defer
 3. telescope picker - where to show the preview, if we can make it dynamic
 4. telescope picker - selecting an item places in near top of the screen
 5. filter picker
@@ -9,6 +15,24 @@
     on, nothing in the prompt/title/statusline tells you. You can be searching
     filtered without realizing it.
   - Persistence across sessions: filters reset on nvim restart.
-6. Mardown editor auto lists/headings... etc
-7. Learn jump words, sentences etc shorcuts. Make a new vim basics md file
+6. Markdown editor auto lists/headings... etc.
+7. Learn jump words, sentences etc shortcuts. Make a new vim basics md file
+8. [What if I never?] Project tree
+  - neo-tree.nvim
+  - oil.nvim
+9. Debugging support for some languages
+10. trouble.nvim — a proper diagnostic list window. You have <leader>cd which opens telescope for diagnostics, but trouble gives a persistent, navigable panel that's better for working through a build full of errors.
+11. Spell Check
+  - Add the spell source to blink.cmp so suggestions appear inline while typing
+  - Map something ergonomic to 1z= for quick fixes
+12. Next Edit Prediction: https://github.com/BlinkResearchLabs/blink-edit.nvim
 
+
+## AI reccs
+
+ ### Moderate value:
+- Snippets — blink.cmp already lists snippets as a completion source but there's no snippet engine feeding it. Adding friendly-snippets (a snippet collection) with blink.cmp's built-in snippet support would make that source actually fire.
+- grug-far.nvim (or spectre) — project-wide find-and-replace with a live preview buffer. <leader>sg gives you grep but not replace.
+
+### Nice to have:
+- Indent guides (indent-blankline.nvim or mini.indentscope) — visual context in deeply nested code
