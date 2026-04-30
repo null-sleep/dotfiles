@@ -469,6 +469,19 @@ avoid noise from language servers scanning the workspace.
 Renders markdown files in the buffer with formatted headings, bold, italic, code blocks, and lists.
 Active automatically when opening `.md` files.
 
+### Git Editor Buffers (gitcommit / gitrebase)
+
+When `git commit` or `git rebase -i` opens a buffer in the existing nvim instance (via `nvim-editor` — see ZSH section), these buffer-local keymaps are active:
+
+| Keymap | Action |
+|---|---|
+| **`<Space>w`** | **Save and close buffer** — writes the file and closes the buffer, signalling git to proceed |
+| **`<Space>x`** | **Discard and close** — quits with a non-zero exit code (`:cq`), signalling git to abort; nvim server stays running |
+
+The underlying commands if you prefer typing them: `:w | bd` to confirm, `:cq` to abort. Note: `:wq` and `:q` would quit the whole nvim session — avoid them here.
+
+These keymaps are only active in `gitcommit` and `gitrebase` buffers.
+
 ### General Keymaps
 
 | Keymap | Action |
@@ -719,6 +732,17 @@ echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 ```
 
 Open a new shell. On the first launch antigen clones every bundle (takes ~20s) and writes a cached loader to `~/.antigen/init.zsh`. Subsequent launches just source the cache.
+
+### nvim-editor
+
+`nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. It routes editor calls through the existing nvim instance when available:
+
+- **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): opens the file in the parent nvim via `--remote-wait`, blocking until the buffer is closed.
+- **Standalone terminal** (iTerm, Kitty, etc.): falls back to a fresh `nvim` process.
+
+This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR` caller automatically use your existing nvim session when you're working inside one.
+
+The script is included in the `zsh` stow package. On a new machine, `stow zsh` symlinks it into `~/.local/bin/` (already on `$PATH`).
 
 ### Per-machine config
 

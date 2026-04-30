@@ -48,6 +48,20 @@ require('gitsigns').setup({
   end,
 })
 
+-- Buffer-local keymaps for git editor buffers opened via $EDITOR (e.g. git
+-- commit, git rebase -i). These only exist in gitcommit/gitrebase buffers.
+-- <leader>w writes and closes the buffer, signalling git to proceed.
+-- <leader>x quits with a non-zero exit code (:cq), signalling git to abort.
+-- Note: :wq/:q would quit the whole nvim session; :cq exits only the
+-- --remote-wait client process, leaving the nvim server running.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern  = { 'gitcommit', 'gitrebase' },
+  callback = function(args)
+    vim.keymap.set('n', '<leader>w', '<cmd>write | bd<CR>', { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
+    vim.keymap.set('n', '<leader>x', '<cmd>cq<CR>',         { buffer = args.buf, desc = 'Git: abort' })
+  end,
+})
+
 -- Scrollbar with git, diagnostic, search and cursor marks.
 -- Gitsigns integration is automatic — satellite detects gitsigns via package.loaded.
 vim.cmd.packadd('satellite.nvim')

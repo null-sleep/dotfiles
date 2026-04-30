@@ -82,10 +82,14 @@ if [[ "$TERM_PROGRAM" == "vscode" ]]; then
         export KUBE_EDITOR="code -w"
     fi
 else
-    # Default to nvim for all other terminals (GoLand, iTerm, etc.)
-    export EDITOR="nvim"
-    export GIT_EDITOR="nvim"
-    export KUBE_EDITOR="nvim"
+    # Default to nvim for all other terminals (GoLand, iTerm, etc.).
+    # nvim-editor reuses the existing nvim instance when $NVIM is set (i.e.
+    # inside a toggleterm or any nvim-spawned terminal), falling back to a
+    # fresh nvim process otherwise. --remote-wait blocks until the buffer is
+    # closed, which is required for git commit, kubectl edit, etc.
+    export EDITOR="nvim-editor"
+    export GIT_EDITOR="nvim-editor"
+    export KUBE_EDITOR="nvim-editor"
 fi
 
 # FZF
