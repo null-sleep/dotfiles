@@ -208,6 +208,17 @@ require('telescope').setup({
     layout_config = {
       horizontal = { width = 0.9, prompt_position = 'top' },
     },
+    mappings = (function()
+      -- After selecting a result, scroll so the cursor lands ~20% from the top.
+      -- CURSOR_TOP_RATIO: 0.0 = top of window, 0.5 = center (zz), 1.0 = bottom
+      local CURSOR_TOP_RATIO = 0.20
+      local function select_and_scroll(prompt_bufnr)
+        require('telescope.actions').select_default(prompt_bufnr)
+        local offset = math.floor(vim.api.nvim_win_get_height(0) * CURSOR_TOP_RATIO)
+        vim.fn.winrestview({ topline = math.max(1, vim.fn.line('.') - offset) })
+      end
+      return { i = { ['<CR>'] = select_and_scroll }, n = { ['<CR>'] = select_and_scroll } }
+    end)(),
     file_ignore_patterns = { '%.git/', 'node_modules/' },
     -- path_display options:
     --   'truncate'       — clip from the left, filename always visible
