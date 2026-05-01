@@ -604,6 +604,15 @@ github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode,
 | `%` | Jump to matching bracket |
 | `{` / `}` | Previous / next blank line |
 
+**Jumplist (navigate location history):**
+
+| Key | Action |
+|---|---|
+| `Ctrl+o` | Jump back to previous location |
+| `Ctrl+i` | Jump forward to next location |
+
+Large moves (`gd`, Telescope selection, `gg`, `G`, `/search`) save your position to the jumplist. `<C-o>`/`<C-i>` walk that history. `:jumps` shows the full list. Both are searchable via `<Space>sk` — type "jump", "back", or "forward".
+
 **Viewport (move screen, cursor stays):**
 
 | Key | Action |

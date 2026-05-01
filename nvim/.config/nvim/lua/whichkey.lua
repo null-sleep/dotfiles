@@ -50,6 +50,8 @@ wk.add({
 -- Extra search keywords for pickers/keybindings.lua — keyed by lhs, value is a
 -- space-separated string of aliases that don't appear in the desc.
 local keywords = {
+  ['<C-o>']      = 'jump back go back previous location history',
+  ['<C-i>']      = 'jump forward go forward next location history',
   ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',
   [']s']         = 'spell typo spelling',
