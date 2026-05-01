@@ -63,7 +63,7 @@ vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end
 
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
-vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { desc = 'Quit all' })
+vim.keymap.set('n', '<leader>qq', '<cmd>bd<CR>', { desc = 'Close buffer' })
 
 -- Toggle spell checking
 vim.keymap.set('n', '<leader>tz', function()

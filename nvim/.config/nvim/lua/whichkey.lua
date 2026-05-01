@@ -50,7 +50,7 @@ wk.add({
 -- Extra search keywords for pickers/keybindings.lua — keyed by lhs, value is a
 -- space-separated string of aliases that don't appear in the desc.
 local keywords = {
-  ['<leader>qq'] = 'close exit',
+  ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',
   [']s']         = 'spell typo spelling',
   ['[s']         = 'spell typo spelling',
