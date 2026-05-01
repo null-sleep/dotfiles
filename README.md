@@ -489,7 +489,8 @@ These keymaps are only active in `gitcommit` and `gitrebase` buffers.
 
 | Keymap | Action |
 |---|---|
-| `:Q` / `<Space>qq` | Quit all |
+| `:Q` | Quit all |
+| `<Space>qq` | Close buffer |
 | `y` / `Y` | Yank to system clipboard (dd, x, c stay in Neovim register) |
 | `p` (visual) | Paste without clobbering register |
 | `<` / `>` (visual) | Indent/dedent and stay in visual mode |
