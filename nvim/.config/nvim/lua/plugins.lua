@@ -204,9 +204,17 @@ vim.cmd.packadd('telescope-fzf-native.nvim')
 require('telescope').setup({
   defaults = {
     sorting_strategy = 'ascending',
-    layout_strategy  = 'horizontal',
+    -- Show the matched filename in the preview window title bar instead of
+    -- the static "Preview" label. Makes it easier to see which file is open.
+    dynamic_preview_title = true,
+    -- wrap_results = true,  -- wrap long result lines instead of truncating
+    layout_strategy  = 'flex',
     layout_config = {
-      horizontal = { width = 0.9, prompt_position = 'top' },
+      -- flex switches between horizontal (preview right) and vertical
+      -- (preview below) based on available width.
+      flex        = { flip_columns = 160 },
+      horizontal  = { width = 0.9, prompt_position = 'top', preview_cutoff = 0 },
+      vertical    = { width = 0.9, prompt_position = 'top', preview_cutoff = 0, preview_height = 0.5 },
     },
     mappings = (function()
       -- After selecting a result, scroll so the cursor lands ~20% from the top.
