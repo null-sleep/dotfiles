@@ -56,8 +56,9 @@
 --        highlights are intentionally omitted — entry_display byte offsets
 --        through the multi-byte name pad and dynamic client column are
 --        awkward to compute, and the filter is the load-bearing UX.
---     4. Vertical layout (preview below results, 50%) instead of the
---        global horizontal layout.
+--     4. Vertical layout (preview below results, 50%) pinned regardless
+--        of terminal width (global flex would switch to horizontal on wide
+--        terminals, which doesn't suit tall symbol lists).
 --
 -- DOCUMENT PICKER (M.document, bound to <leader>sS)
 --   Single-buffer outline. Reuses telescope's lsp_document_symbols (still
@@ -83,17 +84,18 @@ local NAME_WIDTH      = 30                          -- display cells reserved fo
 local KIND_WIDTH      = 13                          -- longest LSP kind label is "TypeParameter" (13 chars)
 local SEPARATOR       = '  '                        -- two spaces between columns
 
--- Vertical layout: prompt top, results middle, preview bottom (50%).
--- Overrides the global horizontal layout for symbol pickers only.
+-- Always use vertical layout (prompt top, results middle, preview bottom 50%).
+-- Symbol lists are tall by nature so vertical is better regardless of terminal
+-- width — we pin it here rather than letting the global flex strategy switch
+-- to horizontal on wide terminals.
 local VERTICAL_LAYOUT = {
     layout_strategy = 'vertical',
     layout_config = {
         vertical = {
-            width           = 0.9,
-            height          = 0.9,
-            prompt_position = 'top',
-            mirror          = true,
-            preview_height  = 0.5,
+            width          = 0.9,
+            height         = 0.9,
+            mirror         = true,
+            preview_height = 0.5,
         },
     },
 }
