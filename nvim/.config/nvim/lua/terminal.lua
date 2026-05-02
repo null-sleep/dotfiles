@@ -53,23 +53,24 @@ end
 -- NOTE: <Esc> exits terminal mode in all terminal buffers. If you add
 -- lazygit or other TUI integrations, guard this with a filetype check:
 --   if vim.bo[args.buf].filetype == 'toggleterm' then ... end
+-- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
+-- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
+-- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
+-- exiting terminal mode. Removed; use <C-]> for next and <S-C-]> or
+-- <leader>tt + count for previous.
 vim.api.nvim_create_autocmd('TermOpen', {
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
   callback = function()
+    -- Skip sidekick CLI buffers — sidekick manages its own keymaps.
+    if vim.bo.filetype == 'sidekick_terminal' then return end
     local opts = { buffer = 0 }
     vim.keymap.set('t', '<Esc>',  [[<C-\><C-n>]], opts)
     vim.keymap.set('t', '<C-h>',  [[<Cmd>wincmd h<CR>]], opts)
     vim.keymap.set('t', '<C-j>',  [[<Cmd>wincmd j<CR>]], opts)
     vim.keymap.set('t', '<C-k>',  [[<Cmd>wincmd k<CR>]], opts)
     vim.keymap.set('t', '<C-l>',  [[<Cmd>wincmd l<CR>]], opts)
-    -- <C-]>/<C-[> cycle next/previous terminal. Both modes so cycling works
-    -- whether you're in terminal mode or have pressed <Esc> to normal mode.
-    -- <C-[> is the terminal encoding of Esc but is safe to rebind here since
-    -- <Esc> above already handles exit-terminal-mode.
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
-    vim.keymap.set('t', '<C-[>', function() cycle_term(-1) end, opts)
     vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts)
-    vim.keymap.set('n', '<C-[>', function() cycle_term(-1) end, opts)
   end,
 })
 

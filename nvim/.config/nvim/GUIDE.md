@@ -35,7 +35,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
-| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>`/`<C-[>` cycle next/previous terminal via `cycle_term`) |
+| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
@@ -327,8 +327,8 @@ Keymaps are split across files by feature:
 - **`session.lua`** -- session keymaps (`<leader>q*`)
 - **`keymaps.lua`** (AI section) -- `<Tab>` (NES jump/apply), `<C-.>`
   (focus CLI, CSI u terminals), `<leader>ai` (focus CLI fallback),
-  `<leader>aa` (toggle CLI), `<leader>ac` (toggle Claude), `<leader>as`
-  (select CLI tool), `<leader>ad` (kill CLI session), `<leader>ap`
+  `<leader>aa` (toggle Claude CLI), `<leader>as`
+  (select different CLI tool), `<leader>ad` (kill CLI session), `<leader>ap`
   (select prompt), `<leader>at` (send position/selection), `<leader>af`
   (send file). `<M-a>` in any Telescope picker sends selection(s) to CLI.
 
@@ -381,10 +381,10 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    jumps to or applies the next suggestion. Falls through to literal `<Tab>`
    when no suggestion is active.
 
-2. **CLI integration** — opens Claude or Copilot in a terminal split.
-   `<leader>ac` toggles Claude with focus. `<leader>aa` toggles the CLI
-   split (session stays alive when hidden). `<leader>ad` tears down the
-   session entirely.
+2. **CLI integration** — opens Claude in a terminal split.
+   `<leader>aa` toggles Claude (defaults to Claude, session stays alive
+   when hidden). `<leader>as` switches to a different CLI tool.
+   `<leader>ad` tears down the session entirely.
 
 | Keymap | Action |
 |---|---|
@@ -393,9 +393,8 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<Space>tc` | Toggle Copilot inline completion on/off (per-buffer) |
 | `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
 | `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
-| `<Space>aa` | Toggle CLI split (show/hide, session stays alive) |
-| `<Space>ac` | Toggle Claude CLI (opens with focus) |
-| `<Space>as` | Select CLI tool |
+| `<Space>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
+| `<Space>as` | Select a different CLI tool (copilot, gemini, etc.) |
 | `<Space>ad` | Kill CLI session (tears down process + buffer) |
 | `<Space>ap` | Select prompt |
 | `<Space>at` | Send position (normal) or selection (visual) to CLI |
