@@ -5,12 +5,13 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ## Setup
 
 ```bash
-brew install stow
+brew install stow zellij
 cd ~/src/dotfiles
 # Install dependencies for each tool
 stow nvim
 stow zsh
 stow kitty
+stow zellij
 ```
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -735,6 +736,91 @@ This writes `~/.config/kitty/current-theme.conf` which kitty auto-includes. The 
 | `kitten diff file1 file2` | Side-by-side diff |
 | `kitten ssh host` | SSH with full kitty features on remote |
 | `kitty +kitten icat image.png` | Display image in terminal |
+
+## Zellij
+
+Terminal multiplexer — split panes, tabs, and persistent sessions. Config is
+managed via stow (`stow zellij`). Theme is catppuccin-mocha to match nvim.
+
+```bash
+zellij            # start a new session
+zellij attach     # reattach to the last session
+zellij ls         # list running sessions
+zellij kill-all-sessions  # clean up all sessions
+```
+
+The status bar at the bottom shows available keys for the current mode.
+Press `Esc` or `Ctrl+g` to return to normal mode from any mode.
+
+### Panes
+
+| Key | Action |
+|---|---|
+| `Ctrl+p` | Enter Pane mode |
+| `d` | Split pane down |
+| `r` | Split pane right |
+| `x` | Close pane |
+| `z` | Toggle pane zoom (fullscreen) |
+| `f` | Toggle floating pane |
+| `w` | Show/hide all floating panes |
+| `e` | Embed floating pane / make pane floating |
+| `Alt+arrow` | Move focus between panes (without entering Pane mode) |
+
+### Floating terminal
+
+Zellij supports floating panes — panes that hover over the layout. Use one as
+a scratch terminal you can summon and dismiss without losing your place:
+
+1. `Ctrl+p` → `f` — open a new floating pane
+2. Do your work (run a command, check a log, etc.)
+3. `Ctrl+p` → `w` — hide all floating panes (they stay alive in the background)
+4. `Ctrl+p` → `w` again — bring them back
+
+The floating pane persists for the session. Unlike toggleterm in nvim, it's
+not bound to a single key by default — `Ctrl+p w` is the toggle.
+
+### Tabs
+
+| Key | Action |
+|---|---|
+| `Ctrl+t` | Enter Tab mode |
+| `n` | New tab |
+| `x` | Close tab |
+| `r` | Rename tab |
+| `1`–`9` | Jump to tab by number |
+| `Arrow` | Move to next/previous tab |
+
+### Sessions
+
+| Key | Action |
+|---|---|
+| `Ctrl+o` | Enter Session mode |
+| `d` | Detach (session keeps running in background) |
+| `w` | Open session manager (switch/kill sessions) |
+
+Sessions are auto-saved on exit and restored on next launch (`session_serialization true`). Closing the last client **quits** the session rather than detaching — no ghost sessions left behind (`on_force_close "quit"`).
+
+### Scrolling
+
+| Key | Action |
+|---|---|
+| `Ctrl+s` | Enter Scroll mode |
+| `Arrow` / `j`/`k` | Scroll line by line |
+| `Ctrl+d` / `Ctrl+u` | Scroll half page |
+| `Ctrl+f` / `Ctrl+b` | Scroll full page |
+| `e` | Open scroll buffer in `$EDITOR` |
+| `s` | Search in scroll buffer |
+| `Esc` | Exit Scroll mode |
+
+Mouse scroll also works directly without entering Scroll mode.
+
+### Plugins
+
+| Key | Action |
+|---|---|
+| `Ctrl+?` | Open zellij-forgot — floating keybinding cheatsheet |
+
+zellij-forgot downloads its wasm binary from GitHub releases on first use.
 
 ## ZSH
 
