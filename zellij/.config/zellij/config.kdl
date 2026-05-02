@@ -1,0 +1,41 @@
+// Zellij config — KDL format
+
+// Use zsh as the default shell
+default_shell "zsh"
+
+// Enable mouse support (click to focus panes, scroll)
+mouse_mode true
+
+// Copy selected text to system clipboard automatically
+copy_on_select true
+copy_command "pbcopy"
+
+// Scrollback buffer size
+scroll_buffer_size 10000
+
+// Theme — catppuccin-mocha to match nvim default
+theme "catppuccin-mocha"
+
+// Hide the session name in the status bar
+simplified_ui false
+
+// Don't show the tip of the day
+show_startup_tips false
+
+// Quit instead of detaching when the last session client closes
+on_force_close "quit"
+
+// Persist session layout/panes across restarts
+session_serialization true
+
+// zellij-forgot: Ctrl+? opens a floating keybinding cheatsheet
+keybinds {
+    normal {
+        bind "Ctrl ?" {
+            LaunchOrFocusPlugin "https://github.com/karimould/zellij-forgot/releases/download/0.4.2/zellij_forgot.wasm" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
+    }
+}
