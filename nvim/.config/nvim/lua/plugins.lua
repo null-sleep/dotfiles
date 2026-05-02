@@ -92,6 +92,10 @@ require('mini.notify').setup({
   lsp_progress = { enable = false },
 })
 vim.notify = require('mini.notify').make_notify()
+-- :Notifications — view dismissed notifications (like :messages but for mini.notify)
+vim.api.nvim_create_user_command('Notifications', function()
+  require('mini.notify').show_history()
+end, {})
 
 -------------------------------------------------------------------------------
 -- Treesitter

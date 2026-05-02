@@ -86,6 +86,19 @@ vim.api.nvim_create_autocmd('LspAttach', {
       vim.lsp.codelens.enable(true, { bufnr = buf })
     end
 
+    -- Copilot inline completion: ghost-text suggestions while typing in insert mode.
+    -- Separate from NES (sidekick), which shows follow-on edit diffs in normal mode.
+    -- <Tab> accepts (handled in completion.lua's blink keymap chain), <leader>tc toggles.
+    if client:supports_method(vim.lsp.protocol.Methods.textDocument_inlineCompletion, buf) then
+      vim.lsp.inline_completion.enable(true, { bufnr = buf })
+      map('n', '<leader>tc', function()
+        vim.lsp.inline_completion.enable(
+          not vim.lsp.inline_completion.is_enabled({ bufnr = buf }),
+          { bufnr = buf }
+        )
+      end, 'Toggle: Copilot inline completion')
+    end
+
     -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
     map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
     -- gD jumps to the declaration (signature without body) — useful in Rust (trait).

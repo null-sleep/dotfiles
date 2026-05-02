@@ -3,7 +3,20 @@ vim.cmd.packadd('blink.cmp')
 require('blink.cmp').setup({
   keymap = {
     preset = 'none',
-    ['<Tab>']     = { 'select_next', 'fallback' },
+    -- Tab priority (matches VS Code / Zed): completion menu wins over ghost text.
+    -- 1. select_next: if blink menu is open, navigate it
+    -- 2. inline completion: if Copilot ghost text is showing, accept it
+    -- 3. fallback: literal Tab
+    ['<Tab>']     = {
+      'select_next',
+      function(cmp)
+        if vim.lsp.inline_completion.is_enabled({ bufnr = 0 }) then
+          local accepted = vim.lsp.inline_completion.get()
+          if accepted ~= false then return true end
+        end
+      end,
+      'fallback',
+    },
     ['<S-Tab>']   = { 'select_prev', 'fallback' },
     ['<CR>']      = { 'accept', 'fallback' },
     ['<C-u>']     = { 'scroll_documentation_up', 'fallback' },
@@ -29,9 +42,10 @@ require('blink.cmp').setup({
     },
     -- auto_brackets: append () after completing a function and place cursor inside
     accept = { auto_brackets = { enabled = true } },
-    -- ghost_text: shows top completion suggestion faded inline as you type; accept with <Right>
-    -- Tab/Shift-Tab still navigate the dropdown as usual
-    ghost_text = { enabled = true },
+    -- Disable blink ghost text — Copilot inline completion provides its own ghost
+    -- text via vim.lsp.inline_completion. Both use virt_text_pos='inline' and would
+    -- overlap if both were active.
+    ghost_text = { enabled = false },
   },
 
   -- signature: show parameter hints while typing inside a function call
