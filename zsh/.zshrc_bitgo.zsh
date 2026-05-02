@@ -9,9 +9,6 @@ export AWS_PROFILE=dev
 ## Go Private modules
 export GOPRIVATE=github.com/lumina-tech/*,github.com/bitgo/*
 
-## Git base branch override (BitGo uses master)
-export GIT_BASE_BRANCH="master"
-
 ## Colima (Docker runtime)
 colima_start() {
   colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
