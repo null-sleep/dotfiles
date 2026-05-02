@@ -38,6 +38,13 @@ vim.pack.add(vim.list_extend({
   { src = gh('windwp/nvim-autopairs') },
   { src = gh('stevearc/conform.nvim') },
   { src = gh('akinsho/toggleterm.nvim') },
+  -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
+  -- TODO: flip src back to 'folke/sidekick.nvim' once PR #277 merges
+  -- (https://github.com/folke/sidekick.nvim/pull/277).
+  {
+    src = gh('alvarosevilla95/sidekick.nvim'),
+    version = 'fix/nes-missing-request-id',
+  },
 }, themes.sources))
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)
@@ -220,12 +227,43 @@ require('telescope').setup({
       -- After selecting a result, scroll so the cursor lands ~20% from the top.
       -- CURSOR_TOP_RATIO: 0.0 = top of window, 0.5 = center (zz), 1.0 = bottom
       local CURSOR_TOP_RATIO = 0.20
+      local actions = require('telescope.actions')
+      local action_state = require('telescope.actions.state')
+
       local function select_and_scroll(prompt_bufnr)
-        require('telescope.actions').select_default(prompt_bufnr)
+        actions.select_default(prompt_bufnr)
         local offset = math.floor(vim.api.nvim_win_get_height(0) * CURSOR_TOP_RATIO)
         vim.fn.winrestview({ topline = math.max(1, vim.fn.line('.') - offset) })
       end
-      return { i = { ['<CR>'] = select_and_scroll }, n = { ['<CR>'] = select_and_scroll } }
+
+      -- Send the picker's current entry (or multi-selection) to the active sidekick CLI
+      -- session as space-separated path:line refs. Replicates the snacks-only <a-a>
+      -- integration from the sidekick README so we keep telescope as the primary picker.
+      local function send_to_sidekick(prompt_bufnr)
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        local picks = picker:get_multi_selection()
+        if vim.tbl_isempty(picks) then
+          picks = { action_state.get_selected_entry() }
+        end
+        local refs = {}
+        for _, e in ipairs(picks) do
+          if e then
+            local path = e.path or e.filename or e.value
+            if path then
+              table.insert(refs, e.lnum and (path .. ':' .. e.lnum) or path)
+            end
+          end
+        end
+        actions.close(prompt_bufnr)
+        if not vim.tbl_isempty(refs) then
+          require('sidekick.cli').send({ msg = table.concat(refs, ' ') })
+        end
+      end
+
+      return {
+        i = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick },
+        n = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick },
+      }
     end)(),
     file_ignore_patterns = { '%.git/', 'node_modules/' },
     -- path_display options:

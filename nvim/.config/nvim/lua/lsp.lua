@@ -29,6 +29,7 @@ require('mason-lspconfig').setup({
     'gopls',
     'rust_analyzer',
     'elixirls',
+    'copilot',
   },
   -- Disable automatic_enable so our explicit vim.lsp.enable() below is the
   -- single source of truth for which servers are active.
@@ -43,6 +44,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
     local buf = ev.buf
     local client = vim.lsp.get_client_by_id(ev.data.client_id)
     if not client then return end
+
+    -- Note: Copilot LSP triggers this callback too. Most features are gated by
+    -- :supports_method() so they're filtered out. Ungated keymaps (gd, <C-s>,
+    -- <leader>rn, etc.) are harmless — Copilot doesn't implement those methods.
 
     local map = function(mode, lhs, rhs, desc)
       vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
@@ -165,4 +170,10 @@ vim.lsp.config('rust_analyzer', {
   settings = { ['rust-analyzer'] = { checkOnSave = { command = 'clippy' } } },
 })
 
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls' })
+vim.lsp.config('copilot', {
+  settings = {
+    copilot = { telemetryLevel = 'off' },
+  },
+})
+
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'copilot' })

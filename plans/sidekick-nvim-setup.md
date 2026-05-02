@@ -18,6 +18,40 @@ The config uses `vim.pack` (Neovim 0.12+ native), not `lazy.nvim`, so the README
 - **PR #277 (alvarosevilla95/sidekick.nvim, branch `fix/nes-missing-request-id`)**: pin `vim.pack` `src` to the fork until upstream merges. TODO marker in `plugins.lua` to flip back to `folke/sidekick.nvim` after merge. Without this fix, NES silently filters all suggestions as "stale".
 - **AI prefix `<leader>a`**: matches the prefix the previous AI plan used. No collision with current keymaps (`<leader>ca` is LSP code action, in a different group).
 
+## Sidekick CLI template variables
+
+Variables used in `require('sidekick.cli').send({ msg = '...' })`. Resolved by
+`lua/sidekick/cli/context/` in the plugin source.
+
+| Variable | Normal mode | Visual mode | Source file |
+|---|---|---|---|
+| `{this}` | resolves to `{position}` | resolves to `{selection}` | `context/init.lua` |
+| `{file}` | relative file path (e.g. `src/main.lua`) | same | `context/location.lua` |
+| `{position}` | cursor location (`:L42:C15`) | range (`:L10:C1-L15:C20`) | `context/location.lua` |
+| `{selection}` | — (no selection active) | selected text, indent-normalized | `context/selection.lua` |
+
+Key takeaway: `{this}` is the smart context-aware variable — use it for the
+"send what I'm looking at" keymap. `{file}` and `{selection}` are for when you
+want to be explicit. `{this}` and `{selection}` are **identical in visual mode**,
+so a single `<leader>at` with `{this}` covers both normal and visual without
+needing a separate `<leader>av`.
+
+## Sidekick CLI lifecycle
+
+How the CLI window/session management functions differ. Source:
+`lua/sidekick/cli/init.lua` and `lua/sidekick/cli/terminal.lua`.
+
+| Function | Window | Process | Buffer | Session |
+|---|---|---|---|---|
+| `toggle()` (open→hidden) | closed | **still running** | **still exists** | **still attached** |
+| `toggle()` (hidden→open) | opened | — | — | — |
+| `focus()` | focused | — | — | — |
+| `close()` | closed | **killed** (`jobstop`) | **deleted** | **detached** |
+
+- `toggle()` is show/hide — instant reopen, no state lost. Daily-driver keymap.
+- `close()` is tear-down — kills the process, must start a new session. "I'm done."
+- `focus()` moves cursor to the CLI split; no-op if not open.
+
 ## Files to modify
 
 | File | Change |
@@ -25,9 +59,11 @@ The config uses `vim.pack` (Neovim 0.12+ native), not `lazy.nvim`, so the README
 | `nvim/.config/nvim/lua/plugins.lua` | Add sidekick to `vim.pack.add()` (pinned to PR fork); add `<a-a>` Telescope action in `defaults.mappings` |
 | `nvim/.config/nvim/lua/lsp.lua` | Add `copilot` to `mason-lspconfig` `ensure_installed`; add `vim.lsp.config('copilot', {...})`; add `'copilot'` to `vim.lsp.enable({...})` |
 | `nvim/.config/nvim/lua/sidekick.lua` | **New file** — packadd + `require('sidekick').setup({...})` |
-| `nvim/.config/nvim/lua/keymaps.lua` | Add `<Tab>` (NES jump/apply), `<C-.>` (focus CLI), and the `<leader>a*` group |
+| `nvim/.config/nvim/lua/keymaps.lua` | Add `<Tab>` (NES jump/apply), `<C-.>` + `<leader>ai` (focus CLI), and the `<leader>a*` group |
 | `nvim/.config/nvim/lua/whichkey.lua` | Register `<leader>a` group as "AI" |
 | `nvim/.config/nvim/init.lua` | `require('sidekick')` after `require('lsp')` |
+| `nvim/.config/nvim/GUIDE.md` | AI keymaps in "Things to watch out for", `<C-.>` and `<leader>ad` caveats |
+| `nvim/.config/nvim/README.md` | AI keymaps table in Neovim section |
 
 ## Step-by-step
 
@@ -40,12 +76,10 @@ In the `vim.pack.add({...})` list (around line 39 after `toggleterm`), insert:
 -- TODO: flip src back to 'folke/sidekick.nvim' once PR #277 merges
 -- (https://github.com/folke/sidekick.nvim/pull/277).
 {
-  src = 'https://github.com/alvarosevilla95/sidekick.nvim',
+  src = gh('alvarosevilla95/sidekick.nvim'),
   version = 'fix/nes-missing-request-id',
 },
 ```
-
-`gh()` from `utils.lua` only handles `folke/...`-style shorthand, so we use the full URL here.
 
 ### 2. Add `<a-a>` send-to-sidekick Telescope action — `lua/plugins.lua`
 
@@ -96,8 +130,24 @@ end)(),
 
 ### 3. Add Copilot LSP — `lua/lsp.lua`
 
-- Append `'copilot'` to the `ensure_installed` table (line 25–32). `mason-lspconfig` resolves this to the `copilot-language-server` Mason package.
-- Add a `vim.lsp.config('copilot', {})` block (around line 165, alongside the other server configs). The default lspconfig entry from `nvim-lspconfig`'s `lsp/copilot.lua` is sufficient — no settings overrides needed.
+- Append `'copilot'` to the `ensure_installed` table (line 25–32). `mason-lspconfig` resolves this to the `copilot-language-server` Mason package. **Note:** If the mason-lspconfig registry doesn't have the `copilot` → `copilot-language-server` mapping, `ensure_installed` will silently skip it. Verify with `:Mason` after first run; fallback is `:MasonInstall copilot-language-server` manually.
+- Add a `vim.lsp.config('copilot', {...})` block (around line 165, alongside the other server configs):
+
+```lua
+vim.lsp.config('copilot', {
+  settings = {
+    copilot = { telemetryLevel = 'off' },
+  },
+})
+```
+
+- Add a comment at the top of the `LspAttach` callback noting that Copilot will trigger it. The `:supports_method()` guards filter most features; ungated keymaps (`gd`, `<C-s>`, etc.) are harmless no-ops since Copilot doesn't implement those methods. No early-return guard needed. Comment:
+
+```lua
+-- Note: Copilot LSP triggers this callback too. Most features are gated by
+-- :supports_method() so they're filtered out. Ungated keymaps (gd, <C-s>,
+-- <leader>rn, etc.) are harmless — Copilot doesn't implement those methods.
+```
 - Append `'copilot'` to the `vim.lsp.enable({...})` list on line 168.
 - First-run auth: user runs `:LspCopilotSignIn` once after Mason installs the server.
 
@@ -131,15 +181,23 @@ Append a new section at the end (after the yank helpers):
 -- AI (sidekick.nvim): NES + Claude/Copilot CLI
 -- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
 -- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
--- mode only, so there's no conflict.
+-- mode only, so there's no conflict. Telescope's <Tab> (multi-select) is
+-- buffer-local to the picker prompt, so it shadows this global binding inside
+-- pickers — no conflict there either.
 vim.keymap.set('n', '<Tab>', function()
   if not require('sidekick').nes_jump_or_apply() then
     return '<Tab>'
   end
 end, { expr = true, desc = 'AI: NES jump or apply' })
 
+-- Focus the sidekick CLI split from any mode.
+-- NOTE: <C-.> requires a terminal that sends CSI u sequences (kitty, iTerm2
+-- with CSI u, WezTerm, Ghostty). macOS Terminal.app and some others do not
+-- transmit <C-.> — <leader>ai is the cross-terminal fallback.
 vim.keymap.set({ 'n', 't', 'i', 'x' }, '<C-.>',
   function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI' })
+vim.keymap.set('n', '<leader>ai',
+  function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI (fallback for <C-.>)' })
 
 vim.keymap.set('n', '<leader>aa',
   function() require('sidekick.cli').toggle() end, { desc = 'AI: Toggle CLI' })
@@ -148,19 +206,24 @@ vim.keymap.set('n', '<leader>ac',
   { desc = 'AI: Toggle Claude' })
 vim.keymap.set('n', '<leader>as',
   function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
+-- close() kills the terminal process, deletes the buffer, and detaches the
+-- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
+-- show/hide without losing state.
 vim.keymap.set('n', '<leader>ad',
-  function() require('sidekick.cli').close() end, { desc = 'AI: Detach session' })
+  function() require('sidekick.cli').close() end, { desc = 'AI: Kill CLI session' })
 vim.keymap.set('n', '<leader>ap',
   function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
+-- Sidekick template variables (see reference table in this plan):
+--   {this}      → {position} in normal mode, {selection} in visual mode
+--   {file}      → relative file path
+--   {selection} → visual selection text (equivalent to {this} in visual mode)
+-- This single binding covers both cases, so a separate <leader>av is not needed.
 vim.keymap.set({ 'n', 'x' }, '<leader>at',
   function() require('sidekick.cli').send({ msg = '{this}' }) end,
-  { desc = 'AI: Send this (selection or file)' })
+  { desc = 'AI: Send this (position or selection)' })
 vim.keymap.set('n', '<leader>af',
   function() require('sidekick.cli').send({ msg = '{file}' }) end,
   { desc = 'AI: Send file' })
-vim.keymap.set('x', '<leader>av',
-  function() require('sidekick.cli').send({ msg = '{selection}' }) end,
-  { desc = 'AI: Send visual selection' })
 ```
 
 ### 6. Register which-key group — `lua/whichkey.lua`
@@ -171,7 +234,33 @@ Add to the `wk.add({...})` call (around line 25):
 { '<leader>a',  group = 'AI' },
 ```
 
-### 7. Wire into init.lua — `nvim/.config/nvim/init.lua`
+### 7. Update docs — `GUIDE.md` and `README.md`
+
+Add an AI keymaps table to the README and GUIDE, plus caveats:
+
+**AI keymaps table:**
+
+| Keymap | Action |
+|---|---|
+| `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
+| `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
+| `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
+| `<Space>aa` | Toggle CLI split (show/hide, session stays alive) |
+| `<Space>ac` | Toggle Claude CLI (opens with focus) |
+| `<Space>as` | Select CLI tool |
+| `<Space>ad` | Kill CLI session (tears down process + buffer) |
+| `<Space>ap` | Select prompt |
+| `<Space>at` | Send position (normal) or selection (visual) to CLI |
+| `<Space>af` | Send file path to CLI |
+| `<M-a>` (in picker) | Send picker selection(s) to CLI |
+
+**Caveats to add to "Things to watch out for":**
+
+> **`<C-.>` terminal compatibility** — `<C-.>` (focus sidekick CLI) requires a terminal that sends CSI u sequences (kitty, iTerm2 with CSI u, WezTerm, Ghostty). macOS Terminal.app and some other terminals do not transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
+
+> **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which just hides the window), `<leader>ad` calls `close()` which terminates the CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide the chat; `<leader>ad` when you're done with the conversation.
+
+### 8. Wire into init.lua — `nvim/.config/nvim/init.lua`
 
 Insert `require('sidekick')` after `require('lsp')` (between lines 6 and 7):
 
@@ -181,7 +270,7 @@ require('sidekick')
 require('format')
 ```
 
-### 8. Snacks.nvim Picker Integration — explicitly skipped
+### 9. Snacks.nvim Picker Integration — explicitly skipped
 
 We are **not** installing Snacks. The README's `<a-a>` "send picker selection to CLI" feature is replicated against Telescope in step 2 and works across:
 
@@ -199,7 +288,7 @@ If we ever migrate to Snacks pickers, this action stays useful as a Telescope-si
 2. **Mason picks up Copilot:** `:Mason` — confirm `copilot-language-server` is installed (or installing). After it lands, `:LspInfo` in any buffer should list `copilot` as a running client.
 3. **Copilot auth:** Run `:LspCopilotSignIn` once and complete the device-code flow in a browser. `:checkhealth vim.lsp` should show `copilot` as authenticated.
 4. **NES end-to-end:** Open a real source file, make an edit that has obvious follow-on edits (e.g., rename a variable in one place), leave insert mode. A diff overlay should appear; press `<Tab>` to jump/apply. Confirm `:Sidekick nes toggle` disables/enables.
-5. **Claude CLI toggles:** With `claude` CLI installed, `<leader>ac` opens it in a right split. `<leader>at` from a visual selection sends the highlighted text. `<C-.>` focuses back.
+5. **Claude CLI toggles:** With `claude` CLI installed, `<leader>ac` opens it in a right split. `<leader>at` from a visual selection sends the highlighted text. `<C-.>` (or `<leader>ai` if terminal doesn't support CSI u) focuses back. `<leader>aa` hides the split (session stays alive); `<leader>ad` kills the session entirely.
 6. **`<a-a>` send-from-picker:** Run `<leader>sg`, search for a string, mark a few hits with `<Tab>`, press `<M-a>`. Picker closes; the active CLI session receives `path:line path:line ...`. Repeat with `<leader>sf` and `grr` to confirm coverage.
 7. **Which-key group:** Press `<leader>a` and confirm the popup shows "AI" as the group label with all `<leader>a*` mappings listed.
 8. **No regressions:** `<leader>sf`/`<leader>sg`/`grr` still scroll-on-select (the existing `<CR>` mapping is preserved); `<Tab>` in insert mode still navigates blink.cmp completions.
@@ -208,3 +297,5 @@ If we ever migrate to Snacks pickers, this action stays useful as a Telescope-si
 
 - After PR #277 merges upstream, change the `vim.pack` spec back to `src = gh('folke/sidekick.nvim')` and remove the TODO comment.
 - If session persistence across nvim restarts becomes desirable, enable `cli.mux = { backend = 'tmux'|'zellij', enabled = true }` in `lua/sidekick.lua`.
+- Copilot LSP also supports `textDocument/inlineCompletion` (ghost-text completions, separate from NES). This plan only uses NES via sidekick. If inline completion is desired later, enable it with `vim.lsp.inline_completion.enable()` and/or add a `copilot` source to blink.cmp.
+- `<leader>at` in visual mode sends `{this}` which resolves to `{selection}` (see template variable table above). A separate `<leader>av` with `{selection}` was considered but dropped as redundant — revisit if sidekick's `{this}` vs `{selection}` semantics diverge in future versions.
