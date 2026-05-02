@@ -41,6 +41,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
 | `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins |
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon |
+| `ai.lua` | sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
 | `pickers/theme.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
 | `spell.lua` | Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary |
@@ -61,7 +62,7 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
+ai -> format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
 
 
 ## Design Decisions
@@ -189,6 +190,16 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
   not mapped in this config. `grr`/`gri` are overridden to use Telescope.
 
+- **`<C-.>` terminal compatibility** — `<C-.>` (focus sidekick CLI)
+  requires a terminal that sends CSI u sequences (kitty, iTerm2 with CSI u,
+  WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
+  transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
+
+- **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which
+  just hides the window), `<leader>ad` calls `close()` which terminates the
+  CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
+  the chat; `<leader>ad` when you're done with the conversation.
+
 ### Troubleshooting
 
 **Server doesn't start:**
@@ -307,6 +318,12 @@ Keymaps are split across files by feature:
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`session.lua`** -- session keymaps (`<leader>q*`)
+- **`keymaps.lua`** (AI section) -- `<Tab>` (NES jump/apply), `<C-.>`
+  (focus CLI, CSI u terminals), `<leader>ai` (focus CLI fallback),
+  `<leader>aa` (toggle CLI), `<leader>ac` (toggle Claude), `<leader>as`
+  (select CLI tool), `<leader>ad` (kill CLI session), `<leader>ap`
+  (select prompt), `<leader>at` (send position/selection), `<leader>af`
+  (send file). `<M-a>` in any Telescope picker sends selection(s) to CLI.
 
 All keymaps have `desc` strings. To discover them:
 - `<leader>?` shows all global mappings via which-key
@@ -346,3 +363,39 @@ names, jargon) across machines. `zg` appends to this file automatically.
 `zw` are not in the popup (adding `z` as a trigger would add 300ms latency to
 all fold and scroll commands), but all spell commands are searchable via
 `<leader>sk` — type "spell", "typo", or "spelling".
+
+
+## AI (sidekick.nvim)
+
+Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
+
+1. **NES (Next Edit Suggestion)** — powered by Copilot LSP. After edits,
+   diff overlays appear suggesting follow-on changes. `<Tab>` in normal mode
+   jumps to or applies the next suggestion. Falls through to literal `<Tab>`
+   when no suggestion is active.
+
+2. **CLI integration** — opens Claude or Copilot in a terminal split.
+   `<leader>ac` toggles Claude with focus. `<leader>aa` toggles the CLI
+   split (session stays alive when hidden). `<leader>ad` tears down the
+   session entirely.
+
+| Keymap | Action |
+|---|---|
+| `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
+| `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
+| `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
+| `<Space>aa` | Toggle CLI split (show/hide, session stays alive) |
+| `<Space>ac` | Toggle Claude CLI (opens with focus) |
+| `<Space>as` | Select CLI tool |
+| `<Space>ad` | Kill CLI session (tears down process + buffer) |
+| `<Space>ap` | Select prompt |
+| `<Space>at` | Send position (normal) or selection (visual) to CLI |
+| `<Space>af` | Send file path to CLI |
+| `<M-a>` (in picker) | Send picker selection(s) to CLI |
+
+### First-run setup
+
+1. Restart Neovim — sidekick.nvim installs via `vim.pack`.
+2. `:Mason` — confirm `copilot-language-server` is installed.
+3. `:LspCopilotSignIn` — complete the device-code flow in a browser.
+4. Install `claude` CLI if not already present.
