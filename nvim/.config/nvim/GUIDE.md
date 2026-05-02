@@ -29,7 +29,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
 | `pickers/symbols.lua` | Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only |
-| `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
+| `completion.lua` | blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own. |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
@@ -184,7 +184,14 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save** is ON by default for configured filetypes (Python, Go, Rust, JS/TS/JSON/YAML) via conform.nvim; Lua is formatted by lua_ls via LSP fallback. `<leader>tf` toggles format-on-save globally; `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat` (per-buffer) are the underlying flags. Run `:ConformInfo` to see which formatter binaries are detected on `$PATH`.
+- **Format-on-save** is OFF by default — auto-formatting rewrites the buffer
+  on every `:w`, which clears NES suggestions and inline completions mid-flow.
+  `<leader>tf` toggles it on globally; `<leader>cf` formats manually at any
+  time. Configured filetypes: Python, Go, Rust, JS/TS/JSON/YAML via
+  conform.nvim; Lua is formatted by lua_ls via LSP fallback.
+  `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat`
+  (per-buffer) are the underlying flags. Run `:ConformInfo` to see which
+  formatter binaries are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
@@ -381,7 +388,9 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 
 | Keymap | Action |
 |---|---|
+| `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
 | `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
+| `<Space>tc` | Toggle Copilot inline completion on/off (per-buffer) |
 | `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
 | `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
 | `<Space>aa` | Toggle CLI split (show/hide, session stays alive) |
@@ -392,6 +401,26 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<Space>at` | Send position (normal) or selection (visual) to CLI |
 | `<Space>af` | Send file path to CLI |
 | `<M-a>` (in picker) | Send picker selection(s) to CLI |
+
+### NES vs Copilot inline completion
+
+Two separate Copilot features, both powered by the Copilot LSP:
+
+- **NES** (normal mode) — after you edit and leave insert mode, Copilot
+  suggests follow-on edits as diff overlays. Press `<Tab>` to jump/apply.
+  Reactive: "you changed X, here's what else should change."
+  LSP method: `textDocument/copilotInlineEdit`.
+- **Inline completion** (insert mode) — while typing, Copilot renders ghost
+  text at the cursor showing what to type next. Press `<Tab>` to accept.
+  Proactive: "here's what you probably want to write next."
+  LSP method: `textDocument/inlineCompletion`.
+  Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>tc`
+  toggles per-buffer. Ghost text styled via `ComplHint` highlight group
+  (linked to `Comment` in `themes.lua` for visibility).
+
+blink.cmp's ghost text is disabled to avoid dual overlays — Copilot's
+inline completion provides its own ghost text via the same extmark
+mechanism (`virt_text_pos='inline'`).
 
 ### First-run setup
 

@@ -35,8 +35,10 @@ M.active = read_saved_theme()
 -- Format: { HighlightGroup = { fg = '#hex', bg = '#hex', bold = true, ... } }
 -- See :help nvim_set_hl for all attributes.
 M.global_overrides = {
-  -- Comment = { italic = true },
-  -- LineNr  = { fg = '#888888' },
+  -- Copilot inline completion ghost text — default (NonText) is too faint.
+  -- Link to Comment: visible in every theme, italic in most, clearly distinct
+  -- from real code without being distracting.
+  ComplHint = { link = 'Comment' },
 }
 
 -- Per-theme configuration. Each entry has:
