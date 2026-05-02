@@ -82,6 +82,16 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
+-- Toggle all AI autocompletions globally (inline ghost text + NES).
+-- Inline completion: omitting bufnr toggles for all buffers.
+-- NES: vim.g.sidekick_nes is checked by sidekick's enabled callback.
+vim.keymap.set('n', '<leader>tc', function()
+  local enabling = not vim.lsp.inline_completion.is_enabled()
+  vim.lsp.inline_completion.enable(enabling)
+  vim.g.sidekick_nes = enabling
+  vim.notify('AI completions ' .. (enabling and 'ON' or 'OFF'))
+end, { desc = 'Toggle: AI completions (inline + NES)' })
+
 -- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
 vim.keymap.set('n', '<leader>ts',
   function() require('pickers.symbols').toggle_buffer_only() end,
