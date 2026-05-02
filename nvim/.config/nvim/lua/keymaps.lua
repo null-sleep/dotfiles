@@ -123,10 +123,8 @@ vim.keymap.set('n', '<leader>ai',
   function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI (fallback for <C-.>)' })
 
 vim.keymap.set('n', '<leader>aa',
-  function() require('sidekick.cli').toggle() end, { desc = 'AI: Toggle CLI' })
-vim.keymap.set('n', '<leader>ac',
   function() require('sidekick.cli').toggle({ name = 'claude', focus = true }) end,
-  { desc = 'AI: Toggle Claude' })
+  { desc = 'AI: Toggle Claude CLI' })
 vim.keymap.set('n', '<leader>as',
   function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
 -- close() kills the terminal process, deletes the buffer, and detaches the
