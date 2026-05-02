@@ -50,8 +50,9 @@ vim.pack.add(vim.list_extend({
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)
 vim.defer_fn(function()
+  local exceptions = { 'cursortab.nvim' }
   local orphans = vim.iter(vim.pack.get(nil, { info = false }))
-    :filter(function(x) return not x.active end)
+    :filter(function(x) return not x.active and not vim.tbl_contains(exceptions, x.spec.name) end)
     :map(function(x) return x.spec.name end)
     :totable()
   if #orphans > 0 then
