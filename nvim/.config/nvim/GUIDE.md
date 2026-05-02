@@ -390,7 +390,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 |---|---|
 | `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
 | `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
-| `<Space>tc` | Toggle Copilot inline completion on/off (per-buffer) |
+| `<Space>tc` | Toggle all AI completions globally (inline ghost text + NES) |
 | `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
 | `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
 | `<Space>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
