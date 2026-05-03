@@ -23,9 +23,37 @@ require('lualine').setup({
 
   sections = {
     lualine_a = { 'mode' },
-    lualine_b = { { 'filename', path = 1 } },  -- path=1: relative path
+    lualine_b = {
+      {
+        'filename',
+        path = 1,  -- relative path
+        fmt = function(name, ctx)
+          -- Clean up raw terminal buffer names:
+          --   toggleterm: "t//path/49473:/bin/zsh;#toggleterm#1" → "Terminal #1"
+          --   sidekick:   "term://path//PID:/opt/homebrew/bin/claude:6" → "Claude CLI"
+          if vim.bo.filetype == 'toggleterm' then
+            local nr = vim.b.toggle_number or 1
+            return 'Terminal #' .. nr
+          end
+          local bufname = vim.api.nvim_buf_get_name(0)
+          local cli = bufname:match('/bin/(%w+)$') or bufname:match('/bin/(%w+):')
+          if cli and bufname:match('^term://') then
+            return cli:sub(1, 1):upper() .. cli:sub(2) .. ' CLI'
+          end
+          return name
+        end,
+      },
+    },
     lualine_c = { 'branch', 'diff', 'diagnostics' },
-    lualine_x = { 'lsp_status' },
+    lualine_x = {
+      {
+        'lsp_status',
+        fmt = function(status)
+          -- Shorten "copilot" to a icon to save statusline space.
+          return status:gsub('copilot', '')
+        end,
+      },
+    },
     lualine_y = { 'searchcount', 'progress' },
     lualine_z = { 'location' },
   },
