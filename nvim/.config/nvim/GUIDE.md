@@ -380,15 +380,20 @@ and diagnostic decorations.
 
 ### Features
 
-- **Git status** — files and directories show added/modified/untracked/etc.
-  icons. Directories roll up their children's status so you can see at a
-  glance which parts of the tree have changes.
+- **Git status** — file names are highlighted by git status (green=new,
+  yellow=modified, red=deleted) with a right-aligned letter indicator
+  (`M`/`S`/`U`/`R`/`D`). Directories roll up their children's status so
+  you can see at a glance which parts of the tree have changes. Colors
+  link to `DiagnosticOk`/`DiagnosticWarn`/`DiagnosticError` so they
+  adapt to any colorscheme.
 - **LSP diagnostics** — error/warn/info/hint icons next to files with
   issues. `show_on_dirs = true` propagates to parent directories.
 - **Modified indicator** — buffers with unsaved changes are marked in the
   tree (`highlight_modified = 'name'` highlights the filename).
 - **Trash** — `D` in the tree sends files to macOS trash (`trash.cmd = 'trash'`,
   uses `/usr/bin/trash`). `d` remains permanent delete.
+- **Polished prompts** — `select_prompts = true` routes rename/delete
+  confirmations through `vim.ui.select` (telescope-ui-select).
 - **Auto-close** — a `QuitPre` autocmd closes the tree when it's the last
   non-floating window, avoiding an orphaned tree buffer.
 
@@ -406,6 +411,8 @@ Inside the tree (buffer-local, set by `on_attach`):
 |---|---|
 | `l` / `<CR>` | Open file / expand directory |
 | `h` | Collapse directory |
+| `<C-v>` | Open file in vertical split |
+| `<C-x>` | Open file in horizontal split |
 | `a` | Create file or directory (append `/` for dir) |
 | `d` | Delete (permanent) |
 | `D` | Trash (sends to macOS trash) |
@@ -414,8 +421,9 @@ Inside the tree (buffer-local, set by `on_attach`):
 | `f` | Live filter — type to narrow tree to matching filenames |
 | `F` | Clear live filter |
 | `W` | Collapse all directories |
-| `I` | Toggle dotfiles visibility |
-| `H` | Toggle git-ignored files visibility |
+| `H` | Toggle dotfiles visibility |
+| `I` | Toggle git-ignored files visibility |
+| `U` | Toggle custom-filtered files (`.git`, `.DS_Store`, `node_modules`) |
 | `R` | Refresh tree |
 | `q` | Close tree |
 | `g?` | Show all nvim-tree keybindings |
