@@ -61,6 +61,9 @@ vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate bu
 vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
   { desc = 'Buffer picker' })
 
+-- File tree: opens and reveals current file, or closes if already open
+vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFindFileToggle<CR>', { desc = 'Explorer: Toggle' })
+
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
 vim.keymap.set('n', '<leader>qq', '<cmd>bd<CR>', { desc = 'Close buffer' })

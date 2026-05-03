@@ -33,6 +33,9 @@ vim.pack.add(vim.list_extend({
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },
 
+  -- File tree
+  { src = gh('nvim-tree/nvim-tree.lua') },
+
   -- Workflow
   { src = gh('folke/persistence.nvim') },
   { src = gh('okuuva/auto-save.nvim') },

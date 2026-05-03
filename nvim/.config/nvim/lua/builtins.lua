@@ -143,6 +143,8 @@ return {
 
   { lhs = 'jk',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
 
+  { lhs = 'g?',   group = 'Explorer',  desc = 'Show all nvim-tree keybindings (inside tree)' },
+
   { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
   { lhs = '[s',   group = 'Spell',  desc = 'Previous misspelled word' },
   { lhs = 'zg',   group = 'Spell',  desc = 'Add word under cursor to dictionary' },

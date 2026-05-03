@@ -12,4 +12,5 @@ require('git')
 require('terminal')
 require('whichkey')
 require('autosave')
+require('filetree')
 
