@@ -98,16 +98,21 @@ command -v fzf >/dev/null && source <(fzf --zsh)
 
 # Git
 
-export GIT_BASE_BRANCH="main"
+## Dynamically detect the default branch (main/master) from the remote
+git_base_branch() {
+  git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' \
+    || git remote show origin 2>/dev/null | awk '/HEAD branch/ {print $NF}' \
+    || echo "main"
+}
 
 ## Git Aliases
 alias g=git
 alias gt=git
 alias ga='git add'
-alias gcmp='git checkout $GIT_BASE_BRANCH && git pull'
+alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
 alias gbd='git branch | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | fzf -m | xargs git branch -D'
-alias gdm='git diff $GIT_BASE_BRANCH...'
+alias gdm='git diff $(git_base_branch)...'
 alias gs='git status'
 alias gl='git log'
 alias glg='git log --oneline --graph --decorate --all'
@@ -121,7 +126,7 @@ alias gaa='git add --all'
 alias gau='git add -u' # Add only tracked files
 alias yolo='gcaa && gpf'
 alias gnb='git checkout -b'
-alias grb='git fetch origin &&  git rebase origin/$GIT_BASE_BRANCH'
+alias grb='git fetch origin && git rebase origin/$(git_base_branch)'
 alias grbc='git rebase --continue'
 alias grba='git rebase --abort'
 
