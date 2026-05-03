@@ -26,7 +26,13 @@
   - Add the spell source to blink.cmp so suggestions appear inline while typing
   - Map something ergonomic to 1z= for quick fixes
 12. Next Edit Prediction: https://github.com/BlinkResearchLabs/blink-edit.nvim
-
+13. Harpoon — quick file navigation and marking. I have a lot of files open at once and I often want to jump back and forth between a few of them.
+14. I should not, but if I did: https://nvimluau.dev/romgrk-barbar-nvim
+15. Low effort way of showing buffer name of inactive windows?
+16. Debugging support for some languages. Look into nvim-dap.
+17. Run tests from nvim. Look into vim-test or neotest.
+18. Code Outliner — aerial.nvim similar to VS Code
+  - Can be inspiration to simplify or even replace <leader>sS, which is currently a bit of a mess showing too many usless items.
 
 ## AI reccs
 
