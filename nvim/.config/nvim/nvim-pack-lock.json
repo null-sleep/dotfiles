@@ -139,6 +139,10 @@
       "rev": "6fea601bd2b694c6f2ae08a6c6fab14930c60e2c",
       "src": "https://github.com/nvim-telescope/telescope-fzf-native.nvim"
     },
+    "telescope-ui-select.nvim": {
+      "rev": "6e51d7da30bd139a6950adf2a47fda6df9fa06d2",
+      "src": "https://github.com/nvim-telescope/telescope-ui-select.nvim"
+    },
     "telescope.nvim": {
       "rev": "3ab376cfae65b921dda454df5967f8df673effc6",
       "src": "https://github.com/nvim-telescope/telescope.nvim"

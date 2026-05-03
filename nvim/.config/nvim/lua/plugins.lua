@@ -11,6 +11,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('nvim-lua/plenary.nvim') },
   { src = gh('nvim-telescope/telescope.nvim') },
   { src = gh('nvim-telescope/telescope-fzf-native.nvim') },
+  { src = gh('nvim-telescope/telescope-ui-select.nvim') },
 
   -- LSP
   { src = gh('mason-org/mason.nvim') },
@@ -299,6 +300,14 @@ require('telescope').setup({
 })
 
 pcall(require('telescope').load_extension, 'fzf')
+-- Replace vim.ui.select with telescope so pickers like sidekick's prompt
+-- library use telescope instead of the plain numbered inputlist fallback.
+pcall(require('telescope').load_extension, 'ui-select')
+pcall(function()
+  require('telescope').extensions['ui-select'].setup({
+    require('telescope.themes').get_dropdown({}),
+  })
+end)
 
 -------------------------------------------------------------------------------
 -- Render Markdown
