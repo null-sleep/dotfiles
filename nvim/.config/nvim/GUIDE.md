@@ -321,7 +321,7 @@ Keymaps are split across files by feature:
   exit to normal mode. Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
-  diagnostics (`<leader>e`, `<leader>cd`), Telescope references (`grr`, `gri`)
+  diagnostics (`<leader>ce`, `<leader>cd`), Telescope references (`grr`, `gri`)
 - **`format.lua`** -- global keymaps: `<leader>cf` (manual format via conform.nvim, not LSP-gated, works in all buffers), `<leader>tf` (toggle format-on-save)
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
@@ -485,7 +485,7 @@ Two separate Copilot features, both powered by the Copilot LSP:
   Proactive: "here's what you probably want to write next."
   LSP method: `textDocument/inlineCompletion`.
   Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>tc`
-  toggles per-buffer. Ghost text styled via `ComplHint` highlight group
+  toggles globally. Ghost text styled via `ComplHint` highlight group
   (linked to `Comment` in `themes.lua` for visibility).
 
 blink.cmp's ghost text is disabled to avoid dual overlays — Copilot's

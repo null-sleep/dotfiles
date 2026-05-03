@@ -98,10 +98,18 @@ command -v fzf >/dev/null && source <(fzf --zsh)
 
 # Git
 
-## Dynamically detect the default branch (main/master) from the remote
+## Dynamically detect the default branch (main/master) from the remote.
+## Fast path uses local ref; slow path hits the network. Run
+## `git remote set-head origin --auto` once per clone to populate the local ref.
 git_base_branch() {
-  git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' \
-    || git remote show origin 2>/dev/null | awk '/HEAD branch/ {print $NF}' \
+  local branch
+  branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+  if [[ -n "$branch" ]]; then
+    echo "$branch"
+    return
+  fi
+  echo "warning: refs/remotes/origin/HEAD not set — run 'git remote set-head origin --auto'" >&2
+  git remote show origin 2>/dev/null | awk '/HEAD branch/ {print $NF}' \
     || echo "main"
 }
 

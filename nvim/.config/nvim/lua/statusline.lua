@@ -37,7 +37,8 @@ require('lualine').setup({
           end
           local bufname = vim.api.nvim_buf_get_name(0)
           local cli = bufname:match('/bin/(%w+)$') or bufname:match('/bin/(%w+):')
-          if cli and bufname:match('^term://') then
+          local known_clis = { claude = true, copilot = true, gemini = true }
+          if cli and known_clis[cli] and bufname:match('^term://') then
             return cli:sub(1, 1):upper() .. cli:sub(2) .. ' CLI'
           end
           return name

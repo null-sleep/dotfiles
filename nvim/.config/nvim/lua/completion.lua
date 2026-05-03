@@ -9,7 +9,7 @@ require('blink.cmp').setup({
     -- 3. fallback: literal Tab
     ['<Tab>']     = {
       'select_next',
-      function(cmp)
+      function()
         if vim.lsp.inline_completion.is_enabled({ bufnr = 0 }) then
           local accepted = vim.lsp.inline_completion.get()
           if accepted ~= false then return true end
