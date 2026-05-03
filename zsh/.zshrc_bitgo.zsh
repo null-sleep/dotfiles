@@ -5,6 +5,7 @@
 # export CLAUDE_CODE_USE_BEDROCK=1
 export AWS_REGION=us-west-2
 export AWS_PROFILE=dev
+export CLAUDE_STATUSLINE_MODE=cost
 
 ## Go Private modules
 export GOPRIVATE=github.com/lumina-tech/*,github.com/bitgo/*
