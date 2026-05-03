@@ -305,7 +305,6 @@ To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vi
 | `<Space>rn` | Rename symbol |
 | `<Space>ca` | Code actions |
 | `<Space>cf` | Format buffer or selection |
-| `<Space>e` | Show diagnostic float |
 | `[d` / `]d` | Jump to previous / next diagnostic |
 | `<Space>cd` | Send diagnostics to location list |
 
@@ -506,6 +505,44 @@ These keymaps are only active in `gitcommit` and `gitrebase` buffers.
 | `yc` | Yank Claude @-reference with line numbers |
 | `yC` | Yank Claude @-reference (absolute path) |
 | `yu` | Yank GitHub permalink |
+
+### File Explorer (nvim-tree)
+
+Sidebar file tree. `<Space>e` opens the tree and reveals the current file, or closes it if already open.
+
+**Features:**
+- Git status decorations on files and directories (added, modified, untracked, etc.)
+- LSP diagnostics icons (error/warn/info/hint) next to files, including parent dirs
+- Modified indicator on buffers with unsaved changes
+- `D` sends files to macOS trash (recoverable); `d` is permanent delete
+- Auto-closes when it's the last window open
+
+**Keymaps (inside the tree):**
+
+| Key | Action |
+|---|---|
+| `l` or `<CR>` | Open file / expand directory |
+| `h` | Collapse directory |
+| `a` | Create file or directory (append `/` for dir) |
+| `d` | Delete (permanent) |
+| `D` | Trash (sends to macOS trash) |
+| `r` | Rename |
+| `x` | Cut |
+| `c` | Copy |
+| `p` | Paste |
+| `f` | Live filter (type to narrow tree to matches) |
+| `F` | Clear filter |
+| `W` | Collapse all |
+| `I` | Toggle dotfiles |
+| `H` | Toggle git-ignored files |
+| `R` | Refresh |
+| `q` | Close tree |
+| `g?` | Show all nvim-tree keybindings |
+
+**Tips:**
+- Use the tree for **spatial orientation** (seeing where files sit relative to each other), not for search — `<Space>sf` and `<Space>sg` are faster for finding files and text.
+- `<Space>e` always reveals the current file when opening, so it doubles as "where am I?" after jumping to a file via Telescope.
+- Press `f` to narrow a big tree — type part of a filename and only matches are shown. `F` clears the filter. This is tree-scoped, not project-wide.
 
 ### Spell Checking
 

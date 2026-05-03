@@ -113,7 +113,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
     map({'n','v'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
     -- jump = true moves cursor to the exact diagnostic position after opening the float
-    map('n', '<leader>e',        function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
+    map('n', '<leader>ce',       function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
     map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
 
     -- Override nvim 0.12's grr/gri defaults with telescope pickers for a

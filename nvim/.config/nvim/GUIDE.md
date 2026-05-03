@@ -35,6 +35,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
+| `filetree.lua` | nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file |
 | `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
@@ -62,7 +63,7 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-ai -> format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
+ai -> format -> statusline -> session -> git -> terminal -> whichkey -> autosave -> filetree.
 
 
 ## Design Decisions
@@ -370,6 +371,68 @@ names, jargon) across machines. `zg` appends to this file automatically.
 `zw` are not in the popup (adding `z` as a trigger would add 300ms latency to
 all fold and scroll commands), but all spell commands are searchable via
 `<leader>sk` — type "spell", "typo", or "spelling".
+
+
+## File Explorer (nvim-tree)
+
+Setup lives in `filetree.lua`. A sidebar file tree with VS Code-style git
+and diagnostic decorations.
+
+### Features
+
+- **Git status** — files and directories show added/modified/untracked/etc.
+  icons. Directories roll up their children's status so you can see at a
+  glance which parts of the tree have changes.
+- **LSP diagnostics** — error/warn/info/hint icons next to files with
+  issues. `show_on_dirs = true` propagates to parent directories.
+- **Modified indicator** — buffers with unsaved changes are marked in the
+  tree (`highlight_modified = 'name'` highlights the filename).
+- **Trash** — `D` in the tree sends files to macOS trash (`trash.cmd = 'trash'`,
+  uses `/usr/bin/trash`). `d` remains permanent delete.
+- **Auto-close** — a `QuitPre` autocmd closes the tree when it's the last
+  non-floating window, avoiding an orphaned tree buffer.
+
+### Keymaps
+
+Global:
+
+| Keymap | Action |
+|---|---|
+| `<leader>e` | Toggle file tree (opens and reveals current file, or closes) |
+
+Inside the tree (buffer-local, set by `on_attach`):
+
+| Key | Action |
+|---|---|
+| `l` / `<CR>` | Open file / expand directory |
+| `h` | Collapse directory |
+| `a` | Create file or directory (append `/` for dir) |
+| `d` | Delete (permanent) |
+| `D` | Trash (sends to macOS trash) |
+| `r` | Rename |
+| `x` / `c` / `p` | Cut / copy / paste |
+| `f` | Live filter — type to narrow tree to matching filenames |
+| `F` | Clear live filter |
+| `W` | Collapse all directories |
+| `I` | Toggle dotfiles visibility |
+| `H` | Toggle git-ignored files visibility |
+| `R` | Refresh tree |
+| `q` | Close tree |
+| `g?` | Show all nvim-tree keybindings |
+
+### Usage notes
+
+- The tree is a **spatial map**, not a search tool. Use `<leader>sf` (find
+  files) and `<leader>sg` (grep) for search — they are faster.
+- `<leader>e` always reveals the current file when opening, so it doubles
+  as "where am I?" after jumping to a file via Telescope.
+- `f` (live filter) narrows the tree to matching filenames — useful for
+  large directories. `F` clears it. This is tree-scoped filtering, not
+  project-wide search.
+- `<leader>e` is not registered as a which-key group to avoid intercepting
+  the keypress (which-key would wait for a second key). Both explorer
+  keymaps are registered as plain descriptions so they appear in
+  `<leader>sk`.
 
 
 ## AI (sidekick.nvim)

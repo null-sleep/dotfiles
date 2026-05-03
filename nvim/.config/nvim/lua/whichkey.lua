@@ -34,6 +34,10 @@ wk.add({
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
 
+  -- Explorer: <leader>e is a single keymap (no sub-keys), so it doesn't
+  -- need a group entry. It appears in <leader>sk via its `desc` string
+  -- and the keywords table below.
+
   -- Spell navigation: register here so ]s / [s appear in the [/] which-key popup.
   { ']s', desc = 'Spell: Next misspelled word' },
   { '[s', desc = 'Spell: Previous misspelled word' },
@@ -53,6 +57,8 @@ wk.add({
 local keywords = {
   ['<C-o>']      = 'jump back go back previous location history',
   ['<C-i>']      = 'jump forward go forward next location history',
+  ['<leader>e']  = 'explorer file tree sidebar nvim-tree toggle reveal',
+  ['g?']         = 'explorer file tree help keybindings nvim-tree',
   ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',
   [']s']         = 'spell typo spelling',
