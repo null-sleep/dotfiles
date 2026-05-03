@@ -57,7 +57,14 @@ require('gitsigns').setup({
 vim.api.nvim_create_autocmd('FileType', {
   pattern  = { 'gitcommit', 'gitrebase' },
   callback = function(args)
-    vim.keymap.set('n', '<leader>w', '<cmd>write | bd<CR>', { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
+    -- When launched from the CLI as $EDITOR, $NVIM is unset (no parent nvim
+    -- instance). In that case, close the window after saving so the terminal
+    -- gets its focus back. When launched from inside toggleterm ($NVIM is set),
+    -- only close the buffer — the outer nvim session stays alive.
+    local confirm_cmd = vim.env.NVIM == nil
+      and '<cmd>write | bd | quit<CR>'
+      or  '<cmd>write | bd<CR>'
+    vim.keymap.set('n', '<leader>w', confirm_cmd, { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
     vim.keymap.set('n', '<leader>x', '<cmd>cq<CR>',         { buffer = args.buf, desc = 'Git: abort' })
   end,
 })
