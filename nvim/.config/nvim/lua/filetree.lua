@@ -1,3 +1,4 @@
+-- More configuration ideas: https://github.com/nvim-tree/nvim-tree.lua/wiki/Recipes
 vim.cmd.packadd('nvim-tree.lua')
 
 -- Disable netrw (nvim-tree's recommendation)
@@ -14,13 +15,11 @@ require('nvim-tree').setup({
     dotfiles = false,
     custom = { '.git', '.DS_Store', 'node_modules' },
   },
+  -- Filter directory names too, not just file names (default only filters files)
+  live_filter = { always_show_folders = false },
   -- Rename/delete confirmations go through vim.ui.select (telescope-ui-select)
   select_prompts = true,
-  -- LSP diagnostics icons next to files (error/warn/info/hint)
-  diagnostics = {
-    enable = true,
-    show_on_dirs = true,
-  },
+  diagnostics = { enable = false },
   -- Mark buffers with unsaved changes
   modified = { enable = true },
   renderer = {
@@ -32,7 +31,7 @@ require('nvim-tree').setup({
     indent_markers = { enable = true },
     icons = {
       -- Uses mini.icons (already mocked as nvim-web-devicons)
-      show = { file = true, folder = true, git = true, modified = true, diagnostics = true },
+      show = { file = true, folder = true, git = true, modified = true, diagnostics = false },
       -- VS Code style: small letter on the right instead of icon glyphs
       git_placement = 'right_align',
       glyphs = {
@@ -63,11 +62,33 @@ require('nvim-tree').setup({
     -- l/h to open/collapse (mirrors Zed/VS Code Enter behaviour)
     vim.keymap.set('n', 'l', api.node.open.edit,             vim.tbl_extend('force', opts, { desc = 'Open / expand' }))
     vim.keymap.set('n', 'h', api.node.navigate.parent_close, vim.tbl_extend('force', opts, { desc = 'Collapse dir' }))
+    -- H to collapse entire tree (h only closes one level; H resets the whole thing)
+    vim.keymap.set('n', 'H', api.tree.collapse_all,          vim.tbl_extend('force', opts, { desc = 'Collapse all' }))
+    -- L to open file in vertical split while keeping tree focused (preview mode)
+    vim.keymap.set('n', 'L', function()
+      local node = api.tree.get_node_under_cursor()
+      if node and node.nodes then
+        api.node.open.edit()
+      else
+        api.node.open.vertical()
+      end
+      api.tree.focus()
+    end, vim.tbl_extend('force', opts, { desc = 'Vsplit preview' }))
+    -- <CR> uses tab_drop: focuses existing tab if file is already open, otherwise opens normally
+    vim.keymap.set('n', '<CR>', api.node.open.tab_drop,      vim.tbl_extend('force', opts, { desc = 'Open (tab drop)' }))
   end,
   -- Narrow sidebar width
   -- For adaptive width: view = { width = { min = 35, max = 50 } }
   view = { width = 35 },
 })
+
+-- Auto-open newly created files immediately after `a` in the tree
+do
+  local api = require('nvim-tree.api')
+  api.events.subscribe(api.events.Event.FileCreated, function(file)
+    vim.cmd('edit ' .. vim.fn.fnameescape(file.fname))
+  end)
+end
 
 -- Auto-close nvim when the tree is the last window open
 vim.api.nvim_create_autocmd('QuitPre', {
