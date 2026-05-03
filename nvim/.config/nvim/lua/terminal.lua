@@ -49,10 +49,6 @@ local function cycle_term(direction)
   terms[next_idx]:open()
 end
 
--- Terminal-mode keymaps (buffer-local, set when any terminal opens).
--- NOTE: <Esc> exits terminal mode in all terminal buffers. If you add
--- lazygit or other TUI integrations, guard this with a filetype check:
---   if vim.bo[args.buf].filetype == 'toggleterm' then ... end
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
 -- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
 -- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
@@ -70,7 +66,7 @@ vim.api.nvim_create_autocmd('TermOpen', {
     vim.keymap.set('t', '<C-k>',  [[<Cmd>wincmd k<CR>]], opts)
     vim.keymap.set('t', '<C-l>',  [[<Cmd>wincmd l<CR>]], opts)
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
-    vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts)
+    vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
   end,
 })
 

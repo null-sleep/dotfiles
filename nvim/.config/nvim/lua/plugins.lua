@@ -216,6 +216,7 @@ end)
 vim.cmd.packadd('plenary.nvim')
 vim.cmd.packadd('telescope.nvim')
 vim.cmd.packadd('telescope-fzf-native.nvim')
+vim.cmd.packadd('telescope-ui-select.nvim')
 
 require('telescope').setup({
   defaults = {
@@ -301,17 +302,17 @@ require('telescope').setup({
       additional_args = { '--hidden' },
     },
   },
+  extensions = {
+    ['ui-select'] = {
+      require('telescope.themes').get_dropdown({}),
+    },
+  },
 })
 
 pcall(require('telescope').load_extension, 'fzf')
 -- Replace vim.ui.select with telescope so pickers like sidekick's prompt
 -- library use telescope instead of the plain numbered inputlist fallback.
 pcall(require('telescope').load_extension, 'ui-select')
-pcall(function()
-  require('telescope').extensions['ui-select'].setup({
-    require('telescope.themes').get_dropdown({}),
-  })
-end)
 
 -------------------------------------------------------------------------------
 -- Render Markdown
