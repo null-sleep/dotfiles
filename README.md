@@ -12,6 +12,7 @@ stow nvim
 stow zsh
 stow kitty
 stow zellij
+stow claude
 ```
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -91,6 +92,30 @@ colima start --cpu 2 --memory 4
 ```
 
 The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
+
+## Claude Code
+
+The `claude` stow package manages the status line script — a custom status bar that displays model name, git branch, context window %, session/monthly cost, and per-message context growth bars.
+
+### Setup
+
+```bash
+cd ~/src/dotfiles
+stow claude
+# Inject the statusLine block into ~/.claude/settings.json (one-time)
+bash ~/src/dotfiles/claude/setup-statusline.sh
+```
+
+The setup script uses `jq` to add the `statusLine` config to `settings.json`. If the block already exists with a hardcoded path, it updates it to use `$HOME`. If already configured correctly, it's a no-op.
+
+### What's managed
+
+| File | Method |
+|---|---|
+| `~/.claude/statusline-command.sh` | Symlinked via stow |
+| `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
+
+`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions).
 
 ## Claude Squad
 

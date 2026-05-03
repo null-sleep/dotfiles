@@ -1,0 +1,36 @@
+#!/bin/bash
+# One-time setup: inject statusLine block into ~/.claude/settings.json
+# Run after `stow claude` to complete the status line setup.
+
+set -euo pipefail
+
+SETTINGS="$HOME/.claude/settings.json"
+SCRIPT_CMD='bash $HOME/.claude/statusline-command.sh'
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is required. Install with: brew install jq"
+  exit 1
+fi
+
+if [ ! -f "$SETTINGS" ]; then
+  echo "No settings.json found at $SETTINGS — creating minimal one"
+  echo '{}' > "$SETTINGS"
+fi
+
+# Check if statusLine already exists
+if jq -e '.statusLine' "$SETTINGS" >/dev/null 2>&1; then
+  current=$(jq -r '.statusLine.command' "$SETTINGS")
+  if echo "$current" | grep -q '/Users/'; then
+    echo "Updating hardcoded path in statusLine.command to use \$HOME..."
+    jq --arg cmd "$SCRIPT_CMD" '.statusLine.command = $cmd' "$SETTINGS" > "${SETTINGS}.tmp" \
+      && mv "${SETTINGS}.tmp" "$SETTINGS"
+    echo "Done."
+  else
+    echo "statusLine already configured: $current"
+  fi
+else
+  echo "Adding statusLine block to $SETTINGS..."
+  jq --arg cmd "$SCRIPT_CMD" '. + {"statusLine": {"type": "command", "command": $cmd}}' \
+    "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
+  echo "Done."
+fi
