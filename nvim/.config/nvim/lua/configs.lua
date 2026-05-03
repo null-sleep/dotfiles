@@ -31,6 +31,7 @@ opt.fillchars = {
   diff      = '╱',                    -- deleted lines in diff mode
   eob       = ' ',                    -- hides ~ tildes after end of file
 }
+opt.cmdheight = 0                      -- hide command line when not in use (appears on demand)
 opt.autoread = true                    -- auto reload files changed outside nvim
 -- FocusGained:  terminal regains focus (e.g. alt-tab back)
 -- BufEnter:     switching to a buffer (e.g. changing splits/tabs)

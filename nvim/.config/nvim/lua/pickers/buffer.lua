@@ -56,7 +56,7 @@ function M.open()
   local idx = 0
 
   builtin.buffers({
-    layout_config = { height = 0.4 },
+    layout_config = { height = 0.55, horizontal = { preview_width = 0.5 } },
     entry_maker = function(buf)
       idx = idx + 1
       local entry = base(buf)
