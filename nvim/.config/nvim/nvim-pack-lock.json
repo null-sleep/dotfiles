@@ -126,6 +126,11 @@
       "rev": "62b0aa1a941e35e694e8a50b589150bcca8c084d",
       "src": "https://github.com/lewis6991/satellite.nvim"
     },
+    "sidekick.nvim": {
+      "rev": "8610316e3a363c17aea9c7cac8b219ec18020493",
+      "src": "https://github.com/alvarosevilla95/sidekick.nvim",
+      "version": "'fix/nes-missing-request-id'"
+    },
     "solarized.nvim": {
       "rev": "c0dfe1cbfabd93b546baf5f1408f5df7e02e2050",
       "src": "https://github.com/maxmx03/solarized.nvim"

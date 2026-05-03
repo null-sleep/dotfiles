@@ -1,5 +1,10 @@
 vim.cmd.packadd('conform.nvim')
 
+-- Format-on-save off by default — it rewrites the buffer on every :w which
+-- clears NES suggestions (sidekick) and inline completions (Copilot) mid-flow.
+-- Toggle on with <leader>tf, or format manually with <leader>cf.
+vim.g.disable_autoformat = true
+
 require('conform').setup({
   -- No `lua` entry: lua_ls handles it via the lsp_format = 'fallback' path below.
   formatters_by_ft = {

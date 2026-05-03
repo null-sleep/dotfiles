@@ -29,6 +29,7 @@ wk.add({
   { '<leader>h',  group = 'Git hunk' },
   { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
+  { '<leader>a',  group = 'AI' },
   { 'g',          group = 'Go to' },
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },

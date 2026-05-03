@@ -29,18 +29,19 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
 | `pickers/symbols.lua` | Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only |
-| `completion.lua` | blink.cmp: keymap preset, sources, ghost text, auto-brackets, signature hints, fuzzy backend |
+| `completion.lua` | blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own. |
 | `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
-| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>`/`<C-[>` cycle next/previous terminal via `cycle_term`) |
+| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
 | `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins |
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon |
+| `ai.lua` | sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
 | `pickers/theme.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
 | `spell.lua` | Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary |
@@ -61,7 +62,7 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
+ai -> format -> statusline -> session -> git -> terminal -> whichkey -> autosave.
 
 
 ## Design Decisions
@@ -183,11 +184,28 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save** is ON by default for configured filetypes (Python, Go, Rust, JS/TS/JSON/YAML) via conform.nvim; Lua is formatted by lua_ls via LSP fallback. `<leader>tf` toggles format-on-save globally; `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat` (per-buffer) are the underlying flags. Run `:ConformInfo` to see which formatter binaries are detected on `$PATH`.
+- **Format-on-save** is OFF by default — auto-formatting rewrites the buffer
+  on every `:w`, which clears NES suggestions and inline completions mid-flow.
+  `<leader>tf` toggles it on globally; `<leader>cf` formats manually at any
+  time. Configured filetypes: Python, Go, Rust, JS/TS/JSON/YAML via
+  conform.nvim; Lua is formatted by lua_ls via LSP fallback.
+  `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat`
+  (per-buffer) are the underlying flags. Run `:ConformInfo` to see which
+  formatter binaries are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
   not mapped in this config. `grr`/`gri` are overridden to use Telescope.
+
+- **`<C-.>` terminal compatibility** — `<C-.>` (focus sidekick CLI)
+  requires a terminal that sends CSI u sequences (kitty, iTerm2 with CSI u,
+  WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
+  transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
+
+- **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which
+  just hides the window), `<leader>ad` calls `close()` which terminates the
+  CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
+  the chat; `<leader>ad` when you're done with the conversation.
 
 ### Troubleshooting
 
@@ -307,6 +325,12 @@ Keymaps are split across files by feature:
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`session.lua`** -- session keymaps (`<leader>q*`)
+- **`keymaps.lua`** (AI section) -- `<Tab>` (NES jump/apply), `<C-.>`
+  (focus CLI, CSI u terminals), `<leader>ai` (focus CLI fallback),
+  `<leader>aa` (toggle Claude CLI), `<leader>as`
+  (select different CLI tool), `<leader>ad` (kill CLI session), `<leader>ap`
+  (select prompt), `<leader>at` (send position/selection), `<leader>af`
+  (send file). `<M-a>` in any Telescope picker sends selection(s) to CLI.
 
 All keymaps have `desc` strings. To discover them:
 - `<leader>?` shows all global mappings via which-key
@@ -346,3 +370,60 @@ names, jargon) across machines. `zg` appends to this file automatically.
 `zw` are not in the popup (adding `z` as a trigger would add 300ms latency to
 all fold and scroll commands), but all spell commands are searchable via
 `<leader>sk` — type "spell", "typo", or "spelling".
+
+
+## AI (sidekick.nvim)
+
+Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
+
+1. **NES (Next Edit Suggestion)** — powered by Copilot LSP. After edits,
+   diff overlays appear suggesting follow-on changes. `<Tab>` in normal mode
+   jumps to or applies the next suggestion. Falls through to literal `<Tab>`
+   when no suggestion is active.
+
+2. **CLI integration** — opens Claude in a terminal split.
+   `<leader>aa` toggles Claude (defaults to Claude, session stays alive
+   when hidden). `<leader>as` switches to a different CLI tool.
+   `<leader>ad` tears down the session entirely.
+
+| Keymap | Action |
+|---|---|
+| `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
+| `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
+| `<Space>tc` | Toggle all AI completions globally (inline ghost text + NES) |
+| `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
+| `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
+| `<Space>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
+| `<Space>as` | Select a different CLI tool (copilot, gemini, etc.) |
+| `<Space>ad` | Kill CLI session (tears down process + buffer) |
+| `<Space>ap` | Select prompt |
+| `<Space>at` | Send position (normal) or selection (visual) to CLI |
+| `<Space>af` | Send file path to CLI |
+| `<M-a>` (in picker) | Send picker selection(s) to CLI |
+
+### NES vs Copilot inline completion
+
+Two separate Copilot features, both powered by the Copilot LSP:
+
+- **NES** (normal mode) — after you edit and leave insert mode, Copilot
+  suggests follow-on edits as diff overlays. Press `<Tab>` to jump/apply.
+  Reactive: "you changed X, here's what else should change."
+  LSP method: `textDocument/copilotInlineEdit`.
+- **Inline completion** (insert mode) — while typing, Copilot renders ghost
+  text at the cursor showing what to type next. Press `<Tab>` to accept.
+  Proactive: "here's what you probably want to write next."
+  LSP method: `textDocument/inlineCompletion`.
+  Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>tc`
+  toggles per-buffer. Ghost text styled via `ComplHint` highlight group
+  (linked to `Comment` in `themes.lua` for visibility).
+
+blink.cmp's ghost text is disabled to avoid dual overlays — Copilot's
+inline completion provides its own ghost text via the same extmark
+mechanism (`virt_text_pos='inline'`).
+
+### First-run setup
+
+1. Restart Neovim — sidekick.nvim installs via `vim.pack`.
+2. `:Mason` — confirm `copilot-language-server` is installed.
+3. `:LspCopilotSignIn` — complete the device-code flow in a browser.
+4. Install `claude` CLI if not already present.

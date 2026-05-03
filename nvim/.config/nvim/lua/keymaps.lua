@@ -82,6 +82,16 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
+-- Toggle all AI autocompletions globally (inline ghost text + NES).
+-- Inline completion: omitting bufnr toggles for all buffers.
+-- NES: vim.g.sidekick_nes is checked by sidekick's enabled callback.
+vim.keymap.set('n', '<leader>tc', function()
+  local enabling = not vim.lsp.inline_completion.is_enabled()
+  vim.lsp.inline_completion.enable(enabling)
+  vim.g.sidekick_nes = enabling
+  vim.notify('AI completions ' .. (enabling and 'ON' or 'OFF'))
+end, { desc = 'Toggle: AI completions (inline + NES)' })
+
 -- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
 vim.keymap.set('n', '<leader>ts',
   function() require('pickers.symbols').toggle_buffer_only() end,
@@ -100,3 +110,48 @@ vim.keymap.set({'n', 'x'}, 'yP', yank.absolute_path,        { desc = 'Yank: Abso
 vim.keymap.set({'n', 'x'}, 'yc', yank.claude_ref,           { desc = 'Yank: Claude reference (@path:lines)' })
 vim.keymap.set({'n', 'x'}, 'yC', yank.claude_ref_absolute,  { desc = 'Yank: Claude reference (absolute path)' })
 vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitHub permalink' })
+
+-- AI (sidekick.nvim): NES + Claude/Copilot CLI
+-- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
+-- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
+-- mode only, so there's no conflict. Telescope's <Tab> (multi-select) is
+-- buffer-local to the picker prompt, so it shadows this global binding inside
+-- pickers — no conflict there either.
+vim.keymap.set('n', '<Tab>', function()
+  if not require('sidekick').nes_jump_or_apply() then
+    return '<Tab>'
+  end
+end, { expr = true, desc = 'AI: NES jump or apply' })
+
+-- Focus the sidekick CLI split from any mode.
+-- NOTE: <C-.> requires a terminal that sends CSI u sequences (kitty, iTerm2
+-- with CSI u, WezTerm, Ghostty). macOS Terminal.app and some others do not
+-- transmit <C-.> — <leader>ai is the cross-terminal fallback.
+vim.keymap.set({ 'n', 't', 'i', 'x' }, '<C-.>',
+  function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI' })
+vim.keymap.set('n', '<leader>ai',
+  function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI (fallback for <C-.>)' })
+
+vim.keymap.set('n', '<leader>aa',
+  function() require('sidekick.cli').toggle({ name = 'claude', focus = true }) end,
+  { desc = 'AI: Toggle Claude CLI' })
+vim.keymap.set('n', '<leader>as',
+  function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
+-- close() kills the terminal process, deletes the buffer, and detaches the
+-- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
+-- show/hide without losing state.
+vim.keymap.set('n', '<leader>ad',
+  function() require('sidekick.cli').close() end, { desc = 'AI: Kill CLI session' })
+vim.keymap.set('n', '<leader>ap',
+  function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
+-- Sidekick template variables (see reference table in this plan):
+--   {this}      → {position} in normal mode, {selection} in visual mode
+--   {file}      → relative file path
+--   {selection} → visual selection text (equivalent to {this} in visual mode)
+-- This single binding covers both cases, so a separate <leader>av is not needed.
+vim.keymap.set({ 'n', 'x' }, '<leader>at',
+  function() require('sidekick.cli').send({ msg = '{this}' }) end,
+  { desc = 'AI: Send this (position or selection)' })
+vim.keymap.set('n', '<leader>af',
+  function() require('sidekick.cli').send({ msg = '{file}' }) end,
+  { desc = 'AI: Send file' })
