@@ -39,6 +39,24 @@ M.global_overrides = {
   -- Link to Comment: visible in every theme, italic in most, clearly distinct
   -- from real code without being distracting.
   ComplHint = { link = 'Comment' },
+
+  -- nvim-tree git status: VS Code-style colored file names + right-aligned letters.
+  -- Linked to semantic groups every theme defines, so colors adapt automatically.
+  -- green (DiagnosticOk): new, staged, renamed
+  -- yellow (DiagnosticWarn): modified, unmerged
+  -- red (DiagnosticError): deleted
+  -- gray (Comment): ignored
+  -- Folder and icon groups inherit from these via nvim-tree's link chain.
+  -- To customize them separately, add NvimTreeGitFolder*HL or NvimTreeGit*Icon overrides here.
+  NvimTreeGitFileNewHL       = { link = 'DiagnosticOk' },
+  NvimTreeGitFileDirtyHL     = { link = 'DiagnosticWarn' },
+  NvimTreeGitFileDeletedHL   = { link = 'DiagnosticError' },
+  NvimTreeGitFileStagedHL    = { link = 'DiagnosticOk' },
+  NvimTreeGitFileMergeHL     = { link = 'DiagnosticWarn' },
+  NvimTreeGitFileRenamedHL   = { link = 'DiagnosticOk' },
+  NvimTreeGitFileIgnoredHL   = { link = 'Comment' },
+  -- Indent guide lines — default is too faint, NonText is visible but unobtrusive
+  NvimTreeIndentMarker       = { link = 'NonText' },
 }
 
 -- Per-theme configuration. Each entry has:
