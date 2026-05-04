@@ -61,6 +61,7 @@ vim.api.nvim_create_autocmd('TermOpen', {
     if vim.bo.filetype == 'sidekick_terminal' then return end
     local opts = { buffer = 0 }
     vim.keymap.set('t', '<Esc>',  [[<C-\><C-n>]], opts)
+    vim.keymap.set('t', 'jj',     [[<C-\><C-n>]], opts)
     vim.keymap.set('t', '<C-h>',  [[<Cmd>wincmd h<CR>]], opts)
     vim.keymap.set('t', '<C-j>',  [[<Cmd>wincmd j<CR>]], opts)
     vim.keymap.set('t', '<C-k>',  [[<Cmd>wincmd k<CR>]], opts)
