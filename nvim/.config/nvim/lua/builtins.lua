@@ -141,7 +141,7 @@ return {
   { lhs = ':q<CR>',    group = 'Split/Window',        desc = 'Quit current window/split' },
   { lhs = ':only<CR>', group = 'Split/Window',        desc = 'Close all windows except current' },
 
-  { lhs = 'jk',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
+  { lhs = 'jj',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
 
   { lhs = 'g?',   group = 'Explorer',  desc = 'Show all nvim-tree keybindings (inside tree)' },
 

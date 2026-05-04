@@ -26,7 +26,7 @@ vim.keymap.set('n', '<leader>sF', function() require('pickers.filter').pick() en
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
 
 -- Exit insert mode without reaching for Escape
-vim.keymap.set('i', 'jk', '<Esc>', { desc = 'Exit insert mode' })
+vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
 
 -- Yank to system clipboard (dd, x, c stay in Neovim register).
 -- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
