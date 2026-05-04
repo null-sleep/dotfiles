@@ -33,6 +33,8 @@
 17. Run tests from nvim. Look into vim-test or neotest.
 18. Code Outliner — aerial.nvim similar to VS Code
   - Can be inspiration to simplify or even replace <leader>sS, which is currently a bit of a mess showing too many usless items.
+19. Neovide direct open should load zsh env vars. See related plan.
+20. Learn colapse/expand code blocks, and other text objects like sentences, paragraphs, etc.
 
 ## AI reccs
 

@@ -700,6 +700,38 @@ Large moves (`gd`, Telescope selection, `gg`, `G`, `/search`) save your position
 | `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
 | `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |
 
+### Neovide
+
+GUI frontend for Neovim. Two config files split by mechanism:
+
+- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `fork = true` (detach from launching terminal), `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`.
+- **`nvim/.config/nvim/lua/neovide.lua`** — runtime `vim.g.neovide_*` vars and keymaps. Gated by `if not vim.g.neovide then return end`, so terminal nvim skips it. Contains animation tuning (cursor/scroll/position lengths, cursor trail), `option_key_is_meta = 'both'` (so `<M-1>`..`<M-9>` keymaps work), proxy icon, hide-mouse-when-typing, floating corner radius, and the keymaps below.
+
+```bash
+brew install --cask neovide
+```
+
+Neovide looks for its config at `~/Library/Application Support/neovide/config.toml` on macOS, so symlink that path to the stowed file once per machine:
+
+```bash
+ln -s ~/.config/nvim/neovide.toml "$HOME/Library/Application Support/neovide/config.toml"
+```
+
+This works for both terminal and GUI launches (Spotlight, dock) — unlike the `$NEOVIDE_CONFIG` env var, which only propagates to terminal-launched processes.
+
+**macOS-style keymaps** (Neovide-only — terminal nvim can't receive `<D-...>`):
+
+| Keymap | Action |
+|---|---|
+| `Cmd+C` (visual) | Copy to system clipboard |
+| `Cmd+V` (any mode) | Paste from system clipboard |
+| `Cmd+S` | Save (`:w`) |
+| `Cmd+=` / `Cmd+-` | Zoom in / out (`neovide_scale_factor`) |
+| `Cmd+0` | Reset zoom to 1.0 |
+| `Cmd+Opt+Left` / `Cmd+Opt+Right` | Jumplist back / forward |
+
+**Force Click** on the trackpad triggers `:NeovideForceClick` automatically — shows the macOS "Look Up" popover for text and Quick Look previews for file paths/URLs under the cursor. No setup needed.
+
 ## iTerm2
 
 ### Setup

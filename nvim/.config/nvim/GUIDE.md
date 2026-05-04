@@ -48,6 +48,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `spell.lua` | Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary |
 | `utils.lua` | `gh()` URL builder, async nvim update check via Homebrew |
 | `yank.lua` | Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks |
+| `neovide.lua` | Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches. |
 
 ### Plugin loading pattern
 
