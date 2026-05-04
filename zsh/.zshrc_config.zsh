@@ -68,6 +68,7 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 # Editor
 alias vim=nvim
 alias vi=nvim
+alias neovide='neovide --fork'
 # Set editor based on terminal context
 if [[ "$TERM_PROGRAM" == "vscode" ]]; then
     # Distinguish between Cursor and VS Code
