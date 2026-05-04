@@ -13,4 +13,5 @@ require('terminal')
 require('whichkey')
 require('autosave')
 require('filetree')
+require('neovide')
 

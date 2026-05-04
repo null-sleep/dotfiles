@@ -1,0 +1,8 @@
+fork = true
+frame = "transparent"
+title-hidden = true
+# maximized = true  # uncomment to always start maximized; otherwise restores last window size
+
+[font]
+normal = ["Hack Nerd Font Mono"]
+size = 15
