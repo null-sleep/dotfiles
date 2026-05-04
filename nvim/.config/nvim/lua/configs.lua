@@ -58,6 +58,7 @@ _G._checktime_timer:start(500, 500, vim.schedule_wrap(function()
 end))
 
 opt.whichwrap:append('<,>,[,],h,l')    -- cursor wraps to next/prev line at end/start
+opt.wrap = false                       -- don't wrap long lines
 opt.splitright = true                  -- vertical splits open to the right
 opt.splitbelow = true                  -- horizontal splits open below
 
