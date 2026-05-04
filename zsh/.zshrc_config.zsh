@@ -39,6 +39,10 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   # Antigen configuration ends
   antigen apply
 
+  # antigen-compat theme files don't call setopt PROMPT_SUBST, so the OMZ
+  # robbyrussell theme's $(git_prompt_info) gets printed literally. Force it on.
+  setopt PROMPT_SUBST
+
   # Remove git alias set by oh-my-zsh git plugin to allow git function definitions
   unalias git 2>/dev/null
 else
