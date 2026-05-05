@@ -178,6 +178,14 @@ gw() {
 # Claude Alias
 alias c=claude
 
+# Keep the laptop awake while plugged in (-s only applies on AC power).
+# Runs in the foreground; Ctrl-C to release.
+awake() {
+  echo "Keeping the laptop awake (display, idle, disk, system-on-AC, user-active)."
+  echo "Press Ctrl-C to stop."
+  caffeinate -dimsu
+}
+
 # Make a basic function called disable_dock_bounce
 fix_dock() {
   defaults write com.apple.dock no-bouncing -bool TRUE
