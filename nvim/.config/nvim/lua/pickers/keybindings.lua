@@ -56,13 +56,22 @@ local function build_results()
     local keys = node.keys or ''
     if desc == '' then return end
 
+    -- Normalize which-key's internal key representations for display:
+    -- • <NL> → <C-j>  (Neovim's internal name for Ctrl-J)
+    -- • <C-X> → <C-x>  (keytrans uppercases after <C-, but Ctrl flattens
+    --   case at the terminal level — <C-h> and <C-H> are the same keypress,
+    --   so lowercase is the canonical display form)
+    local display_keys = keys:gsub('<NL>', '<C-j>'):gsub('<C%-(%u)>', function(letter)
+      return '<C-' .. letter:lower() .. '>'
+    end)
+
     local bc = breadcrumb(node)
     local kw = keywords[keys] or ''
     -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
-    local ordinal = keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw
+    local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw
 
     seen[keys] = true
-    table.insert(results, { keys = keys, desc = desc, ordinal = ordinal })
+    table.insert(results, { keys = display_keys, desc = desc, ordinal = ordinal })
   end)
 
   -- Merge built-in commands not covered by which-key presets (builtins.lua).
