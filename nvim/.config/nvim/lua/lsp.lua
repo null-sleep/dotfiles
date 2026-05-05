@@ -66,6 +66,32 @@ vim.api.nvim_create_autocmd('LspAttach', {
       end, 'Toggle: Inlay hints')
     end
 
+    -- Hover on CursorHold: show the same float as pressing K, after updatetime ms idle.
+    -- nvim 0.11+ deduplicates hover floats natively, so no manual guard is needed.
+    -- Toggle with <leader>th (buffer-local: affects only the current buffer, not document highlight).
+    if client:supports_method('textDocument/hover') then
+      local hover_group = 'LspHoverOnHold_' .. buf
+      local function enable_hover()
+        local group = vim.api.nvim_create_augroup(hover_group, { clear = true })
+        vim.api.nvim_create_autocmd('CursorHold', {
+          group = group, buffer = buf, callback = vim.lsp.buf.hover,
+        })
+      end
+      enable_hover()
+      map('n', '<leader>th', function()
+        local ok = pcall(vim.api.nvim_get_augroup_by_name, hover_group)
+        -- augroup exists but may be empty after a previous toggle-off; check for autocmds
+        local active = ok and #vim.api.nvim_get_autocmds({ group = hover_group }) > 0
+        if active then
+          vim.api.nvim_clear_autocmds({ group = hover_group })
+          vim.notify('Hover on hold: off', vim.log.levels.INFO)
+        else
+          enable_hover()
+          vim.notify('Hover on hold: on', vim.log.levels.INFO)
+        end
+      end, 'Toggle: Hover on hold')
+    end
+
     -- Document highlight: when cursor pauses on a symbol, highlight other occurrences
     -- in the buffer. Uses LspReferenceText/Read/Write highlight groups (theme-styled).
     -- Triggers on CursorHold (300ms idle, see updatetime), clears on CursorMoved.
@@ -78,6 +104,37 @@ vim.api.nvim_create_autocmd('LspAttach', {
         group = group, buffer = buf, callback = vim.lsp.buf.clear_references,
       })
     end
+
+    -- LspDetach cleanup: clear the CursorHold augroups registered above when the
+    -- last client supporting each method detaches. Without this, the autocmds keep
+    -- firing against a buffer with no attached client (e.g. after :LspStop or restart).
+    -- Per-buffer augroup (clear = true) so re-attaching a client re-registers cleanly.
+    vim.api.nvim_create_autocmd('LspDetach', {
+      group = vim.api.nvim_create_augroup('LspDetachCleanup_' .. buf, { clear = true }),
+      buffer = buf,
+      callback = function(detach_ev)
+        local remaining = vim.lsp.get_clients({ bufnr = buf })
+        -- The detaching client is still in the list; exclude it.
+        remaining = vim.tbl_filter(function(c)
+          return c.id ~= detach_ev.data.client_id
+        end, remaining)
+
+        local function any_supports(method)
+          for _, c in ipairs(remaining) do
+            if c:supports_method(method) then return true end
+          end
+          return false
+        end
+
+        if not any_supports('textDocument/hover') then
+          pcall(vim.api.nvim_del_augroup_by_name, 'LspHoverOnHold_' .. buf)
+        end
+        if not any_supports('textDocument/documentHighlight') then
+          pcall(vim.api.nvim_del_augroup_by_name, 'LspDocumentHighlight_' .. buf)
+          pcall(vim.lsp.buf.clear_references)
+        end
+      end,
+    })
 
     -- Codelens: virtual text annotations (run tests, implement interface, etc.)
     -- grx (nvim 0.12 default) runs the codelens under cursor.
