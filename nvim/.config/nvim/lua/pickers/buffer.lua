@@ -82,6 +82,13 @@ function M.open()
     end,
     attach_mappings = function(_, map)
       common.bind_quick_pick(map)
+      local action_state = require('telescope.actions.state')
+      map({ 'i', 'n' }, '<C-d>', function(prompt_bufnr)
+        local entry = action_state.get_selected_entry()
+        if entry then
+          require('telescope.actions').delete_buffer(prompt_bufnr)
+        end
+      end)
       return true
     end,
   })
