@@ -74,7 +74,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
       local function enable_hover()
         local group = vim.api.nvim_create_augroup(hover_group, { clear = true })
         vim.api.nvim_create_autocmd('CursorHold', {
-          group = group, buffer = buf, callback = vim.lsp.buf.hover,
+          group = group, buffer = buf,
+          -- focus = false: float appears without stealing cursor (passive display).
+          -- silent = true: suppresses "No information available" when cursor is over
+          --   non-symbol text (nvim 0.11+ native option; no vim.notify monkey-patching needed).
+          -- max_height = 20: prevents full-screen docstring popups.
+          callback = function() vim.lsp.buf.hover({ focus = false, silent = true, max_height = 20 }) end,
         })
       end
       enable_hover()
@@ -162,8 +167,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     if client:supports_method('textDocument/typeDefinition') then
       map('n', 'gy',             vim.lsp.buf.type_definition, 'LSP: Go to type definition')
     end
-    -- K (hover), [d/]d (diagnostic jump) are nvim 0.12 defaults — not remapped here.
+    -- K: override 0.12 default to apply max_height. [d/]d (diagnostic jump) left as defaults.
     -- The defaults also support count: 3]d jumps 3 diagnostics forward.
+    map('n', 'K', function() vim.lsp.buf.hover({ max_height = 20 }) end, 'LSP: Hover')
     -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
     -- If the terminal hangs after pressing it, run `stty -ixon` in your shell rc.
     map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
