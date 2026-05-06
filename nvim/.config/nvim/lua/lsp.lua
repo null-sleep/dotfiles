@@ -67,8 +67,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- Hover on CursorHold: show the same float as pressing K, after updatetime ms idle.
-    -- nvim 0.11+ deduplicates hover floats natively, so no manual guard is needed.
-    -- Toggle with <leader>th (buffer-local: affects only the current buffer, not document highlight).
+    -- Off by default — use K for on-demand hover, <leader>th to toggle auto-hover.
+    -- Future: Neovim may add MouseMove events (neovim/neovim#9152), which would
+    -- enable VS Code-style hover-on-mouse (or even mouse-click-triggered hover) —
+    -- revisit this when that lands.
     if client:supports_method('textDocument/hover') then
       local hover_group = 'LspHoverOnHold_' .. buf
       local function enable_hover()
@@ -79,10 +81,14 @@ vim.api.nvim_create_autocmd('LspAttach', {
           -- silent = true: suppresses "No information available" when cursor is over
           --   non-symbol text (nvim 0.11+ native option; no vim.notify monkey-patching needed).
           -- max_height = 20: prevents full-screen docstring popups.
-          callback = function() vim.lsp.buf.hover({ focus = false, silent = true, max_height = 20 }) end,
+          callback = function()
+            if vim.b.hover_suppressed then return end
+            vim.lsp.buf.hover({ focus = false, silent = true, max_height = 20 })
+          end,
         })
       end
-      enable_hover()
+      -- Create the augroup but don't register the autocmd — starts disabled.
+      vim.api.nvim_create_augroup(hover_group, { clear = true })
       map('n', '<leader>th', function()
         local ok = pcall(vim.api.nvim_get_augroup_by_name, hover_group)
         -- augroup exists but may be empty after a previous toggle-off; check for autocmds
