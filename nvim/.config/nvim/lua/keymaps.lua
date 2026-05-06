@@ -23,14 +23,26 @@ vim.keymap.set('n', '<leader>sF', function() require('pickers.filter').pick() en
   { desc = 'Search: Toggle filters' })
 
 -- Clear search highlights and close any floating windows (hover, diagnostics, etc.)
+-- Sets b:hover_suppressed so CursorHold hover doesn't immediately reopen the float.
+-- The flag is cleared on the next CursorMoved (see autocmd below).
 vim.keymap.set('n', '<Esc>', function()
+  local closed_any = false
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative ~= '' then
       pcall(vim.api.nvim_win_close, win, true)
+      closed_any = true
     end
+  end
+  if closed_any then
+    vim.b.hover_suppressed = true
   end
   vim.cmd('nohlsearch')
 end, { desc = 'Clear search highlights and close floats' })
+
+vim.api.nvim_create_autocmd('CursorMoved', {
+  group = vim.api.nvim_create_augroup('ClearHoverSuppression', { clear = true }),
+  callback = function() vim.b.hover_suppressed = false end,
+})
 
 -- Exit insert mode without reaching for Escape
 vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
