@@ -22,8 +22,15 @@ vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end
 vim.keymap.set('n', '<leader>sF', function() require('pickers.filter').pick() end,
   { desc = 'Search: Toggle filters' })
 
--- Clear search highlights
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlights' })
+-- Clear search highlights and close any floating windows (hover, diagnostics, etc.)
+vim.keymap.set('n', '<Esc>', function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative ~= '' then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+  vim.cmd('nohlsearch')
+end, { desc = 'Clear search highlights and close floats' })
 
 -- Exit insert mode without reaching for Escape
 vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
