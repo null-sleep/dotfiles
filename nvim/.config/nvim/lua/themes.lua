@@ -59,6 +59,25 @@ M.global_overrides = {
   NvimTreeIndentMarker       = { link = 'NonText' },
 }
 
+-- Diff background overrides — many themes set DiffAdd to garish solid green.
+-- These muted tinted backgrounds keep added/deleted lines readable in blame
+-- popups, vimdiff, and gitsigns previews without washing out the code.
+-- Keyed by background mode so light themes get appropriate tones.
+M.diff_overrides = {
+  dark = {
+    DiffAdd    = { bg = '#1a3a2a' },  -- muted green tint
+    DiffDelete = { bg = '#3a1a1a' },  -- muted red tint
+    DiffChange = { bg = '#1a2a3a' },  -- muted blue tint
+    DiffText   = { bg = '#2a3a4a' },  -- changed text within a line
+  },
+  light = {
+    DiffAdd    = { bg = '#d4edda' },  -- soft green tint
+    DiffDelete = { bg = '#f5c6cb' },  -- soft red tint
+    DiffChange = { bg = '#cce5ff' },  -- soft blue tint
+    DiffText   = { bg = '#b8daff' },  -- changed text within a line
+  },
+}
+
 -- Per-theme configuration. Each entry has:
 --   src        (required) GitHub repo path
 --   name       (optional) explicit pack name, only needed when repo slug differs from plugin name
@@ -251,6 +270,10 @@ M.themes = {
   ['modus-themes'] = {
     src  = gh('miikanissi/modus-themes.nvim'),
     name = 'modus-themes.nvim',
+    -- The plugin only registers three colorschemes: modus_operandi, modus_vivendi,
+    -- and modus. Sub-variants (tinted, deuteranopia, tritanopia) are selected via
+    -- the `style` option in setup(), so they're virtual names mapped to the base
+    -- colorscheme via the `colorscheme` table below.
     variants = {
       -- dark — WCAG AAA contrast (7:1 minimum)
       'modus_vivendi',               -- neutral dark bg; maximum legibility
@@ -263,6 +286,14 @@ M.themes = {
       'modus_operandi_deuteranopia', -- light, red-green colorblind safe
       'modus_operandi_tritanopia',   -- light, blue-yellow colorblind safe
     },
+    colorscheme = {
+      modus_vivendi_tinted        = 'modus_vivendi',
+      modus_vivendi_deuteranopia  = 'modus_vivendi',
+      modus_vivendi_tritanopia    = 'modus_vivendi',
+      modus_operandi_tinted       = 'modus_operandi',
+      modus_operandi_deuteranopia = 'modus_operandi',
+      modus_operandi_tritanopia   = 'modus_operandi',
+    },
     background = {
       modus_vivendi               = 'dark',
       modus_vivendi_tinted        = 'dark',
@@ -273,10 +304,20 @@ M.themes = {
       modus_operandi_deuteranopia = 'light',
       modus_operandi_tritanopia   = 'light',
     },
-    setup = function()
+    -- setup is called dynamically by M.apply() with the selected variant so
+    -- sub-variants (tinted, deuteranopia, tritanopia) get the correct style.
+    -- The plugin uses `variants = { modus_operandi = "tinted", ... }` to select
+    -- the sub-variant, not the `style` field (which is operandi vs vivendi).
+    setup = function(variant)
+      variant = variant or 'modus_vivendi'
+      -- Parse variant name: modus_{operandi|vivendi}[_{sub}]
+      local base, sub = variant:match('^(modus_[^_]+)_?(.*)')
+      base = base or 'modus_vivendi'
+      if sub == '' then sub = 'default' end
       require('modus-themes').setup({
-        style  = 'auto',  -- auto (follows background) | modus_operandi | modus_vivendi
-        styles = { comments = { italic = true } },
+        style    = 'auto',
+        variants = { [base] = sub },
+        styles   = { comments = { italic = true } },
       })
     end,
   },
@@ -434,7 +475,7 @@ function M.apply(variant)
   -- harmless — the vim.cmd.colorscheme() call below immediately overwrites it.
   vim.opt.background = M.background[variant] or 'dark'
 
-  if theme.setup then pcall(theme.setup) end
+  if theme.setup then pcall(theme.setup, variant) end
 
   -- Resolve virtual variant names (e.g. 'gruvbox-light' → 'gruvbox') for themes
   -- that use vim.opt.background to switch but only register one colorscheme name.
@@ -447,6 +488,10 @@ function M.apply(variant)
 
   -- Overrides must run after colorscheme so they aren't clobbered.
   for group, attrs in pairs(M.global_overrides) do
+    vim.api.nvim_set_hl(0, group, attrs)
+  end
+  local diff = M.diff_overrides[vim.o.background] or M.diff_overrides.dark
+  for group, attrs in pairs(diff) do
     vim.api.nvim_set_hl(0, group, attrs)
   end
   if theme.overrides then

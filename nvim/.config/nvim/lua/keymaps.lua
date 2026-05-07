@@ -85,7 +85,20 @@ vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFindFileToggle<CR>', { desc = 'Ex
 
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
-vim.keymap.set('n', '<leader>qq', '<cmd>bd<CR>', { desc = 'Close buffer' })
+-- Close buffer without closing the window/pane. Switch to the alternate buffer
+-- first (or an empty scratch buffer if nothing else is available), then delete
+-- the original buffer so the split stays open.
+vim.keymap.set('n', '<leader>qq', function()
+  local buf = vim.api.nvim_get_current_buf()
+  local alt = vim.fn.bufnr('#')
+  if alt ~= -1 and alt ~= buf and vim.api.nvim_buf_is_loaded(alt) then
+    vim.cmd.buffer(alt)
+  else
+    vim.cmd.enew()
+  end
+  -- pcall in case the buffer was already wiped (e.g. terminal exit)
+  pcall(vim.cmd.bdelete, buf)
+end, { desc = 'Close buffer' })
 
 -- Toggle spell checking
 vim.keymap.set('n', '<leader>tz', function()

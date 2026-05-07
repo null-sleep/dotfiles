@@ -271,8 +271,8 @@ require('telescope').setup({
       end
 
       return {
-        i = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick },
-        n = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick },
+        i = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal },
+        n = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal },
       }
     end)(),
     file_ignore_patterns = { '%.git/', 'node_modules/' },

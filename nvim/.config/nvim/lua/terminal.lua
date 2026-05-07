@@ -27,8 +27,12 @@ require('toggleterm').setup({
   -- autochdir = false (default): set to true to make the terminal cwd follow
   -- the current buffer's directory — useful for multi-project Neovim sessions.
   --
-  -- size = 15 (not set): ignored for float direction. Set this if you switch to
-  -- horizontal/vertical splits to control the split height/width.
+  -- size: ignored for float direction, but used by <leader>th and <leader>tv
+  -- which override direction per-invocation. Function form lets us vary by direction.
+  size = function(term)
+    if term.direction == 'horizontal' then return math.floor(vim.o.lines * 0.3) end
+    if term.direction == 'vertical'   then return math.floor(vim.o.columns * 0.4) end
+  end,
 })
 
 -- Cycle through open toggleterm instances. Closes the current terminal and
@@ -71,4 +75,6 @@ vim.api.nvim_create_autocmd('TermOpen', {
   end,
 })
 
-vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Terminal' })
+vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Terminal (float)' })
+vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Toggle: Terminal (horizontal split)' })
+vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Toggle: Terminal (vertical split)' })
