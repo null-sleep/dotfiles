@@ -318,8 +318,10 @@ Keymaps are split across files by feature:
   (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
   for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
   visual indent, toggle keymaps (`<leader>td` diagnostics, `<leader>ts`
-  symbol scope), yank helpers (`yp`, `yc`, `yu`), `jk` in insert mode to
-  exit to normal mode. Custom pickers live in `pickers/`.
+  symbol scope), yank helpers (`yp`, `yc`, `yu`), `<leader>o` / `:Typora`
+  (open the current file in the Typora app — writes pending changes first;
+  pairs with the `typora` shell alias), `jk` in insert mode to exit to
+  normal mode. Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
   (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
   diagnostics (`<leader>ce`, `<leader>cd`), Telescope references (`grr`, `gri`)
