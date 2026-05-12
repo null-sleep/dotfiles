@@ -78,3 +78,15 @@ vim.api.nvim_create_autocmd('TermOpen', {
 vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Terminal (float)' })
 vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Toggle: Terminal (horizontal split)' })
 vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Toggle: Terminal (vertical split)' })
+
+-- Pre-warm: spawn the shell into a hidden buffer so the first <C-\> /
+-- <leader>tt opens an already-running terminal instead of paying ~50–200ms
+-- of shell startup. Toggleterm's Terminal:spawn() creates the buffer and
+-- runs termopen without opening a window — no flicker, no monkey-patching
+-- (unlike the sidekick pre-warm in ai.lua, where start() always opens a
+-- visible window). :ToggleTerm with no args toggles the lowest-id terminal,
+-- so spawning id=1 here is what <C-\> attaches to on first press.
+vim.defer_fn(function()
+  local Terminal = require('toggleterm.terminal').Terminal
+  Terminal:new({ id = 1 }):spawn()
+end, 100)

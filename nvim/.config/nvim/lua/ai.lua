@@ -4,6 +4,10 @@
 local ok = pcall(vim.cmd.packadd, 'sidekick.nvim')
 if not ok then return end
 
+-- Set by the pre-warm flow below; captured here so the cleanup step can
+-- restore the instance's open_win without walking sidekick's session tables.
+local prewarm_term ---@type any?
+
 require('sidekick').setup({
   cli = {
     -- Use telescope for cli.select() (tool list) and cli.prompt() (prompt library)
@@ -11,6 +15,25 @@ require('sidekick').setup({
     picker = 'telescope',
     win = {
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
+      -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
+      -- open_win for one that creates a hidden float instead of a visible
+      -- split. See the pre-warm block at the bottom of this file.
+      config = function(term)
+        if _G.__sidekick_prewarm then
+          prewarm_term = term
+          term.open_win = function(self)
+            if self:is_open() or not self.buf then return end
+            self.win = vim.api.nvim_open_win(self.buf, false, {
+              relative = 'editor', row = 0, col = 0,
+              width = 80, height = math.max(20, vim.o.lines),
+              style = 'minimal', hide = true, focusable = false,
+            })
+            vim.w[self.win].sidekick_cli = self.tool
+            vim.w[self.win].sidekick_session_id = self.id
+            self:wo()
+          end
+        end
+      end,
     },
     -- mux: leave disabled. Enable with backend = 'tmux' or 'zellij' if you want
     -- sessions to persist across nvim restarts.
@@ -31,3 +54,35 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
   end,
 })
+
+-- Pre-warm strategy: the first <leader>aa freezes the editor for ~1–2s while
+-- claude boots, so we pay that cost during nvim startup instead. Sidekick's
+-- start() always opens a visible window, but `nvim_open_win` accepts
+-- `hide = true` for floats (Neovim 0.10+) and `jobstart{ term = true }` only
+-- needs the buffer to be shown in *some* current window — visibility doesn't
+-- matter. So we use sidekick's per-instance `win.config` callback (above) to
+-- swap in a hidden-float open_win, run cli.show, then close the hidden float
+-- (cli.hide leaves the job alive) and restore the default — no flicker, no
+-- cold-start freeze.
+--
+-- The global flag bridges cli.show's two `vim.schedule_wrap` hops so the
+-- override is still in place when win.config eventually runs. If claude is
+-- missing the pcall + nil guards make this a no-op rather than a wedged
+-- editor. Gated on a `.git` ancestor (using vim.fs.root so it works for git
+-- worktrees, where .git is a file rather than a directory) so we don't spawn
+-- claude when nvim opens a single file outside a project.
+if vim.fs.root(0, '.git') then
+  vim.defer_fn(function()
+    local cli = require('sidekick.cli')
+    _G.__sidekick_prewarm = true
+    pcall(cli.show, { name = 'claude', focus = false })
+    vim.defer_fn(function()
+      _G.__sidekick_prewarm = nil
+      if prewarm_term then
+        prewarm_term.open_win = nil
+        prewarm_term = nil
+      end
+      pcall(cli.hide, { name = 'claude' })
+    end, 300)
+  end, 100)
+end
