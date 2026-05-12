@@ -1,1 +1,4 @@
 zsh/.stow-local-ignore
+
+# Claude Code local state: personal permission allowlist + transient agent worktrees
+.claude/
