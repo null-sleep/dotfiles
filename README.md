@@ -975,6 +975,28 @@ exec zsh
 
 `.zshrc_config.zsh` exports those vars explicitly before `antigen apply` so the regenerated cache captures the right paths.
 
+## Git
+
+One-time global setup for a new machine:
+
+```bash
+# Identity
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+
+# Default branch name
+git config --global init.defaultBranch main
+
+# Pull strategy — rebase instead of merge
+git config --global pull.rebase true
+
+# Reuse recorded resolutions — automatically reapplies conflict resolutions you've made before
+git config --global rerere.enabled true
+
+# Better diff output — shows moved lines in a different color
+git config --global diff.colorMoved dimmed-zebra
+```
+
 ## Stow
 
 To exclude files or folders from being symlinked, create a `.stow-local-ignore` file in the package directory (e.g. `nvim/.stow-local-ignore`):
