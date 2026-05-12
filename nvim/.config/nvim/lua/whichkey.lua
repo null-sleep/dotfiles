@@ -58,6 +58,7 @@ local keywords = {
   ['<C-o>']      = 'jump back go back previous location history',
   ['<C-i>']      = 'jump forward go forward next location history',
   ['<leader>e']  = 'explorer file tree sidebar nvim-tree toggle reveal',
+  ['<leader>o']  = 'open typora markdown gui external app preview',
   ['g?']         = 'explorer file tree help keybindings nvim-tree',
   ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',

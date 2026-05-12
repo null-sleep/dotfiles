@@ -83,6 +83,22 @@ vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end
 -- File tree: opens and reveals current file, or closes if already open
 vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFindFileToggle<CR>', { desc = 'Explorer: Toggle' })
 
+-- Open the current file in Typora (macOS GUI markdown editor). Works on any
+-- buffer — Typora opens plain text fine too — so it's a global mapping plus a
+-- :Typora command. Writes pending changes first so Typora sees the latest
+-- content from disk.
+local function open_in_typora()
+  local path = vim.api.nvim_buf_get_name(0)
+  if path == '' then
+    vim.notify('No file name for this buffer', vim.log.levels.WARN)
+    return
+  end
+  if vim.bo.modified then vim.cmd('write') end
+  vim.system({ 'open', '-a', 'Typora', path })
+end
+vim.api.nvim_create_user_command('Typora', open_in_typora, { desc = 'Open current file in Typora' })
+vim.keymap.set('n', '<leader>o', open_in_typora, { desc = 'Open in Typora' })
+
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
 -- Close buffer without closing the window/pane. Switch to the alternate buffer

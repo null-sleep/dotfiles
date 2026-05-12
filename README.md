@@ -516,6 +516,7 @@ These keymaps are only active in `gitcommit` and `gitrebase` buffers.
 |---|---|
 | `:Q` | Quit all |
 | `<Space>qq` | Close buffer |
+| `<Space>o` / `:Typora` | Open current file in the Typora app (writes pending changes first) |
 | `y` / `Y` | Yank to system clipboard (dd, x, c stay in Neovim register) |
 | `p` (visual) | Paste without clobbering register |
 | `<` / `>` (visual) | Indent/dedent and stay in visual mode |
@@ -731,6 +732,19 @@ This works for both terminal and GUI launches (Spotlight, dock) — unlike the `
 | `Cmd+Opt+Left` / `Cmd+Opt+Right` | Jumplist back / forward |
 
 **Force Click** on the trackpad triggers `:NeovideForceClick` automatically — shows the macOS "Look Up" popover for text and Quick Look previews for file paths/URLs under the cursor. No setup needed.
+
+## Typora
+
+GUI markdown editor with live (WYSIWYG) rendering — handy for reading or heavy editing of `.md` files.
+
+```bash
+brew install --cask typora
+```
+
+Two ways to open a file in it:
+
+- **Shell:** `typora notes.md` — alias for `open -a Typora` (in `.zshrc_config.zsh`).
+- **Neovim:** `<Space>o` (or `:Typora`) opens the current buffer's file in Typora, writing any pending changes first. Discoverable via `<Space>?` and `<Space>sk` (search "typora" or "markdown"). Mirrors the [vscode-open-in-typora](https://github.com/typora/vscode-open-in-typora) extension — `open -a Typora` on macOS, no cursor-position handoff (Typora has no such CLI flag).
 
 ## iTerm2
 

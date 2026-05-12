@@ -73,6 +73,8 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 alias vim=nvim
 alias vi=nvim
 alias neovide='neovide --fork'
+# Typora — open a markdown file in the Typora app
+alias typora="open -a Typora"
 # Set editor based on terminal context
 if [[ "$TERM_PROGRAM" == "vscode" ]]; then
     # Distinguish between Cursor and VS Code
