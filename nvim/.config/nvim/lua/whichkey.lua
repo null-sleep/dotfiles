@@ -30,6 +30,7 @@ wk.add({
   { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
   { '<leader>a',  group = 'AI' },
+  { '<leader>u',  group = 'Utilities' },
   { 'g',          group = 'Go to' },
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
@@ -68,6 +69,8 @@ local keywords = {
   ['zw']         = 'spell typo spelling wrong',
   ['z=']         = 'spell typo spelling suggest corrections',
   ['1z=']        = 'spell typo spelling fix accept',
+  ['<leader>us'] = 'strip whitespace trim trailing spaces clean',
+  ['<leader>uc'] = 'clean paste reflow dedent terminal claude format fix',
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords`

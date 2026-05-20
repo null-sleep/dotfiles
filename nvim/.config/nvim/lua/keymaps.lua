@@ -206,3 +206,30 @@ vim.keymap.set({ 'n', 'x' }, '<leader>at',
 vim.keymap.set('n', '<leader>af',
   function() require('sidekick.cli').send({ msg = '{file}' }) end,
   { desc = 'AI: Send file' })
+
+-- Editing utilities (<leader>u)
+local edit = require('edit')
+
+-- x (visual only, not select mode) — using a :cmd RHS so '</'> marks are
+-- set correctly before the substitution runs.
+vim.keymap.set('x', '<leader>us', [[:s/\s\+$//e<CR>]],
+  { desc = 'Utilities: Strip trailing whitespace (selection)', silent = true })
+
+vim.keymap.set('n', '<leader>us', function()
+  edit.strip_trailing_ws(1, vim.fn.line('$'))
+end, { desc = 'Utilities: Strip trailing whitespace (file)' })
+
+vim.api.nvim_create_user_command('StripWS', function(opts)
+  edit.strip_trailing_ws(opts.line1, opts.line2)
+end, { range = '%', desc = 'Strip trailing whitespace (range or whole file)' })
+
+-- :'<,'>CleanPaste — reflow pasted Claude/terminal text: strip indent,
+-- normalize NBSP, strip ⏺ markers, join soft-wrapped continuation lines.
+-- The ':' prefix in the x-mode RHS exits visual mode first, which updates
+-- the '< '> marks before the range is evaluated. Do NOT change to <cmd>.
+vim.keymap.set('x', '<leader>uc', [[:CleanPaste<CR>]],
+  { desc = 'Utilities: Clean pasted terminal text (reflow)', silent = true })
+
+vim.api.nvim_create_user_command('CleanPaste', function(opts)
+  require('edit').clean_pasted(opts.line1, opts.line2)
+end, { range = '%', desc = 'Reflow pasted Claude/terminal text (range or whole buffer)' })
