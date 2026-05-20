@@ -42,6 +42,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('windwp/nvim-autopairs') },
   { src = gh('stevearc/conform.nvim') },
   { src = gh('akinsho/toggleterm.nvim') },
+  { src = gh('willothy/flatten.nvim') },
   -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
   -- TODO: flip src back to 'folke/sidekick.nvim' once PR #277 merges
   -- (https://github.com/folke/sidekick.nvim/pull/277).
@@ -101,6 +102,93 @@ vim.notify = require('mini.notify').make_notify()
 vim.api.nvim_create_user_command('Notifications', function()
   require('mini.notify').show_history()
 end, {})
+
+-------------------------------------------------------------------------------
+-- Flatten (route nested nvim launches into the parent instance)
+-------------------------------------------------------------------------------
+-- vim.schedule() pattern: any toggleterm t:open() / t:close() called from
+-- inside a buffer lifecycle callback (flatten hooks, BufDelete autocmds, etc.)
+-- must be deferred via vim.schedule(). Calling them synchronously while a
+-- buffer is being opened or closed raises E1159 "Cannot open a float when
+-- closing the buffer". schedule() defers to the next event loop tick, after
+-- the triggering operation has fully completed.
+
+vim.cmd.packadd('flatten.nvim')
+
+local _flatten_hidden = {}
+
+require('flatten').setup({
+  window = {
+    open = 'smart',  -- skips floating windows; lands in a real window after pre_open closes the float
+  },
+  block_for = {
+    gitcommit = true,
+    gitrebase = true,
+    hgcommit  = true,
+  },
+  nest_if_no_args = false,
+  hooks = {
+    should_nest = function()
+      return vim.env.NVIM_NEST == '1'
+    end,
+    pre_open = function()
+      -- Snapshot which toggleterm floats are currently open; close them after
+      -- the current event loop tick. Closing a float synchronously during
+      -- pre_open (while flatten is mid-buffer-open) triggers E1159.
+      _flatten_hidden = {}
+      local ok, term_mod = pcall(require, 'toggleterm.terminal')
+      if not ok then return end
+      for _, t in ipairs(term_mod.get_all(true)) do
+        if t:is_open() then
+          table.insert(_flatten_hidden, t.id)
+        end
+      end
+      vim.schedule(function()
+        local ok2, term_mod2 = pcall(require, 'toggleterm.terminal')
+        if not ok2 then return end
+        for _, id in ipairs(_flatten_hidden) do
+          local t = term_mod2.get(id)
+          if t and t:is_open() then t:close() end
+        end
+      end)
+    end,
+    post_open = function(opts)
+      if opts.is_blocking then
+        vim.g._flatten_blocking = true
+        -- Restore terminals when the blocking buffer is deleted (unblocks the guest).
+        vim.api.nvim_create_autocmd('BufDelete', {
+          buffer   = opts.bufnr,
+          once     = true,
+          callback = function()
+            vim.g._flatten_blocking = false
+            -- Defer: t:open() during BufDelete also triggers E1159.
+            vim.schedule(function()
+              local ok, term_mod = pcall(require, 'toggleterm.terminal')
+              if not ok then return end
+              for _, id in ipairs(_flatten_hidden) do
+                local t = term_mod.get(id)
+                if t then t:open() end
+              end
+              _flatten_hidden = {}
+            end)
+          end,
+        })
+      else
+        -- Non-blocking guest (e.g. plain `nvim somefile`): restore immediately.
+        vim.schedule(function()
+          local ok, term_mod = pcall(require, 'toggleterm.terminal')
+          if ok then
+            for _, id in ipairs(_flatten_hidden) do
+              local t = term_mod.get(id)
+              if t then t:open() end
+            end
+            _flatten_hidden = {}
+          end
+        end)
+      end
+    end,
+  },
+})
 
 -------------------------------------------------------------------------------
 -- Treesitter
