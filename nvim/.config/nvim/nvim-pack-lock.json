@@ -33,6 +33,10 @@
       "rev": "cf08aa67fc96946a01177ae483b7631733b4b5e6",
       "src": "https://github.com/neanias/everforest-nvim"
     },
+    "flatten.nvim": {
+      "rev": "72527798e75b5e34757491947c2cb853ce21dc0e",
+      "src": "https://github.com/willothy/flatten.nvim"
+    },
     "github-nvim-theme": {
       "rev": "c106c9472154d6b2c74b74565616b877ae8ed31d",
       "src": "https://github.com/projekt0n/github-nvim-theme"

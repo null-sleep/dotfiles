@@ -57,15 +57,20 @@ require('gitsigns').setup({
 vim.api.nvim_create_autocmd('FileType', {
   pattern  = { 'gitcommit', 'gitrebase' },
   callback = function(args)
-    -- When launched from the CLI as $EDITOR, $NVIM is unset (no parent nvim
-    -- instance). In that case, close the window after saving so the terminal
-    -- gets its focus back. When launched from inside toggleterm ($NVIM is set),
-    -- only close the buffer — the outer nvim session stays alive.
-    local confirm_cmd = vim.env.NVIM == nil
-      and '<cmd>write | bd | quit<CR>'
-      or  '<cmd>write | bd<CR>'
-    vim.keymap.set('n', '<leader>w', confirm_cmd, { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
-    vim.keymap.set('n', '<leader>x', '<cmd>cq<CR>',         { buffer = args.buf, desc = 'Git: abort' })
+    local function confirm()
+      vim.cmd('write')
+      -- flatten unblocks the guest on BufUnload/BufDelete (fired by bwipeout).
+      -- When nvim is invoked standalone as $EDITOR (no parent instance and
+      -- flatten not active), fall back to :quit so the terminal regains focus.
+      local listed = vim.fn.getbufinfo({ buflisted = 1 })
+      if #listed <= 1 and not vim.g._flatten_blocking then
+        vim.cmd('quit')
+      else
+        vim.cmd('bwipeout')
+      end
+    end
+    vim.keymap.set('n', '<leader>w', confirm,       { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
+    vim.keymap.set('n', '<leader>x', '<cmd>cq<CR>', { buffer = args.buf, desc = 'Git: abort' })
   end,
 })
 
