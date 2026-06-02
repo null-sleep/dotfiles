@@ -204,6 +204,39 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
   transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
 
+- **Mouse back/forward buttons** — browser-style jumplist navigation
+  on the side buttons. Two paths reach the same result:
+
+  1. **Logi Options+ keystrokes** (primary, works in iTerm2 and
+     Neovide). Open Logi Options+ → select mouse → **Buttons** → add
+     per-app assignments for **iTerm2** and **Neovide**:
+     - Back side button → **Keystroke Assignment** → `Ctrl+O`
+     - Forward side button → `Ctrl+I` (= Tab; collides with the
+       sidekick NES `<Tab>` mapping in insert mode, where it will
+       insert a literal tab — assign only if you can live with that)
+
+     Per-app scope leaves Safari/Chrome/Finder Back/Forward intact.
+
+  2. **Raw mouse events** (fallback). `<X1Mouse>`/`<X2Mouse>` are
+     mapped to `<C-o>`/`<C-i>` in keymaps.lua. iTerm2 does not
+     forward these by default and Apple Terminal never will, but the
+     mapping is harmless and serves as a fallback if Logi Options+
+     is disabled (Neovide forwards them natively, iTerm2 only if
+     manually bound under Settings → Pointer → Bindings).
+
+  Non-Logitech mouse: use Karabiner-Elements or BetterTouchTool for
+  the same keystroke remap.
+
+- **Ctrl+click → LSP go-to-definition** (VS Code-style). Mapped in
+  keymaps.lua via `<C-LeftMouse>`: places the cursor at the click,
+  then calls `vim.lsp.buf.definition()`. Use `<C-o>` to jump back.
+
+  Works in Neovide out of the box. **In iTerm2**, by default Ctrl+click
+  opens iTerm2's own context menu — it is not forwarded to nvim. Enable
+  *Settings → Pointer → "^-Click reported to apps, does not open menu"*
+  to forward it. (Right-click context menu is still available via
+  right-click or the configured pointer binding.)
+
 - **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which
   just hides the window), `<leader>ad` calls `close()` which terminates the
   CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
