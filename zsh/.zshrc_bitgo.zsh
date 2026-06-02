@@ -10,6 +10,9 @@ export CLAUDE_STATUSLINE_MODE=cost
 ## Go Private modules
 export GOPRIVATE=github.com/lumina-tech/*,github.com/bitgo/*
 
+# Disable Harness docs generation
+export ENABLE_HARNESS_DOCS=0
+
 ## Colima (Docker runtime)
 colima_start() {
   colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta

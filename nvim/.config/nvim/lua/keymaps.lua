@@ -76,6 +76,23 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
 -- Buffer navigation
 vim.keymap.set('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Previous buffer' })
 vim.keymap.set('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next buffer' })
+
+-- Mouse back/forward buttons → jumplist (browser-style navigation).
+-- Works in Neovide directly. In iTerm2, requires "Report mouse clicks & drags"
+-- to be on (default) and the focused app to use mouse mode — nvim enables it
+-- via `mouse=a` (see configs.lua).
+vim.keymap.set({ 'n', 'v' }, '<X1Mouse>', '<C-o>', { desc = 'Jumplist: back (mouse back button)' })
+vim.keymap.set({ 'n', 'v' }, '<X2Mouse>', '<C-i>', { desc = 'Jumplist: forward (mouse forward button)' })
+
+-- Ctrl + LeftClick → LSP go-to-definition (VS Code-style). The <LeftMouse>
+-- feedkeys places the cursor under the pointer before the LSP call, so the
+-- jump targets the word actually clicked. Use <C-o>/<C-i> (or the side-button
+-- mappings above) to jump back/forward.
+vim.keymap.set('n', '<C-LeftMouse>', function()
+  local keys = vim.api.nvim_replace_termcodes('<LeftMouse>', true, false, true)
+  vim.api.nvim_feedkeys(keys, 'nx', false)
+  vim.lsp.buf.definition()
+end, { desc = 'LSP: Go to definition (Ctrl+click)' })
 vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate buffer' })
 vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
   { desc = 'Buffer picker' })

@@ -60,7 +60,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     --   2. Disable noisy categories per-LSP (e.g. keep parameterNames, drop
     --      assignVariableTypes/compositeLiteralTypes which add the most clutter)
     if client:supports_method('textDocument/inlayHint') then
-      vim.lsp.inlay_hint.enable(true, { bufnr = buf })
       map('n', '<leader>ti', function()
         vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
       end, 'Toggle: Inlay hints')
