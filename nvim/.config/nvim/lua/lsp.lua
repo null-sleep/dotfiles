@@ -29,6 +29,7 @@ require('mason-lspconfig').setup({
     'gopls',
     'rust_analyzer',
     'elixirls',
+    'kotlin_language_server',
     'copilot',
   },
   -- Disable automatic_enable so our explicit vim.lsp.enable() below is the
@@ -246,10 +247,15 @@ vim.lsp.config('rust_analyzer', {
   settings = { ['rust-analyzer'] = { checkOnSave = { command = 'clippy' } } },
 })
 
+-- Explicit root markers ensure Maven projects get a workspace root (not single-file mode).
+vim.lsp.config('kotlin_language_server', {
+  root_markers = { 'pom.xml', 'settings.gradle', 'settings.gradle.kts', 'build.gradle', 'build.gradle.kts', '.git' },
+})
+
 vim.lsp.config('copilot', {
   settings = {
     copilot = { telemetryLevel = 'off' },
   },
 })
 
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'copilot' })
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'kotlin_language_server', 'copilot' })

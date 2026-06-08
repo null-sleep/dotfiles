@@ -213,7 +213,7 @@ vim.api.nvim_create_autocmd('PackChanged', {
 -- Install any missing parsers from the ensure_installed list
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
-  'rust', 'elixir', 'markdown', 'json', 'yaml', 'ini', 'graphql',
+  'rust', 'elixir', 'kotlin', 'markdown', 'json', 'yaml', 'ini', 'graphql',
   'html', 'css', 'bash', 'vim', 'toml',
 }
 
