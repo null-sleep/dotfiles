@@ -15,6 +15,8 @@ require('sidekick').setup({
     picker = 'telescope',
     win = {
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
+      -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
+      wo = { scrolloff = 0 },
       -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
       -- open_win for one that creates a hidden float instead of a visible
       -- split. See the pre-warm block at the bottom of this file.
@@ -49,9 +51,23 @@ require('sidekick').setup({
 -- CLI needs to forward to Claude for interrupts).
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'sidekick_terminal',
-  desc = 'Sidekick CLI: jj to exit terminal mode',
+  desc = 'Sidekick CLI: keymaps for terminal and normal mode',
   callback = function(args)
     vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
+
+    -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
+    local function send_to_claude(seq)
+      return function()
+        local session_id = vim.w[vim.api.nvim_get_current_win()].sidekick_session_id
+        local Terminal = require('sidekick.cli.terminal')
+        local term = session_id and Terminal.get(session_id)
+        if term and term.job then
+          vim.api.nvim_chan_send(term.job, seq)
+        end
+      end
+    end
+    vim.keymap.set('n', '<C-u>', send_to_claude('\27[5~'), { buffer = args.buf })
+    vim.keymap.set('n', '<C-d>', send_to_claude('\27[6~'), { buffer = args.buf })
   end,
 })
 
