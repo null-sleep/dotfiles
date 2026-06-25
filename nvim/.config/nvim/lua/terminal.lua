@@ -72,6 +72,8 @@ vim.api.nvim_create_autocmd('TermOpen', {
     vim.keymap.set('t', '<C-l>',  [[<Cmd>wincmd l<CR>]], opts)
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
     vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
+    -- Prevent Shift+Enter from closing the terminal — send a plain newline instead.
+    vim.keymap.set('t', '<S-CR>', '<CR>', opts)
   end,
 })
 
