@@ -53,6 +53,19 @@ local function cycle_term(direction)
   terms[next_idx]:open()
 end
 
+-- VS Code–style bottom panel: a dedicated horizontal terminal. hidden = true
+-- keeps it out of the count-addressable :ToggleTerm list, so it never collides
+-- with the float terminals (<C-\> / <leader>tt). Height comes from the setup()
+-- `size` function (30% of lines for horizontal).
+local bottom_term
+local function toggle_bottom_term()
+  if not bottom_term then
+    local Terminal = require('toggleterm.terminal').Terminal
+    bottom_term = Terminal:new({ direction = 'horizontal', hidden = true })
+  end
+  bottom_term:toggle()
+end
+
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
 -- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
 -- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
@@ -81,6 +94,19 @@ vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Termi
 vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Toggle: Terminal (horizontal split)' })
 vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Toggle: Terminal (vertical split)' })
 
+-- VS Code–style bottom terminal panel. Three triggers cover every environment:
+--   <C-`>  works in Neovide + kitty (kitty keyboard protocol)
+--   <C-/>  Neovim sees <C-_> in terminals / <C-/> in GUI — reliable in iTerm2 too
+--   <leader>tb  universal fallback (also shown in which-key)
+-- <C-/> is a different key from <C-\> (the float terminal) — no conflict.
+-- t-mode maps are global (not buffer-local) so pressing the key inside the
+-- panel hides it (VS Code toggle behavior).
+local term_modes = { 'n', 'i', 't' }
+vim.keymap.set(term_modes, '<C-`>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+vim.keymap.set(term_modes, '<C-_>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' }) -- Ctrl+/ in terminals
+vim.keymap.set(term_modes, '<C-/>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' }) -- Ctrl+/ in GUI (Neovide)
+vim.keymap.set('n',        '<leader>tb', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+
 -- Pre-warm: spawn the shell into a hidden buffer so the first <C-\> /
 -- <leader>tt opens an already-running terminal instead of paying ~50–200ms
 -- of shell startup. Toggleterm's Terminal:spawn() creates the buffer and
@@ -91,4 +117,8 @@ vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { 
 vim.defer_fn(function()
   local Terminal = require('toggleterm.terminal').Terminal
   Terminal:new({ id = 1 }):spawn()
+  -- Same pre-warm for the VS Code–style bottom panel so its first toggle opens
+  -- an already-running shell. hidden = true keeps it out of the count list.
+  bottom_term = Terminal:new({ direction = 'horizontal', hidden = true })
+  bottom_term:spawn()
 end, 100)

@@ -63,6 +63,7 @@ local keywords = {
   ['g?']         = 'explorer file tree help keybindings nvim-tree',
   ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',
+  ['<leader>tb'] = 'terminal bottom panel vscode toggleterm horizontal dock',
   [']s']         = 'spell typo spelling',
   ['[s']         = 'spell typo spelling',
   ['zg']         = 'spell typo spelling dictionary add word',
