@@ -36,7 +36,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
 | `filetree.lua` | nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file |
-| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
+| `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
@@ -210,8 +210,9 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   This only works if the terminal transmits Shift+Enter distinctly via CSI u.
   **In iTerm2**, enable *Settings → Profiles → Keys → General → "Report
   modifiers using CSI u"*. kitty, WezTerm, Ghostty and Neovide do it natively;
-  Terminal.app cannot. `<leader>aa` (sidekick) works regardless — Neovim
-  forwards the key to the CLI directly there.
+  Terminal.app cannot. `<leader>aa` (sidekick) needs no `<S-CR>` map of its own
+  — Claude reads the key directly — but it shares the same prerequisite: the
+  terminal must transmit Shift+Enter distinctly.
 
 - **Mouse back/forward buttons** — browser-style jumplist navigation
   on the side buttons. Two paths reach the same result:

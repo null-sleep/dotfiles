@@ -4,6 +4,8 @@
 local ok = pcall(vim.cmd.packadd, 'sidekick.nvim')
 if not ok then return end
 
+local utils = require('utils')
+
 -- Set by the pre-warm flow below; captured here so the cleanup step can
 -- restore the instance's open_win without walking sidekick's session tables.
 local prewarm_term ---@type any?
@@ -17,15 +19,10 @@ require('sidekick').setup({
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
       -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
       wo = { scrolloff = 0 },
-      -- Extra in-window keymaps. Sidekick owns the keymaps inside CLI buffers via
-      -- this `keys` table (merged over its defaults: q / <C-q> / <C-.> already
-      -- hide, <C-z> blurs, <C-b>/<C-f> pick buffers/files, etc.). Add bindings
-      -- here rather than in a FileType autocmd so they live with the rest of the
-      -- CLI config and use sidekick's own actions. <C-\> mirrors toggleterm's
-      -- float toggle: from inside the open window "hide" tucks Claude away with
-      -- its session intact (same as <leader>aa).
+      -- In-window CLI keymaps (merged over sidekick's defaults). <C-\> mirrors
+      -- toggleterm's float <C-\>: hide Claude, session intact (like <leader>aa).
       keys = {
-        toggle_bslash = { [[<c-\>]], 'hide', mode = 'nt', desc = 'hide Claude (toggleterm-style)' },
+        hide_bslash = { [[<c-\>]], 'hide', mode = 'nt', desc = 'hide Claude (toggleterm-style)' },
       },
       -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
       -- open_win for one that creates a hidden float instead of a visible
@@ -97,7 +94,7 @@ vim.api.nvim_create_autocmd('FileType', {
 -- editor. Gated on a `.git` ancestor (using vim.fs.root so it works for git
 -- worktrees, where .git is a file rather than a directory) so we don't spawn
 -- claude when nvim opens a single file outside a project.
-if vim.fs.root(0, '.git') and #vim.api.nvim_list_uis() > 0 then -- skip claude pre-warm when headless: the spawned CLI job would keep nvim alive
+if vim.fs.root(0, '.git') and utils.has_ui() then -- skip pre-warm when headless (see above)
   vim.defer_fn(function()
     local cli = require('sidekick.cli')
     _G.__sidekick_prewarm = true

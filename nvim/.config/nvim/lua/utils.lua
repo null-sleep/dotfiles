@@ -5,6 +5,12 @@ function M.gh(repo)
   return 'https://github.com/' .. repo
 end
 
+-- True when a UI is attached (false in `--headless` runs). Guard startup
+-- side-effects like terminal pre-warms that would otherwise keep headless alive.
+function M.has_ui()
+  return #vim.api.nvim_list_uis() > 0
+end
+
 -- Check for newer Neovim version via Homebrew (async, non-blocking).
 -- Shows a notification if an update is available.
 function M.check_nvim_update()

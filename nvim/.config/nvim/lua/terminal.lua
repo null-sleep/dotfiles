@@ -1,5 +1,7 @@
 vim.cmd.packadd('toggleterm.nvim')
 
+local utils = require('utils')
+
 require('toggleterm').setup({
   -- <C-\> toggles the terminal from normal, insert, or terminal mode.
   -- Prefix with a count to open a specific terminal instance: 2<C-\>, 3<C-\>, etc.
@@ -55,15 +57,33 @@ end
 
 -- VS Code–style bottom panel: a dedicated horizontal terminal. hidden = true
 -- keeps it out of the count-addressable :ToggleTerm list, so it never collides
--- with the float terminals (<C-\> / <leader>tt). Height comes from the setup()
--- `size` function (30% of lines for horizontal).
+-- with the float terminals.
+local bottom_panel_keys = { '<C-`>', '<C-_>', '<C-/>' }
 local bottom_term
-local function toggle_bottom_term()
+local toggle_bottom_term -- forward-declared for the on_open closure below
+
+-- Single source of truth for the panel terminal: lazily created and shared by
+-- the toggle keymaps and the startup pre-warm, so the pre-warm can't clobber a
+-- terminal the user already opened during the startup window.
+local function ensure_bottom_term()
   if not bottom_term then
-    local Terminal = require('toggleterm.terminal').Terminal
-    bottom_term = Terminal:new({ direction = 'horizontal', hidden = true })
+    bottom_term = require('toggleterm.terminal').Terminal:new({
+      direction = 'horizontal',
+      hidden = true,
+      on_open = function(term)
+        -- Buffer-local terminal-mode toggle: pressing the key inside the panel
+        -- hides it, without shadowing <C-/> etc. in the float / sidekick CLI.
+        for _, lhs in ipairs(bottom_panel_keys) do
+          vim.keymap.set('t', lhs, toggle_bottom_term, { buffer = term.bufnr })
+        end
+      end,
+    })
   end
-  bottom_term:toggle()
+  return bottom_term
+end
+
+function toggle_bottom_term()
+  ensure_bottom_term():toggle()
 end
 
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
@@ -98,18 +118,18 @@ vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Termi
 vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Toggle: Terminal (horizontal split)' })
 vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Toggle: Terminal (vertical split)' })
 
--- VS Code–style bottom terminal panel. Three triggers cover every environment:
+-- VS Code–style bottom terminal panel. Triggers cover every environment:
 --   <C-`>  works in Neovide + kitty (kitty keyboard protocol)
 --   <C-/>  Neovim sees <C-_> in terminals / <C-/> in GUI — reliable in iTerm2 too
 --   <leader>tb  universal fallback (also shown in which-key)
--- <C-/> is a different key from <C-\> (the float terminal) — no conflict.
--- t-mode maps are global (not buffer-local) so pressing the key inside the
--- panel hides it (VS Code toggle behavior).
-local term_modes = { 'n', 'i', 't' }
-vim.keymap.set(term_modes, '<C-`>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
-vim.keymap.set(term_modes, '<C-_>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' }) -- Ctrl+/ in terminals
-vim.keymap.set(term_modes, '<C-/>', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' }) -- Ctrl+/ in GUI (Neovide)
-vim.keymap.set('n',        '<leader>tb', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+-- Bound in normal + insert mode to open from anywhere; the terminal-mode
+-- hide-from-within bind is buffer-local (set in on_open above) so it doesn't
+-- shadow these keys inside the float / sidekick terminals. <C-/> is a different
+-- key from <C-\> (the float terminal) — no conflict.
+for _, lhs in ipairs(bottom_panel_keys) do
+  vim.keymap.set({ 'n', 'i' }, lhs, toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+end
+vim.keymap.set('n', '<leader>tb', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
 
 -- Pre-warm: spawn the shell into a hidden buffer so the first <C-\> /
 -- <leader>tt opens an already-running terminal instead of paying ~50–200ms
@@ -119,11 +139,7 @@ vim.keymap.set('n',        '<leader>tb', toggle_bottom_term, { desc = 'Toggle: T
 -- visible window). :ToggleTerm with no args toggles the lowest-id terminal,
 -- so spawning id=1 here is what <C-\> attaches to on first press.
 vim.defer_fn(function()
-  if #vim.api.nvim_list_uis() == 0 then return end -- headless: no UI, skip pre-warm so the spawned shells don't keep nvim alive
-  local Terminal = require('toggleterm.terminal').Terminal
-  Terminal:new({ id = 1 }):spawn()
-  -- Same pre-warm for the VS Code–style bottom panel so its first toggle opens
-  -- an already-running shell. hidden = true keeps it out of the count list.
-  bottom_term = Terminal:new({ direction = 'horizontal', hidden = true })
-  bottom_term:spawn()
+  if not utils.has_ui() then return end -- headless: skip so spawned shells don't keep nvim alive
+  require('toggleterm.terminal').Terminal:new({ id = 1 }):spawn()
+  ensure_bottom_term():spawn() -- pre-warm the panel too, sharing the one instance
 end, 100)
