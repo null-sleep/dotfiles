@@ -66,7 +66,65 @@ anything currently installed.
 
 ---
 
-## (Future) VS Code, JetBrains, etc.
+## VS Code
+
+VS Code's distinctive day-to-day features that have **no equivalent** in the
+current config are **sticky scroll** and **multi-cursor**. A few others (problems
+panel, breadcrumbs) overlap with the Zed section above — listed as cross-refs
+rather than duplicated.
+
+### Top pick: sticky scroll → `nvim-treesitter-context`
+Pins the enclosing scope (class / function / interface signatures) to the top of
+the window as you scroll, so you always know where you are in a deeply nested
+file and can jump back to the scope top. Cleanest, highest-value port — already
+running treesitter, so this is near-zero added cost.
+- https://github.com/nvim-treesitter/nvim-treesitter-context
+
+### Second pick: multi-cursor (Ctrl+D) → `multicursor.nvim` (or `vim-visual-multi`)
+VS Code's signature `Ctrl+D` "select next occurrence / edit many spots at once"
+flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-block
+— different ergonomics). The most-missed VS Code muscle memory for many vim users.
+- https://github.com/jake-stewart/multicursor.nvim
+- alt: https://github.com/mg979/vim-visual-multi
+
+### Other gaps (each fills a real hole)
+
+- **Peek definition / references (inline, no jump)** → `glance.nvim`
+  VS Code's "Peek Definition" opens an inline preview window instead of jumping
+  away. Native LSP only jumps. Complements the existing LSP setup.
+  - https://github.com/dnlhc/glance.nvim
+  - alt: https://github.com/rmagatti/goto-preview
+- **Tasks runner (tasks.json: build/test/run from the editor)** → `overseer.nvim`
+  VS Code's task system with a task list and output panel. No task runner today.
+  - https://github.com/stevearc/overseer.nvim
+- **Rename with live preview (F2)** → `inc-rename.nvim`
+  VS Code's rename shows changes as you type. Native LSP rename has no live
+  preview. Small, focused.
+  - https://github.com/smjonas/inc-rename.nvim
+- **Zen / centered layout** → `zen-mode.nvim`. Minor, nice-to-have.
+
+### Already covered (no action needed)
+
+- **Command palette** → telescope (`commands` / `command_history` pickers) +
+  which-key already cover this.
+- **Minimap** → `satellite.nvim` already provides the navigation/overview role
+  (git, diagnostics, search, cursor marks) without a full minimap render. A true
+  minimap (`neominimap` / `codewindow.nvim`) would be cosmetic overlap.
+- **Problems panel** → `trouble.nvim` (already listed under Zed).
+- **Breadcrumbs** → `dropbar.nvim` (already listed under Zed; VS Code shares it).
+- **Integrated terminal** → `toggleterm` (installed).
+
+### Recommendation / priority
+
+1. `nvim-treesitter-context` — sticky scroll; easiest high-value win.
+2. `multicursor.nvim` — fills the biggest VS Code muscle-memory gap.
+3. `glance.nvim` — peek definition/references.
+4. `overseer.nvim` — only if running build/test tasks from the editor.
+5. `inc-rename.nvim` — small polish on LSP rename.
+
+---
+
+## (Future) JetBrains, etc.
 
 Add sections here as more editors are reviewed.
 
@@ -77,3 +135,6 @@ Add sections here as more editors are reviewed.
 - Zed editing / multibuffers — https://zed.dev/docs/editing-code
 - Zed 2025 recap — https://zed.dev/2025
 - Zed git panel — https://zed.dev/docs/git
+- VS Code sticky scroll — https://dev.to/robole/vs-code-sticky-code-sections-for-improved-contextual-browsing-sticky-scroll-1o6
+- VS Code user interface (minimap, peek) — https://code.visualstudio.com/docs/getstarted/userinterface
+- nvim sticky scroll discussion — https://neovim.discourse.group/t/is-there-a-function-plugin-works-like-vs-codes-sticky-scroll/3173
