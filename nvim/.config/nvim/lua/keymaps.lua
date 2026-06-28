@@ -180,6 +180,8 @@ vim.keymap.set({'n', 'x'}, 'yC', yank.claude_ref_absolute,  { desc = 'Yank: Clau
 vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitHub permalink' })
 
 -- AI (sidekick.nvim): NES + Claude/Copilot CLI
+-- These are the *outside* entry points. Keymaps that act *inside* the CLI window
+-- go in the cli.win.keys table in ai.lua, not here.
 -- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
 -- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
 -- mode only, so there's no conflict. Telescope's <Tab> (multi-select) is
