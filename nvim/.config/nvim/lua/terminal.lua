@@ -85,8 +85,12 @@ vim.api.nvim_create_autocmd('TermOpen', {
     vim.keymap.set('t', '<C-l>',  [[<Cmd>wincmd l<CR>]], opts)
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
     vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
-    -- Prevent Shift+Enter from closing the terminal — send a plain newline instead.
-    vim.keymap.set('t', '<S-CR>', '<CR>', opts)
+    -- Shift+Enter: send a linefeed so the running program inserts a newline.
+    -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal
+    -- that transmits Shift+Enter distinctly (iTerm2 requires CSI u enabled).
+    vim.keymap.set('t', '<S-CR>', function()
+      vim.fn.chansend(vim.b.terminal_job_id, '\n')
+    end, opts)
   end,
 })
 
@@ -115,6 +119,7 @@ vim.keymap.set('n',        '<leader>tb', toggle_bottom_term, { desc = 'Toggle: T
 -- visible window). :ToggleTerm with no args toggles the lowest-id terminal,
 -- so spawning id=1 here is what <C-\> attaches to on first press.
 vim.defer_fn(function()
+  if #vim.api.nvim_list_uis() == 0 then return end -- headless: no UI, skip pre-warm so the spawned shells don't keep nvim alive
   local Terminal = require('toggleterm.terminal').Terminal
   Terminal:new({ id = 1 }):spawn()
   -- Same pre-warm for the VS Code–style bottom panel so its first toggle opens
