@@ -72,5 +72,19 @@ opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
 opt.swapfile = false                   -- no swap files (undofile handles recovery)
 
+-- justfile detection: map justfiles to the 'just' filetype so the treesitter
+-- parser and conform's just formatter attach. Covers the common spellings in
+-- case the running Neovim doesn't ship just detection natively.
+vim.filetype.add({
+  filename = {
+    justfile = 'just',
+    Justfile = 'just',
+    ['.justfile'] = 'just',
+  },
+  pattern = {
+    ['.*%.just'] = 'just',
+  },
+})
+
 require('utils').check_nvim_update()
 
