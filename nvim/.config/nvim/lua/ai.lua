@@ -17,6 +17,16 @@ require('sidekick').setup({
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
       -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
       wo = { scrolloff = 0 },
+      -- Extra in-window keymaps. Sidekick owns the keymaps inside CLI buffers via
+      -- this `keys` table (merged over its defaults: q / <C-q> / <C-.> already
+      -- hide, <C-z> blurs, <C-b>/<C-f> pick buffers/files, etc.). Add bindings
+      -- here rather than in a FileType autocmd so they live with the rest of the
+      -- CLI config and use sidekick's own actions. <C-\> mirrors toggleterm's
+      -- float toggle: from inside the open window "hide" tucks Claude away with
+      -- its session intact (same as <leader>aa).
+      keys = {
+        toggle_bslash = { [[<c-\>]], 'hide', mode = 'nt', desc = 'hide Claude (toggleterm-style)' },
+      },
       -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
       -- open_win for one that creates a hidden float instead of a visible
       -- split. See the pre-warm block at the bottom of this file.
@@ -54,12 +64,6 @@ vim.api.nvim_create_autocmd('FileType', {
   desc = 'Sidekick CLI: keymaps for terminal and normal mode',
   callback = function(args)
     vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
-
-    -- <C-\> hides the Claude CLI from inside its own terminal, like the
-    -- <leader>aa toggle. Buffer-local in t/n mode: nothing else maps <C-\> here.
-    vim.keymap.set({ 't', 'n' }, [[<C-\>]],
-      function() require('sidekick.cli').toggle({ name = 'claude' }) end,
-      { buffer = args.buf, desc = 'AI: Toggle Claude CLI' })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
