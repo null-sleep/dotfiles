@@ -56,6 +56,7 @@ wk.add({
 -- Extra search keywords for pickers/keybindings.lua — keyed by lhs, value is a
 -- space-separated string of aliases that don't appear in the desc.
 local keywords = {
+  ['K']          = 'peek hover type signature documentation definition lsp float',
   ['<C-o>']      = 'jump back go back previous location history',
   ['<C-i>']      = 'jump forward go forward next location history',
   ['<leader>e']  = 'explorer file tree sidebar nvim-tree toggle reveal',

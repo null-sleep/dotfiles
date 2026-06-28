@@ -224,9 +224,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
     if client:supports_method('textDocument/typeDefinition') then
       map('n', 'gy',             vim.lsp.buf.type_definition, 'LSP: Go to type definition')
     end
-    -- K: override 0.12 default to apply max_height. [d/]d (diagnostic jump) left as defaults.
-    -- The defaults also support count: 3]d jumps 3 diagnostics forward.
-    map('n', 'K', function() vim.lsp.buf.hover({ max_height = 20 }) end, 'LSP: Hover')
+    -- K: peek the symbol under the cursor — its type, function signature, and
+    -- doc comment — in a float, without leaving the line (no jump, unlike gd/gy).
+    -- Press K again to enter the float and scroll; any cursor move dismisses it.
+    -- Overrides the 0.12 default purely to cap the float at max_height=20 lines.
+    -- [d/]d (diagnostic jump) left as defaults; those support count (3]d = jump 3).
+    map('n', 'K', function() vim.lsp.buf.hover({ max_height = 20 }) end, 'LSP: Hover (peek type/signature/docs)')
     -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
     -- If the terminal hangs after pressing it, run `stty -ixon` in your shell rc.
     map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
