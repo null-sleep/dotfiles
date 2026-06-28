@@ -20,6 +20,56 @@ require('mason').setup({
   },
 })
 
+-- mason-tool-installer: declaratively install formatter/linter CLIs (the binaries
+-- conform.nvim and nvim-lint shell out to). mason-lspconfig handles LSP servers;
+-- this handles everything else. Excludes mix_format/credo (per-project Elixir mix
+-- deps, not Mason packages) and xmllint/just (system / user-provided CLIs).
+vim.cmd.packadd('mason-tool-installer.nvim')
+require('mason-tool-installer').setup({
+  ensure_installed = {
+    'stylua',         -- lua formatter
+    'ruff',           -- python formatter + linter
+    'prettierd',      -- js/ts/json/yaml formatter
+    'goimports',      -- go formatter
+    'golangci-lint',  -- go linter
+    'ktlint',         -- kotlin formatter
+    'taplo',          -- toml formatter
+    'yamllint',       -- yaml linter
+    'checkmake',      -- makefile linter
+  },
+})
+
+-- Notify on startup if any Mason packages have updates available (async, won't delay startup).
+vim.api.nvim_create_autocmd('VimEnter', {
+  once = true,
+  callback = function()
+    local registry = require('mason-registry')
+    -- refresh() reloads the registry index, then we compare each installed
+    -- package's on-disk version against the registry's latest. mason-org dropped
+    -- the old async pkg:check_new_version; get_installed_version/get_latest_version
+    -- are the current API (both sync, but get_latest_version can throw → pcall).
+    registry.refresh(function()
+      local outdated = {}
+      for _, pkg in ipairs(registry.get_installed_packages()) do
+        local installed = pkg:get_installed_version()
+        local ok, latest = pcall(pkg.get_latest_version, pkg)
+        if ok and installed and latest and installed ~= latest then
+          outdated[#outdated + 1] = pkg.name
+        end
+      end
+      if #outdated > 0 then
+        vim.schedule(function()
+          vim.notify(
+            ('Mason: %d update(s) available — :Mason → U'):format(#outdated),
+            vim.log.levels.INFO,
+            { title = 'Mason' }
+          )
+        end)
+      end
+    end)
+  end,
+})
+
 -- mason-lspconfig: auto-installs servers from ensure_installed on startup
 require('mason-lspconfig').setup({
   ensure_installed = {
@@ -30,6 +80,7 @@ require('mason-lspconfig').setup({
     'rust_analyzer',
     'elixirls',
     'kotlin_language_server',
+    'eslint',
     'copilot',
   },
   -- Disable automatic_enable so our explicit vim.lsp.enable() below is the
@@ -244,7 +295,7 @@ vim.lsp.config('gopls', {
 })
 
 vim.lsp.config('rust_analyzer', {
-  settings = { ['rust-analyzer'] = { checkOnSave = { command = 'clippy' } } },
+  settings = { ['rust-analyzer'] = { checkOnSave = true, check = { command = 'clippy' } } },
 })
 
 -- Explicit root markers ensure Maven projects get a workspace root (not single-file mode).
@@ -258,4 +309,18 @@ vim.lsp.config('copilot', {
   },
 })
 
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'kotlin_language_server', 'copilot' })
+-- eslint: JS/TS linting as an LSP — diagnostics plus code actions (fix-all available
+-- via <leader>ca). lspconfig's default config supplies root markers (.eslintrc*,
+-- eslint.config.js) and the on_attach that registers the EslintFixAll command.
+-- Diagnostics-only by design: no fix-on-save autocmd, to avoid fighting the
+-- <leader>tf format-on-save toggle.
+--
+-- NOTE: eslint is a LINTER delivered as an LSP, not via nvim-lint. Several tools
+-- here double as linters/formatters this way (eslint lints JS/TS; rust_analyzer
+-- runs clippy; gopls/pyright/lua_ls publish diagnostics; servers can also format
+-- via conform's lsp_format = 'fallback'). So the linting/formatting story is split
+-- across THIS file and lint.lua / format.lua — when changing a linter or formatter,
+-- account for the LSP-delivered ones here too, don't assume everything is an autocmd.
+vim.lsp.config('eslint', {})
+
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'kotlin_language_server', 'eslint', 'copilot' })

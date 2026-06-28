@@ -1,3 +1,14 @@
+-- IMPORTANT — formatting in this config comes from TWO subsystems, not just here:
+--   1. conform.nvim (this file) — runs CLI formatters via format_on_save / <leader>cf.
+--   2. LSP servers (lsp.lua)    — some servers format via textDocument/formatting.
+-- conform's lsp_format = 'fallback' ties them together: a configured CLI formatter
+-- wins, and conform delegates to the LSP only when no CLI formatter runs for the ft
+-- — e.g. rust falls back to rust_analyzer if rustfmt is missing (see the rust entry),
+-- and any filetype with no entry below is formatted by its LSP if the server supports
+-- it. So the full formatting picture is split across both files — when adding,
+-- removing, or auditing a formatter, check lsp.lua too, and remember an ft with no
+-- entry below may still be formatted by its LSP. (Same split applies to linting —
+-- see lint.lua.)
 vim.cmd.packadd('conform.nvim')
 
 -- Format-on-save off by default — it rewrites the buffer on every :w which
@@ -6,11 +17,13 @@ vim.cmd.packadd('conform.nvim')
 vim.g.disable_autoformat = true
 
 require('conform').setup({
-  -- No `lua` entry: lua_ls handles it via the lsp_format = 'fallback' path below.
   formatters_by_ft = {
+    lua    = { 'stylua' },
     python = { 'ruff_organize_imports', 'ruff_format' },
     go     = { 'goimports', 'gofmt' },
     rust   = { 'rustfmt', lsp_format = 'fallback' },
+    elixir = { 'mix_format' },
+    kotlin = { 'ktlint' },
     -- stop_after_first: prefer prettierd (daemon, ~10x faster); fall through
     -- to prettier only if prettierd is unavailable. Without it, both would run.
     javascript      = { 'prettierd', 'prettier', stop_after_first = true },
@@ -19,6 +32,31 @@ require('conform').setup({
     typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
     json = { 'prettierd', 'prettier', stop_after_first = true },
     yaml = { 'prettierd', 'prettier', stop_after_first = true },
+    toml = { 'taplo' },
+    -- Custom formatters (defined below). Both depend on external CLIs (system
+    -- xmllint, user-installed just) — conform no-ops the ft if absent.
+    xml  = { 'xmllint' },
+    just = { 'just' },
+  },
+
+  -- Custom formatter definitions for tools conform doesn't ship.
+  formatters = {
+    -- xmllint ships with libxml2 (preinstalled on macOS). --format pretty-prints
+    -- from stdin; XMLLINT_INDENT controls indentation (two spaces).
+    xmllint = {
+      command = 'xmllint',
+      args = { '--format', '-' },
+      stdin = true,
+      env = { XMLLINT_INDENT = '  ' },
+    },
+    -- `just --fmt` rewrites a justfile in place, so it can't stream stdin →
+    -- stdout. Run against the real file (stdin = false); --unstable is still
+    -- required for the formatter as of just 1.x.
+    just = {
+      command = 'just',
+      args = { '--fmt', '--unstable', '--justfile', '$FILENAME' },
+      stdin = false,
+    },
   },
 
   default_format_opts = { lsp_format = 'fallback' },
