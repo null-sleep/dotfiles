@@ -55,6 +55,12 @@ vim.api.nvim_create_autocmd('FileType', {
   callback = function(args)
     vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
 
+    -- <C-\> hides the Claude CLI from inside its own terminal, like the
+    -- <leader>aa toggle. Buffer-local in t/n mode: nothing else maps <C-\> here.
+    vim.keymap.set({ 't', 'n' }, [[<C-\>]],
+      function() require('sidekick.cli').toggle({ name = 'claude' }) end,
+      { buffer = args.buf, desc = 'AI: Toggle Claude CLI' })
+
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
       return function()
@@ -87,7 +93,7 @@ vim.api.nvim_create_autocmd('FileType', {
 -- editor. Gated on a `.git` ancestor (using vim.fs.root so it works for git
 -- worktrees, where .git is a file rather than a directory) so we don't spawn
 -- claude when nvim opens a single file outside a project.
-if vim.fs.root(0, '.git') then
+if vim.fs.root(0, '.git') and #vim.api.nvim_list_uis() > 0 then -- skip claude pre-warm when headless: the spawned CLI job would keep nvim alive
   vim.defer_fn(function()
     local cli = require('sidekick.cli')
     _G.__sidekick_prewarm = true

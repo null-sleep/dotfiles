@@ -204,6 +204,15 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
   transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
 
+- **Shift+Enter → newline in terminals** — inside `<C-\>` / `<leader>tt`
+  terminals (and the bottom panel), `<S-CR>` sends a linefeed so CLIs like
+  Claude/Codex insert a newline instead of submitting (`terminal.lua`).
+  This only works if the terminal transmits Shift+Enter distinctly via CSI u.
+  **In iTerm2**, enable *Settings → Profiles → Keys → General → "Report
+  modifiers using CSI u"*. kitty, WezTerm, Ghostty and Neovide do it natively;
+  Terminal.app cannot. `<leader>aa` (sidekick) works regardless — Neovim
+  forwards the key to the CLI directly there.
+
 - **Mouse back/forward buttons** — browser-style jumplist navigation
   on the side buttons. Two paths reach the same result:
 
