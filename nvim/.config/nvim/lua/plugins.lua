@@ -41,6 +41,8 @@ vim.pack.add(vim.list_extend({
   { src = gh('okuuva/auto-save.nvim') },
   { src = gh('windwp/nvim-autopairs') },
   { src = gh('stevearc/conform.nvim') },
+  { src = gh('mfussenegger/nvim-lint') },
+  { src = gh('WhoIsSethDaniel/mason-tool-installer.nvim') },
   { src = gh('akinsho/toggleterm.nvim') },
   { src = gh('willothy/flatten.nvim') },
   -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
@@ -214,7 +216,7 @@ vim.api.nvim_create_autocmd('PackChanged', {
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
   'rust', 'elixir', 'kotlin', 'markdown', 'json', 'yaml', 'ini', 'graphql',
-  'html', 'css', 'bash', 'vim', 'toml',
+  'html', 'css', 'bash', 'vim', 'toml', 'make', 'xml', 'just',
 }
 
 pcall(function()
