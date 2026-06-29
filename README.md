@@ -144,6 +144,44 @@ local until you move them into the repo and re-stow.
 
 To build another theme matching a different Neovim colorscheme, use the **`nvim-theme-to-claude`** skill (`claude/.claude/skills/`, synced to `~/.claude/skills/` via stow). It reads the nvim palette, maps it to Claude Code's color tokens, and reproduces nvim's exact diff-blend math — invoke it with something like "make a Claude theme matching my tokyonight nvim theme".
 
+### Syncing to another machine
+
+To pull the theme and skill onto a machine that already has a `~/.claude/`
+directory (and possibly an older checkout of this repo):
+
+```bash
+# 1. push from the machine where you made the changes
+git -C ~/src/dotfiles push
+
+# 2. on the other machine
+cd ~/src/dotfiles
+git pull
+stow -R --no-folding claude            # the key command — see below
+bash ~/src/dotfiles/claude/setup-theme.sh   # optional: activate the Latte theme
+```
+
+Then **restart Claude Code** so it discovers the new skill and theme.
+
+Use `stow -R --no-folding claude` (not a plain `stow claude`):
+
+- **`-R` (restow)** removes any stale links from the older checkout first. If
+  that machine has `~/.claude/themes` as an old folded directory symlink (from a
+  previous `stow claude`), `-R` unfolds it into a real directory before
+  relinking. It works whether the target is currently a real dir, a folded
+  symlink, or was never stowed.
+- **`--no-folding`** keeps `~/.claude/themes/` and `~/.claude/skills/` as real
+  directories, so the existing folders and any machine-local files in them are
+  preserved.
+- **Non-destructive**: if that machine already has a real `catppuccin-latte.json`
+  or its own `nvim-theme-to-claude/` skill, stow aborts without touching
+  anything. To merge instead, move the local file aside, or run
+  `stow --adopt --no-folding claude` to pull the existing file into the repo
+  (then `git checkout -- <file>` if you want the repo's version to win).
+
+For the skill only, skip the `setup-theme.sh` step — `git pull`,
+`stow -R --no-folding claude`, restart. The skill then lives at
+`~/.claude/skills/nvim-theme-to-claude/` and is invokable from any project.
+
 ## Claude Squad
 
 Terminal app for running multiple AI coding agents (Claude Code, Codex, Gemini, Aider) in parallel. Each session gets an isolated [git worktree](https://git-scm.com/docs/git-worktree) and its own [tmux](https://github.com/tmux/tmux) session — no branch conflicts, and tasks keep running in the background. See [smtg-ai/claude-squad](https://github.com/smtg-ai/claude-squad).
