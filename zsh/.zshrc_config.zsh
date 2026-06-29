@@ -63,6 +63,10 @@ zstyle ':completion:*' completer _expand_alias _complete _ignored
 export PATH="$HOME/.local/bin:$PATH"
 # Homebrew: Apple Silicon uses /opt/homebrew, Intel uses /usr/local (already in PATH by default)
 [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
+# Prefer Homebrew's python@3.12 (unversioned python3/pip3) over macOS's outdated
+# system python3 (3.9). brew installs it keg-only, exposing the unversioned
+# binaries here. Guarded so it's a harmless no-op where the formula isn't present.
+[[ -d /opt/homebrew/opt/python@3.12/libexec/bin ]] && export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:$PATH"
 # Rust
 export PATH="$HOME/.cargo/bin:$PATH"
 
