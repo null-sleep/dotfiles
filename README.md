@@ -101,12 +101,19 @@ The `claude` stow package manages the status line script — a custom status bar
 
 ```bash
 cd ~/src/dotfiles
-stow claude
+stow --no-folding claude
 # Inject the statusLine block into ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-statusline.sh
 # Activate the Catppuccin Latte theme in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-theme.sh
 ```
+
+The `--no-folding` flag is important: it keeps `~/.claude/themes/` and
+`~/.claude/skills/` as **real directories** with only the repo's individual
+files symlinked in, so any machine-local themes or skills already there coexist
+untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
+with a single directory symlink (a "fold"), which can't hold local files
+alongside the synced ones.
 
 Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:catppuccin-latte"`. Re-running either when already configured is a no-op.
 
@@ -115,7 +122,8 @@ Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusl
 | File | Method |
 |---|---|
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
-| `~/.claude/themes/` (incl. `catppuccin-latte.json`) | Symlinked via stow |
+| `~/.claude/themes/catppuccin-latte.json` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/nvim-theme-to-claude/` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 
@@ -125,7 +133,16 @@ Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusl
 
 `catppuccin-latte.json` is a custom Claude Code theme (requires Claude Code v2.1.118+) whose palette matches the Neovim `catppuccin-latte` colorscheme, including nvim's exact diff-blend values. To activate a different one, change the `theme` key in `setup-theme.sh` (or just pick it in `/theme`).
 
-When `~/.claude/themes/` does not already exist, `stow claude` folds the whole directory into a symlink pointing at the repo — so themes you later create or edit via `/theme` are tracked automatically and sync on the next `stow claude`. On a machine where `~/.claude/themes/` already exists as a real directory, stow instead links the individual theme file into it (and will **fail with a conflict** if a real `catppuccin-latte.json` already exists there — move it aside first). In that case, locally-created themes stay local rather than syncing.
+**Adding more synced themes/skills:** drop the file into `claude/.claude/themes/`
+or `claude/.claude/skills/` in the repo and re-run `stow --no-folding claude`.
+Stow is non-destructive — it links the new file alongside whatever is already in
+the target directory and **never overwrites** a real file; if a real file of the
+same name already exists it aborts the whole operation rather than clobbering it
+(pass `--adopt` to pull that pre-existing file into the repo instead). Themes you
+create locally via `/theme` land as real files in `~/.claude/themes/` and stay
+local until you move them into the repo and re-stow.
+
+To build another theme matching a different Neovim colorscheme, use the **`nvim-theme-to-claude`** skill (`claude/.claude/skills/`, synced to `~/.claude/skills/` via stow). It reads the nvim palette, maps it to Claude Code's color tokens, and reproduces nvim's exact diff-blend math — invoke it with something like "make a Claude theme matching my tokyonight nvim theme".
 
 ## Claude Squad
 
