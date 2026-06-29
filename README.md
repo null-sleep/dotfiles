@@ -95,7 +95,7 @@ The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` f
 
 ## Claude Code
 
-The `claude` stow package manages the status line script — a custom status bar that displays model name, git branch, context window %, session/monthly cost, and per-message context growth bars.
+The `claude` stow package manages the status line script — a custom status bar that displays model name, git branch, context window %, session/monthly cost, and per-message context growth bars — plus a custom **Catppuccin Latte** color theme.
 
 ### Setup
 
@@ -104,18 +104,28 @@ cd ~/src/dotfiles
 stow claude
 # Inject the statusLine block into ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-statusline.sh
+# Activate the Catppuccin Latte theme in ~/.claude/settings.json (one-time)
+bash ~/src/dotfiles/claude/setup-theme.sh
 ```
 
-The setup script uses `jq` to add the `statusLine` config to `settings.json`. If the block already exists with a hardcoded path, it updates it to use `$HOME`. If already configured correctly, it's a no-op.
+Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:catppuccin-latte"`. Re-running either when already configured is a no-op.
 
 ### What's managed
 
 | File | Method |
 |---|---|
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
+| `~/.claude/themes/` (incl. `catppuccin-latte.json`) | Symlinked via stow |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
+| `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 
 `settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions).
+
+### Theme
+
+`catppuccin-latte.json` is a custom Claude Code theme (requires Claude Code v2.1.118+) whose palette matches the Neovim `catppuccin-latte` colorscheme, including nvim's exact diff-blend values. To activate a different one, change the `theme` key in `setup-theme.sh` (or just pick it in `/theme`).
+
+When `~/.claude/themes/` does not already exist, `stow claude` folds the whole directory into a symlink pointing at the repo — so themes you later create or edit via `/theme` are tracked automatically and sync on the next `stow claude`. On a machine where `~/.claude/themes/` already exists as a real directory, stow instead links the individual theme file into it (and will **fail with a conflict** if a real `catppuccin-latte.json` already exists there — move it aside first). In that case, locally-created themes stay local rather than syncing.
 
 ## Claude Squad
 
@@ -750,7 +760,7 @@ Two ways to open a file in it:
 
 ### Setup
 
-Color themes (Dracula, Nord) and an exported settings snapshot are stored in `iterm2/`.
+Color themes (Dracula, Nord, Catppuccin Latte) and an exported settings snapshot are stored in `iterm2/`.
 
 To sync settings automatically across machines:
 
