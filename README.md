@@ -999,7 +999,7 @@ zellij-forgot downloads its wasm binary from GitHub releases on first use.
 
 ```bash
 # Dependencies
-brew install fzf ripgrep direnv
+brew install fzf ripgrep direnv zoxide
 
 # Install Antigen (zsh plugin manager). Antigen will clone oh-my-zsh and all
 # configured plugins into ~/.antigen/bundles on first shell launch — no need
@@ -1022,6 +1022,16 @@ echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 ```
 
 Open a new shell. On the first launch antigen clones every bundle (takes ~20s) and writes a cached loader to `~/.antigen/init.zsh`. Subsequent launches just source the cache.
+
+### Directory jumping (zoxide)
+
+`z <partial-dir>` jumps to the most "frecent" (frequency + recency) directory matching the term; `zi <partial-dir>` opens an fzf picker. This is provided by [zoxide](https://github.com/ajeetdsouza/zoxide), a Rust binary — **not** an antigen bundle. `.zshrc_config.zsh` initializes it after the plugins load:
+
+```zsh
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
+```
+
+So the only per-machine step is `brew install zoxide` (included in the deps above). The database lives at `~/.local/share/zoxide/` and fills in as you `cd` around. zoxide replaced the old `antigen bundle z` line — oh-my-zsh ships no `z` plugin, so that bundle was a silent no-op.
 
 ### nvim-editor
 
@@ -1058,6 +1068,14 @@ Best-effort timeout via coreutils `timeout`/`gtimeout` (`brew install coreutils`
 - **`~/.zshrc_shared.zsh`** — stowed from this repo. Shared per-project tooling. Lives in version control.
 - **`~/.zshrc_work.zsh`** — *not* stowed. `zsh/.stow-local-ignore` excludes it so each work machine drops its own copy at `~/.zshrc_work.zsh`. The repo copy is a reference template.
 
+> **Gotcha:** `zsh/.stow-local-ignore` is itself gitignored (see the root `.gitignore`), so it does **not** exist on a fresh clone. Until you create it, `stow zsh` will symlink `.zshrc_work.zsh` into `~` along with everything else — and a non-work machine then runs the Work colima/AWS setup on every shell launch. On a personal machine, create it **before** stowing:
+>
+> ```bash
+> printf '.zshrc_work.zsh\n' > zsh/.stow-local-ignore
+> ```
+>
+> On a Work work machine, skip this and drop your real `~/.zshrc_work.zsh` in place instead.
+
 Secrets go in `~/.zshenv`, which is not managed by stow.
 
 ### Troubleshooting antigen
@@ -1091,7 +1109,36 @@ git config --global rerere.enabled true
 
 # Better diff output — shows moved lines in a different color
 git config --global diff.colorMoved dimmed-zebra
+
+# Editor — fallback when $GIT_EDITOR/$EDITOR are unset (the shell sets
+# GIT_EDITOR=nvim-editor, which takes precedence; see the ZSH section)
+git config --global core.editor nvim
+
+# Always talk to GitHub over SSH, even for https:// remotes (see SSH note below)
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+# On first push of a new branch, auto-create its upstream instead of erroring
+git config --global push.autoSetupRemote true
+
+# Default the push remote to origin
+git config --global remote.pushDefault origin
 ```
+
+### SSH for GitHub
+
+The `url.…insteadOf` rewrite above sends **all** GitHub traffic — including clones of `https://github.com/…` URLs — over SSH, so an SSH key registered with your GitHub account is required. If the key isn't a default name (`~/.ssh/id_ed25519`), SSH won't present it automatically: add a `~/.ssh/config` entry so `git@github.com` uses the right key.
+
+```sshconfig
+# ~/.ssh/config  (chmod 600)
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/github   # path to your private key
+  IdentitiesOnly yes
+  AddKeysToAgent yes
+```
+
+Verify with `ssh -T git@github.com` — a successful run prints `Hi <username>!`. `~/.gitconfig` and `~/.ssh/config` are per-machine and **not** managed by stow.
 
 ## Stow
 

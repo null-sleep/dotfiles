@@ -15,7 +15,8 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   # https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/sudo
   # antigen bundle sudo
 
-  antigen bundle z
+  # Directory-jump (`z`/`zi`) is provided by zoxide, a binary initialized
+  # below after antigen — not an antigen bundle. oh-my-zsh ships no `z` plugin.
   antigen bundle git
   antigen bundle brew
   antigen bundle macos
@@ -100,6 +101,10 @@ fi
 
 # FZF
 command -v fzf >/dev/null && source <(fzf --zsh)
+
+# zoxide — smarter `cd`. Provides `z <partial>` (jump by frecency) and `zi`
+# (interactive fzf pick). Must init after plugins/compinit. `brew install zoxide`.
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 
 # Git
