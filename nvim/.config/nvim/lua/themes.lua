@@ -57,6 +57,15 @@ M.global_overrides = {
   NvimTreeGitFileIgnoredHL   = { link = 'Comment' },
   -- Indent guide lines — default is too faint, NonText is visible but unobtrusive
   NvimTreeIndentMarker       = { link = 'NonText' },
+
+  -- sidekick AI CLI window: sidekick deliberately renders its chat/CLI pane on
+  -- the floating-window background (its SidekickChat group links to NormalFloat),
+  -- so the AI panel reads as a distinct surface — slightly offset from Normal,
+  -- the way most themes style floats. This is a plugin design choice, not ours.
+  -- We keep it: the subtle offset makes the AI pane easy to tell apart from the
+  -- buffer you're editing. To make the pane match the editor exactly instead,
+  -- link it to Normal (theme-agnostic — adapts to whatever Normal is):
+  -- SidekickChat = { link = 'Normal' },
 }
 
 -- Diff background overrides — many themes set DiffAdd to garish solid green.
