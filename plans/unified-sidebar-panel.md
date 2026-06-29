@@ -57,7 +57,15 @@ This matches the "sub items collapsed by default" idea most closely.
 ## Missing piece for the outline: a persistent symbols pane
 
 The current symbols Telescope picker won't dock into a panel. Need a real
-sidebar plugin:
+sidebar plugin.
+
+Worth being explicit about what such a pane reproduces: Zed's outline (and the
+equivalent in any of these plugins) is **not** doing clever "relevant symbol"
+selection. It renders LSP `textDocument/documentSymbol`, which the server already
+returns as a hierarchy (methods nested under their type) with locals, params, and
+loop vars excluded. So the screenshot-faithful result is automatic on that
+endpoint — the plugin choice below is about the *pane* (docking, cursor-follow,
+search, filters), not about any filtering smarts. Candidates:
 
 - **aerial.nvim** (stevearc) — https://github.com/stevearc/aerial.nvim
   Recommended. Mature. Has the miller-column `AerialNav` view (like navbuddy),
