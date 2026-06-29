@@ -1034,6 +1034,23 @@ This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR
 
 The script is included in the `zsh` stow package. On a new machine, `stow zsh` symlinks it into `~/.local/bin/` (already on `$PATH`).
 
+### claude-nvim
+
+`claude-nvim` (stowed to `~/.local/bin/claude-nvim`) is the **opposite** of `nvim-editor`: it runs this repo's real Neovim config in a throwaway, fully **isolated** headless instance — for *testing* config changes, not editing files.
+
+Why it exists: when Claude Code (or any tool) runs inside an nvim-hosted terminal, its shells inherit `$NVIM` (the host's RPC socket). A bare `nvim …` from there is intercepted by `flatten.nvim` and executed against the **live** editor — including `+qa`, which quits the host and kills the session running inside it. `claude-nvim` strips `$NVIM` so the child boots as an independent process that can't touch — or crash — the host. It also runs from a temp cwd, disables persistence session-save, and uses `-n -i NONE` so it never clobbers the host's swap/shada/session state.
+
+```sh
+claude-nvim check              # load the full config headless; surface startup errors
+claude-nvim theme <variant>    # apply a colorscheme variant; prints "OK <name>" or "ERROR: …"
+claude-nvim lua '<code>'       # run lua against the real config; output to stdout
+claude-nvim -- <raw nvim args> # escape hatch
+```
+
+Best-effort timeout via coreutils `timeout`/`gtimeout` (`brew install coreutils` on macOS); without it the trailing `+qa` still quits. The script is in the `zsh` stow package.
+
+**Rule of thumb:** if `echo $NVIM` is non-empty, never call bare `nvim` from a script/tool — use `claude-nvim` (isolated) or `nvim-editor` (routes into the host, for `$EDITOR` use).
+
 ### Per-machine config
 
 `.zshrc_config.zsh` conditionally sources two optional files:

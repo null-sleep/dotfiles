@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# claude-nvim — run THIS repo's real Neovim config in a throwaway, fully isolated
+# headless instance. Safe to call from inside a Neovim-hosted terminal (e.g. a
+# Claude Code session running under sidekick/toggleterm).
+#
+# WHY THIS EXISTS
+#   When Claude Code runs inside nvim, every shell it spawns inherits $NVIM (the
+#   host's RPC socket). A bare `nvim ...` from there is intercepted by flatten.nvim
+#   and executed against the LIVE editor — including `+qa`, which quits the host
+#   and kills the Claude session living inside it. (This crashed the editor twice.)
+#   This wrapper strips $NVIM so the child boots as an independent process that
+#   cannot touch — or crash — the host. See README → "claude-nvim".
+#
+# ISOLATION (defense in depth)
+#   env -u NVIM …   detach from the host RPC socket  → flatten can't reroute/crash it
+#   tmp cwd         persistence sessions are keyed by cwd → can't overwrite the repo's
+#   persistence.stop()  belt-and-suspenders: disable session autosave on exit
+#   -n              no swapfile
+#   -i NONE         no shada read/write (don't touch host marks/registers/history)
+#   CLAUDE_NVIM=1   marker the config may honor to skip stateful side effects
+#   timeout + +qa   can never hang or be left running
+#
+# USAGE
+#   claude-nvim theme <variant>    # load a colorscheme; print "OK <name>" or the error
+#   claude-nvim lua '<lua code>'   # run lua in the real config; output to stdout
+#   claude-nvim check              # load the full config headless; report startup errors
+#   claude-nvim -- <raw nvim args> # escape hatch: pass args straight to the isolated nvim
+#
+# Override the 120s cap with CLAUDE_NVIM_TIMEOUT=<seconds>.
+set -uo pipefail
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# A timeout cap is best-effort: coreutils `timeout` (Linux) or `gtimeout`
+# (macOS `brew install coreutils`). Absent both, rely on the trailing +qa to
+# quit headless nvim once its commands finish.
+TIMEOUT_BIN=""
+if   command -v timeout  >/dev/null 2>&1; then TIMEOUT_BIN=timeout
+elif command -v gtimeout >/dev/null 2>&1; then TIMEOUT_BIN=gtimeout
+fi
+
+# Run the isolated, headless nvim. Always disables persistence session-save and
+# force-quits afterwards. Extra args ("$@") run between those two.
+iso() {
+  local pre=(env -u NVIM -u NVIM_LISTEN_ADDRESS CLAUDE_NVIM=1)
+  [ -n "$TIMEOUT_BIN" ] && pre+=("$TIMEOUT_BIN" "${CLAUDE_NVIM_TIMEOUT:-120}")
+  ( cd "$TMP" && "${pre[@]}" \
+      nvim --headless -n -i NONE \
+        +'lua pcall(function() require("persistence").stop() end)' \
+        "$@" +qa ) 2>&1
+}
+
+sub="${1:-check}"; shift || true
+case "$sub" in
+  theme)
+    v="${1:?usage: claude-nvim theme <variant>}"
+    # Validate the variant first: themes.apply() silently no-ops unknown names
+    # (returns before touching the colorscheme), so a pcall alone can't catch a
+    # typo — it would report the still-active startup theme as "OK".
+    iso +"lua local t=require('themes'); local v='${v}'; local known=false; for _,x in ipairs(t.all_variants()) do if x==v then known=true break end end; if not known then io.stdout:write('ERROR: unknown variant '..v..'\\n') else local ok,err=pcall(function() t.apply(v) end); io.stdout:write(ok and ('OK '..(vim.g.colors_name or '?')..'\\n') or ('ERROR: '..tostring(err)..'\\n')) end"
+    ;;
+  lua)
+    code="${*:?usage: claude-nvim lua '<lua code>'}"
+    iso +"lua ${code}"
+    ;;
+  check)
+    iso +"lua io.stdout:write('startup-ok\\n')"
+    ;;
+  --)
+    iso "$@"
+    ;;
+  *)
+    echo "claude-nvim: unknown subcommand '${sub}' (use: theme | lua | check | --)" >&2
+    exit 2
+    ;;
+esac
