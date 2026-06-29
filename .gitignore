@@ -1,4 +1,9 @@
 zsh/.stow-local-ignore
 
-# Claude Code local state: personal permission allowlist + transient agent worktrees
-.claude/
+# Claude Code local state: personal permission allowlist + transient agent worktrees.
+# Anchored to repo root so it does NOT match the `claude/.claude/` stow package.
+/.claude/
+
+# Per-machine Claude Code local settings, wherever they appear (e.g. nvim/.config/nvim/.claude/).
+# Kept explicit so it survives the root-anchoring above and on machines without a global gitignore.
+**/.claude/settings.local.json
