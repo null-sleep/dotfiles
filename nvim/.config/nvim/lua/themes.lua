@@ -261,6 +261,48 @@ M.themes = {
     },
   },
 
+  flexoki = {
+    src  = gh('kepano/flexoki-neovim'),
+    name = 'flexoki-neovim',
+    -- Official Flexoki port by kepano (the palette's creator); the older
+    -- nuvic/flexoki-nvim is archived. Registers three real colorschemes —
+    -- 'flexoki' (auto, follows background) plus explicit dark/light — so no
+    -- virtual variant mapping is needed.
+    variants = {
+      'flexoki',             -- auto; follows vim.opt.background (dark by default here)
+      'flexoki-dark',        -- dark; warm paper-and-ink palette on near-black bg, muted earthy accents
+      'flexoki-light',       -- light; warm cream "paper" bg with inky foreground, low saturation
+    },
+  },
+
+  melange = {
+    src  = gh('savq/melange-nvim'),
+    name = 'melange-nvim',
+    -- Registers only 'melange'; switches light/dark via vim.opt.background, so
+    -- 'melange-light' is a virtual variant mapped back to the real colorscheme.
+    variants = {
+      'melange',             -- warm desaturated palette; dark, cozy low-contrast tones
+      'melange-light',       -- warm desaturated palette; light, soft sepia bg
+    },
+    colorscheme = { ['melange-light'] = 'melange' },
+    background  = { melange = 'dark', ['melange-light'] = 'light' },
+  },
+
+  onedarkpro = {
+    src  = gh('olimorris/onedarkpro.nvim'),
+    name = 'onedarkpro.nvim',
+    -- Atom One family. onedarkpro registers onedark, onedark_dark, onedark_vivid,
+    -- onelight and vaporwave. We deliberately do NOT expose 'onedark' here: that
+    -- colorscheme name already belongs to navarasu/onedark.nvim (the `onedark`
+    -- entry above), so listing it would create a variant-name collision in the
+    -- derived M.plugin lookup. We expose only the non-colliding Atom One names.
+    variants = {
+      'onelight',            -- Atom One Light; light, cool-toned muted palette
+      'onedark_vivid',       -- Atom One Dark with boosted, more saturated accents
+      'onedark_dark',        -- Atom One Dark, deeper blacks and higher contrast
+    },
+  },
+
   --------------------------------------------------------------------------
   -- High contrast
   --------------------------------------------------------------------------
@@ -394,6 +436,20 @@ M.themes = {
     name = 'nordic.nvim',
     variants = {
       'nordic',              -- warmer deeper Nord; Aurora accents over muted bg; reduced blue saturation; cool with vibrant highlights
+    },
+  },
+
+  ['neovim-ayu'] = {
+    src  = gh('Shatur/neovim-ayu'),
+    name = 'neovim-ayu',
+    -- Ayu spans dark and light. Registers four real colorschemes: 'ayu' (auto,
+    -- follows background) plus three explicit variants — each is a distinct
+    -- colorscheme name, so no virtual mapping is needed.
+    variants = {
+      'ayu',                 -- auto; follows vim.opt.background (dark by default here)
+      'ayu-dark',            -- dark; deep blue-black bg, vivid orange/gold accents, high contrast
+      'ayu-mirage',          -- dark, medium contrast; muted slate-blue bg, softer warm accents
+      'ayu-light',           -- light; warm off-white bg, orange accents
     },
   },
 
