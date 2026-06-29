@@ -47,8 +47,11 @@ brew install go
 # Node (for ts_ls)
 brew install node
 
-# Python (for pyright)
-brew install python
+# Python (pyright LSP + yamllint linter). Mason needs python ≥ 3.10; macOS's
+# system python3 is 3.9, too old. python@3.12 is keg-only, so .zshrc_config.zsh
+# prepends its libexec/bin to PATH — that makes the unversioned `python3`/`pip3`
+# resolve to 3.12 instead of /usr/bin/python3.
+brew install python@3.12
 
 # Elixir (includes Erlang)
 brew install elixir
@@ -59,6 +62,16 @@ rustup component add clippy rustfmt rust-analyzer rust-src
 ```
 
 Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
+
+> **Install these runtimes *before* first launching nvim.** On startup, Mason
+> installs the LSP servers, formatters, and linters from its `ensure_installed`
+> lists by shelling out to `npm`, `go`, `pip`, etc. If a runtime isn't on
+> `$PATH`, that package fails with `Failed to spawn process … ENOENT` or a
+> version error (e.g. yamllint needs python ≥ 3.10) — visible in `:Mason` and
+> `:MasonLog`. Prebuilt-binary packages (stylua, ruff, taplo, rust-analyzer,
+> golangci-lint, lua_ls, etc.) still install fine. To recover, install the missing
+> runtime and **relaunch nvim** — the `ensure_installed` lists retry on startup
+> — or reinstall the package from the `:Mason` UI.
 
 ### Format-on-save tools
 
