@@ -1,0 +1,7 @@
+{
+  "name": "Cyberdream",
+  "base": "dark",
+  "overrides": {
+    "claude": "#5ef1ff","claudeShimmer": "#7bf4ff","text": "#ffffff","inverseText": "#16181a","inactive": "#7b8496","inactiveShimmer": "#939aa9","subtle": "#3c4048","suggestion": "#5ea1ff","permission": "#5ef1ff","permissionShimmer": "#7bf4ff","remember": "#ff5ea0","success": "#5eff6c","error": "#ff6e5e","warning": "#ffbd5e","warningShimmer": "#ffc97b","merged": "#5ef1ff","promptBorder": "#5ea1ff","promptBorderShimmer": "#7bb2ff","planMode": "#5ef1ff","autoAccept": "#5eff6c","bashBorder": "#f1ff5e","ide": "#5eff6c","fastMode": "#ffbd5e","fastModeShimmer": "#ffc97b","diffAdded": "#234229","diffRemoved": "#402726","diffAddedDimmed": "#1a261f","diffRemovedDimmed": "#241d1e","diffAddedWord": "#2c5d33","diffRemovedWord": "#5c322e","userMessageBackground": "#1e2124","userMessageBackgroundHover": "#272a2f","messageActionsBackground": "#3c4048","bashMessageBackgroundColor": "#1e2124","memoryBackgroundColor": "#1e2124","selectionBg": "#3c4048","rate_limit_fill": "#5ef1ff","rate_limit_empty": "#31343a","briefLabelYou": "#5ea1ff","briefLabelClaude": "#5ef1ff"
+  }
+}
