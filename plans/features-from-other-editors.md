@@ -49,6 +49,30 @@ anything currently installed.
   existing LSP setup. (Also relevant to the edgebar idea in
   `plans/unified-sidebar-panel.md`.)
   - https://github.com/folke/trouble.nvim
+- **Outline panel (persistent symbol tree)** → `outline.nvim`
+  Zed's right-side outline: an always-visible, collapsible tree of the buffer's
+  symbols (methods nested under their type) with a search box at the top and
+  cursor-follow. Worth being clear about what it *isn't* doing — Zed is not
+  selecting "relevant" symbols, it just renders LSP `textDocument/documentSymbol`,
+  which is already hierarchical and omits locals/params/loop vars. Any plugin on
+  that same endpoint reproduces the screenshot. We have a fuzzy *picker* for this
+  (`pickers/symbols.lua`, `<leader>ss`) — the popup search box — but no persistent
+  sidebar tree.
+  - `hedyhli/outline.nvim` — closest faithful port: sidebar, collapsible tree,
+    cursor-follow, built-in symbol search. Pure Lua, no deps → cleanest fit for
+    our `vim.pack` setup. Top pick.
+    - https://github.com/hedyhli/outline.nvim
+  - alt `stevearc/aerial.nvim` — most powerful (sidebar *or* fuzzy-nav, breadcrumb
+    support, treesitter fallback when no LSP), more config surface.
+    - https://github.com/stevearc/aerial.nvim
+  - alt: `trouble.nvim` symbols mode (`:Trouble symbols`) gives a near-identical
+    live outline for free if we install Trouble for the references panel above.
+  - All three support `kind` filters, so we *could* go beyond Zed's default and
+    hide e.g. variables — show only types/functions. (Ties into the edgebar idea
+    in `plans/unified-sidebar-panel.md`.)
+  - Sketch (vim.pack one-liner): `{ src = gh('hedyhli/outline.nvim') }`, then
+    `require('outline').setup({})` + a `<leader>o` → `:Outline` toggle, registered
+    the same way as the other `plugins.lua` sources.
 - **Git panel (stage/commit/diff in a pane)** → `neogit`
   Zed shipped a real git panel in 2025; current setup only has inline `gitsigns`.
   Biggest behavioral upgrade if doing commits inside the editor.
@@ -60,9 +84,12 @@ anything currently installed.
 
 1. `grug-far.nvim` — most distinctively "Zed," best value-to-effort.
 2. `dropbar.nvim` — easy win, fills the breadcrumb gap.
-3. `trouble.nvim` — diagnostics/references panel (ties into the sidebar plan).
-4. `neogit` — only if moving git workflow into the editor.
-5. `nvim-dap` — only if in-editor debugging is wanted.
+3. `outline.nvim` — persistent symbol-tree sidebar; cheap, pure Lua, complements
+   the existing `<leader>ss` symbol picker.
+4. `trouble.nvim` — diagnostics/references panel (also gives an outline mode for
+   free; ties into the sidebar plan).
+5. `neogit` — only if moving git workflow into the editor.
+6. `nvim-dap` — only if in-editor debugging is wanted.
 
 ---
 
