@@ -43,7 +43,9 @@ require('toggleterm').setup({
 -- in the sorted terminal list.
 local function cycle_term(direction)
   local terminal = require('toggleterm.terminal')
-  local terms = terminal.get_all(true) -- sorted by id
+  -- get_all() without `true` omits hidden terminals, so the bottom panel
+  -- (id 100, hidden = true) stays out of the float cycle.
+  local terms = terminal.get_all()
   if #terms <= 1 then return end
   local current_id = vim.b.toggle_number
   local current_idx = 1
@@ -68,6 +70,7 @@ local toggle_bottom_term -- forward-declared for the on_open closure below
 local function ensure_bottom_term()
   if not bottom_term then
     bottom_term = require('toggleterm.terminal').Terminal:new({
+      id = 100,  -- high fixed ID keeps 1–99 free for count-addressable float terminals
       direction = 'horizontal',
       hidden = true,
       on_open = function(term)
@@ -122,12 +125,11 @@ vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { 
 --   <C-`>  works in Neovide + kitty (kitty keyboard protocol)
 --   <C-/>  Neovim sees <C-_> in terminals / <C-/> in GUI — reliable in iTerm2 too
 --   <leader>tb  universal fallback (also shown in which-key)
--- Bound in normal + insert mode to open from anywhere; the terminal-mode
--- hide-from-within bind is buffer-local (set in on_open above) so it doesn't
--- shadow these keys inside the float / sidekick terminals. <C-/> is a different
--- key from <C-\> (the float terminal) — no conflict.
+-- Bound in normal, insert, and terminal mode so it works from sidekick/float
+-- terminals too. The hide-from-within bind is buffer-local (set in on_open
+-- above) and overrides this global mapping inside the bottom panel itself.
 for _, lhs in ipairs(bottom_panel_keys) do
-  vim.keymap.set({ 'n', 'i' }, lhs, toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+  vim.keymap.set({ 'n', 'i', 't' }, lhs, toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
 end
 vim.keymap.set('n', '<leader>tb', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
 

@@ -16,6 +16,11 @@ vim.g.neovide_hide_mouse_when_typing = true
 vim.g.neovide_proxy_icon = true
 vim.g.neovide_floating_corner_radius = 0.2
 
+-- Neovide draws a drop shadow around floating windows by default; a terminal like
+-- iTerm2 can't, so floats look flatter there. Disable it so floats (toggleterm,
+-- telescope, etc.) render with clean flat edges that match terminal nvim.
+vim.g.neovide_floating_shadow = false
+
 -- Cmd+Opt+Left/Right for jumplist navigation (editor-style back/forward
 -- through go-to-definition, search jumps, etc.). Terminal nvim can't receive
 -- Cmd, which is why this lives in the Neovide-only file.

@@ -19,11 +19,11 @@ require('sidekick').setup({
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
       -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
       wo = { scrolloff = 0 },
-      -- In-window CLI keymaps (merged over sidekick's defaults). <C-\> mirrors
-      -- toggleterm's float <C-\>: hide Claude, session intact (like <leader>aa).
-      keys = {
-        hide_bslash = { [[<c-\>]], 'hide', mode = 'nt', desc = 'hide Claude (toggleterm-style)' },
-      },
+      -- In-window CLI keymaps (merged over sidekick's defaults).
+      -- <C-\> is intentionally NOT bound here so it falls through to the global
+      -- toggleterm mapping, allowing toggleterm floats to be opened from sidekick.
+      -- Use <leader>aa to hide sidekick.
+      keys = {},
       -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
       -- open_win for one that creates a hidden float instead of a visible
       -- split. See the pre-warm block at the bottom of this file.
@@ -61,6 +61,22 @@ vim.api.nvim_create_autocmd('FileType', {
   desc = 'Sidekick CLI: keymaps for terminal and normal mode',
   callback = function(args)
     vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
+
+    -- <C-\> opens the toggleterm float from the sidekick CLI. Needed because
+    -- toggleterm's terminal-mode toggle is buffer-local to its own terminals, so
+    -- in this (sidekick) terminal there's otherwise no <C-\> mapping at all. The
+    -- normal-mode global toggleterm mapping already handles <count><C-\>; from
+    -- terminal mode a count isn't possible (digits go to Claude), so it opens the
+    -- default float. v:count1 still lets a normal-mode count flow through here.
+    vim.keymap.set({ 't', 'n' }, [[<C-\>]], function()
+      vim.cmd(vim.v.count1 .. 'ToggleTerm')
+    end, { buffer = args.buf, desc = 'Open toggleterm float' })
+
+    -- Split navigation from terminal mode (mirrors terminal.lua's TermOpen bindings).
+    vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], { buffer = args.buf })
+    vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], { buffer = args.buf })
+    vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], { buffer = args.buf })
+    vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], { buffer = args.buf })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
