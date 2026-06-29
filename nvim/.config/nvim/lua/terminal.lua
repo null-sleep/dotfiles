@@ -86,7 +86,40 @@ local function ensure_bottom_term()
 end
 
 function toggle_bottom_term()
-  ensure_bottom_term():toggle()
+  local term = ensure_bottom_term()
+  if term:is_open() then
+    term:close()
+    return
+  end
+
+  -- Opening the panel (a horizontal split) while a float terminal is open or
+  -- focused breaks in two ways, both rooted in toggleterm's split machinery:
+  --   1. open_split's find_open_windows() matches *any* toggleterm window, so it
+  --      grabs the open float and splits it instead of the editor (Image #3).
+  --   2. is_split() calls ui.is_float(self.window); for the pre-warmed panel
+  --      self.window is nil, and win_gettype(nil) falls back to the *current*
+  --      window — the float popup — so is_split() is false and opener() raises
+  --      "Invalid terminal direction" (Image #4).
+  -- Close any open float terminals (skip the panel itself, id 100) and make sure
+  -- focus lands on a normal window, so the panel opens as a clean bottom split.
+  for _, t in ipairs(require('toggleterm.terminal').get_all(true)) do
+    if t.id ~= 100 and t:is_open() and t:is_float() then
+      t:close()
+    end
+  end
+  if vim.fn.win_gettype() == 'popup' then
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.fn.win_gettype(win) == '' then
+        vim.api.nvim_set_current_win(win)
+        break
+      end
+    end
+  end
+
+  -- Pass the height explicitly so the panel is always ~30% of the screen,
+  -- ignoring any oversized value persist_size cached from an earlier broken
+  -- open (which is what made the panel balloon to 70-90%, Image #2).
+  term:open(math.floor(vim.o.lines * 0.3))
 end
 
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
