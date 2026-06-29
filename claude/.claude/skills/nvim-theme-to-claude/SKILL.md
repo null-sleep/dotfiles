@@ -10,10 +10,13 @@ output is a JSON file whose palette and diff colors match the editor, kept in
 this dotfiles repo so it syncs across machines.
 
 This repo's setup (see `README.md` → "Claude Code"):
-- Theme files live in `claude/.claude/themes/<slug>.json` and are symlinked to
-  `~/.claude/themes/` via `stow claude`.
-- `~/.claude/themes/` is a folded symlink into the repo, so a new file there is
-  tracked automatically.
+- Theme files live in `claude/.claude/themes/<slug>.json` and are symlinked into
+  `~/.claude/themes/` via `stow --no-folding claude`.
+- `~/.claude/themes/` (and `~/.claude/skills/`) are kept as **real directories**
+  with only the repo's individual files symlinked in — `--no-folding` prevents
+  stow from collapsing them into directory symlinks, so machine-local themes and
+  skills coexist untouched. A theme is tracked only once its file is in the repo
+  and re-stowed; files created locally via `/theme` stay local until moved in.
 - Activation (`"theme": "custom:<slug>"` in `~/.claude/settings.json`) is a
   per-machine edit — `claude/setup-theme.sh` is the precedent for injecting it.
 
@@ -90,7 +93,9 @@ blends the accent over `base`. From `catppuccin/groups/syntax.lua`:
 - `DiffDelete = blend(red,  base, 0.18)`
 - `DiffText = blend(blue,  base, 0.30)`  (word-level changed text)
 
-`blend(fg, bg, a)` is per-channel `round(a*fg + (1-a)*bg)`. Compute and map:
+`blend(fg, bg, a)` is per-channel `floor(a*fg + (1-a)*bg + 0.5)` — catppuccin
+rounds half-up, NOT banker's rounding, so avoid Python's `round()` (they differ
+by 1/255 on exact `.5` boundaries). Compute and map:
 
 | Claude token | value |
 |---|---|
@@ -104,9 +109,10 @@ blends the accent over `base`. From `catppuccin/groups/syntax.lua`:
 Snippet to compute exact values (substitute the theme's hexes):
 
 ```python
-def blend(fg, bg, a):
+import math
+def blend(fg, bg, a):  # catppuccin's rule: half-up rounding, matches nvim exactly
     f=[int(fg[i:i+2],16) for i in (1,3,5)]; b=[int(bg[i:i+2],16) for i in (1,3,5)]
-    return "#%02X%02X%02X"%tuple(round(min(max(0,a*f[i]+(1-a)*b[i]),255)) for i in range(3))
+    return "#%02X%02X%02X"%tuple(math.floor(min(max(0,a*f[i]+(1-a)*b[i]),255)+0.5) for i in range(3))
 # base/green/red from the nvim palette; alphas 0.18 / 0.06 / 0.30
 ```
 
@@ -117,13 +123,14 @@ highlight backgrounds if it defines them; fall back to this blend otherwise.
 
 1. Write `claude/.claude/themes/<slug>.json` in this repo. The filename (minus
    `.json`) is the slug; `name` is the display label in `/theme`.
-2. From the repo root: `stow claude` (folds the new file into `~/.claude/themes/`
-   if not already symlinked).
+2. From the repo root: `stow --no-folding claude` — links the new file into the
+   real `~/.claude/themes/` directory (the `--no-folding` flag keeps that dir a
+   real directory rather than a folded symlink; see `README.md` → "Claude Code").
 3. Activate: set `"theme": "custom:<slug>"` in `~/.claude/settings.json` (e.g.
    `jq` it in like `setup-theme.sh`), or just pick it in `/theme`.
-4. Claude Code hot-reloads `~/.claude/themes/`, but if the directory was just
-   converted to a symlink mid-session, the watcher needs a **restart** to see
-   new files.
+4. Claude Code hot-reloads `~/.claude/themes/`, but if the themes dir or its
+   symlinks were just created (or the session predates them), the watcher needs
+   a **restart** to see the new file.
 
 ### 6. Verify
 
