@@ -12,7 +12,7 @@ stow nvim
 stow zsh
 stow kitty
 stow zellij
-stow claude
+stow --no-folding claude   # --no-folding: see the Claude Code section
 ```
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -123,7 +123,7 @@ Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusl
 |---|---|
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
 | `~/.claude/themes/catppuccin-latte.json` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/nvim-theme-to-claude/` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 
