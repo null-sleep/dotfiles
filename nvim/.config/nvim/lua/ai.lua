@@ -52,6 +52,26 @@ require('sidekick').setup({
   },
 })
 
+-- Promote the sidekick CLI to a full-height edge column on every show.
+-- Without this, opening sidekick while the bottom panel (or any non-editor
+-- window) has focus splits *that* window — the CLI ends up as a short column
+-- inside the panel row instead of spanning the editor's full height. `wincmd
+-- L` mirrors nvim-tree's reposition trick and lets Neovim reflow everything
+-- else around the new column. SidekickCliAttach fires on every show path
+-- (cli.show / cli.toggle / cli.focus), so this covers both user triggers and
+-- internal re-shows (e.g. cli.send to a hidden CLI).
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'SidekickCliAttach',
+  desc = 'Sidekick CLI: promote to full-height edge column',
+  callback = function(args)
+    local layout = require('sidekick.config').cli.win.layout
+    local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
+    if not side then return end -- float / top / bottom layouts don't need promoting
+    local term = require('sidekick.cli.terminal').get(args.data.id)
+    if term then utils.promote_to_full_height(term.win, side) end
+  end,
+})
+
 -- Add `jj` to exit terminal mode in sidekick CLI buffers. terminal.lua's
 -- generic TermOpen autocmd skips sidekick_terminal so sidekick can own its
 -- own keymaps; this restores just `jj` without touching <Esc> (which the
