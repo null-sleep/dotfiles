@@ -63,6 +63,7 @@ brew "delphinus/sfmono-square/sfmono-square"  # formula: symlink its .otf into
 cask "neovide-app"     # Neovim GUI
 cask "typora"          # markdown editor (`typora` shell alias)
 cask "signal"
+cask "vlc"             # media player
 
 #-----------------------------------------------------------------------------
 # Containers — Docker Desktop alternative (comment out if you don't use Docker)
