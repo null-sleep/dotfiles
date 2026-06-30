@@ -182,7 +182,6 @@ alias glg='git log --oneline --graph --decorate --all'
 # ~/.gitconfig, plain `git push` sets upstream automatically). gu = pull.
 alias gp='git push'
 alias gu='git pull'
-alias gcmp='git checkout $(git_base_branch) && git pull'
 gcop() { git checkout "$1" && git pull; }
 alias gpf='git push --force-with-lease'
 alias gc='git commit'
