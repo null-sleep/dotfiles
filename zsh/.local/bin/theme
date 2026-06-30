@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# theme — switch iTerm2, Claude Code, and Neovim between a predefined dark and
+# light theme in one shot. See README → "Unified theme switching".
+#
+# THE PAIR (edit the LIGHT/DARK arrays below to change it)
+#   light → Claude catppuccin-latte · nvim catppuccin-latte · macOS light
+#   dark  → Claude dracula          · nvim dracula          · macOS dark
+#
+# USAGE
+#   theme            # toggle (based on current macOS appearance)
+#   theme dark
+#   theme light
+#   theme status
+#
+# HOW EACH TOOL SWITCHES LIVE (no restarts)
+#   macOS  : osascript sets the system appearance (Dark/Light). This is the hinge
+#            the whole design turns on — everything else either follows it or is
+#            switched alongside it.
+#   iTerm2 : NOT touched by this script at all. iTerm2 (3.4+) natively follows the
+#            macOS appearance: a single profile with "Use separate colors for light
+#            and dark mode" enabled stores two color sets (normal + "...(Dark)")
+#            and iTerm swaps between them itself the instant macOS flips. We point
+#            the light set at the Latte preset and the dark set at Dracula, so
+#            every window — new AND already-open — recolors for free. No escape
+#            codes, no tty enumeration, no daemon. See the README for the one-time
+#            profile setup. (This replaced an earlier approach that wrote the
+#            SetProfile escape code to each session's tty and could not affect
+#            windows opened *after* the switch — iTerm's native feature does.)
+#   Claude : ~/.claude/themes/active.json is overwritten with the chosen palette.
+#            Claude hot-reloads theme *files* (but NOT the "theme" setting), so
+#            settings.json pins a fixed slug ("theme": "custom:active") and we just
+#            swap what active.json points the loader at. This is the only way to
+#            get a *custom* palette (vs Claude's built-in dark/light) to switch a
+#            running session live — Claude's own "Auto (match terminal)" option
+#            only follows the terminal for its stock built-in themes.
+#   nvim   : the chosen variant is written to nvim's theme state file; running
+#            instances apply it via the fs-watch in themes.lua (themes.watch()).
+#            New nvim instances read the same file at startup.
+set -uo pipefail
+
+CLAUDE_THEMES="$HOME/.claude/themes"
+NVIM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/theme.txt"
+
+# --- predefined pair -------------------------------------------------------
+#         Claude slug        nvim variant       macOS dark
+LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false" )
+DARK=(    "dracula"          "dracula"          "true"  )
+
+usage() { echo "usage: theme [dark|light|toggle|status]" >&2; exit "${1:-2}"; }
+
+# Echoes "dark", "light", or "" (empty) when the appearance query fails — so
+# callers can tell a genuine light reading from a denied-Automation failure.
+macos_appearance() {
+  local out
+  out="$(osascript -e 'tell application "System Events" to tell appearance preferences to get dark mode' 2>/dev/null)" || return
+  case "$out" in
+    [Tt]rue) echo dark ;;
+    [Ff]alse) echo light ;;
+    *) ;;  # empty / unexpected → caller treats as unknown
+  esac
+}
+
+mode="${1:-toggle}"
+case "$mode" in
+  -h|--help) usage 0 ;;
+  toggle)
+    case "$(macos_appearance)" in
+      dark) mode=light ;;
+      light) mode=dark ;;
+      *) echo "theme: cannot read macOS appearance (grant Automation access?)" >&2; exit 1 ;;
+    esac ;;
+  dark|light) ;;
+  status)
+    echo "macOS appearance: $(macos_appearance || echo '(unknown — Automation denied?)')"
+    echo "nvim state:       $(cat "$NVIM_STATE" 2>/dev/null || echo '(unset)')"
+    echo "claude active:    $(readlink "$CLAUDE_THEMES/active.json" 2>/dev/null || echo 'real file')"
+    exit 0 ;;
+  *) usage ;;
+esac
+
+if [ "$mode" = dark ]; then set -- "${DARK[@]}"; else set -- "${LIGHT[@]}"; fi
+claude_slug="$1"; nvim_variant="$2"; macos_dark="$3"
+
+# 1) macOS appearance — iTerm2 and other appearance-aware apps follow it.
+osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $macos_dark" \
+  2>/dev/null || echo "theme: warning — could not set macOS appearance (grant Automation access?)" >&2
+
+# 2) Claude Code — hot-reload by swapping the active.json palette. Write to a
+# temp file in the same dir then atomically mv into place: Claude watches the
+# dir, so a plain cp's truncate-then-stream window could be read as empty/partial
+# JSON; mv also *replaces* a symlink rather than writing through it into the repo.
+if [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
+  tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
+    && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
+    && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
+    || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; }
+else
+  echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
+fi
+
+# 3) Neovim — write the state file; running instances live-apply via themes.watch().
+mkdir -p "$(dirname "$NVIM_STATE")"
+printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
+
+echo "theme → $mode  (claude:$claude_slug · nvim:$nvim_variant · macOS-dark:$macos_dark)"

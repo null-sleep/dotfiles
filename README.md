@@ -213,7 +213,7 @@ cd ~/src/dotfiles
 stow --no-folding claude
 # Inject the statusLine block into ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-statusline.sh
-# Activate the Catppuccin Latte theme in ~/.claude/settings.json (one-time)
+# Point Claude at the "active" theme slot in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-theme.sh
 ```
 
@@ -224,7 +224,7 @@ untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
 with a single directory symlink (a "fold"), which can't hold local files
 alongside the synced ones.
 
-Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:catppuccin-latte"`. Re-running either when already configured is a no-op.
+Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live. Re-running either when already configured is a no-op.
 
 ### What's managed
 
@@ -240,7 +240,9 @@ Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusl
 
 ### Theme
 
-`catppuccin-latte.json` is a custom Claude Code theme (requires Claude Code v2.1.118+) whose palette matches the Neovim `catppuccin-latte` colorscheme, including nvim's exact diff-blend values. To activate a different one, change the `theme` key in `setup-theme.sh` (or just pick it in `/theme`).
+`catppuccin-latte.json` is a custom Claude Code theme (requires Claude Code v2.1.118+) whose palette matches the Neovim `catppuccin-latte` colorscheme, including nvim's exact diff-blend values.
+
+`settings.json` doesn't name a specific theme directly — it pins the fixed slug `"theme": "custom:active"`, which resolves to `~/.claude/themes/active.json`. The [unified `theme` switcher](#unified-theme-switching) overwrites that file with the dark or light palette, and because Claude hot-reloads theme **files** (not the `theme` setting) the change applies to running sessions with no restart. To switch by hand instead, just pick a theme in `/theme`.
 
 **Adding more synced themes/skills:** drop the file into `claude/.claude/themes/`
 or `claude/.claude/skills/` in the repo and re-run `stow --no-folding claude`.
@@ -266,7 +268,7 @@ git -C ~/src/dotfiles push
 cd ~/src/dotfiles
 git pull
 stow -R --no-folding claude            # the key command — see below
-bash ~/src/dotfiles/claude/setup-theme.sh   # optional: activate the Latte theme
+bash ~/src/dotfiles/claude/setup-theme.sh   # optional: pin custom:active + seed active.json
 ```
 
 Then **restart Claude Code** so it discovers the new skill and theme.
@@ -290,6 +292,79 @@ Use `stow -R --no-folding claude` (not a plain `stow claude`):
 For the skill only, skip the `setup-theme.sh` step — `git pull`,
 `stow -R --no-folding claude`, restart. The skill then lives at
 `~/.claude/skills/nvim-theme-to-claude/` and is invokable from any project.
+
+## Unified theme switching
+
+One command flips **Claude Code, Neovim, and the macOS system appearance**
+between a predefined dark and light theme at once — live, no restarts. **iTerm2
+isn't driven by the script at all**: a single profile follows macOS appearance
+natively (see one-time setup below), so flipping the system appearance recolors
+every iTerm window — new *and* existing.
+
+```bash
+theme            # toggle, based on current macOS appearance
+theme dark
+theme light
+theme status
+```
+
+The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
+`zsh/.local/bin/theme` to change it):
+
+| Mode  | Claude theme       | nvim variant       | macOS appearance |
+|-------|--------------------|--------------------|------------------|
+| light | `catppuccin-latte` | `catppuccin-latte` | light            |
+| dark  | `dracula`          | `dracula`          | dark             |
+
+### One-time iTerm2 setup (single profile, follows macOS)
+
+**iTerm2 follows macOS appearance natively** — no script, daemon, or escape
+codes involved. Since 3.4, a profile can store *two* color sets and iTerm swaps
+between them the instant the system switches between Light and Dark mode. We lean
+entirely on that: the `theme` command only flips the macOS appearance (step 1
+below in [How each tool switches live](#how-each-tool-switches-live)), and iTerm
+recolors **every window, new and already-open, by itself**.
+
+So instead of two separate profiles, one profile carries **separate colors for
+light and dark mode**. In **Settings → Profiles → Colors** for your default
+profile:
+
+1. Enable **"Use separate colors for light and dark mode"** (stored as the
+   `Use Separate Colors for Light and Dark Mode` profile key).
+2. With the **Light** mode tab selected: **Color Presets → Import** →
+   `iterm2/catppuccin-latte.itermcolors`, then select it.
+3. With the **Dark** mode tab selected: **Color Presets → Import** →
+   `iterm2/Dracula.itermcolors`, then select it.
+4. Make sure this profile is the default (**Other Actions → Set as Default**).
+
+A second `Default Dark`/`Default Light` profile is then redundant. After this,
+iTerm needs nothing from the `theme` script — it follows `macOS` directly.
+
+### How each tool switches live
+
+- **macOS** — `osascript` sets the system appearance. This is the hinge the
+  whole design turns on; everything else either follows it (iTerm2) or is
+  switched alongside it (Claude, nvim).
+- **iTerm2** — not driven by the script. Its native per-profile "separate colors
+  for light and dark mode" (see [setup above](#one-time-iterm2-setup-single-profile-follows-macos))
+  reacts to the macOS appearance change on its own, recoloring all windows
+  including ones opened *after* the switch. (An earlier version wrote the
+  `SetProfile` escape code to each open session's tty — that couldn't reach
+  windows that didn't exist yet, which is exactly what the native feature fixes.)
+- **Claude Code** — Claude hot-reloads theme *files* but not the `theme`
+  *setting*, so `settings.json` pins the fixed slug `custom:active` and the
+  script overwrites `~/.claude/themes/active.json` with the chosen palette.
+  Running sessions recolor instantly. (See [Claude Code → Theme](#theme).)
+- **Neovim** — the script writes the variant to nvim's theme state file
+  (`~/.local/share/nvim/theme.txt`); every running instance live-applies it via
+  the `fs_event` watcher in `themes.lua` (`M.watch()`, armed from `plugins.lua`).
+  New instances read the same file at startup. This also means confirming a theme
+  in the `<leader>st` picker syncs every open Neovim. The throwaway `claude-nvim`
+  headless runs skip the watcher (`CLAUDE_NVIM=1`).
+
+The `theme` script is stowed via the `zsh` package (`~/.local/bin` → repo), so
+it's on `PATH` automatically. macOS will prompt once for Automation access to
+control System Events (to set the appearance) — grant it.
 
 ## Claude Squad
 
