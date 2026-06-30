@@ -1,11 +1,14 @@
 if [[ -f ~/.antigen/antigen.zsh ]]; then
-  # Set OMZ paths explicitly before antigen runs so they get baked correctly
-  # into ~/.antigen/init.zsh. Otherwise antigen can cache empty values, which
-  # breaks plugins like docker (writes completions to /completions/_docker)
-  # and the robbyrussell theme (prompt_subst never gets enabled).
+  # Export OMZ paths before antigen runs so they get baked correctly into
+  # ~/.antigen/init.zsh (otherwise antigen can cache empty values, breaking
+  # plugins like docker that write completions to /completions/_docker).
+  # IMPORTANT: only export here — do NOT `mkdir` the cache dir yet. Creating
+  # $ZSH before antigen clones oh-my-zsh makes antigen's directory-existence
+  # check think OMZ is "already cloned" and silently skip the clone, leaving an
+  # empty bundle (no theme, no plugins). The mkdir is deferred to after
+  # `antigen apply` below, once OMZ actually exists on disk.
   export ZSH="$HOME/.antigen/bundles/robbyrussell/oh-my-zsh"
   export ZSH_CACHE_DIR="$ZSH/cache"
-  mkdir -p "$ZSH_CACHE_DIR/completions"
 
   source ~/.antigen/antigen.zsh
 
@@ -22,7 +25,6 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   antigen bundle macos
   antigen bundle mise
   antigen bundle iterm2
-  antigen bundle themes
   antigen bundle docker
   antigen bundle podman
   antigen bundle kubectl
@@ -33,22 +35,59 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   # zsh-autosuggestions) so it can wrap their widgets correctly.
   antigen bundle zsh-users/zsh-syntax-highlighting
 
-  # Theme
-  ZSH_THEME="robbyrussell"
-  antigen theme robbyrussell
+  # Prompt is defined below (see "Prompt"), self-contained and independent of
+  # oh-my-zsh themes — so it renders even when OMZ/antigen state is broken.
 
   # Antigen configuration ends
   antigen apply
 
-  # antigen-compat theme files don't call setopt PROMPT_SUBST, so the OMZ
-  # robbyrussell theme's $(git_prompt_info) gets printed literally. Force it on.
-  setopt PROMPT_SUBST
+  # oh-my-zsh is cloned now — safe to create its completions cache dir (some
+  # plugins, e.g. docker, write completions here). Deferred until after apply so
+  # it can't pre-create $ZSH and sabotage antigen's clone (see IMPORTANT above).
+  mkdir -p "$ZSH_CACHE_DIR/completions"
 
   # Remove git alias set by oh-my-zsh git plugin to allow git function definitions
   unalias git 2>/dev/null
 else
   echo "Antigen not found. Run: mkdir -p ~/.antigen && curl -L git.io/antigen > ~/.antigen/antigen.zsh"
 fi
+
+#------------------------------------------------------------------------------
+# Prompt — self-contained, no oh-my-zsh theme dependency.
+# Renders like:  ➜  <dir> git:(<branch>) ✗
+#   • arrow: green on success, red after a non-zero exit  ( %(?...) )
+#   • %c:    basename of the current directory
+#   • git:   branch (or short SHA when detached) plus a ✗ when the worktree is
+#            dirty — staged, unstaged, OR untracked (matches robbyrussell)
+# Colours below are ANSI *names* (not RGB), so they follow the terminal's active
+# colour scheme (iTerm2 profile / .itermcolors) rather than being hardcoded —
+# switch themes and the prompt recolours. `command git` sidesteps the git
+# aliases/functions defined later; %F{} escapes need no oh-my-zsh colour lib.
+#------------------------------------------------------------------------------
+setopt PROMPT_SUBST
+
+# Prompt palette — recolour the whole prompt by editing these in one place.
+PROMPT_COLOR_OK=green       # arrow — last command succeeded
+PROMPT_COLOR_ERR=red        # arrow — last command failed
+PROMPT_COLOR_DIR=cyan       # current directory
+PROMPT_COLOR_GIT=blue       # git:( … ) wrapper
+PROMPT_COLOR_BRANCH=red     # branch name / short SHA
+PROMPT_COLOR_DIRTY=yellow   # ✗ dirty marker
+
+_zsh_git_prompt() {
+  local ref
+  ref=$(command git symbolic-ref --quiet --short HEAD 2>/dev/null) \
+    || ref=$(command git rev-parse --short HEAD 2>/dev/null) \
+    || return 0
+  # Dirty = any staged, unstaged, or untracked change (git status --porcelain),
+  # matching robbyrussell's default dirty semantics.
+  local dirty=''
+  [[ -n $(command git status --porcelain --ignore-submodules 2>/dev/null) ]] \
+    && dirty=" %F{$PROMPT_COLOR_DIRTY}✗%f"
+  print -rn -- " %F{$PROMPT_COLOR_GIT}git:(%F{$PROMPT_COLOR_BRANCH}${ref}%F{$PROMPT_COLOR_GIT})%f${dirty}"
+}
+
+PROMPT='%(?:%F{$PROMPT_COLOR_OK}➜:%F{$PROMPT_COLOR_ERR}➜)%f  %F{$PROMPT_COLOR_DIR}%c%f$(_zsh_git_prompt) '
 
 # antigen bundle ptavares/zsh-direnv
 [[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
