@@ -45,7 +45,11 @@ require('lualine').setup({
         end,
       },
     },
-    lualine_c = { 'branch', 'diff', 'diagnostics' },
+    lualine_c = {
+      { 'branch', cond = function() return vim.g.neovide == true end },
+      'diff',
+      'diagnostics',
+    },
     lualine_x = {
       {
         'lsp_status',
