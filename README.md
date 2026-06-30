@@ -119,13 +119,40 @@ Free container runtime for macOS — a Docker Desktop alternative.
 brew install colima docker
 
 # Apple Silicon
-colima start --cpu 6 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
+colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
 
 # Intel
 colima start --cpu 2 --memory 4
 ```
 
 The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_bitgo.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
+
+### Default config (so `colima start` needs no flags)
+
+Instead of passing flags every time, bake the defaults into a template that
+Colima applies to any **newly created** profile. A plain `colima start` then
+picks up the same CPU/memory/arch/vz config as the `colima_start` helper.
+
+```bash
+# Generate the default template at ~/.colima/_templates/default.yaml,
+# pre-filled with all keys and their defaults, then open it for editing.
+colima template
+```
+
+Set these keys for the Apple Silicon config:
+
+```yaml
+cpu: 8
+memory: 8
+arch: aarch64
+vmType: vz
+rosetta: true
+```
+
+The template only applies at VM *creation*. If a profile already exists, edit
+its live config with `colima start --edit` (or re-create with
+`colima delete && colima start`) — `arch` and `vmType` in particular cannot
+change after the VM is built.
 
 ## Claude Code
 
