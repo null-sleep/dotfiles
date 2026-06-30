@@ -72,6 +72,43 @@ DARK=(    "dracula"          "dracula"          "true"  )
 
 usage() { echo "usage: theme [dark|light|auto|toggle|follow|watch|status]" >&2; exit "${1:-2}"; }
 
+help() {
+  cat <<'EOF'
+theme — switch iTerm2, Claude Code, and Neovim between a dark and light theme
+in one shot.
+
+USAGE
+  theme [command]
+
+COMMANDS
+  toggle    Flip dark↔light and PIN it, turning macOS Auto OFF (this is the
+            default when you run `theme` with no command).
+  dark      PIN dark everywhere (turns macOS Auto OFF).
+  light     PIN light everywhere (turns macOS Auto OFF).
+  auto      Hand control back to macOS Auto (sunset/sunrise) and follow it.
+  follow    Match Claude+nvim to the current macOS appearance (don't set macOS).
+  watch     Daemon: follow macOS appearance changes forever (LaunchAgent).
+  status    Show current appearance, mode, and per-tool state.
+  -h, --help   Show this help.
+
+THE PAIR (edit the LIGHT/DARK arrays in this script to change it)
+  light → Claude catppuccin-latte · nvim catppuccin-latte · macOS light
+  dark  → Claude dracula          · nvim dracula          · macOS dark
+
+MODES
+  dark / light  PIN that appearance everywhere: macOS Auto is switched OFF and
+                stays put until you change it, like picking Light/Dark in
+                System Settings → Appearance.
+  auto          Switch everything to the schedule-correct theme right now (read
+                from the same location-based sunrise/sunset schedule macOS uses),
+                then re-enable native macOS Auto so it keeps flipping at
+                sunset/sunrise. Claude+nvim follow via the `watch` LaunchAgent.
+
+See README → "Unified theme switching" for the one-time iTerm2/LaunchAgent setup.
+EOF
+  exit 0
+}
+
 # Echoes "dark", "light", or "" (empty) when the appearance query fails — so
 # callers can tell a genuine light reading from a denied-Automation failure.
 macos_appearance() {
@@ -93,6 +130,25 @@ macos_appearance_fast() {
   case "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" in
     [Dd]ark*) echo dark ;;
     *) echo light ;;
+  esac
+}
+
+# The appearance macOS Auto WOULD show right now, computed from the same
+# location-based sunrise/sunset schedule macOS itself uses (the engine behind
+# Night Shift): light between sunrise and sunset, dark otherwise. corebrightnessd
+# exposes the decision pre-computed as `isDaylight` (1 → light, 0 → dark), which
+# lets `theme auto` jump straight to the schedule-correct theme instead of
+# waiting for the next sunrise/sunset boundary. Echoes "" when the schedule can't
+# be read (tool missing, or Location Services has no fix) so callers can fall back.
+#
+# NOTE: /usr/libexec/corebrightnessdiag is a private, undocumented Apple tool —
+# its path and output format could change or disappear in a future macOS. The
+# empty-case fallback keeps `theme auto` working if that happens.
+macos_scheduled_mode() {
+  case "$(/usr/libexec/corebrightnessdiag sunschedule 2>/dev/null)" in
+    *"isDaylight = 1"*) echo light ;;
+    *"isDaylight = 0"*) echo dark  ;;
+    *) ;;  # unreadable → caller falls back to the current appearance
   esac
 }
 
@@ -142,7 +198,7 @@ apply_mode() {
 
 mode="${1:-toggle}"
 case "$mode" in
-  -h|--help) usage 0 ;;
+  -h|--help|help) help ;;
   toggle)
     case "$(macos_appearance)" in
       dark) apply_mode light 1 ;;
@@ -151,14 +207,19 @@ case "$mode" in
     esac ;;
   dark|light) apply_mode "$mode" 1 ;;
   auto)
-    # Hand the wheel back to macOS: re-enable native Auto (sunset/sunrise). macOS
-    # owns the appearance from here and the watch LaunchAgent keeps Claude+nvim
-    # mirroring it. The flag governs *future* evaluations — macOS won't repaint the
-    # current desktop until the next boundary (or a System Settings → Auto click),
-    # so we sync Claude+nvim to the present appearance now to stay consistent.
+    # Hand the wheel back to macOS Auto (sunset/sunrise) — but switch to the right
+    # theme FIRST, then re-arm Auto. The Auto flag governs only *future* schedule
+    # evaluations: macOS won't repaint the current desktop until the next boundary
+    # (or a System Settings → Auto click). So we read what Auto *would* show now
+    # from the same sun schedule (macos_scheduled_mode; fall back to the current
+    # appearance if it's unreadable) and apply it everywhere with pin=1 — painting
+    # macOS, iTerm, Claude, and nvim to the schedule-correct theme immediately.
+    # Then we flip the Auto flag back on. Because the live appearance now already
+    # matches the schedule, the next evaluation is a no-op rather than a jarring flip.
+    sched="$(macos_scheduled_mode)"; [ -n "$sched" ] || sched="$(macos_appearance_fast)"
+    apply_mode "$sched" 1
     defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool true
-    echo "theme → auto  (macOS now follows the sunset/sunrise schedule)"
-    apply_mode "$(macos_appearance_fast)" 0 ;;
+    echo "theme → auto  (macOS now follows the sunset/sunrise schedule)" ;;
   follow)
     # Match Claude+nvim to whatever macOS currently is, without touching macOS.
     apply_mode "$(macos_appearance_fast)" 0 ;;
