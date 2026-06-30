@@ -2,10 +2,31 @@
 
 Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
+## Fonts
+
+Install these **first** — they are prerequisites for the terminals (iTerm2, kitty)
+and editors (nvim, Neovide) configured here. Without a Nerd Font, icons and glyphs
+render as tofu boxes (▯), and iTerm2 won't render the exported profiles correctly.
+
+```bash
+# Hack Nerd Font (used by iTerm2, kitty, nvim, Neovide for icons and glyphs)
+brew install font-hack-nerd-font
+
+# SF Mono Square (SF Mono patched with Nerd Font glyphs and square CJK characters)
+brew tap delphinus/sfmono-square
+# Newer Homebrew refuses to load formulae from untrusted third-party taps;
+# trust this one before installing (otherwise the install errors out).
+brew trust delphinus/sfmono-square
+brew install sfmono-square
+```
+
+Restart any running terminal afterwards so it picks up the newly installed fonts.
+
 ## Setup
 
 ```bash
 brew install stow zellij
+brew install --cask signal
 cd ~/src/dotfiles
 # Install dependencies for each tool
 stow nvim
@@ -14,6 +35,11 @@ stow kitty
 stow zellij
 stow --no-folding claude   # --no-folding: see the Claude Code section
 ```
+
+> **Stowing only symlinks configs — it does not install the tools they depend
+> on.** Install the [Fonts](#fonts) above first, then work through the per-tool
+> dependency steps in [Languages](#languages), [ZSH](#zsh), and [Neo Vim](#neo-vim)
+> — a fresh machine needs all of them, not just the stow commands above.
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
 
@@ -24,17 +50,6 @@ dotfiles/tmux/.config/tmux/tmux.conf
 ```
 
 Then run `stow tmux`.
-
-## Fonts
-
-```bash
-# Hack Nerd Font (used by nvim for icons and glyphs)
-brew install font-hack-nerd-font
-
-# SF Mono Square (SF Mono patched with Nerd Font glyphs and square CJK characters)
-brew tap delphinus/sfmono-square
-brew install sfmono-square
-```
 
 ## Languages
 
@@ -59,9 +74,15 @@ brew install elixir
 # Rust (via rustup — do not use brew install rust)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup component add clippy rustfmt rust-analyzer rust-src
+
+# Extra cargo subcommands (built from source via cargo install)
+cargo install cargo-nextest --locked   # --locked is required by nextest
+cargo install cargo-audit
 ```
 
 Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
+
+Additional cargo subcommands installed via `cargo install`: `cargo-nextest` (faster, better test runner — `cargo nextest run`) and `cargo-audit` (scans `Cargo.lock` for crates with known security advisories — `cargo audit`).
 
 > **Install these runtimes *before* first launching nvim.** On startup, Mason
 > installs the LSP servers, formatters, and linters from its `ensure_installed`
@@ -98,7 +119,7 @@ Free container runtime for macOS — a Docker Desktop alternative.
 brew install colima docker
 
 # Apple Silicon
-colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
+colima start --cpu 6 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
 
 # Intel
 colima start --cpu 2 --memory 4
