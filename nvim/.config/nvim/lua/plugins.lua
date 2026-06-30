@@ -77,6 +77,13 @@ end, 1000)
 
 themes.apply(themes.active)
 
+-- Live theme sync: pick up external switches (the `theme` shell command) and
+-- cross-instance picker changes. Skipped under claude-nvim's throwaway headless
+-- runs (CLAUDE_NVIM=1) — they +qa immediately and need no watcher.
+if vim.env.CLAUDE_NVIM ~= '1' then
+  themes.watch()
+end
+
 -------------------------------------------------------------------------------
 -- Icons
 -------------------------------------------------------------------------------

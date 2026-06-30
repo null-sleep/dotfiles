@@ -574,6 +574,41 @@ function M.save(variant)
   M.active = variant
 end
 
+--- Watch the state file for external writes and live-apply them to this running
+--- instance. This is what lets an out-of-process switcher — the `theme` shell
+--- command (see README → "Unified theme switching") — recolour every open
+--- Neovim at once, and it also syncs the theme picker's choice across instances
+--- (M.save() writes the same state file the picker confirms with).
+---
+--- The `variant ~= M.active` guard makes a redundant write — including the
+--- M.save() this same instance just performed — a no-op. We re-arm a fresh
+--- handle on every event so the watcher survives a writer that replaces the
+--- file's inode (atomic rename) rather than truncating in place.
+function M.watch()
+  local uv = vim.uv or vim.loop
+  -- fs_event needs the file to exist; on a fresh install it isn't written until
+  -- the first M.save(). Seed it with the active variant so the watcher can arm.
+  if vim.fn.filereadable(state_file) == 0 then M.save(M.active) end
+
+  local function arm()
+    local handle = uv.new_fs_event()
+    if not handle then return end
+    handle:start(state_file, {}, vim.schedule_wrap(function()
+      -- close() (not stop()) so libuv releases the handle and its fd; a
+      -- stopped-but-unclosed fs_event leaks for the process lifetime, and one
+      -- leaks per event since we re-arm. Then arm a fresh handle.
+      handle:close()
+      arm()
+      local variant = read_saved_theme()
+      if variant ~= M.active then
+        M.apply(variant)
+        M.active = variant
+      end
+    end))
+  end
+  arm()
+end
+
 --- Sorted list of all variant names (deterministic alphabetical order).
 --- pairs() over M.themes is non-deterministic, so we collect and sort.
 function M.all_variants()

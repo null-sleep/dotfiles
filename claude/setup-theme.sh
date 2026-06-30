@@ -1,16 +1,21 @@
 #!/bin/bash
-# One-time setup: activate the Catppuccin Latte theme in ~/.claude/settings.json
-# Run after `stow claude` to point settings.json at the stowed theme file.
+# One-time setup: point ~/.claude/settings.json at the "active" theme slot used
+# by the unified `theme` switcher (see README → "Unified theme switching").
+# Run after `stow claude`.
 #
-# The theme *file* (~/.claude/themes/catppuccin-latte.json) is symlinked via stow.
-# This script only sets the `theme` preference, since settings.json is not stowed
-# (it holds machine-specific content: plugins, hooks, MCP servers, permissions).
+# Indirection: settings.json pins a FIXED slug, "custom:active", and the
+# `theme dark|light` command swaps what ~/.claude/themes/active.json *contains*.
+# Claude hot-reloads theme files, so this gives a live dark/light switch with no
+# restart. This script just sets the preference and seeds active.json from a
+# sensible default; settings.json itself is not stowed (machine-specific).
 
 set -euo pipefail
 
 SETTINGS="$HOME/.claude/settings.json"
-THEME="custom:catppuccin-latte"
-THEME_FILE="$HOME/.claude/themes/catppuccin-latte.json"
+THEME="custom:active"
+THEMES_DIR="$HOME/.claude/themes"
+DEFAULT_FILE="$THEMES_DIR/catppuccin-latte.json"   # seed for active.json
+ACTIVE_FILE="$THEMES_DIR/active.json"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "Error: jq is required. Install with: brew install jq"
@@ -18,10 +23,19 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Don't point settings.json at a theme that isn't stowed yet — run `stow claude` first.
-if [ ! -e "$THEME_FILE" ]; then
-  echo "Error: theme file not found at $THEME_FILE"
+if [ ! -e "$DEFAULT_FILE" ]; then
+  echo "Error: default theme file not found at $DEFAULT_FILE"
   echo "Run 'stow claude' from the repo root first, then re-run this script."
   exit 1
+fi
+
+# Seed active.json (a real file, not stowed) so "custom:active" resolves. Don't
+# clobber an existing active.json — it holds whatever mode you last switched to.
+# Atomic write (temp + mv): replaces a symlink instead of writing through it.
+if [ ! -e "$ACTIVE_FILE" ]; then
+  tmp="$(mktemp "$THEMES_DIR/.active.XXXXXX")"
+  cp -fL "$DEFAULT_FILE" "$tmp" && mv -f "$tmp" "$ACTIVE_FILE"
+  echo "Seeded $ACTIVE_FILE from $(basename "$DEFAULT_FILE")."
 fi
 
 if [ ! -f "$SETTINGS" ]; then
@@ -38,5 +52,5 @@ else
                     || echo "Setting theme to '$THEME'..."
   jq --arg t "$THEME" '.theme = $t' "$SETTINGS" > "${SETTINGS}.tmp" \
     && mv "${SETTINGS}.tmp" "$SETTINGS"
-  echo "Done."
+  echo "Done. Use 'theme dark|light|toggle' to switch."
 fi
