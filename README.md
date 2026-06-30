@@ -2,6 +2,24 @@
 
 Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
+## Quick start (fresh machine)
+
+Ordered path for a brand-new macOS machine. Each step links to its detailed
+section below; the rest of this README is reference material for individual tools.
+
+1. **Homebrew** — `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+2. **Xcode Command Line Tools** (C compiler for treesitter / fzf-native) — `xcode-select --install`
+3. **Clone this repo** to `~/src/dotfiles` (HTTPS for now — the [Git](#git) step later rewrites GitHub to SSH):
+   ```bash
+   mkdir -p ~/src && git clone https://github.com/null-sleep/dotfiles.git ~/src/dotfiles
+   ```
+4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
+5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
+6. **Stow the configs** — `stow nvim zsh && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)). First create `zsh/.stow-local-ignore` if this is a personal (non-work) machine — see [Per-machine config](#per-machine-config).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
+8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
+9. **[Verify your setup](#verify-your-setup)** with the smoke test.
+
 ## Fonts
 
 Install these **first** — they are prerequisites for the terminals (iTerm2, kitty)
@@ -20,20 +38,30 @@ brew trust delphinus/sfmono-square
 brew install sfmono-square
 ```
 
+`font-hack-nerd-font` is a **cask** — it installs straight into `~/Library/Fonts`.
+`sfmono-square` is a **formula** — it only *builds* the `.otf` files into its
+Cellar and does **not** install them where apps can see them, so symlink them in:
+
+```bash
+mkdir -p ~/Library/Fonts
+for f in "$(brew --prefix)"/opt/sfmono-square/share/fonts/*.otf; do
+  ln -sfn "$f" ~/Library/Fonts/"$(basename "$f")"
+done
+```
+
 Restart any running terminal afterwards so it picks up the newly installed fonts.
 
 ## Setup
 
 ```bash
-brew install stow zellij
-brew install --cask signal
+brew install stow            # if you skipped `brew bundle`; stow itself is required
 cd ~/src/dotfiles
-# Install dependencies for each tool
 stow nvim
 stow zsh
-stow kitty
-stow zellij
-stow --no-folding claude   # --no-folding: see the Claude Code section
+stow --no-folding claude     # --no-folding: see the Claude Code section
+# Optional terminals — only if you uncommented their casks in the Brewfile:
+stow kitty                   # needs the kitty cask
+stow zellij                  # needs the zellij formula
 ```
 
 > **Stowing only symlinks configs — it does not install the tools they depend
@@ -50,6 +78,26 @@ dotfiles/tmux/.config/tmux/tmux.conf
 ```
 
 Then run `stow tmux`.
+
+## Verify your setup
+
+After working through [Quick start](#quick-start-fresh-machine), smoke-test each piece:
+
+| Check | Expected |
+|---|---|
+| Open a new shell | Prompt renders `➜ <dir> git:(<branch>) ✗`, not the macOS `… %` default |
+| `z foo` / `zi` | jumps by frecency / opens an fzf picker ([zoxide](#directory-jumping-zoxide)) |
+| `command -v rg fd fzf zoxide direnv stow` | all resolve |
+| `python3 --version` | 3.12.x (not the system 3.9) |
+| `rustc --version` && `cargo --version` | both resolve (rustup) |
+| `ssh -T git@github.com` | `Hi <username>!` ([SSH for GitHub](#ssh-for-github)) |
+| Terminal glyphs | file-tree / git icons render, not tofu boxes (▯) — fonts installed |
+| `~/.local/bin/claude-nvim check` | prints `startup-ok` (nvim config loads clean) |
+| `nvim` → `:Mason` | LSP servers/tools show installed, not failed ([Languages](#languages)) |
+| `nvim` → `:checkhealth` | treesitter, telescope, lsp, blink.cmp all green |
+| Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
+
+If the prompt shows the macOS default instead of `➜`, see [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
 ## Languages
 
@@ -835,7 +883,7 @@ GUI frontend for Neovim. Two config files split by mechanism:
 - **`nvim/.config/nvim/lua/neovide.lua`** — runtime `vim.g.neovide_*` vars and keymaps. Gated by `if not vim.g.neovide then return end`, so terminal nvim skips it. Contains animation tuning (cursor/scroll/position lengths, cursor trail), `option_key_is_meta = 'both'` (so `<M-1>`..`<M-9>` keymaps work), proxy icon, hide-mouse-when-typing, floating corner radius, and the keymaps below.
 
 ```bash
-brew install --cask neovide
+brew install --cask neovide-app
 ```
 
 Neovide looks for its config at `~/Library/Application Support/neovide/config.toml` on macOS, so symlink that path to the stowed file once per machine:
@@ -1141,7 +1189,7 @@ Secrets go in `~/.zshenv`, which is not managed by stow.
 
 ### Troubleshooting antigen
 
-If you see `tee: /completions/_docker: No such file or directory` on shell startup, or your prompt shows a literal `$(git_prompt_info)` instead of rendering, antigen has cached an empty `$ZSH` / `$ZSH_CACHE_DIR`. Wipe and rebuild the cache:
+**Stale cache** — if you see `tee: /completions/_docker: No such file or directory` on shell startup, antigen has cached an empty `$ZSH` / `$ZSH_CACHE_DIR`. Wipe and rebuild the cache:
 
 ```bash
 rm -f ~/.antigen/init.zsh ~/.antigen/init.zsh.zwc ~/.antigen/.zcompdump ~/.antigen/.zcompdump.zwc
@@ -1149,6 +1197,16 @@ exec zsh
 ```
 
 `.zshrc_config.zsh` exports those vars explicitly before `antigen apply` so the regenerated cache captures the right paths.
+
+**oh-my-zsh never cloned** — symptom: completions/aliases from OMZ plugins (brew, docker, kubectl, …) don't work, and `~/.antigen/bundles/robbyrussell/oh-my-zsh/` contains only a `cache/` dir (no `oh-my-zsh.sh`). Antigen decides whether to clone a bundle by a bare directory-existence check, so if anything pre-creates that dir before antigen runs, it logs "already cloned" and silently skips the clone. `.zshrc_config.zsh` guards against this by deferring its `mkdir -p "$ZSH_CACHE_DIR/completions"` until *after* `antigen apply`. To repair a machine already in this state:
+
+```bash
+rm -rf ~/.antigen/bundles/robbyrussell
+rm -f ~/.antigen/init.zsh ~/.antigen/init.zsh.zwc
+exec zsh   # antigen re-clones oh-my-zsh for real
+```
+
+Note: the shell **prompt** does not depend on any of this — it's defined self-contained in `.zshrc_config.zsh` (the `_zsh_git_prompt` function + `PROMPT`), so it renders `➜ <dir> git:(<branch>) ✗` even if oh-my-zsh fails to load. Recolor it via the `PROMPT_COLOR_*` palette there.
 
 ## Git
 
