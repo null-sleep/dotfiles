@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.dhruv.theme-follow — keeps `theme watch` running so Claude Code and Neovim
+  follow the macOS appearance whenever it flips (System Settings → Appearance →
+  Auto at sunset/sunrise, or a Control Center toggle). iTerm2 already follows
+  macOS natively; this closes the gap for the two tools that don't.
+
+  Portable on purpose: the program is "/bin/zsh -c exec \"$HOME/.local/bin/theme\"
+  watch", so $HOME is expanded by zsh at launch — no hardcoded user path, the
+  exact same plist works on any machine. (theme is stowed to ~/.local/bin by the
+  zsh package.) The watcher uses `defaults read`, never osascript, so it needs no
+  Automation permission and runs unattended.
+
+  Install/load with macos/setup-theme-follow.sh (after `stow --no-folding macos`).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dhruv.theme-follow</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-c</string>
+        <string>exec "$HOME/.local/bin/theme" watch</string>
+    </array>
+
+    <!-- Poll interval for `theme watch`, in seconds. launchd does NOT inherit
+         your shell env, so this is the only place the agent reads it from — edit
+         here (then reload via setup-theme-follow.sh) to change it. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>THEME_WATCH_INTERVAL</key>
+        <string>2</string>
+    </dict>
+
+    <!-- Start at login and keep alive: the watcher is a forever loop, so if it
+         ever exits (crash, manual kill) launchd relaunches it. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Don't hammer relaunches if it dies immediately for some reason. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/theme-follow.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/theme-follow.err.log</string>
+</dict>
+</plist>
