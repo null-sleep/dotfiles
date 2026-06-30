@@ -302,19 +302,37 @@ natively (see one-time setup below), so flipping the system appearance recolors
 every iTerm window — new *and* existing.
 
 ```bash
-theme            # toggle, based on current macOS appearance
-theme dark
-theme light
-theme status
+theme            # toggle dark/light (pins, like dark/light below)
+theme dark       # PIN dark everywhere (turns macOS Auto OFF)
+theme light      # PIN light everywhere (turns macOS Auto OFF)
+theme auto       # hand control back to macOS Auto (sunset/sunrise); everything follows
+theme follow     # match Claude+nvim to current macOS appearance (don't set macOS)
+theme watch      # daemon loop used by the auto-follow LaunchAgent (see below)
+theme status     # show appearance, macOS mode (auto/pinned), and follower state
 ```
+
+**Three modes — `dark` · `light` · `auto`:**
+
+- **`dark` / `light`** *pin* that appearance everywhere at once: macOS Auto is
+  switched **off**, the macOS appearance is set to the fixed value, and Claude +
+  nvim are swapped to match. It stays put until you change it again — exactly like
+  choosing Light or Dark in **System Settings → Appearance**.
+- **`auto`** hands the wheel back to macOS: it re-enables native **Auto**
+  (sunset/sunrise), and Claude + nvim follow via the [watch
+  LaunchAgent](#auto-follow-on-macos-appearance-changes). One caveat — the macOS
+  Auto flag governs *future* evaluations, so macOS applies the schedule at the
+  next sunrise/sunset (or when you next click **Auto** in System Settings); it
+  doesn't retroactively repaint the current desktop. `theme auto` syncs Claude +
+  nvim to the present appearance immediately so nothing is out of step meanwhile.
 
 The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 `zsh/.local/bin/theme` to change it):
 
 | Mode  | Claude theme       | nvim variant       | macOS appearance |
 |-------|--------------------|--------------------|------------------|
-| light | `catppuccin-latte` | `catppuccin-latte` | light            |
-| dark  | `dracula`          | `dracula`          | dark             |
+| light | `catppuccin-latte` | `catppuccin-latte` | light (pinned)   |
+| dark  | `dracula`          | `dracula`          | dark (pinned)    |
+| auto  | follows macOS      | follows macOS      | Auto (schedule)  |
 
 ### One-time iTerm2 setup (single profile, follows macOS)
 
@@ -365,6 +383,51 @@ iTerm needs nothing from the `theme` script — it follows `macOS` directly.
 The `theme` script is stowed via the `zsh` package (`~/.local/bin` → repo), so
 it's on `PATH` automatically. macOS will prompt once for Automation access to
 control System Events (to set the appearance) — grant it.
+
+### Auto-follow on macOS appearance changes
+
+`theme dark|light` *pin* a fixed appearance. `theme auto` (or **System Settings →
+Appearance → Auto**) hands control back to macOS, which then flips its appearance
+**on its own** — dark at sunset, light at sunrise — or via a Control Center
+toggle. iTerm2 follows those native flips automatically, but nothing would tell
+Claude or nvim. The **theme-follow LaunchAgent** closes that gap: it keeps `theme
+watch` running, which polls the macOS appearance and runs `theme follow` on every
+flip — so Claude + nvim track macOS no matter *who* changed it. This is what makes
+`theme auto` "follow macOS everywhere."
+
+```bash
+stow --no-folding macos             # symlink the plist into ~/Library/LaunchAgents/
+bash ~/src/dotfiles/macos/setup-theme-follow.sh   # load + start the agent
+# then (optional): System Settings → Appearance → Auto
+```
+
+`--no-folding` matters here for the same reason as the `claude` package: on a
+fresh machine `~/Library/LaunchAgents/` may not exist yet, and a plain `stow
+macos` would *fold* — symlinking the whole directory into the repo, so every
+other app's plist would then land in your dotfiles. `--no-folding` makes stow
+create the real directory and link only the plist file.
+
+After this the whole chain is automatic: macOS flips (on a schedule or by hand)
+→ iTerm2 recolors natively, and the follower repaints Claude + nvim to match.
+
+- **No Automation prompt, no loop.** `watch`/`follow` read the appearance with
+  `defaults read -g AppleInterfaceStyle` (not `osascript`), so the agent runs
+  unattended; and `follow` only touches Claude + nvim — it never writes the macOS
+  appearance back, so it can't fight Auto mode or ping-pong with the watcher.
+- **Portable plist.** `com.dhruv.theme-follow.plist` runs
+  `zsh -c 'exec "$HOME/.local/bin/theme" watch'`, so `$HOME` expands at launch —
+  the same stowed file works on any machine, no path rewriting.
+- **Tuning / disabling.** The poll interval is `THEME_WATCH_INTERVAL` seconds
+  (default `2`), set in the plist's `EnvironmentVariables` — launchd doesn't
+  inherit your shell env, so edit it *there* (then re-run `setup-theme-follow.sh`
+  to reload), not in `.zshrc`. `theme status` reports whether the follower is
+  loaded; logs are at `/tmp/theme-follow.{out,err}.log` (chosen over
+  `~/Library/Logs` because a plist log path can't expand `$HOME` and we keep the
+  plist portable). Disable with
+  `launchctl bootout gui/$(id -u)/com.dhruv.theme-follow`.
+
+`macos/setup-theme-follow.sh` is `.stow-local-ignore`d (like the `claude/setup-*`
+scripts), so `stow macos` only links the plist, not the bootstrap script.
 
 ## Claude Squad
 

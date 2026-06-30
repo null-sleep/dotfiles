@@ -7,10 +7,34 @@
 #   dark  → Claude dracula          · nvim dracula          · macOS dark
 #
 # USAGE
-#   theme            # toggle (based on current macOS appearance)
-#   theme dark
-#   theme light
+#   theme            # toggle dark/light (pins, like `dark`/`light`)
+#   theme dark       # PIN dark everywhere (turns macOS Auto OFF)
+#   theme light      # PIN light everywhere (turns macOS Auto OFF)
+#   theme auto       # hand control back to macOS Auto (sunset/sunrise); follow it
+#   theme follow     # match Claude+nvim to current macOS appearance (don't set macOS)
+#   theme watch      # daemon: follow macOS appearance changes forever (LaunchAgent)
 #   theme status
+#
+# THREE MODES (dark · light · auto)
+#   dark / light  PIN that appearance everywhere at once: macOS Auto is switched
+#                 OFF (AppleInterfaceStyleSwitchesAutomatically=false), macOS is set
+#                 to the fixed appearance, and Claude+nvim are swapped to match. It
+#                 stays put until you change it again — exactly like choosing Light
+#                 or Dark in System Settings → Appearance.
+#   auto          Hands the wheel back to macOS: re-enables native Auto so macOS
+#                 flips itself at sunset/sunrise, and Claude+nvim follow via the
+#                 `watch` LaunchAgent. NOTE: the `defaults` Auto flag governs
+#                 *future* evaluations — macOS applies the schedule at the next
+#                 sunrise/sunset (or a System Settings → Auto click), it does not
+#                 retroactively repaint the current desktop. We sync Claude+nvim to
+#                 the present appearance immediately so nothing is out of step.
+#
+# AUTO-FOLLOW (macOS as the source of truth)
+#   In `auto` mode macOS owns the appearance, but nothing would tell Claude/nvim
+#   when it flips on a schedule or via Control Center. `theme watch` closes that
+#   gap: a LaunchAgent polls the macOS appearance and runs `theme follow` on every
+#   change, so Claude+nvim track macOS no matter who changed it. See README →
+#   "Auto-follow on macOS appearance changes" and macos/setup-theme-follow.sh.
 #
 # HOW EACH TOOL SWITCHES LIVE (no restarts)
 #   macOS  : osascript sets the system appearance (Dark/Light). This is the hinge
@@ -46,7 +70,7 @@ NVIM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/theme.txt"
 LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false" )
 DARK=(    "dracula"          "dracula"          "true"  )
 
-usage() { echo "usage: theme [dark|light|toggle|status]" >&2; exit "${1:-2}"; }
+usage() { echo "usage: theme [dark|light|auto|toggle|follow|watch|status]" >&2; exit "${1:-2}"; }
 
 # Echoes "dark", "light", or "" (empty) when the appearance query fails — so
 # callers can tell a genuine light reading from a denied-Automation failure.
@@ -60,46 +84,104 @@ macos_appearance() {
   esac
 }
 
+# Fast appearance read that needs NO Automation permission: it reads the global
+# AppleInterfaceStyle default directly instead of scripting System Events. The
+# key is present ("Dark") in dark mode and absent in light mode. Used by the
+# unattended `follow`/`watch` paths, where an osascript Automation prompt could
+# never be answered. Always resolves to dark|light (absent/error → light).
+macos_appearance_fast() {
+  case "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" in
+    [Dd]ark*) echo dark ;;
+    *) echo light ;;
+  esac
+}
+
+# Apply a resolved mode (dark|light) to Claude + Neovim. With pin=1 it also PINS
+# the macOS appearance — the hand-driven path (`theme dark|light`): it turns macOS
+# Auto OFF and sets the fixed appearance, so it stays put like picking Light/Dark
+# in System Settings. With pin=0 it leaves macOS untouched: that's `follow`, which
+# switches Claude+nvim to *match* an appearance macOS already moved to. It must not
+# write macOS back, or it would fight Auto mode and risk a flip loop with watch.
+apply_mode() {
+  local mode="$1" pin="$2" claude_slug nvim_variant macos_dark tmp
+  if [ "$mode" = dark ]; then
+    claude_slug="${DARK[0]}";  nvim_variant="${DARK[1]}";  macos_dark="${DARK[2]}"
+  else
+    claude_slug="${LIGHT[0]}"; nvim_variant="${LIGHT[1]}"; macos_dark="${LIGHT[2]}"
+  fi
+
+  # 1) macOS appearance — iTerm2 and other appearance-aware apps follow it. Pinning
+  # disables Auto first (osascript only sets the live value; it leaves the Auto
+  # schedule armed, which would later re-flip and undo the pin), then sets the
+  # fixed Light/Dark value.
+  if [ "$pin" = 1 ]; then
+    defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool false
+    osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $macos_dark" \
+      2>/dev/null || echo "theme: warning — could not set macOS appearance (grant Automation access?)" >&2
+  fi
+
+  # 2) Claude Code — hot-reload by swapping the active.json palette. Write to a
+  # temp file in the same dir then atomically mv into place: Claude watches the
+  # dir, so a plain cp's truncate-then-stream window could be read as empty/partial
+  # JSON; mv also *replaces* a symlink rather than writing through it into the repo.
+  if [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
+    tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
+      && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
+      && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
+      || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; }
+  else
+    echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
+  fi
+
+  # 3) Neovim — write the state file; running instances live-apply via themes.watch().
+  mkdir -p "$(dirname "$NVIM_STATE")"
+  printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
+
+  echo "theme → $mode  (claude:$claude_slug · nvim:$nvim_variant · macOS-dark:$macos_dark)"
+}
+
 mode="${1:-toggle}"
 case "$mode" in
   -h|--help) usage 0 ;;
   toggle)
     case "$(macos_appearance)" in
-      dark) mode=light ;;
-      light) mode=dark ;;
+      dark) apply_mode light 1 ;;
+      light) apply_mode dark 1 ;;
       *) echo "theme: cannot read macOS appearance (grant Automation access?)" >&2; exit 1 ;;
     esac ;;
-  dark|light) ;;
+  dark|light) apply_mode "$mode" 1 ;;
+  auto)
+    # Hand the wheel back to macOS: re-enable native Auto (sunset/sunrise). macOS
+    # owns the appearance from here and the watch LaunchAgent keeps Claude+nvim
+    # mirroring it. The flag governs *future* evaluations — macOS won't repaint the
+    # current desktop until the next boundary (or a System Settings → Auto click),
+    # so we sync Claude+nvim to the present appearance now to stay consistent.
+    defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool true
+    echo "theme → auto  (macOS now follows the sunset/sunrise schedule)"
+    apply_mode "$(macos_appearance_fast)" 0 ;;
+  follow)
+    # Match Claude+nvim to whatever macOS currently is, without touching macOS.
+    apply_mode "$(macos_appearance_fast)" 0 ;;
+  watch)
+    # Daemon loop (run by the LaunchAgent): poll the macOS appearance and apply
+    # only on a *change*. The Automation-free reader lets it run unattended, and
+    # applying solely on change keeps it quiet and idle-cheap. THEME_WATCH_INTERVAL
+    # (seconds) tunes responsiveness vs. wakeups; 2s is imperceptible and trivial.
+    last=""
+    while :; do
+      now="$(macos_appearance_fast)"
+      if [ "$now" != "$last" ]; then
+        apply_mode "$now" 0
+        last="$now"
+      fi
+      sleep "${THEME_WATCH_INTERVAL:-2}"
+    done ;;
   status)
     echo "macOS appearance: $(macos_appearance || echo '(unknown — Automation denied?)')"
+    echo "macOS mode:       $([ "$(defaults read -g AppleInterfaceStyleSwitchesAutomatically 2>/dev/null)" = 1 ] && echo 'auto (sunset/sunrise)' || echo 'pinned')"
     echo "nvim state:       $(cat "$NVIM_STATE" 2>/dev/null || echo '(unset)')"
     echo "claude active:    $(readlink "$CLAUDE_THEMES/active.json" 2>/dev/null || echo 'real file')"
+    echo "follower:         $(launchctl print "gui/$(id -u)/com.dhruv.theme-follow" >/dev/null 2>&1 && echo 'loaded' || echo 'not loaded')"
     exit 0 ;;
   *) usage ;;
 esac
-
-if [ "$mode" = dark ]; then set -- "${DARK[@]}"; else set -- "${LIGHT[@]}"; fi
-claude_slug="$1"; nvim_variant="$2"; macos_dark="$3"
-
-# 1) macOS appearance — iTerm2 and other appearance-aware apps follow it.
-osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $macos_dark" \
-  2>/dev/null || echo "theme: warning — could not set macOS appearance (grant Automation access?)" >&2
-
-# 2) Claude Code — hot-reload by swapping the active.json palette. Write to a
-# temp file in the same dir then atomically mv into place: Claude watches the
-# dir, so a plain cp's truncate-then-stream window could be read as empty/partial
-# JSON; mv also *replaces* a symlink rather than writing through it into the repo.
-if [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
-  tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
-    && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
-    && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
-    || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; }
-else
-  echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
-fi
-
-# 3) Neovim — write the state file; running instances live-apply via themes.watch().
-mkdir -p "$(dirname "$NVIM_STATE")"
-printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
-
-echo "theme → $mode  (claude:$claude_slug · nvim:$nvim_variant · macOS-dark:$macos_dark)"
