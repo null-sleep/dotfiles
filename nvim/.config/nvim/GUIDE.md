@@ -135,6 +135,39 @@ race). Optional features and keymaps are capability-gated (see above).
 Universally supported keymaps (definition, rename, code action, references)
 are always mapped.
 
+### Keymaps
+
+Buffer-local, set on `LspAttach` (from `lsp.lua`). Each *jump* map has a *peek*
+counterpart under `<Space>p` that opens the **same target in a scrollable float**
+(goto-preview) instead of moving the main window — VS Code / GoLand-style peek.
+Peek is additive; jumps are unchanged.
+
+| Jump | Peek | Target |
+|---|---|---|
+| `gd` | `<Space>pd` | Definition |
+| `gy` | `<Space>pt` | Type definition |
+| `gri` | `<Space>pi` | Implementation |
+| `grr` | `<Space>pr` | References (opens a Telescope picker, then peeks) |
+| `gD` | — | Declaration |
+| — | `<Space>pq` | Close all open peek floats |
+
+`gy`/`gri` (and their `pt`/`pi` peeks) and `gD` are capability-gated — they only
+map when the server supports the method. `grr`/`gri` use Telescope pickers.
+
+**Hover, actions & diagnostics:**
+
+| Keymap | Action |
+|---|---|
+| `K` | Hover — docs/type/signature float (not the source; use peek for that) |
+| `<C-s>` | Signature help |
+| `<Space>th` | Toggle auto-hover on CursorHold |
+| `<Space>ca` | Code action |
+| `<Space>rn` | Rename symbol |
+| `<Space>ce` | Show diagnostic float under cursor |
+| `<Space>cd` | Diagnostic list (loclist) |
+| `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) |
+| `<Space>ti` | Toggle inlay hints |
+
 ### Adding a new LSP server
 
 Example: adding `clangd` (C/C++).
@@ -207,14 +240,10 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   not mapped in this config. `grr`/`gri` are overridden to use Telescope.
 
 - **Peek floats (`<leader>p*`)** — VS Code / GoLand-style peek via
-  goto-preview: `<leader>pd`/`pt`/`pi`/`pr` open a scrollable floating window
-  showing the real target file at the definition/type/impl/reference, without
-  moving the main window; `<leader>pq` closes all open peeks. These mirror the
-  same LSP requests as the `gd`/`gy`/`gri`/`grr` *jump* maps but render a popup
-  instead — additive, and distinct from `K` (which shows hover docs, not the
-  source). `pt`/`pi` are capability-gated; `pr` opens a Telescope picker first
-  (goto-preview's default references provider), then peeks the selection.
-  Configured in `lsp.lua` (`focus_on_open`, `dismiss_on_move = false`).
+  goto-preview; see the LSP *Keymaps* table for the jump/peek pairs. Tuned in
+  `lsp.lua`: `focus_on_open = true` (cursor enters the float to scroll
+  immediately) and `dismiss_on_move = false` (stays open while you look around)
+  — flip either if the float feels too eager.
 
 - **`<C-.>` terminal compatibility** — `<C-.>` (focus sidekick CLI)
   requires a terminal that sends CSI u sequences (kitty, iTerm2 with CSI u,
