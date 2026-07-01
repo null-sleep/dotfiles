@@ -51,6 +51,17 @@ brew "node"
 brew "python@3.12"     # keg-only; .zshrc_config.zsh prepends it to PATH
 
 #-----------------------------------------------------------------------------
+# Claude Code LSP servers — needed on PATH by Claude Code's LSP plugins (see
+# README → "Claude Code"). These are SEPARATE from nvim's Mason copies, which
+# live in ~/.local/share/nvim/mason/bin (NOT on PATH). Only lua fits the brew
+# idiom; the other three install via their language toolchains:
+#   pyright        npm install -g pyright                       (needs node, above)
+#   gopls          go install golang.org/x/tools/gopls@latest   (needs go, above)
+#   rust-analyzer  rustup component add rust-analyzer           (Languages section)
+#-----------------------------------------------------------------------------
+brew "lua-language-server"
+
+#-----------------------------------------------------------------------------
 # Fonts
 #-----------------------------------------------------------------------------
 cask "font-hack-nerd-font"

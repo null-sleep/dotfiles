@@ -215,6 +215,8 @@ stow --no-folding claude
 bash ~/src/dotfiles/claude/setup-statusline.sh
 # Point Claude at the "active" theme slot in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-theme.sh
+# Enable the LSP plugins (Lua/Python/Rust/Go) in ~/.claude/settings.json (one-time)
+bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
 ```
 
 The `--no-folding` flag is important: it keeps `~/.claude/themes/` and
@@ -224,7 +226,7 @@ untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
 with a single directory symlink (a "fold"), which can't hold local files
 alongside the synced ones.
 
-Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live. Re-running either when already configured is a no-op.
+All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). Re-running any of them when already configured is a no-op.
 
 ### What's managed
 
@@ -235,8 +237,24 @@ Both setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusl
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
+| `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
 
-`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions).
+`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `setup-*.sh` scripts merge just their own keys into it idempotently with `jq`, so re-running any of them is a no-op.
+
+### LSP plugins (code intelligence)
+
+Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hover, call hierarchy) that works per file type only when the matching language-server plugin is enabled **and** its server binary is on `PATH`. This repo enables four, via `setup-lsp-plugins.sh`:
+
+| Plugin (`@claude-plugins-official`) | Files | Server binary | Install |
+|---|---|---|---|
+| `lua-lsp` | `.lua` | `lua-language-server` | `brew install lua-language-server` (in Brewfile) |
+| `pyright-lsp` | `.py` `.pyi` | `pyright-langserver` | `npm install -g pyright` |
+| `rust-analyzer-lsp` | `.rs` | `rust-analyzer` | `rustup component add rust-analyzer` |
+| `gopls-lsp` | `.go` | `gopls` | `go install golang.org/x/tools/gopls@latest` |
+
+**The plugins do not ship the server** — each is a thin config wrapper that shells out to the binary by name, resolved against `PATH`. `setup-lsp-plugins.sh` enables the plugins and then prints which of the four binaries are present vs. missing (with the install hint), so a fresh machine gets a clear checklist. A missing binary is harmless — the LSP tool just errors for that one file type until you install it. **Restart Claude Code** after enabling, so it discovers the plugins.
+
+> **Lua server vs. Mason.** `lua-language-server` is installed **twice, deliberately**: the Homebrew copy (`/opt/homebrew/bin`, on `PATH`) is what Claude Code uses, and nvim uses its own **Mason** copy (`~/.local/share/nvim/mason/bin`, *not* on `PATH`, launched by absolute path). They're independent installs in separate prefixes — they don't collide, share config, or update together (`brew upgrade` vs. `:MasonUpdate`). The brew copy is required because Claude resolves the binary via `PATH` and Mason's bin dir isn't on it. The other three servers (`pyright`, `rust-analyzer`, `gopls`) are global by nature, so both tools share the single PATH copy.
 
 ### Theme
 
