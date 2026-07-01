@@ -30,7 +30,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
 | `pickers/symbols.lua` | Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only |
 | `completion.lua` | blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own. |
-| `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section) |
+| `lsp.lua` | Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section) |
 | `rust.lua` | rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions) |
 | `debugging.lua` | nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Named to avoid shadowing `require('dap')` / `require('debug')` |
 | `testing.lua` | neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output) |
@@ -206,6 +206,16 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
   not mapped in this config. `grr`/`gri` are overridden to use Telescope.
 
+- **Peek floats (`<leader>p*`)** — VS Code / GoLand-style peek via
+  goto-preview: `<leader>pd`/`pt`/`pi`/`pr` open a scrollable floating window
+  showing the real target file at the definition/type/impl/reference, without
+  moving the main window; `<leader>pq` closes all open peeks. These mirror the
+  same LSP requests as the `gd`/`gy`/`gri`/`grr` *jump* maps but render a popup
+  instead — additive, and distinct from `K` (which shows hover docs, not the
+  source). `pt`/`pi` are capability-gated; `pr` opens a Telescope picker first
+  (goto-preview's default references provider), then peeks the selection.
+  Configured in `lsp.lua` (`focus_on_open`, `dismiss_on_move = false`).
+
 - **`<C-.>` terminal compatibility** — `<C-.>` (focus sidekick CLI)
   requires a terminal that sends CSI u sequences (kitty, iTerm2 with CSI u,
   WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
@@ -373,8 +383,10 @@ Keymaps are split across files by feature:
   pairs with the `typora` shell alias), `jk` in insert mode to exit to
   normal mode. Custom pickers live in `pickers/`.
 - **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
-  (`gd`, `gD`, `gy`), actions (`<leader>ca`, `<leader>rn`),
-  diagnostics (`<leader>ce`, `<leader>cd`), Telescope references (`grr`, `gri`)
+  (`gd`, `gD`, `gy`), peek floats (`<leader>p*` — `pd`/`pt`/`pi`/`pr` for
+  definition/type/impl/references, `pq` close-all; goto-preview), actions
+  (`<leader>ca`, `<leader>rn`), diagnostics (`<leader>ce`, `<leader>cd`),
+  Telescope references (`grr`, `gri`)
 - **`format.lua`** -- global keymaps: `<leader>cf` (manual format via conform.nvim, not LSP-gated, works in all buffers), `<leader>tf` (toggle format-on-save)
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
