@@ -217,6 +217,8 @@ bash ~/src/dotfiles/claude/setup-statusline.sh
 bash ~/src/dotfiles/claude/setup-theme.sh
 # Enable the LSP plugins (Lua/Python/Rust/Go) in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
+# Register the rtk token-optimizer hook in ~/.claude/settings.json (one-time)
+rtk init -g --auto-patch
 ```
 
 The `--no-folding` flag is important: it keeps `~/.claude/themes/` and
@@ -255,6 +257,24 @@ Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hove
 **The plugins do not ship the server** — each is a thin config wrapper that shells out to the binary by name, resolved against `PATH`. `setup-lsp-plugins.sh` enables the plugins and then prints which of the four binaries are present vs. missing (with the install hint), so a fresh machine gets a clear checklist. A missing binary is harmless — the LSP tool just errors for that one file type until you install it. **Restart Claude Code** after enabling, so it discovers the plugins.
 
 > **Lua server vs. Mason.** `lua-language-server` is installed **twice, deliberately**: the Homebrew copy (`/opt/homebrew/bin`, on `PATH`) is what Claude Code uses, and nvim uses its own **Mason** copy (`~/.local/share/nvim/mason/bin`, *not* on `PATH`, launched by absolute path). They're independent installs in separate prefixes — they don't collide, share config, or update together (`brew upgrade` vs. `:MasonUpdate`). The brew copy is required because Claude resolves the binary via `PATH` and Mason's bin dir isn't on it. The other three servers (`pyright`, `rust-analyzer`, `gopls`) are global by nature, so both tools share the single PATH copy.
+
+### rtk — token optimizer
+
+[rtk](https://www.rtk-ai.app/) ("Rust Token Killer", `brew "rtk"`) is a CLI proxy that compresses noisy command output (git, grep, ls, test runners, build tools, …) before it reaches the context window — the project claims ~60–90% reduction on common dev commands. It hooks into Claude Code transparently; you don't change how you work.
+
+Enable it once per machine (after `brew bundle` installs the binary):
+
+```bash
+rtk init -g --auto-patch
+```
+
+That command:
+
+- adds a **`PreToolUse` hook** on the `Bash` matcher to `~/.claude/settings.json` (`"command": "rtk hook claude"`) — every Bash call is rewritten through rtk automatically;
+- writes **`~/.claude/RTK.md`** (a short usage cheatsheet) and adds an **`@RTK.md`** reference to **`~/.claude/CLAUDE.md`** so Claude knows the meta-commands;
+- backs up the prior settings to `~/.claude/settings.json.bak` and seeds a user filter template at `~/Library/Application Support/rtk/filters.toml`.
+
+`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. None of these files are stowed (all machine-specific `~/.claude` state); the reproducible artifact is the one command above. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
 
 ### Theme
 
