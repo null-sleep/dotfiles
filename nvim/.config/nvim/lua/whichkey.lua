@@ -33,6 +33,7 @@ wk.add({
   { '<leader>u',  group = 'Utilities' },
   { '<leader>d',  group = 'Debug' },
   { '<leader>n',  group = 'Test' },
+  { '<leader>p',  group = 'Peek' },
   { 'g',          group = 'Go to' },
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
@@ -83,6 +84,11 @@ local keywords = {
   ['<leader>nd'] = 'neotest debug test dap nearest',
   ['<leader>ns'] = 'neotest summary test tree panel',
   ['<leader>cR'] = 'rust runnables run cargo rustaceanvim',
+  ['<leader>pd'] = 'peek definition popup float goto-preview vscode',
+  ['<leader>pt'] = 'peek type definition popup float goto-preview',
+  ['<leader>pi'] = 'peek implementation popup float goto-preview',
+  ['<leader>pr'] = 'peek references usages popup float goto-preview',
+  ['<leader>pq'] = 'peek close all windows goto-preview',
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords`
