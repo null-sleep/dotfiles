@@ -62,6 +62,20 @@ brew "python@3.12"     # keg-only; .zshrc_config.zsh prepends it to PATH
 brew "lua-language-server"
 
 #-----------------------------------------------------------------------------
+# Claude Code CLI. The @latest cask tracks newer builds than the stable
+# `claude-code` cask (which can lag behind by several releases). `claude update`
+# is a no-op on the @latest cask; run `brew upgrade --cask claude-code@latest`.
+#-----------------------------------------------------------------------------
+cask "claude-code@latest"
+
+#-----------------------------------------------------------------------------
+# Claude Code token optimizer — rtk (Rust Token Killer) compresses Bash command
+# output before it hits the context window via a PreToolUse hook. Enable with
+# `rtk init -g --auto-patch` after install (see README → "Claude Code").
+#-----------------------------------------------------------------------------
+brew "rtk"
+
+#-----------------------------------------------------------------------------
 # Fonts
 #-----------------------------------------------------------------------------
 cask "font-hack-nerd-font"
