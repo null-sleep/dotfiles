@@ -90,6 +90,17 @@ require('mason-lspconfig').setup({
   automatic_enable = false,
 })
 
+-- goto-preview: VS Code-style scrollable float into the target file. Peek maps
+-- (<leader>p*, set on LspAttach below) mirror the gd/gy/gri/grr jump maps but show
+-- a popup instead of navigating. See lua/plugins.lua for the plugin spec.
+vim.cmd.packadd('goto-preview')
+require('goto-preview').setup({
+  border = 'rounded',        -- match Mason/other floats
+  focus_on_open = true,      -- jump into the float so you can scroll immediately
+  dismiss_on_move = false,   -- stay open while you scroll around
+  default_mappings = false,  -- we define our own below (under <leader>p)
+})
+
 -- LspAttach: buffer-local keymaps and features applied when any LSP server
 -- attaches. Runs once per client-buffer pair, no per-server base config needed.
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -226,6 +237,18 @@ vim.api.nvim_create_autocmd('LspAttach', {
     if client:supports_method('textDocument/typeDefinition') then
       map('n', 'gy',             vim.lsp.buf.type_definition, 'LSP: Go to type definition')
     end
+    -- <leader>p*: peek the same targets as gd/gy/gri/grr, but in a scrollable float
+    -- (the real file) instead of jumping. <leader>pq closes all open peeks.
+    local gp = require('goto-preview')
+    map('n', '<leader>pd', gp.goto_preview_definition,        'Peek: Definition')
+    if client:supports_method('textDocument/typeDefinition') then
+      map('n', '<leader>pt', gp.goto_preview_type_definition, 'Peek: Type definition')
+    end
+    if client:supports_method('textDocument/implementation') then
+      map('n', '<leader>pi', gp.goto_preview_implementation,  'Peek: Implementation')
+    end
+    map('n', '<leader>pr', gp.goto_preview_references,        'Peek: References')
+    map('n', '<leader>pq', gp.close_all_win,                  'Peek: Close all')
     -- K: peek the symbol under the cursor — its type, function signature, and
     -- doc comment — in a float, without leaving the line (no jump, unlike gd/gy).
     -- Press K again to enter the float and scroll; any cursor move dismisses it.

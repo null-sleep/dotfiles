@@ -29,6 +29,10 @@ vim.pack.add(vim.list_extend({
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
+  -- VS Code / GoLand-style "Peek": a scrollable floating window showing the real
+  -- target file at a definition/reference, without moving the main window.
+  -- (pcall-requires an optional logger.nvim; falls back to a bundled logger.)
+  { src = gh('rmagatti/goto-preview') },
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },
