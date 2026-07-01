@@ -10,6 +10,14 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   export ZSH="$HOME/.antigen/bundles/robbyrussell/oh-my-zsh"
   export ZSH_CACHE_DIR="$ZSH/cache"
 
+  # oh-my-zsh core (lib/termsupport.zsh) auto-titles the tab/window on every
+  # precmd/preexec (job name, then "%~"), fighting our own auto/override
+  # `title` below — which redefines the `title` function these hooks call.
+  # Without this, every prompt or command re-triggers the (now-ours) `title`
+  # with omz's args, stomping our override. The hooks stay registered but
+  # no-op once this is set.
+  export DISABLE_AUTO_TITLE=true
+
   source ~/.antigen/antigen.zsh
 
   antigen use oh-my-zsh
@@ -88,6 +96,41 @@ _zsh_git_prompt() {
 }
 
 PROMPT='%(?:%F{$PROMPT_COLOR_OK}➜:%F{$PROMPT_COLOR_ERR}➜)%f  %F{$PROMPT_COLOR_DIR}%c%f$(_zsh_git_prompt) '
+
+#------------------------------------------------------------------------------
+# Window/tab title (iTerm2) — defaults to the project name (git toplevel,
+# else cwd basename), manually overridable with `title <name>`; bare `title`
+# reverts to automatic. Mirrors nvim's own auto/override :Title (see
+# nvim/.config/nvim/lua/titling.lua) so shell and editor titles agree — nvim
+# inherits whatever title escape codes are already in the terminal on launch
+# and restores them on exit, so the two never fight over the tab title.
+#------------------------------------------------------------------------------
+typeset -g _TITLE_OVERRIDE=
+
+_set_term_title() {
+  # \e]1;...\a sets the tab title, \e]2;...\a the window title — set both so
+  # neither is left showing the old value.
+  print -Pn "\e]1;$1\a\e]2;$1\a"
+}
+
+_auto_title() {
+  local root
+  root=$(command git rev-parse --show-toplevel 2>/dev/null)
+  [[ -n "$root" ]] && print -rn -- "${root:t}" || print -rn -- "${PWD:t}"
+}
+
+_update_term_title() {
+  _set_term_title "${_TITLE_OVERRIDE:-$(_auto_title)}"
+}
+
+title() {
+  _TITLE_OVERRIDE="$*"
+  _update_term_title
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd _update_term_title
+_update_term_title
 
 # antigen bundle ptavares/zsh-direnv
 [[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
