@@ -31,6 +31,8 @@ wk.add({
   { '<leader>c',  group = 'Code' },
   { '<leader>a',  group = 'AI' },
   { '<leader>u',  group = 'Utilities' },
+  { '<leader>d',  group = 'Debug' },
+  { '<leader>n',  group = 'Test' },
   { 'g',          group = 'Go to' },
   { '[',          group = 'Previous' },
   { ']',          group = 'Next' },
@@ -73,6 +75,14 @@ local keywords = {
   ['1z=']        = 'spell typo spelling fix accept',
   ['<leader>us'] = 'strip whitespace trim trailing spaces clean',
   ['<leader>uc'] = 'clean paste reflow dedent terminal claude format fix',
+  ['<leader>db'] = 'breakpoint dap debugger',
+  ['<leader>dc'] = 'debug continue start dap run',
+  ['<leader>du'] = 'dap-ui debugger panel scopes stack watches',
+  ['<leader>dR'] = 'debug rust debuggables rustaceanvim',
+  ['<leader>nn'] = 'neotest run test nearest',
+  ['<leader>nd'] = 'neotest debug test dap nearest',
+  ['<leader>ns'] = 'neotest summary test tree panel',
+  ['<leader>cR'] = 'rust runnables run cargo rustaceanvim',
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords`

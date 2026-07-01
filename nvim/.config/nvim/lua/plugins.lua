@@ -45,6 +45,16 @@ vim.pack.add(vim.list_extend({
   { src = gh('WhoIsSethDaniel/mason-tool-installer.nvim') },
   { src = gh('akinsho/toggleterm.nvim') },
   { src = gh('willothy/flatten.nvim') },
+
+  -- Rust / Debug / Test
+  -- rustaceanvim pinned to ^9: fast-moving repo that ships breaking majors and
+  -- tracks latest Neovim — an unpinned jump to v10 could break the vim.g.rustaceanvim
+  -- schema. (Same rationale as blink.cmp's 1.* pin above.)
+  { src = gh('mrcjkb/rustaceanvim'), version = vim.version.range('^9') },
+  { src = gh('mfussenegger/nvim-dap') },
+  { src = gh('rcarriga/nvim-dap-ui') },
+  { src = gh('nvim-neotest/nvim-nio') },
+  { src = gh('nvim-neotest/neotest') },
   -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
   -- TODO: flip src back to 'folke/sidekick.nvim' once PR #277 merges
   -- (https://github.com/folke/sidekick.nvim/pull/277).
