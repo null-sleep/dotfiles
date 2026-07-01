@@ -74,6 +74,7 @@ local keywords = {
   ['zw']         = 'spell typo spelling wrong',
   ['z=']         = 'spell typo spelling suggest corrections',
   ['1z=']        = 'spell typo spelling fix accept',
+  ['<leader>ut'] = 'title rename window tab iterm neovide project name',
   ['<leader>us'] = 'strip whitespace trim trailing spaces clean',
   ['<leader>uc'] = 'clean paste reflow dedent terminal claude format fix',
   ['<leader>db'] = 'breakpoint dap debugger',

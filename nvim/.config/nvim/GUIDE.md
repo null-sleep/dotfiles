@@ -474,6 +474,34 @@ names, jargon) across machines. `zg` appends to this file automatically.
 all fold and scroll commands), but all spell commands are searchable via
 `<leader>sk` — type "spell", "typo", or "spelling".
 
+### Window/tab title
+
+`titling.lua` sets `'title'`/`'titlestring'` to `<project> — <file> [+]`,
+where project is the git toplevel (or cwd) basename. `<leader>ut` (or
+`:Title <name>`) sets a manual override; empty input reverts to automatic.
+This one nvim mechanism drives both surfaces:
+
+- **iTerm2** — the TUI emits title escape codes for whatever `titlestring`
+  evaluates to.
+- **Neovide** — same value, via the `set_title` UI event (the same protocol
+  Neovide already uses for its default filename-based title).
+
+The zsh side (`title` function + `chpwd` hook in `.zshrc_config.zsh`) mirrors
+this with the same auto/override behavior for when nvim isn't running, so cwd
+and nvim agree. It redefines oh-my-zsh's own `title` function, so
+`DISABLE_AUTO_TITLE=true` is set before `antigen apply` to stop
+`termsupport.zsh`'s precmd/preexec hooks from fighting it (they still fire,
+now as no-ops, since they call `title` too).
+
+**iTerm2 preference required:** by default iTerm2 composites its own title
+from Session Name + Job Name (Preferences → Profiles → General → Title —
+looks like `Name (Job)`), which is why a tab running nvim shows `nvim (zsh)`
+regardless of what any escape sequence sets. To make the title above actually
+visible, open that Title dropdown and uncheck **Job Name** (leave **Session
+Name** checked — that's the component our escape-sequence title lands in).
+This is a live app preference, not a file in this repo, so it's a one-time
+manual step per machine.
+
 
 ## File Explorer (nvim-tree)
 
