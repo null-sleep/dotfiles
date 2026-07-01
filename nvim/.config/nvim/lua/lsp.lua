@@ -36,6 +36,7 @@ require('mason-tool-installer').setup({
     'taplo',          -- toml formatter
     'yamllint',       -- yaml linter
     'checkmake',      -- makefile linter
+    'codelldb',       -- rust/c/c++ debug adapter (consumed by nvim-dap via rustaceanvim)
   },
 })
 
@@ -77,7 +78,8 @@ require('mason-lspconfig').setup({
     'pyright',
     'ts_ls',
     'gopls',
-    'rust_analyzer',
+    -- rust_analyzer intentionally omitted: rustaceanvim (lua/rust.lua) manages the
+    -- Rust client and points it at the rustup-provided rust-analyzer, not Mason's.
     'elixirls',
     'kotlin_language_server',
     'eslint',
@@ -297,9 +299,9 @@ vim.lsp.config('gopls', {
   },
 })
 
-vim.lsp.config('rust_analyzer', {
-  settings = { ['rust-analyzer'] = { checkOnSave = true, check = { command = 'clippy' } } },
-})
+-- rust_analyzer is configured by rustaceanvim (lua/rust.lua via vim.g.rustaceanvim),
+-- not here — it must not be started by the native vim.lsp path too (double-attach).
+-- The clippy-on-save setting lives in vim.g.rustaceanvim.server.default_settings.
 
 -- Explicit root markers ensure Maven projects get a workspace root (not single-file mode).
 vim.lsp.config('kotlin_language_server', {
@@ -326,4 +328,5 @@ vim.lsp.config('copilot', {
 -- account for the LSP-delivered ones here too, don't assume everything is an autocmd.
 vim.lsp.config('eslint', {})
 
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'rust_analyzer', 'elixirls', 'kotlin_language_server', 'eslint', 'copilot' })
+-- rust_analyzer omitted: started by rustaceanvim, not the native vim.lsp path.
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'elixirls', 'kotlin_language_server', 'eslint', 'copilot' })

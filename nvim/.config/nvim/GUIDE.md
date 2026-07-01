@@ -30,7 +30,10 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
 | `pickers/symbols.lua` | Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only |
 | `completion.lua` | blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own. |
-| `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable` |
+| `lsp.lua` | Mason setup, mason-lspconfig, LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section) |
+| `rust.lua` | rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions) |
+| `debugging.lua` | nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Named to avoid shadowing `require('dap')` / `require('debug')` |
+| `testing.lua` | neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output) |
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
@@ -64,7 +67,11 @@ this file after updating plugins to keep versions consistent across machines.
 ### Load order
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-ai -> format -> statusline -> session -> git -> terminal -> whichkey -> autosave -> filetree.
+rust -> debugging -> testing -> ai -> format -> linting -> statusline ->
+session -> git -> terminal -> whichkey -> autosave -> filetree -> neovide.
+
+`rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
+which needs rustaceanvim on the runtimepath).
 
 
 ## Design Decisions
@@ -372,6 +379,14 @@ Keymaps are split across files by feature:
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`session.lua`** -- session keymaps (`<leader>q*`)
+- **`rust.lua`** (FileType rust) -- buffer-local Rust keymaps: runnables
+  (`<leader>cR`), expand macro (`<leader>cm`), open Cargo.toml (`<leader>cC`),
+  debuggables (`<leader>dR`), grouped hover/actions (`K`, `<leader>ca`).
+  See the Rust section for the full tables.
+- **`debugging.lua`** -- global debug keymaps: `<leader>d*` (breakpoint,
+  continue, step, REPL, UI, eval) plus `<F5>` / `<F9>`–`<F12>`
+- **`testing.lua`** -- global neotest keymaps: `<leader>n*` (run
+  nearest/file/last, debug nearest, summary, output)
 - **`keymaps.lua`** (AI section) -- `<Tab>` (NES jump/apply), `<C-.>`
   (focus CLI, CSI u terminals), `<leader>ai` (focus CLI fallback),
   `<leader>aa` (toggle Claude CLI), `<leader>as`
@@ -544,3 +559,131 @@ mechanism (`virt_text_pos='inline'`).
 2. `:Mason` — confirm `copilot-language-server` is installed.
 3. `:LspCopilotSignIn` — complete the device-code flow in a browser.
 4. Install `claude` CLI if not already present.
+
+
+## Rust (rustaceanvim + DAP + neotest)
+
+IDE-grade run/debug/test for Rust, split across three modules: `rust.lua`
+(rustaceanvim), `debugging.lua` (nvim-dap + dap-ui), `testing.lua` (neotest).
+rustaceanvim is the keystone — it takes over rust-analyzer and, in doing so:
+
+1. **Registers the Run/Debug codelens handlers.** rust-analyzer emits `▶ Run`
+   / `⚙ Debug` codelens, but plain LSP has no client-side handler for the
+   `rust-analyzer.runSingle` / `debugSingle` commands, so `grx` on them used to
+   error. rustaceanvim provides the handlers — the codelens now execute.
+2. **Auto-wires the codelldb DAP adapter.** No hand-written `dap.adapters.codelldb`
+   — rustaceanvim finds Mason's codelldb and builds the adapter itself.
+3. **Ships a neotest adapter** (`rustaceanvim.neotest`) that reuses rust-analyzer's
+   runnables and integrates with nvim-dap for debugging tests.
+
+### rust-analyzer ownership
+
+rust-analyzer is **not** in `lsp.lua`'s `vim.lsp.enable` list, and **not** in
+Mason (`rust_analyzer` was removed from `ensure_installed`). rustaceanvim starts
+it, pointed explicitly at the **rustup proxy** `~/.cargo/bin/rust-analyzer`.
+
+Why the explicit path: Mason prepends its `bin/` to `PATH`, and that dir sorts
+**before** `~/.cargo/bin`, so a bare `rust-analyzer` would resolve to Mason's
+copy — which can drift from the active rustup toolchain and cause proc-macro /
+version noise. The rustup proxy is toolchain-matched and honors per-project
+`rust-toolchain.toml`. If you ever *do* want Mason's, override
+`vim.g.rustaceanvim.server.cmd` in `rust.lua`.
+
+### Running a program
+
+- **`<leader>cR`** — runnables picker; select the binary → runs `cargo run` in a
+  terminal split. Workspace-aware (rust-analyzer picks the right `-p` package).
+- **`grx`** on the `fn main` line — runs the `▶ Run` codelens directly.
+- **`:RustLsp run`** — re-run the *last* runnable (fast edit-run loop).
+- Or just a terminal: `<leader>tb`, then `cargo run -p <crate>`.
+
+### Debugging
+
+1. Set a breakpoint: **`<leader>db`** (or `<F9>`) — a `●` appears in the sign column.
+2. Start the session: **`<leader>dR`** (Rust debuggables) → pick the target →
+   rustaceanvim compiles it in debug mode, launches under codelldb, and stops at
+   the breakpoint. dap-ui opens automatically (scopes, stack, breakpoints, REPL)
+   and closes when the session ends.
+3. Drive it: `<F5>`/`<leader>dc` continue, `<F10>` over, `<F11>` into, `<F12>` out.
+
+`<leader>dR` is the reliable entry point (it asks rust-analyzer for the exact
+cargo target). `<F5>`/`<leader>dc` (`dap.continue`) is for *resuming* a paused
+session — starting cold from it relies on rustaceanvim's auto-loaded configs.
+
+### Testing
+
+`<leader>nn` runs the test under the cursor; results show as signs + a summary
+tree. `<leader>nd` debugs the nearest test (breakpoints honored via dap).
+
+### Keymaps
+
+**Rust actions** (buffer-local, `rust` filetype only — from `rust.lua`):
+
+| Keymap | Action |
+|---|---|
+| `K` | Rust hover actions (richer than plain LSP hover) |
+| `<Space>ca` | Code action (rustaceanvim grouped variant) |
+| `<Space>cR` | Runnables — run a binary/target |
+| `<Space>cm` | Expand macro under cursor |
+| `<Space>cC` | Open the crate's `Cargo.toml` |
+| `<Space>dR` | Debuggables — start a Rust debug session |
+| `grx` | Run/Debug codelens under cursor (native codelens, now functional) |
+
+**Debug** (global, `<Space>d*` = Debug group — from `debugging.lua`):
+
+| Keymap | Action |
+|---|---|
+| `<Space>db` / `<F9>` | Toggle breakpoint |
+| `<Space>dB` | Conditional breakpoint (prompts for condition) |
+| `<Space>dc` / `<F5>` | Continue / start |
+| `<Space>di` / `<F11>` | Step into |
+| `<Space>do` / `<F10>` | Step over |
+| `<Space>dO` / `<F12>` | Step out |
+| `<Space>dl` | Run last |
+| `<Space>dq` | Terminate |
+| `<Space>dr` | Toggle REPL |
+| `<Space>du` | Toggle dap-ui |
+| `<Space>de` | Eval expression (normal: under cursor; visual: selection) |
+
+**Test** (global, `<Space>n*` = Test group — from `testing.lua`):
+
+| Keymap | Action |
+|---|---|
+| `<Space>nn` | Run nearest test |
+| `<Space>nf` | Run all tests in file |
+| `<Space>nl` | Run last |
+| `<Space>nd` | Debug nearest test (via dap) |
+| `<Space>nS` | Stop running test(s) |
+| `<Space>ns` | Toggle summary tree |
+| `<Space>no` | Show output for nearest |
+| `<Space>nO` | Toggle output panel |
+
+### Extending neotest to other languages
+
+`testing.lua` sets up neotest as a framework. To add a language: add its adapter
+plugin to `plugins.lua`, `require` it in `testing.lua`'s `adapters` list, and
+ensure the treesitter parser is installed. E.g. for Go:
+
+```lua
+-- plugins.lua:  { src = gh('fredrikaverpil/neotest-golang') },
+-- testing.lua:  require('neotest-golang'),
+```
+
+### Troubleshooting
+
+- **Debug session dies instantly** (Apple Silicon): codelldb is found on `PATH`
+  so rustaceanvim uses the plain-command adapter without explicitly pairing
+  `liblldb.dylib`. If `:messages` shows a liblldb error, replace `dap = {}` in
+  `rust.lua` with an explicit adapter:
+  ```lua
+  dap = {
+    adapter = require('rustaceanvim.config').get_codelldb_adapter(
+      vim.fn.expand('~/.local/share/nvim/mason/packages/codelldb/extension/adapter/codelldb'),
+      vim.fn.expand('~/.local/share/nvim/mason/packages/codelldb/extension/lldb/lib/liblldb.dylib'))
+  }
+  ```
+- **Two rust-analyzer clients / wrong version**: check `:checkhealth vim.lsp` —
+  the command should be the rustup proxy, not a Mason path. If it's Mason's, you
+  skipped step 3 above.
+- **`require('rustaceanvim.neotest')` errors on startup**: `rust` must load
+  before `testing` in `init.lua` (see Load order).
