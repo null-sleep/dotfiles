@@ -1,0 +1,106 @@
+# rcmd configuration file
+# Edit this file to customise rcmd's behaviour. Changes are picked up within a few seconds.
+# Full settings reference: run `rcmd config help`
+stages: []
+appKeyAssignments: {}
+windowKeyAssignments: {}
+ignoredApps: []
+appsWhereRcmdIsPaused: []
+ignoredKeys: []
+searchPins: {}
+triggers:
+  triggerKeys: [rcmd]
+  windowTriggerKeys: [ralt]
+  assignKeyTriggerKeys: [rcmd, ralt]
+  hideOnFocusTriggerKeys: [rcmd, lshift]
+  enableAssignHotkey: true
+  enableHideOthersHotkey: false
+  alwaysHideOthers: false
+appSwitcher:
+  showAppSwitcher: true
+  appSwitcherOSDDelay: 0
+  appSwitcherFeatures: [runningApps, launchableApps, bottomActions]
+  switcherScreenPlacement: {position: center, offsetX: 0, offsetY: 150}
+  osdSize: {width: 600, height: 550}
+  actionKeys: {hideKey: minus, actionKey: equal, exposeKey: section, enableHideAndActionKeys: true}
+  hideOnlyFocusedAppOnMinus: false
+  appSort: name
+  appSortReverse: false
+windowSwitcher:
+  showWindowSwitcher: true
+  windowSwitcherOSDDelay: 0
+  windowSwitcherAppearance: comfortable
+  windowKeyMode: mixed
+  osdLook:
+    density: comfortable
+    backgroundStyle:
+      glass: {opacity: 5.78855298913043e-1}
+    accentColor: '#FF9400FF'
+    foregroundColor: adaptive
+    keycapColor: adaptive
+    keycapStyle: badge
+    searchBarStyle: glassy
+    cornerRadius: 2.8e+1
+    appIconSize: 3e+1
+    iconStyle: native
+    fontStyle: rounded
+    focusStyle: bar
+    rowSeparationStyle: floating
+    glassTint: '#B0A6B90D'
+  activeThemeID: round
+  windowSwitcherFeatures: [lastWindow, windows, windowActions, bottomActions]
+  windowSwitcherDimFocused: false
+  windowSwitcherPlacement: {mirrorAppSwitcher: false, position: center, offsetX: 0, offsetY: 150}
+  osdSize: {width: 600, height: 550}
+  actionKeys: {windowMinimizeKey: minus, windowAssignKey: equal, enableWindowMinimizeAndAssignKeys: true}
+  minimizeOnlyFocusedWindowOnMinus: true
+stageSwitcher:
+  stageTriggerKeys: [capsLock]
+  actionKeys: {stageAssignKey: equal, stageCloseKey: minus, stageRepositionKey: section, stageCloseAction: close}
+  stageReopenClosedItems: true
+  stageSwitcherOSDDelay: 80
+  showStageSwitcher: true
+  stageSwitcherPlacement: {mirrorAppSwitcher: false, position: bottomRight, offsetX: 0, offsetY: 0}
+tabCycle:
+  enableTabCycle: true
+  tabCycleScope: auto
+  tabCycleSearchScope: allWindows
+  tabCycleInclude: [minimized, hidden]
+  tabCycleFocusOnKeyUp: true
+  hijackCommandTab: true
+  stickyAppSwitcher: false
+  stickyAppSwitcherScope: rcmdOnly
+  windowCycleKey: grave
+  enableWindowCycleKey: true
+  hijackWindowCycleHotkey: true
+spaces: {spaceMode: multi, createMissingSpaces: true, osdOnActiveSpaceOnly: false, enableInstantSpaceSwitching: true}
+general:
+  whenAlreadyFocusedAction: Hide
+  focusBehaviour: sameSpaceWindow
+  focusBehaviourSingle: allWindows
+  focusBehaviourMulti: sameSpaceWindow
+  focusOnKeyUp: false
+  activationMode: onRelease
+  fuzzySearch: true
+  searchMatchMode: anchored
+  searchOptionalPrefixes:
+  - google
+  - microsoft
+  - adobe
+  - apple
+  - amazon
+  - affinity
+  - jetbrains
+  - nvidia
+  - parallels
+  - elgato
+  - logitech
+  - synology
+  - wondershare
+  - the
+  - 4k
+  - 8k
+  - 3d
+  showMenubarAppsInSearch: false
+  enableStickySpaceSearch: true
+  hidePerAppSettings: false

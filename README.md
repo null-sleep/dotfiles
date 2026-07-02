@@ -15,7 +15,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)). First create `zsh/.stow-local-ignore` if this is a personal (non-work) machine — see [Per-machine config](#per-machine-config).
+6. **Stow the configs** — `stow nvim zsh rcmd && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)). First create `zsh/.stow-local-ignore` if this is a personal (non-work) machine — see [Per-machine config](#per-machine-config).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -59,6 +59,7 @@ cd ~/src/dotfiles
 stow nvim
 stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
+stow rcmd                    # needs the rcmd cask
 # Optional terminals — only if you uncommented their casks in the Brewfile:
 stow kitty                   # needs the kitty cask
 stow zellij                  # needs the zellij formula
@@ -1095,6 +1096,18 @@ Two ways to open a file in it:
 
 - **Shell:** `typora notes.md` — alias for `open -a Typora` (in `.zshrc_config.zsh`).
 - **Neovim:** `<Space>o` (or `:Typora`) opens the current buffer's file in Typora, writing any pending changes first. Discoverable via `<Space>?` and `<Space>sk` (search "typora" or "markdown"). Mirrors the [vscode-open-in-typora](https://github.com/typora/vscode-open-in-typora) extension — `open -a Typora` on macOS, no cursor-position handoff (Typora has no such CLI flag).
+
+## rcmd
+
+App/window switcher driven by the Right Command key. Config (assignments, Stages, and settings) is a plain YAML file at `~/.config/rcmd/config.yaml`, managed via stow.
+
+```bash
+brew install --cask rcmd
+cd ~/src/dotfiles
+stow rcmd
+```
+
+The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.
 
 ## iTerm2
 
