@@ -153,12 +153,18 @@ end, { desc = 'Toggle: Diagnostics' })
 -- Toggle all AI autocompletions globally (inline ghost text + NES).
 -- Inline completion: omitting bufnr toggles for all buffers.
 -- NES: vim.g.sidekick_nes is checked by sidekick's enabled callback.
-vim.keymap.set('n', '<leader>tc', function()
+vim.keymap.set('n', '<leader>ta', function()
   local enabling = not vim.lsp.inline_completion.is_enabled()
   vim.lsp.inline_completion.enable(enabling)
   vim.g.sidekick_nes = enabling
   vim.notify('AI completions ' .. (enabling and 'ON' or 'OFF'))
 end, { desc = 'Toggle: AI completions (inline + NES)' })
+
+-- Toggle comment on current line / selection — remap to reach Neovim's
+-- built-in gcc/gc (not a raw keystroke passthrough, since gcc is itself a
+-- mapping registered by core; noremap would bypass it).
+vim.keymap.set('n', '<leader>tc', 'gcc', { remap = true, desc = 'Toggle: Comment (line)' })
+vim.keymap.set('x', '<leader>tc', 'gc', { remap = true, desc = 'Toggle: Comment (selection)' })
 
 -- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
 vim.keymap.set('n', '<leader>ts',

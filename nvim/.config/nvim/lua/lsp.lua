@@ -221,7 +221,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Copilot inline completion: ghost-text suggestions while typing in insert mode.
     -- Separate from NES (sidekick), which shows follow-on edit diffs in normal mode.
     -- <Tab> accepts (handled in completion.lua's blink keymap chain).
-    -- Enabled by default; <leader>tc toggles globally (all buffers, both features).
+    -- Enabled by default; <leader>ta toggles globally (all buffers, both features).
     if client:supports_method(vim.lsp.protocol.Methods.textDocument_inlineCompletion, buf) then
       vim.lsp.inline_completion.enable(true, { bufnr = buf })
     end

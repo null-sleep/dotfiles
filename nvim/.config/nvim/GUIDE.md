@@ -614,7 +614,7 @@ Two separate Copilot features, both powered by the Copilot LSP:
   text at the cursor showing what to type next. Press `<Tab>` to accept.
   Proactive: "here's what you probably want to write next."
   LSP method: `textDocument/inlineCompletion`.
-  Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>tc`
+  Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>ta`
   toggles globally. Ghost text styled via `ComplHint` highlight group
   (linked to `Comment` in `themes.lua` for visibility).
 
