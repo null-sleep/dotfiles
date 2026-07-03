@@ -110,7 +110,7 @@ return {
   { lhs = 'gq',     group = 'Go to',               desc = 'Format text with motion' },
 
   { lhs = 'gc',     group = 'Comment',             desc = 'Toggle comment with motion (e.g. gcip, gc3j)' },
-  { lhs = 'gcc',    group = 'Comment',             desc = 'Toggle comment on current line' },
+  { lhs = 'gcc',    group = 'Comment',             desc = 'Toggle comment on current line (also <leader>tc)' },
 
   { lhs = 'dw',     group = 'Delete combos',       desc = 'Delete to next word boundary' },
   { lhs = 'diw',    group = 'Delete combos',       desc = 'Delete inner word' },
