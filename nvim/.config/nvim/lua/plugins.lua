@@ -6,6 +6,7 @@ local themes = require('themes')
 vim.pack.add(vim.list_extend({
   -- Treesitter
   { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main' },
+  { src = gh('nvim-treesitter/nvim-treesitter-context') },
 
   -- Telescope (fuzzy finder)
   { src = gh('nvim-lua/plenary.nvim') },
