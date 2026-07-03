@@ -861,6 +861,28 @@ The underlying commands if you prefer typing them: `:w | bd` to confirm, `:cq` t
 
 These keymaps are only active in `gitcommit` and `gitrebase` buffers.
 
+#### YubiKey touch indicator
+
+If your commits are GPG-signed and require a YubiKey touch, a `mini.notify` popup fires at two points:
+
+- **"Touch YubiKey ↯"** — appears as soon as GPG calls pinentry (i.e. the moment your key needs to be touched)
+- **"Signed ✓"** — appears ~3 s after `<Space>w`, once signing is expected to have completed
+
+This requires a one-time system config change (not stowed — lives in `~/.gnupg/`):
+
+```bash
+# Point gpg-agent at the nvim pinentry wrapper
+echo 'pinentry-program ~/.config/nvim/scripts/pinentry-yubikey-notify.sh' > ~/.gnupg/gpg-agent.conf
+gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
+```
+
+The wrapper delegates to `/opt/homebrew/bin/pinentry-mac` after notifying nvim, so normal pinentry behaviour is preserved. To revert:
+
+```bash
+echo 'pinentry-program /opt/homebrew/bin/pinentry-mac' > ~/.gnupg/gpg-agent.conf
+gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
+```
+
 ### General Keymaps
 
 | Keymap | Action |

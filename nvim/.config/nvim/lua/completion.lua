@@ -11,8 +11,11 @@ require('blink.cmp').setup({
       'select_next',
       function()
         if vim.lsp.inline_completion.is_enabled({ bufnr = 0 }) then
-          local accepted = vim.lsp.inline_completion.get()
-          if accepted ~= false then return true end
+          local item = vim.lsp.inline_completion.get()
+          if item ~= nil and item ~= false then
+            vim.lsp.inline_completion.accept()
+            return true
+          end
         end
       end,
       'fallback',
