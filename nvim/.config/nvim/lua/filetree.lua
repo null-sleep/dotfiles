@@ -74,8 +74,8 @@ require('nvim-tree').setup({
       end
       api.tree.focus()
     end, vim.tbl_extend('force', opts, { desc = 'Vsplit preview' }))
-    -- <CR> uses tab_drop: focuses existing tab if file is already open, otherwise opens normally
-    vim.keymap.set('n', '<CR>', api.node.open.tab_drop,      vim.tbl_extend('force', opts, { desc = 'Open (tab drop)' }))
+    -- <CR> opens in the current window (no new tabs)
+    vim.keymap.set('n', '<CR>', api.node.open.edit,          vim.tbl_extend('force', opts, { desc = 'Open' }))
   end,
   -- Narrow sidebar width
   -- For adaptive width: view = { width = { min = 35, max = 50 } }
