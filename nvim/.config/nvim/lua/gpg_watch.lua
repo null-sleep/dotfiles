@@ -10,7 +10,7 @@ function M.after_commit()
   local timer = vim.uv.new_timer()
   timer:start(3000, 0, vim.schedule_wrap(function()
     timer:close()
-    vim.notify('Signed ✓', vim.log.levels.INFO)
+    vim.notify('\n  ✓  Signed  \n', vim.log.levels.INFO)
   end))
 end
 

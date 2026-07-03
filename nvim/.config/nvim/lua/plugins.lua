@@ -121,7 +121,12 @@ vim.cmd.packadd('mini.notify')
 require('mini.notify').setup({
   lsp_progress = { enable = false },
 })
-vim.notify = require('mini.notify').make_notify()
+vim.notify = require('mini.notify').make_notify({
+  -- Keep WARN/ERROR notifications visible longer (default is ~3s).
+  -- INFO stays short; WARN/ERROR linger until dismissed or timeout.
+  ERROR = { duration = 10000 },
+  WARN  = { duration = 10000 },
+})
 -- :Notifications — view dismissed notifications (like :messages but for mini.notify)
 vim.api.nvim_create_user_command('Notifications', function()
   require('mini.notify').show_history()
