@@ -14,7 +14,7 @@ fi
 
 if [[ -n "$NVIM_SOCKET" ]]; then
   nvim --server "$NVIM_SOCKET" --remote-expr \
-    "luaeval(\"vim.notify('Touch YubiKey ↯', vim.log.levels.WARN)\")" 2>/dev/null || true
+    "luaeval(\"vim.notify('\\n  ↯  Touch YubiKey  ↯\\n', vim.log.levels.ERROR)\")" 2>/dev/null || true
 fi
 
 exec "$REAL_PINENTRY" "$@"
