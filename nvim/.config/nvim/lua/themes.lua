@@ -116,6 +116,13 @@ M.themes = {
       'catppuccin-macchiato',-- dark, medium contrast; deeper grays, more vivid accents
       'catppuccin-mocha',    -- dark, high contrast; richest darks with vibrant pastel accents
     },
+    -- Unlike most other themes here, catppuccin defaults term_colors to false,
+    -- so it never sets g:terminal_color_0-15 unless told to. Without this,
+    -- :terminal/toggleterm falls back to Neovim's generic ANSI palette instead
+    -- of catppuccin's, producing visibly different colors from a plain shell.
+    setup = function()
+      require('catppuccin').setup({ term_colors = true })
+    end,
     overrides = {
       -- Normal = { bg = 'NONE' },  -- transparent background
     },
@@ -513,9 +520,10 @@ end
 ---             When adding a new theme: if it has a plugin/ dir with side effects
 ---             (autocommands, global state) that accumulate on repeated source,
 ---             it will misbehave during live preview. Check with :packadd + :scriptnames.
----   setup():  all five current setup functions (dracula, github-nvim-theme,
----             modus-themes, onedark, everforest) use replace/overwrite patterns —
----             no accumulating autocommands, no growing global state.
+---   setup():  all six current setup functions (catppuccin, dracula,
+---             github-nvim-theme, modus-themes, onedark, everforest) use
+---             replace/overwrite patterns — no accumulating autocommands, no
+---             growing global state.
 ---             When adding a new theme with a setup(): verify it is idempotent
 ---             (no additive autocommands, no append-only state). If not, the
 ---             picker will degrade for that theme (flicker, leaked state, slowdown).
