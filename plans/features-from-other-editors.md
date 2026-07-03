@@ -100,11 +100,12 @@ current config are **sticky scroll** and **multi-cursor**. A few others (problem
 panel, breadcrumbs) overlap with the Zed section above — listed as cross-refs
 rather than duplicated.
 
-### Top pick: sticky scroll → `nvim-treesitter-context`
+### ✅ Done: sticky scroll → `nvim-treesitter-context`
 Pins the enclosing scope (class / function / interface signatures) to the top of
 the window as you scroll, so you always know where you are in a deeply nested
 file and can jump back to the scope top. Cleanest, highest-value port — already
-running treesitter, so this is near-zero added cost.
+running treesitter, so this was near-zero added cost.
+Implemented in `lua/treesitter_context.lua` (2026-07-03).
 - https://github.com/nvim-treesitter/nvim-treesitter-context
 
 ### Second pick: multi-cursor (Ctrl+D) → `multicursor.nvim` (or `vim-visual-multi`)
