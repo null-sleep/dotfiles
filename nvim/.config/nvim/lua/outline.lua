@@ -28,8 +28,50 @@ require('aerial').setup({
 
   -- Highlight the symbol in the source buffer while browsing the sidebar
   -- (reverse direction of highlight_closest, which is already on by default
-  -- and highlights the sidebar's row matching the source cursor).
-  highlight_on_hover = true,
+  -- and highlights the sidebar's row matching the source cursor). Off by
+  -- default — toggle on with zh below when wanted.
+  highlight_on_hover = false,
+
+  -- Sidebar-local toggle for highlight_on_hover (zh, alongside aerial's own
+  -- z*-prefixed fold toggles: za/zo/zc/zA/zO/zC/zr/zR/zm/zM/zx/zX). Dips into
+  -- aerial internals (require('aerial.config') is a plain mutable table —
+  -- every setup() option becomes a live top-level field on it, read fresh on
+  -- every event, not cached — and require('aerial.render').clear_highlights
+  -- is a small public util) since aerial has no built-in toggle command for
+  -- this option. Could break on an aerial internals refactor; low risk given
+  -- how small/stable these two pieces are.
+  keymaps = {
+    ['zh'] = {
+      callback = function()
+        local cfg = require('aerial.config')
+        cfg.highlight_on_hover = not cfg.highlight_on_hover
+        if cfg.highlight_on_hover then
+          -- Aerial only wires the highlight autocmds when the sidebar buffer
+          -- is first created, gated on the flag at that moment — flipping it
+          -- here doesn't retroactively attach them. The sidebar buffer also
+          -- survives a plain close+open (aerial caches and reuses it), so
+          -- force-delete it first to make aerial recreate it from scratch,
+          -- this time with the autocmds registered.
+          local aer_buf = vim.api.nvim_get_current_buf()
+          require('aerial').close()
+          if vim.api.nvim_buf_is_valid(aer_buf) then
+            vim.api.nvim_buf_delete(aer_buf, { force = true })
+          end
+          require('aerial').open()
+        else
+          -- Flipping the flag off doesn't retroactively clear an
+          -- already-highlighted source line — do it manually so it
+          -- doesn't linger until the next unrelated redraw.
+          local source_buf = vim.b.source_buffer
+          if source_buf then
+            require('aerial.render').clear_highlights(source_buf)
+          end
+        end
+        vim.notify('Aerial: highlight-on-hover ' .. (cfg.highlight_on_hover and 'ON' or 'OFF'))
+      end,
+      desc = 'Toggle: highlight-on-hover (source buffer)',
+    },
+  },
 
   -- AerialNavToggle (<leader>O)'s popup shows a live code preview next to the
   -- symbol list for leaf symbols (no children), instead of just names.

@@ -58,6 +58,15 @@ M.global_overrides = {
   -- Indent guide lines — default is too faint, NonText is visible but unobtrusive
   NvimTreeIndentMarker       = { link = 'NonText' },
 
+  -- Aerial's current-position marker: highlights the sidebar row matching the
+  -- source cursor, AND (via highlight_on_hover) the source line matching the
+  -- sidebar cursor. Default links to QuickFixLine, which is a loud attention-
+  -- grabbing color in most themes (e.g. bright yellow in catppuccin) — meant
+  -- to pop in a quickfix list, too loud for an always-on position marker.
+  -- CursorLine is a built-in group every theme defines specifically to be a
+  -- subtle, non-distracting line highlight — exactly the tone wanted here.
+  AerialLine = { link = 'CursorLine' },
+
   -- sidekick AI CLI window: sidekick deliberately renders its chat/CLI pane on
   -- the floating-window background (its SidekickChat group links to NormalFloat),
   -- so the AI panel reads as a distinct surface — slightly offset from Normal,
