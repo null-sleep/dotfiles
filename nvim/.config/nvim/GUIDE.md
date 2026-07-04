@@ -38,6 +38,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
+| `gitui.lua` | Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module |
 | `filetree.lua` | nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file |
 | `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
@@ -68,7 +69,7 @@ this file after updating plugins to keep versions consistent across machines.
 
 From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
 rust -> debugging -> testing -> ai -> format -> linting -> statusline ->
-session -> git -> terminal -> whichkey -> autosave -> filetree -> neovide.
+session -> git -> gitui -> terminal -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath).
@@ -474,6 +475,8 @@ Keymaps are split across files by feature:
   highlight-on-hover of the source line)
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
+- **`gitui.lua`** -- Neogit `<leader>g*` popups (status/commit/push/pull/log/
+  diff/branch/rebase/worktree). See the Git (Neogit) section for details
 - **`session.lua`** -- session keymaps (`<leader>q*`)
 - **`rust.lua`** (FileType rust) -- buffer-local Rust keymaps: runnables
   (`<leader>cR`), expand macro (`<leader>cm`), open Cargo.toml (`<leader>cC`),
@@ -626,6 +629,196 @@ Inside the tree (buffer-local, set by `on_attach`):
   the keypress (which-key would wait for a second key). Both explorer
   keymaps are registered as plain descriptions so they appear in
   `<leader>sk`.
+
+
+## Git (Neogit)
+
+Setup lives in `gitui.lua`. Neogit is a Magit-style git dashboard: a
+**transient, on-demand status buffer** — open it, stage/commit/push/pull
+right there, then `q` to close and you're back to editing. It is not an
+always-on window; the persistent gutter signs stay owned by gitsigns
+(`git.lua`). diffview.nvim (also set up in `gitui.lua`) supplies rich
+side-by-side diffs.
+
+The module is named `gitui.lua`, not `neogit.lua` — Neogit's own Lua module
+is also called `neogit`, so a topic file with that name would shadow it and
+make `require('neogit')` recurse into itself. Same reasoning as
+`outline.lua` wrapping aerial.nvim and `filetree.lua` wrapping nvim-tree.lua
+under a descriptive, non-colliding name.
+
+### Opening it
+
+| Keymap | Opens | ≈ shell alias | Then press |
+|---|---|---|---|
+| `<leader>gg` | Neogit status | — | — |
+| `<leader>gc` | Commit popup | `gc` | `c` to commit |
+| `<leader>gp` | Push popup | `gp` | `p` (pushRemote) / `u` (upstream) |
+| `<leader>gu` | Pull popup | `gu` | `p` / `u` similarly |
+| `<leader>gl` | Log popup | `gl` | `l` for current branch log |
+| `<leader>gd` | Diff popup | `gd` | pick what to diff against |
+| `<leader>gb` | Branch popup | `gcb` / `gnb` | `b` checkout / `c` create / `x` delete |
+| `<leader>gr` | Rebase popup | `grb` | pick target (onto branch, interactive, ...) |
+| `<leader>gw` | Worktree popup | `gw` | `c` create / `d` delete / etc. |
+
+**These are only mnemonic parallels, not equivalent actions.** Every alias
+above runs its git command immediately; every `<leader>g*` mapping opens a
+**popup** — Magit's core UX — landing on a menu of related sub-actions
+rather than executing anything. `<leader>gp` does not push by itself; it
+opens the push menu, and you press a letter (shown in the popup) to push.
+The upside: the popup surfaces flags your aliases hardcode (e.g. the push
+popup offers force-with-lease inline, matching `gpf`, without a separate
+keymap).
+
+A `kind='floating'` variant and a `<leader>gG` floating opener are written
+but commented out in `gitui.lua`; uncomment to switch the default tab-page
+dashboard for a floating overlay.
+
+### Inside the status buffer
+
+All of the following work with no leader prefix once the buffer is open —
+the leader maps above are just fast entry points; everything is also
+reachable from here:
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| `s` / `S` / `<C-s>` | Stage / stage-all-unstaged / stage-everything | `c` | Commit popup |
+| `u` / `U` | Unstage / unstage-all-staged | `p` / `P` | Pull / push popup |
+| `x` | Discard | `f` | Fetch popup |
+| `<Tab>` | Toggle fold | `b` | Branch popup |
+| `<CR>` | Open file | `l` | Log popup |
+| `<C-v>` / `<C-x>` / `<C-t>` | Open file in vsplit / split / tab | `d` | Diff popup |
+| `Z` | Stash popup | `r` | Rebase popup |
+| `m` / `t` / `w` | Merge / tag / worktree popup | `?` | Help (all popups) |
+| `q` | Close | | |
+
+### Commit flow + GPG signing
+
+Committing (`c` then `c` in the commit popup, or `<leader>gc`) opens a real
+**`gitcommit`-filetype buffer** — the existing `git.lua` FileType maps and
+signing flow apply unchanged: `<leader>w` confirms (write + close),
+`<leader>x` aborts (`:cq`), and `gpg_watch`'s YubiKey-touch "Signed ✓" notice
+fires the same as for `git commit` from the shell. If this ever fights the
+flow, `commit_editor.kind` in `gitui.lua`'s `setup()` is the escape hatch.
+
+### Diffs
+
+`d` in the status buffer (or the diff popup) renders a side-by-side diff via
+diffview.nvim (`integrations.diffview = true`). `:DiffviewOpen` also works
+standalone, outside of Neogit — see the "Reviewing diffs (diffview.nvim)"
+section below for the full set of review workflows.
+
+### Which git tool to use
+
+- **gitsigns** (`git.lua`) — gutter signs, per-hunk stage/reset/blame
+  (`<leader>h*`, `]c`/`[c`). Always on, no buffer to open.
+- **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
+  file with a diff preview.
+- **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
+  operations from one dashboard.
+
+
+## Reviewing diffs (diffview.nvim)
+
+Setup lives alongside Neogit in `gitui.lua` (`packadd('diffview.nvim')`).
+There is **no `require('diffview').setup()` call** — none is needed:
+diffview lazily initializes its own defaults the first time any view opens,
+and `plugin/diffview.lua` registers all commands and default keymaps
+unconditionally on load. Everything below works with zero extra config.
+
+Three review shapes map to three different invocations:
+
+### 1. Uncommitted local changes
+
+```vim
+:DiffviewOpen
+```
+
+No args diffs against the index. The file panel splits into two sections —
+**Changes** (working tree vs index, i.e. unstaged) and **Staged changes**
+(index vs HEAD) — shown at the same time. Stage/unstage right from the
+panel; writing an index buffer (`:w`) updates the index directly.
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| `<Tab>` / `<S-Tab>` | Next / previous file | `s` / `-` | Toggle stage on entry |
+| `[F` / `]F` | First / last file | `S` / `U` | Stage all / unstage all |
+| `<CR>` / `o` | Open entry's diff | `X` | Restore entry (discard) |
+| `<leader>e` | Focus file panel | `R` | Refresh file list |
+
+Neogit shortcut: `<leader>gg` → `d` → `u` (unstaged only) / `s` (staged
+only) / `w` (worktree — both sections, equivalent to the bare command above).
+
+### 2. A branch you checked out to review (PR review)
+
+```vim
+:DiffviewOpen origin/main...HEAD
+```
+
+**Triple-dot, not double-dot.** `a...b` diffs against the merge-base — "what
+did this branch add since it forked from main" — matching the `gdm` shell
+alias's semantics (`git diff $(git_base_branch)...`). `a..b` is a plain
+two-point diff with no merge-base resolution; wrong tool here unless main
+hasn't moved. `origin/main` works directly as a remote-tracking ref;
+diffview doesn't auto-fetch, so `git fetch` first if it might be stale.
+There is no "Staged changes" section for a rev-range diff — it's read-only.
+
+Append `--imply-local` to swap the `HEAD` side for your real local files
+(live LSP) while still diffing against the merge-base on the other side.
+
+Neogit shortcut: `<leader>gg` → `d` → `r` (range) → choose **2. Symmetric
+Difference (a...b)** → supply `origin/main` and `HEAD` via the prompts.
+
+### 3. Past N commits (less common)
+
+Two different questions, two different commands:
+
+- **"What changed, total?"** — `:DiffviewOpen HEAD~4..HEAD` (two-dot): one
+  squashed diff across the range, browsed file-by-file like flows 1 & 2.
+  Closest match to the `gd`/`gds` shell functions. Note `HEAD~4` alone (no
+  `..`) diffs your *working tree* against that single rev, not a range.
+- **"Walk me through each commit"** — `:DiffviewFileHistory --range=HEAD~4..HEAD`:
+  a genuine git-log browser (commit list panel, `j`/`k` between commits,
+  `<CR>` opens that commit's diff). No shell equivalent today.
+- **One commit only** (≈ `gdn`) — `:DiffviewOpen <hash>^!` ("just this
+  commit," like `git show`).
+
+Neogit's `d` → `r` popup covers the squashed-range case too — choose
+**1. Range (a..b)** instead of symmetric difference. `:DiffviewFileHistory`
+has no Neogit popup binding; reach it from the command line, or via `L`
+("open commit log") inside any file panel.
+
+### Command reference
+
+| Command | Purpose |
+|---|---|
+| `:DiffviewOpen [rev] [-- paths]` | Open a diff against `rev` (defaults to the index) |
+| `:DiffviewFileHistory [paths] [opts]` | Browse git log commit-by-commit; `--range=`, `--base=`, `-g` (reflogs, for stash) |
+| `:DiffviewClose` | Close the active Diffview (`:tabclose` also works) |
+| `:DiffviewToggleFiles` | Toggle the file panel |
+| `:DiffviewFocusFiles` | Focus the file panel (opens it if closed) |
+| `:DiffviewRefresh` | Re-scan the current file list |
+| `:DiffviewLog` | Open the plugin's debug log |
+
+### Gotchas
+
+- **No default close keymap** — every flow above ends with
+  `:DiffviewClose` or `:tabclose` typed out; nothing in `gitui.lua` binds
+  this yet.
+- **Live index refresh** — `watch_index` defaults on, so staging a file in
+  Neogit while a Diffview tab is open updates that tab's buffers
+  automatically.
+- **Merge conflicts** switch the layout to a 3-way diff automatically
+  (`diff3_horizontal`), with their own file-panel section and a live
+  unresolved-conflict counter.
+
+### Visual walkthrough
+
+A fully worked, interactive version of the three flows above — mockups
+built from this repo's actual working-tree diff and real git log (not
+placeholder content), plus the keymap tables and Neogit cross-references —
+is published here: <https://claude.ai/code/artifact/6c06c439-077a-422e-97b7-5037c49e5de5>.
+It's a private Claude artifact by default; share it from claude.ai if you
+want it visible on another machine or to someone else.
 
 
 ## AI (sidekick.nvim)
