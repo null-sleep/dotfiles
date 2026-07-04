@@ -37,6 +37,9 @@ vim.pack.add(vim.list_extend({
   -- Zed/VS Code-style outline sidebar: collapsible symbol tree for the current
   -- buffer, treesitter-first so it works with no LSP attached.
   { src = gh('stevearc/aerial.nvim') },
+  -- Pins special windows (nvim-tree, aerial, toggleterm, neotest, quickfix...)
+  -- so a stray :e/buffer-jump can't hijack them and load an unrelated file.
+  { src = gh('stevearc/stickybuf.nvim') },
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },
@@ -448,3 +451,25 @@ require('render-markdown').setup({})
 vim.cmd.packadd('nvim-autopairs')
 -- check_ts: use treesitter to skip pairing inside strings and comments
 require('nvim-autopairs').setup({ check_ts = true })
+
+-------------------------------------------------------------------------------
+-- Stickybuf
+-------------------------------------------------------------------------------
+
+-- Prevents a stray :e / buffer-jump from hijacking a special window (e.g. the
+-- nvim-tree or aerial sidebar) and loading an unrelated file into it. Zero
+-- config needed: nvim-tree, aerial, toggleterm, and neotest are all in its
+-- built-in supported-filetype list already. See GUIDE.md "Design Decisions"
+-- for the general pattern this covers.
+--
+-- sidekick's CLI buffer (filetype `sidekick_terminal`) isn't in stickybuf's
+-- built-in list, so it's added here on top of the defaults.
+vim.cmd.packadd('stickybuf.nvim')
+require('stickybuf').setup({
+  get_auto_pin = function(bufnr)
+    if vim.bo[bufnr].filetype == 'sidekick_terminal' then
+      return 'filetype'
+    end
+    return require('stickybuf').should_auto_pin(bufnr)
+  end,
+})

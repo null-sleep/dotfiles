@@ -165,9 +165,78 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 
 ---
 
-## (Future) JetBrains, etc.
+## JetBrains
 
-Add sections here as more editors are reviewed.
+**Status:** research / not started
+**Date:** 2026-07-04
+
+JetBrains IDEs let a single "Find in Files" search become a saved, persistent
+panel: iterate over the results, dismiss irrelevant hits, keep the rest, then
+act on what's left. The closest Neovim primitive is the **quickfix list** —
+it's just not wired up to Telescope or pruned with a plugin yet.
+
+### Core loop (native, no new plugin required)
+1. Seed the quickfix list from a search — `:grep`/`:vimgrep`, LSP references,
+   or (since Telescope is already installed) hit `<C-q>` in a `live_grep`/
+   `grep_string` picker to send all (or just the `<Tab>`-multiselected)
+   results to the qflist instead of jumping to one match.
+2. `:copen` opens it as a persistent panel. `]q`/`[q` (or `:cnext`/`:cprev`)
+   cycle entries; `<CR>` on a line jumps there while the panel stays open.
+3. **Dismissing entries** — the quickfix window is an editable buffer: `dd` a
+   line to remove it, then `:cbuffer` re-parses the buffer back into the
+   quickfix list. Pure vim, prunes the list down to "only the relevant hits."
+4. Quickfix lists are stacked — `:colder`/`:cnewer` moves between previous
+   searches, like flipping between saved search tabs.
+5. Once pruned, `:cfdo <cmd>` runs a command across every remaining entry —
+   the batch-action equivalent of "select the relevant ones, then act."
+
+### Top pick: `nvim-bqf` for the panel UX
+Turns the quickfix window into the JetBrains-style panel directly: interactive
+fuzzy-filter/delete of entries, live preview pane, sign toggling — without the
+`dd` + `:cbuffer` dance above.
+- https://github.com/kevinhwang91/nvim-bqf
+
+### Alt: `trouble.nvim`
+Sidebar-styled list (diagnostics/qf/loclist) instead of the classic quickfix
+window. Already on the list above for VS Code's problems panel — would cover
+both asks if installed. Less delete-oriented than bqf, more of a live-view.
+- https://github.com/folke/trouble.nvim
+
+### Related: Harpoon2 for the "keepers," once pruned
+Quickfix (and even a bqf-filtered qflist) is still ephemeral — it's overwritten
+by the next search and doesn't survive a session restart. Once you've dismissed
+the noise and are left with a handful of genuinely relevant locations,
+`plans/harpoon2.md` (planned, not yet installed — no `harpoon` entry in
+`plugins.lua` today) is the natural next step: a small, persistent, ordered
+bookmark list per project that survives restarts and is jumped to by index
+(`<leader>1`-`<leader>5`). It's not a search/results panel itself — it has no
+own concept of dismissing/filtering — but it's the right place to "graduate"
+the results you decided to keep, for a project you're returning to over
+several sessions.
+- https://github.com/ThePrimeagen/harpoon (branch `harpoon2`)
+- see `plans/harpoon2.md` for the existing implementation plan
+
+### Gaps in the current config
+No `<C-q>`-to-qflist keymap and no qf-pruning plugin are wired up yet
+(`pickers/filter.lua` wraps `live_grep`/`find_files` with filter presets, but
+doesn't touch quickfix). Telescope, fzf-native, and ui-select are already
+installed, so this is mostly wiring + one new plugin. Harpoon2 is a fully
+separate, already-planned addition (see above) — not required for the
+quickfix workflow itself.
+
+### Recommendation / priority
+1. Wire `<C-q>` in the existing `live_grep` picker (`pickers/filter.lua`
+   `M.live_grep`) to send results to the quickfix list.
+2. Add a `:cbuffer`-reload keymap in the qf window as the zero-dependency
+   dismiss workflow.
+3. `nvim-bqf` — if the native `dd`+`:cbuffer` loop feels clunky in practice.
+4. Revisit `trouble.nvim` decision jointly with the VS Code problems-panel ask
+   above, since one install would serve both.
+5. Harpoon2 — separate track, already planned in `plans/harpoon2.md`; worth
+   implementing regardless, and complements this workflow for cross-session
+   bookmarking of the results you kept.
+
+Add further sections here as more editors are reviewed.
 
 ---
 
