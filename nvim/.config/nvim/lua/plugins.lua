@@ -34,6 +34,9 @@ vim.pack.add(vim.list_extend({
   -- target file at a definition/reference, without moving the main window.
   -- (pcall-requires an optional logger.nvim; falls back to a bundled logger.)
   { src = gh('rmagatti/goto-preview') },
+  -- Zed/VS Code-style outline sidebar: collapsible symbol tree for the current
+  -- buffer, treesitter-first so it works with no LSP attached.
+  { src = gh('stevearc/aerial.nvim') },
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },
