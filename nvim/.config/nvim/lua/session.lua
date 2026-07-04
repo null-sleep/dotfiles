@@ -16,48 +16,23 @@ require('persistence').setup({
 -- one line is the whole fix.
 vim.opt.sessionoptions:remove('terminal')
 
--- Aerial's outline sidebar (outline.lua) has no backing file — its buffer is
--- synthetic, so mksession can't serialize "what's shown" in that window like
--- it does for a real file. Left alone, the saved session restores that window
--- as a bare `enew` scratch buffer instead of the outline (verified by
--- inspecting the generated session file), which is what "restoring a session
--- doesn't bring the outline panel back" actually is.
+-- A synthetic (no-file) window can't be session-serialized: mksession has no
+-- filename to record, so a restored session shows a blank `enew` scratch split
+-- where the panel was. The general fix is to close such windows before the
+-- session is written, keeping that junk out of the saved layout; you reopen the
+-- panel on demand (as with the nvim-tree explorer, which also isn't restored).
+-- We deliberately don't persist "was it open?" to auto-reopen — that would need
+-- `sessionoptions+=globals`, a footgun that bakes unrelated globals into every
+-- session. See GUIDE.md "Synthetic sidebar buffers can't be session-serialized".
 --
--- Fix: close aerial before the session is written (safe — save only runs
--- from persistence's VimLeavePre hook, i.e. nvim is already quitting) and
--- remember whether it was open via a session-local global (`sessionoptions
--- +=globals` makes `let g:...` lines for capitalized globals get written into
--- the session file itself — but ONLY for String/Number values; a Lua
--- boolean becomes v:true/v:false, which mksession silently drops, so this
--- is stored as 0/1). Reopen it, unfocused, once the session file has
--- finished restoring everything else.
-vim.opt.sessionoptions:append('globals')
-
-local function aerial_is_open()
-  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'aerial' then
-      return true
-    end
-  end
-  return false
-end
-
+-- Aerial's outline (outline.lua) is the one such panel in this config today.
+-- Safe to close in PersistenceSavePre: it only fires from persistence's
+-- VimLeavePre hook, i.e. nvim is already quitting.
 vim.api.nvim_create_autocmd('User', {
   pattern = 'PersistenceSavePre',
-  desc = 'Session: close aerial before mksession (its buffer can\'t be serialized)',
+  desc = 'Session: close synthetic-buffer panels (aerial) before mksession so they leave no blank scratch window',
   callback = function()
-    vim.g.AerialWasOpen = aerial_is_open() and 1 or 0
     require('aerial').close_all()
-  end,
-})
-
-vim.api.nvim_create_autocmd('User', {
-  pattern = 'PersistenceLoadPost',
-  desc = 'Session: reopen aerial if it was open when the session was saved',
-  callback = function()
-    if vim.g.AerialWasOpen == 1 then
-      require('aerial').open({ focus = false })
-    end
   end,
 })
 
