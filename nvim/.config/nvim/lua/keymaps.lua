@@ -151,6 +151,11 @@ vim.keymap.set('n', '<leader>tz', function()
   vim.opt.spell = not vim.opt.spell:get()
 end, { desc = 'Toggle: Spell check' })
 
+-- Toggle line numbers: absolute (default) <-> relative.
+vim.keymap.set('n', '<leader>tn', function()
+  vim.opt.relativenumber = not vim.opt.relativenumber:get()
+end, { desc = 'Toggle: Relative line numbers' })
+
 -- Add word to dictionary, skipping duplicates
 vim.keymap.set('n', 'zg', require('spell').add_word, { desc = 'Spell: Add word to dictionary' })
 

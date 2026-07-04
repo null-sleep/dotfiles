@@ -3,8 +3,7 @@ vim.g.loaded_python3_provider = 0
 
 local opt = vim.opt
 
-opt.number = true                      -- show line numbers
--- opt.relativenumber = true              -- relative line numbers (current line stays absolute)
+opt.number = true                      -- show line numbers; toggle relative with <leader>tn
 opt.ignorecase = true                  -- case-insensitive search...
 opt.smartcase = true                   -- ...unless you type a capital
 opt.expandtab = true                   -- use spaces instead of tabs
