@@ -67,6 +67,29 @@ M.global_overrides = {
   -- subtle, non-distracting line highlight — exactly the tone wanted here.
   AerialLine = { link = 'CursorLine' },
 
+  -- Aerial's Struct/Class/Interface icon+text groups all default to linking
+  -- "Type" (see aerial's highlight.lua) — so a struct, an impl block (rust
+  -- impls surface as kind "Class"), and a trait/interface all render in the
+  -- identical color today, distinguished only by icon glyph shape. Rust's
+  -- "impl Bird" vs "impl Animal for Bird" vs struct "Bird" made this hardest
+  -- to read since all three can share the same name text too (see outline.lua
+  -- for the companion name-collision fix). Split them across three base
+  -- groups every theme already defines distinctly for their own reasons, so
+  -- the split holds up across theme switches without hardcoding hex here:
+  --   Struct    -> Type      (unchanged from aerial's default)
+  --   Class     -> Special   (impl blocks — most themes give Special its own
+  --                           distinct hue, e.g. magenta/pink)
+  --   Interface -> Constant  (traits — most themes give Constant a third,
+  --                           distinct hue, e.g. orange/peach)
+  -- Set for both the icon and the name-text groups (text groups otherwise
+  -- just link to plain AerialNormal, i.e. no color at all on the name).
+  AerialStructIcon    = { link = 'Type' },
+  AerialClassIcon     = { link = 'Special' },
+  AerialInterfaceIcon = { link = 'Constant' },
+  AerialStruct        = { link = 'Type' },
+  AerialClass         = { link = 'Special' },
+  AerialInterface     = { link = 'Constant' },
+
   -- sidekick AI CLI window: sidekick deliberately renders its chat/CLI pane on
   -- the floating-window background (its SidekickChat group links to NormalFloat),
   -- so the AI panel reads as a distinct surface — slightly offset from Normal,
