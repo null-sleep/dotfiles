@@ -100,8 +100,13 @@ end, { desc = 'LSP: Go to definition (Ctrl+click)' })
 local alt_buffer_skip_filetypes = { aerial = true, NvimTree = true }
 vim.keymap.set('n', '<leader><leader>', function()
   local alt = vim.fn.bufnr('#')
-  if alt == -1 or not vim.api.nvim_buf_is_valid(alt) then return end
+  if alt == -1 or not vim.api.nvim_buf_is_valid(alt) then
+    vim.notify('No alternate buffer', vim.log.levels.WARN)
+    return
+  end
   if vim.bo[alt].buftype == 'terminal' or alt_buffer_skip_filetypes[vim.bo[alt].filetype] then
+    -- Silently declining with no feedback reads as a broken keymap; say why.
+    vim.notify('Alternate buffer is a terminal/panel — skipped', vim.log.levels.WARN)
     return
   end
   vim.cmd('buffer #')

@@ -151,6 +151,27 @@ buffer — it doesn't stop you from deliberately switching *to* a special buffer
 guards against that separately, by skipping terminal/aerial/nvim-tree buffers
 before jumping.
 
+### Synthetic sidebar buffers can't be session-serialized
+
+`mksession` serializes a window by the *file* its buffer points at. Aerial's
+outline buffer has no backing file, so a saved session restores its window as a
+bare `enew` scratch buffer — a junk blank split where the outline used to be.
+`session.lua` closes aerial in persistence's `PersistenceSavePre` hook so the
+synthetic window is simply absent from the saved layout; you reopen it with
+`<leader>o` on demand. This mirrors the nvim-tree explorer (`<leader>e`), which
+also isn't session-restored — you just toggle it back. Any future plugin owning
+a synthetic sidebar buffer needs the same close-before-save treatment.
+
+We deliberately **don't** remember aerial's open state and auto-reopen it. The
+tempting way — a session-baked global (`let g:AerialWasOpen` via
+`sessionoptions+=globals`) — has a broad side effect: `globals` isn't scoped to
+one flag, it serializes *every* qualifying (capitalized-name, String/Number)
+global into every session file and restores them on load, so any unrelated
+plugin global gets its stale value resurrected on each restore. Not worth it for
+a one-keystroke panel. (See `session.lua`'s posterity comment for the full
+rationale, including why the flag would've had to be stored `0`/`1` rather than
+a boolean.)
+
 
 ## LSP
 
@@ -432,9 +453,11 @@ Keymaps are split across files by feature:
 - **`keymaps.lua`** -- global keymaps: Telescope search (`<leader>s*`),
   clipboard yank, split navigation (`<C-h/j/k/l>`), buffer navigation
   (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
-  for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number),
-  visual indent, toggle keymaps (`<leader>td` diagnostics, `<leader>ts`
-  symbol scope), yank helpers (`yp`, `yc`, `yu`), `<leader>o` / `:Typora`
+  for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number,
+  `<leader>bd` / `<leader>qq` to close a buffer without collapsing its
+  split via mini.bufremove), visual indent, toggle keymaps (`<leader>td`
+  diagnostics, `<leader>ts` symbol scope), yank helpers (`yp`, `yc`,
+  `yu`), `<leader>uo` / `:Typora`
   (open the current file in the Typora app — writes pending changes first;
   pairs with the `typora` shell alias), `jk` in insert mode to exit to
   normal mode. Custom pickers live in `pickers/`.
@@ -444,6 +467,11 @@ Keymaps are split across files by feature:
   (`<leader>ca`, `<leader>rn`), diagnostics (`<leader>ce`, `<leader>cd`),
   Telescope references (`grr`, `gri`)
 - **`format.lua`** -- global keymaps: `<leader>cf` (manual format via conform.nvim, not LSP-gated, works in all buffers), `<leader>tf` (toggle format-on-save)
+- **`outline.lua`** -- aerial symbol outline: `<leader>o` (toggle the
+  docked sidebar), `<leader>O` (toggle the nav popup with code preview),
+  `<leader>sb` (Telescope fuzzy over symbols); buffer-local `]a`/`[a`
+  (next/prev symbol) on attached buffers; sidebar-local `zh` (toggle
+  highlight-on-hover of the source line)
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`session.lua`** -- session keymaps (`<leader>q*`)
