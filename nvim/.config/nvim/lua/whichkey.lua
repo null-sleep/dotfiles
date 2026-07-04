@@ -27,6 +27,7 @@ wk.add({
   { '<leader>q',  group = 'Session/Quit' },
   { '<leader>t',  group = 'Toggle' },
   { '<leader>h',  group = 'Git hunk' },
+  { '<leader>g',  group = 'Git' },
   { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
   { '<leader>a',  group = 'AI' },

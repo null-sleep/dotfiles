@@ -44,6 +44,8 @@ vim.pack.add(vim.list_extend({
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },
+  { src = gh('NeogitOrg/neogit') },
+  { src = gh('sindrets/diffview.nvim') },
 
   -- File tree
   { src = gh('nvim-tree/nvim-tree.lua') },
