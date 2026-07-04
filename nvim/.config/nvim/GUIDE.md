@@ -124,6 +124,33 @@ unsupported methods.
 Features gated this way: inlay hints, document highlight, codelens,
 declaration, type definition, implementation.
 
+### Special/sidebar windows need pinning
+
+Any plugin that owns a persistent, special-purpose window (a file tree,
+outline, terminal panel, test summary, etc.) is vulnerable to a stray `:e`,
+`gf`, or buffer-jump landing in that window and hijacking it — the window
+then shows an unrelated file instead of the tree/outline/panel, and looks
+broken until closed and reopened.
+
+`stickybuf.nvim` (`plugins.lua`) fixes this globally: it pins special windows
+by filetype/buftype so foreign buffers get rerouted to the nearest normal
+window instead. It already has built-in support for `nvim-tree`, `aerial`,
+`toggleterm`, and `neotest` (see its README's "Plugin support" list) — nothing
+extra to configure for those. **When adding a new plugin that opens its own
+persistent window, check that list first**; if the plugin isn't covered, wrap
+`get_auto_pin` in `setup()` to add it on top of the built-in defaults (see
+`plugins.lua`'s `sidekick_terminal` entry, added because sidekick's CLI
+filetype isn't in stickybuf's built-in list) rather than leaving the new
+sidebar unprotected. (A `BufEnter` + `winfixwidth`/`winfixheight` autocmd
+calling `stickybuf.pin()` is the README's alternative recipe for one-off,
+conditional pinning that doesn't fit the filetype-list model.)
+
+Note stickybuf only protects the window from being hijacked *by* a foreign
+buffer — it doesn't stop you from deliberately switching *to* a special buffer
+(e.g. via the alternate-buffer register). `<leader><leader>` in `keymaps.lua`
+guards against that separately, by skipping terminal/aerial/nvim-tree buffers
+before jumping.
+
 
 ## LSP
 

@@ -93,7 +93,19 @@ vim.keymap.set('n', '<C-LeftMouse>', function()
   vim.api.nvim_feedkeys(keys, 'nx', false)
   vim.lsp.buf.definition()
 end, { desc = 'LSP: Go to definition (Ctrl+click)' })
-vim.keymap.set('n', '<leader><leader>', '<C-^>',   { desc = 'Toggle alternate buffer' })
+-- Skip terminal buffers (toggleterm, sidekick's CLI) and special panel
+-- filetypes (aerial, nvim-tree) as alternate-buffer targets — landing on one
+-- of these via '#' is never useful and stickybuf doesn't guard this direction
+-- (it only protects a pinned window from foreign buffers, not the reverse).
+local alt_buffer_skip_filetypes = { aerial = true, NvimTree = true }
+vim.keymap.set('n', '<leader><leader>', function()
+  local alt = vim.fn.bufnr('#')
+  if alt == -1 or not vim.api.nvim_buf_is_valid(alt) then return end
+  if vim.bo[alt].buftype == 'terminal' or alt_buffer_skip_filetypes[vim.bo[alt].filetype] then
+    return
+  end
+  vim.cmd('buffer #')
+end, { desc = 'Toggle alternate buffer' })
 vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
   { desc = 'Buffer picker' })
 

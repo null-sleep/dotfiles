@@ -26,6 +26,37 @@ require('aerial').setup({
   -- to also show variables/fields/constants.
   show_guides = true,            -- draw the ├─ └─ tree guide lines (default is false)
 
+  -- Highlight the symbol in the source buffer while browsing the sidebar
+  -- (reverse direction of highlight_closest, which is already on by default
+  -- and highlights the sidebar's row matching the source cursor).
+  highlight_on_hover = true,
+
+  -- AerialNavToggle (<leader>O)'s popup shows a live code preview next to the
+  -- symbol list for leaf symbols (no children), instead of just names.
+  --
+  -- min_width (not max_width) is the lever that actually grows the columns:
+  -- aerial sizes each of the 3 panels (list/list/preview) to its own content
+  -- width, then clamps DOWN to max_width and UP to min_width — it never
+  -- stretches a panel that's already narrower than max_width. The preview
+  -- column's "content width" when showing code is a fixed internal default
+  -- (80 cols), so max_width alone (previous attempt) never grew it. Setting
+  -- min_width as "at least 30% of editor width, or 40 cols" forces all three
+  -- panels — including the preview — to grow together on wide terminals.
+  nav = {
+    preview    = true,
+    min_width  = { 40, 0.3 },
+    max_width  = 0.9,
+    max_height = 0.9,
+    -- Arrow-key aliases for the default h/l column motions (up/down already
+    -- work as ordinary line motions with no extra binding needed). Merged
+    -- with aerial's defaults, not replacing them — <CR>/<C-v>/<C-s>/<C-c>
+    -- keep working.
+    keymaps = {
+      ['<Left>']  = 'actions.left',
+      ['<Right>'] = 'actions.right',
+    },
+  },
+
   -- Buffer-local next/prev-symbol jump, scoped to buffers aerial has actually
   -- attached to — same pattern as gitsigns' ]c/[c in git.lua. Aerial's own
   -- README suggests {/} for this, but those are vim's paragraph motions; we
