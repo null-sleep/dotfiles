@@ -2,6 +2,7 @@ vim.g.mapleader = ' '
 require('configs')
 require('plugins')
 require('treesitter_context')  -- sticky scope header (VS Code-style sticky scroll)
+require('outline')             -- outline sidebar + telescope picker (aerial.nvim)
 require('structural_select')   -- Helix-style <M-o>/<M-i> expand/shrink selection
 require('keymaps')
 require('completion')

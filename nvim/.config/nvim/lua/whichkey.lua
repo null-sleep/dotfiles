@@ -46,6 +46,10 @@ wk.add({
   { ']s', desc = 'Spell: Next misspelled word' },
   { '[s', desc = 'Spell: Previous misspelled word' },
 
+  -- Outline navigation: register here so ]a / [a appear in the [/] which-key popup.
+  { ']a', desc = 'Next: Symbol (aerial outline)' },
+  { '[a', desc = 'Previous: Symbol (aerial outline)' },
+
   -- Yank-prefix descriptions (documentation only — `y` is intentionally not
   -- in `triggers`, so these don't pop up after pressing `y`; they appear in
   -- `<leader>?` global mappings list). Active in normal and visual modes.
@@ -68,6 +72,9 @@ local keywords = {
   ['<leader>qq'] = 'close buffer delete bd',
   ['<leader>tz'] = 'spell typo spelling',
   ['<leader>tb'] = 'terminal bottom panel vscode toggleterm horizontal dock',
+  ['<leader>to'] = 'outline symbols sidebar tree aerial structure vscode zed panel',
+  ['<leader>tO'] = 'outline nav popup aerial miller columns symbols drill',
+  ['<leader>sb'] = 'outline symbols telescope aerial fuzzy jump current buffer',
   [']s']         = 'spell typo spelling',
   ['[s']         = 'spell typo spelling',
   ['zg']         = 'spell typo spelling dictionary add word',
