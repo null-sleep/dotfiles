@@ -93,6 +93,10 @@
       "rev": "fe062a6f2e5bd77cd8a260f61e6e12789eaf4f13",
       "src": "https://github.com/dasupradyumna/midnight.nvim"
     },
+    "mini.bufremove": {
+      "rev": "4cfbb201b2760da79ca6e1a00e9f67cbc99cbb8f",
+      "src": "https://github.com/echasnovski/mini.bufremove"
+    },
     "mini.icons": {
       "rev": "bac6317300e205335df425296570d84322730067",
       "src": "https://github.com/echasnovski/mini.icons"

@@ -163,3 +163,37 @@ opening/closing the sidebars that already exist.
 - sidebar.nvim — https://github.com/sidebar-nvim/sidebar.nvim
 - aerial.nvim — https://github.com/stevearc/aerial.nvim
 - outline.nvim — https://github.com/hedyhli/outline.nvim
+
+---
+
+## Use case: `<leader>e` (explorer) and `<leader>o` (outline) as mutually exclusive
+
+**Status:** research / not started
+**Date:** 2026-07-04
+
+Both `nvim-tree` and `aerial` are now installed and dock to the same left edge
+(see `filetree.lua`, `outline.lua`). Question raised: since you rarely need
+both open at once, should opening one auto-close the other, so the left side
+always shows at most one of them?
+
+This is exactly **Interpretation A** above (VS Code's Activity Bar model:
+Explorer/Search/Git icons share one pane, only one visible at a time) — not
+Interpretation B (edgy's stacked, collapsible edgebar). Confirmed this is a
+common editor pattern, not a niche request.
+
+Two ways to implement, without having picked one yet:
+
+1. **Manual keymap wrapper (no new plugin)** — in `<leader>e`'s and
+   `<leader>o`'s keymap functions, check whether the *other* one has an open
+   window in the tabpage (scan `nvim_tabpage_list_wins` for filetype
+   `NvimTree` / `aerial`), close it, then run the normal toggle. ~10 lines,
+   no new dependency, keeps the current nvim-tree/aerial setup untouched.
+2. **`vim-sidebar-manager`** — https://github.com/brglng/vim-sidebar-manager
+   Purpose-built for this: switching to one sidebar auto-closes others
+   sharing the slot. Already listed above as the lowest-friction plugin
+   option for Interpretation A specifically (as opposed to edgy, which solves
+   the stacked-panel case, not exclusivity).
+
+**Leaning:** the manual wrapper — a few lines in `keymaps.lua`/`outline.lua`,
+no new dependency, and does exactly what was asked without pulling in a
+plugin for something this small.

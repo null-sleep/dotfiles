@@ -26,6 +26,7 @@ vim.pack.add(vim.list_extend({
   -- UI
   { src = gh('echasnovski/mini.icons') },
   { src = gh('echasnovski/mini.notify') },
+  { src = gh('echasnovski/mini.bufremove') },
   { src = gh('nvim-lualine/lualine.nvim') },
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
@@ -137,6 +138,13 @@ vim.notify = require('mini.notify').make_notify({
 vim.api.nvim_create_user_command('Notifications', function()
   require('mini.notify').show_history()
 end, {})
+
+-------------------------------------------------------------------------------
+-- Buffer removal (delete a buffer without collapsing its window/split)
+-------------------------------------------------------------------------------
+
+vim.cmd.packadd('mini.bufremove')
+require('mini.bufremove').setup()
 
 -------------------------------------------------------------------------------
 -- Flatten (route nested nvim launches into the parent instance)
