@@ -16,10 +16,26 @@ require('aerial').setup({
   -- explicitly to document the no-LSP-required intent.
   backends = { 'treesitter', 'lsp', 'markdown', 'asciidoc', 'man' },
   layout = {
-    default_direction = 'prefer_left', -- dock on the left (aerial's default is 'prefer_right')
+    -- 'left' (not 'prefer_left'): the 'prefer_*' variants flip to the other
+    -- side whenever they judge something to be "in the way" on the preferred
+    -- side — verified this flips aerial to the right when e.g. nvim-tree is
+    -- open, or even when an unrelated right-side split exists, depending on
+    -- which window has focus at open-time. Plain 'left' has no flip logic:
+    -- always left, full stop.
+    default_direction = 'left',
+    -- 'edge' (not the default 'window'): anchors aerial to the true left
+    -- edge of the whole tabpage, not relative to whichever window currently
+    -- has focus — this is what makes placement independent of which buffer
+    -- <leader>o was pressed from. Left is reserved for outline/explorer
+    -- (nvim-tree), right for sidekick (ai.lua's own edge-promotion trick).
+    placement = 'edge',
     min_width = 25,
   },
-  attach_mode = 'window',        -- outline tracks the window it was opened from
+  -- 'global' (not 'window'): the single sidebar always mirrors whichever
+  -- window currently has focus anywhere in the tabpage — VS Code/Zed-style
+  -- outline-follows-active-editor — rather than staying pinned to the one
+  -- window it happened to be opened from.
+  attach_mode = 'global',
   close_automatic_events = {},   -- persistent panel: never auto-close
   -- filter_kind left at default = structural symbols only (Class/Function/
   -- Method/Interface/Struct/Enum/Module/Constructor). Set `filter_kind = false`

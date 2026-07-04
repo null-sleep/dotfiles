@@ -200,10 +200,6 @@
       "src": "https://github.com/alvarosevilla95/sidekick.nvim",
       "version": "'fix/nes-missing-request-id'"
     },
-    "snacks.nvim": {
-      "rev": "ad9ede6a9cddf16cedbd31b8932d6dcdee9b716e",
-      "src": "https://github.com/folke/snacks.nvim"
-    },
     "solarized.nvim": {
       "rev": "c0dfe1cbfabd93b546baf5f1408f5df7e02e2050",
       "src": "https://github.com/maxmx03/solarized.nvim"
@@ -215,10 +211,6 @@
     "telescope-fzf-native.nvim": {
       "rev": "6fea601bd2b694c6f2ae08a6c6fab14930c60e2c",
       "src": "https://github.com/nvim-telescope/telescope-fzf-native.nvim"
-    },
-    "telescope-live-grep-args.nvim": {
-      "rev": "53e9df55b3651dd7cf77e172f1e8c9a17407acca",
-      "src": "https://github.com/nvim-telescope/telescope-live-grep-args.nvim"
     },
     "telescope-ui-select.nvim": {
       "rev": "6e51d7da30bd139a6950adf2a47fda6df9fa06d2",
