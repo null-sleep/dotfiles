@@ -72,6 +72,7 @@ local keywords = {
   ['<leader>bd'] = 'close buffer delete bufremove qq split keep window',
   ['<leader>qq'] = 'close buffer delete bd bufremove',
   ['<leader>tz'] = 'spell typo spelling',
+  ['<leader>tn'] = 'line numbers relative relativenumber absolute gutter',
   ['<leader>tb'] = 'terminal bottom panel vscode toggleterm horizontal dock',
   ['<leader>uo'] = 'open typora markdown gui external app preview',
   ['<leader>O']  = 'outline nav popup aerial miller columns symbols drill',
