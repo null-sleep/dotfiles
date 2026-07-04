@@ -25,6 +25,16 @@ require('aerial').setup({
   -- Method/Interface/Struct/Enum/Module/Constructor). Set `filter_kind = false`
   -- to also show variables/fields/constants.
   show_guides = true,            -- draw the ├─ └─ tree guide lines (default is false)
+
+  -- Buffer-local next/prev-symbol jump, scoped to buffers aerial has actually
+  -- attached to — same pattern as gitsigns' ]c/[c in git.lua. Aerial's own
+  -- README suggests {/} for this, but those are vim's paragraph motions; we
+  -- use ]a/[a instead to match this config's ]c/[c, ]s/[s "next/prev thing"
+  -- convention.
+  on_attach = function(bufnr)
+    vim.keymap.set('n', ']a', '<cmd>AerialNext<CR>', { buffer = bufnr, desc = 'Next: Symbol (aerial)' })
+    vim.keymap.set('n', '[a', '<cmd>AerialPrev<CR>', { buffer = bufnr, desc = 'Previous: Symbol (aerial)' })
+  end,
 })
 
 -- Telescope fuzzy picker over aerial's symbols (works without LSP via treesitter).
@@ -34,9 +44,8 @@ require('aerial').setup({
 -- would abort the rest of init.lua (keymaps, lsp, everything after).
 pcall(require('telescope').load_extension, 'aerial')
 
--- Keymaps
-vim.keymap.set('n', '<leader>to', '<cmd>AerialToggle<CR>',     { desc = 'Toggle: Outline sidebar (aerial)' })
-vim.keymap.set('n', '<leader>tO', '<cmd>AerialNavToggle<CR>',  { desc = 'Toggle: Outline nav popup (aerial)' })
+-- Keymaps (global — toggles/search should work from any buffer, not just ones
+-- aerial has attached to; see on_attach above for the buffer-local ]a/[a).
+vim.keymap.set('n', '<leader>o',  '<cmd>AerialToggle<CR>',     { desc = 'Toggle: Outline sidebar (aerial)' })
+vim.keymap.set('n', '<leader>O',  '<cmd>AerialNavToggle<CR>',  { desc = 'Toggle: Outline nav popup (aerial)' })
 vim.keymap.set('n', '<leader>sb', '<cmd>Telescope aerial<CR>', { desc = 'Search: Outline symbols (aerial)' })
-vim.keymap.set('n', ']a',         '<cmd>AerialNext<CR>',       { desc = 'Next: Symbol (aerial)' })
-vim.keymap.set('n', '[a',         '<cmd>AerialPrev<CR>',       { desc = 'Previous: Symbol (aerial)' })

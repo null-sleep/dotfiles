@@ -114,7 +114,7 @@ local function open_in_typora()
   vim.system({ 'open', '-a', 'Typora', path })
 end
 vim.api.nvim_create_user_command('Typora', open_in_typora, { desc = 'Open current file in Typora' })
-vim.keymap.set('n', '<leader>o', open_in_typora, { desc = 'Open in Typora' })
+vim.keymap.set('n', '<leader>uo', open_in_typora, { desc = 'Open in Typora' })
 
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
