@@ -62,7 +62,7 @@ anything currently installed.
   workspace / `<leader>sS` document) — the popup search box — this adds the
   persistent sidebar tree that was missing, plus a second Telescope picker
   scoped to aerial's own symbol source.
-  `<leader>to` toggles the sidebar, `<leader>tO` the AerialNav popup,
+  `<leader>o` toggles the sidebar, `<leader>O` the AerialNav popup,
   `<leader>sb` the Telescope picker, `]a`/`[a` jump between symbols.
   Implemented in `lua/outline.lua` (2026-07-03).
   - https://github.com/stevearc/aerial.nvim
@@ -115,11 +115,25 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 
 ### Other gaps (each fills a real hole)
 
-- **Peek definition / references (inline, no jump)** → `glance.nvim`
+- ✅ **Done: Peek definition / references (inline, no jump)** → `rmagatti/goto-preview`
   VS Code's "Peek Definition" opens an inline preview window instead of jumping
-  away. Native LSP only jumps. Complements the existing LSP setup.
-  - https://github.com/dnlhc/glance.nvim
-  - alt: https://github.com/rmagatti/goto-preview
+  away. Already implemented (predates this doc's audit) via `goto-preview`, not
+  `glance.nvim`: `<leader>pd`/`pt`/`pi`/`pr` peek definition/type/implementation/
+  references in a scrollable float, `<leader>pq` closes all. Configured in
+  `lua/lsp.lua` (`border = 'rounded'`, `focus_on_open = true`,
+  `dismiss_on_move = false`).
+  Compared against `glance.nvim` (2026-07-03): goto-preview's `references`/
+  `implementation`/`type_definition` peeks *do* handle multiple results — via a
+  picker overlay (telescope by default) rather than glance's persistent
+  embedded list+preview split. `goto_preview_definition` itself only jumps to
+  the first result (no multi-result list), unlike the others. glance's real
+  edges: folds inside its results list, and results stay visible without a
+  picker-selection step. goto-preview's edges: supports peeking `declaration`
+  (glance doesn't), nested/stacked peek-within-a-peek, and pluggable picker
+  backends (telescope/fzf-lua/snacks/mini.pick) instead of a fixed native UI.
+  Judged not worth switching for the definition-picker gap alone.
+  - https://github.com/rmagatti/goto-preview
+  - alt (not chosen): https://github.com/dnlhc/glance.nvim
 - **Tasks runner (tasks.json: build/test/run from the editor)** → `overseer.nvim`
   VS Code's task system with a task list and output panel. No task runner today.
   - https://github.com/stevearc/overseer.nvim
@@ -137,14 +151,15 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
   (git, diagnostics, search, cursor marks) without a full minimap render. A true
   minimap (`neominimap` / `codewindow.nvim`) would be cosmetic overlap.
 - **Problems panel** → `trouble.nvim` (already listed under Zed).
-- **Breadcrumbs** → `dropbar.nvim` (already listed under Zed; VS Code shares it).
+- **Breadcrumbs** → `dropbar.nvim` (already listed under Zed; tried and removed
+  2026-07-03 — didn't like it in practice).
 - **Integrated terminal** → `toggleterm` (installed).
 
 ### Recommendation / priority
 
-1. `nvim-treesitter-context` — sticky scroll; easiest high-value win.
+1. ✅ `nvim-treesitter-context` — sticky scroll; done.
 2. `multicursor.nvim` — fills the biggest VS Code muscle-memory gap.
-3. `glance.nvim` — peek definition/references.
+3. ✅ `goto-preview` — peek definition/references; done (predates this doc's audit).
 4. `overseer.nvim` — only if running build/test tasks from the editor.
 5. `inc-rename.nvim` — small polish on LSP rename.
 
