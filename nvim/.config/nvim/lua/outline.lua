@@ -11,33 +11,6 @@
 -- recurse — the same bug that broke the earlier dropbar.nvim attempt.
 vim.cmd.packadd('aerial.nvim')
 
--- Rust's default aerial naming for impl blocks (kind "Class") is `Bird` for a
--- bare `impl Bird` and `Bird > Animal` for `impl Animal for Bird` — the bare
--- case is textually identical to the struct `Bird` it's attached to, so the
--- two are indistinguishable except by icon. Renaming to match rust-analyzer's
--- own naming (`impl Bird` / `impl Animal for Bird`, the same text Telescope's
--- LSP-backed symbols picker already shows) kills that collision outright.
--- extensions.lua keys its postprocess table per-language (M.rust, M.go, M.zig,
--- ...), so replacing M.rust here can't affect any other language's symbols.
--- require() caches the module table, so mutating the entry returned here is
--- the same live table aerial's treesitter backend looks up on every parse —
--- same monkeypatch style as the zh highlight_on_hover toggle below. Could
--- break on an aerial internals refactor; low risk given how small and stable
--- this table is.
-require('aerial.backends.treesitter.extensions').rust.postprocess = function(bufnr, item, match)
-  if item.kind ~= 'Class' then return end
-  local trait_node = ((match or {}).trait or {}).node
-  local type_node = ((match or {}).rust_type or {}).node
-  if not type_node then return end
-  local type_name = vim.treesitter.get_node_text(type_node, bufnr) or '<parse error>'
-  if trait_node then
-    local trait_name = vim.treesitter.get_node_text(trait_node, bufnr) or '<parse error>'
-    item.name = string.format('impl %s for %s', trait_name, type_name)
-  else
-    item.name = string.format('impl %s', type_name)
-  end
-end
-
 require('aerial').setup({
   -- Aerial's own default order (treesitter first, LSP fallback). Stated
   -- explicitly to document the no-LSP-required intent.
