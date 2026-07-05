@@ -14,6 +14,28 @@ installs, blink.cmp for completion, Telescope for fuzzy finding, treesitter
 for highlighting/folding, lspconfig v3 API (`vim.lsp.config` + `vim.lsp.enable`).
 Requires a Nerd Font for statusline separators and completion icons.
 
+## Contents
+
+- **Part 1: Essentials**
+  - [Architecture](#architecture)
+  - [Design Decisions](#design-decisions)
+  - [Keymap index](#keymap-index)
+- **Part 2: Reference**
+  - [LSP](#lsp)
+  - [Format-on-save](#format-on-save)
+  - [Themes](#themes)
+  - [Clipboard split](#clipboard-split)
+  - [Spell checking](#spell-checking)
+  - [Window/tab title](#window-tab-title)
+  - [File Explorer (nvim-tree)](#file-explorer)
+  - [Outline (aerial)](#outline-aerial)
+  - [Git (Neogit)](#git-neogit)
+  - [Reviewing diffs (diffview.nvim)](#reviewing-diffs)
+  - [AI (sidekick.nvim)](#ai-sidekick)
+  - [Rust (rustaceanvim + DAP + neotest)](#rust)
+
+
+# Part 1: Essentials
 
 ## Architecture
 
@@ -25,6 +47,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
 | `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
 | `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
+| `outline.lua` | aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; Telescope symbol picker (`<leader>sb`); buffer-local `]a`/`[a` symbol nav |
 | `pickers/buffer.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
 | `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
@@ -41,6 +64,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `gitui.lua` | Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module |
 | `filetree.lua` | nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file |
 | `terminal.lua` | toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal) |
+| `titling.lua` | Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override |
 | `whichkey.lua` | which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms |
 | `pickers/filter.lua` | Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep) |
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
@@ -174,6 +198,74 @@ rationale, including why the flag would've had to be stored `0`/`1` rather than
 a boolean.)
 
 
+## Keymap index
+
+All keymaps have `desc` strings. To discover them:
+- `<leader>?` shows all global mappings via which-key
+- which-key popup appears after 300ms on `<leader>`, `g`, `[`, `]`
+- `<leader>sk` fuzzy-searches every keymap (including built-ins)
+- `:map` / `:nmap <leader>` for the full raw list
+
+Which-key uses an explicit trigger list (see `whichkey.lua`). If you add a
+new single-char group in `wk.add()`, add its trigger too.
+
+### By prefix
+
+Each feature's full keymap table lives in its own Part 2 section (linked
+below) next to the prose that explains it — this table is just an index to
+get you there, plus the *defined in* file for a quick source jump.
+
+| Prefix | Purpose | Defined in | Full list |
+|---|---|---|---|
+| `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | Global keymaps (below) |
+| `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
+| `<leader>ca`/`rn`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
+| `<leader>o`/`O`/`sb`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
+| `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
+| `<leader>g*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
+| `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
+| `<leader>a*`, `<C-.>`, `<Tab>` | AI (sidekick CLI + NES) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
+| `<leader>c*` (Rust ft), `K` (Rust ft) | Rust actions | rust.lua | [Rust](#rust) → Keymaps |
+| `<leader>d*`, `<F5>`-`<F12>` | Debug (nvim-dap) | debugging.lua | [Rust](#rust) → Keymaps (Debug table) |
+| `<leader>n*` | Test (neotest) | testing.lua | [Rust](#rust) → Keymaps (Test table) |
+| `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
+| `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
+| `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
+| `<leader>q*` | Session save/restore | session.lua | (see `session.lua`) |
+| `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
+| `y`/`Y`/`d`/`x`/`c`/`dd`, `"+d` | Clipboard split | keymaps.lua | [Clipboard split](#clipboard-split) |
+
+### Global keymaps
+
+Keys with no single feature section of their own — mostly `keymaps.lua`:
+
+| Key | Action | Defined in |
+|---|---|---|
+| `<leader>sf` | Find files | `pickers/filter.lua` |
+| `<leader>sg` | Live grep | `pickers/filter.lua` |
+| `<leader>sm` | Git-status picker (diff preview) | `pickers/gitstatus.lua` |
+| `<leader>ss` | Workspace symbols (all active LSPs) | `pickers/symbols.lua` |
+| `<leader>sS` | Document symbols (current buffer) | `pickers/symbols.lua` |
+| `<leader>sk` | Fuzzy-search all keymaps + built-ins | `pickers/keybindings.lua` |
+| `<M-1>`..`<M-9>` | Row-jump inside the buffer/git-status pickers | `pickers/common.lua` |
+| `H` / `L` | Previous / next buffer | keymaps.lua |
+| `<leader><leader>` | Alternate buffer (skips terminal/aerial/nvim-tree) | keymaps.lua |
+| `<leader>m` | Buffer picker (`<M-1>`..`<M-9>` jumps to a row) | keymaps.lua / `pickers/buffer.lua` |
+| `<leader>bd` / `<leader>qq` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
+| `<C-h/j/k/l>` | Split navigation | keymaps.lua |
+| Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
+| `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
+| `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
+| `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
+| `<leader>tc` | Toggle comment (remaps to `gcc` / `gc`) | keymaps.lua |
+| `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
+| `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
+| `jk` (insert mode) | Exit to normal mode | keymaps.lua |
+| `<M-a>` (in any Telescope picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
+
+
+# Part 2: Reference
+
 ## LSP
 
 ### How LspAttach works
@@ -187,18 +279,18 @@ are always mapped.
 ### Keymaps
 
 Buffer-local, set on `LspAttach` (from `lsp.lua`). Each *jump* map has a *peek*
-counterpart under `<Space>p` that opens the **same target in a scrollable float**
+counterpart under `<leader>p` that opens the **same target in a scrollable float**
 (goto-preview) instead of moving the main window — VS Code / GoLand-style peek.
 Peek is additive; jumps are unchanged.
 
 | Jump | Peek | Target |
 |---|---|---|
-| `gd` | `<Space>pd` | Definition |
-| `gy` | `<Space>pt` | Type definition |
-| `gri` | `<Space>pi` | Implementation |
-| `grr` | `<Space>pr` | References (opens a Telescope picker, then peeks) |
+| `gd` | `<leader>pd` | Definition |
+| `gy` | `<leader>pt` | Type definition |
+| `gri` | `<leader>pi` | Implementation |
+| `grr` | `<leader>pr` | References (opens a Telescope picker, then peeks) |
 | `gD` | — | Declaration |
-| — | `<Space>pq` | Close all open peek floats |
+| — | `<leader>pq` | Close all open peek floats |
 
 `gy`/`gri` (and their `pt`/`pi` peeks) and `gD` are capability-gated — they only
 map when the server supports the method. `grr`/`gri` use Telescope pickers.
@@ -209,13 +301,13 @@ map when the server supports the method. `grr`/`gri` use Telescope pickers.
 |---|---|
 | `K` | Hover — docs/type/signature float (not the source; use peek for that) |
 | `<C-s>` | Signature help |
-| `<Space>th` | Toggle auto-hover on CursorHold |
-| `<Space>ca` | Code action |
-| `<Space>rn` | Rename symbol |
-| `<Space>ce` | Show diagnostic float under cursor |
-| `<Space>cd` | Diagnostic list (loclist) |
+| `<leader>th` | Toggle auto-hover on CursorHold |
+| `<leader>ca` | Code action |
+| `<leader>rn` | Rename symbol |
+| `<leader>ce` | Show diagnostic float under cursor |
+| `<leader>cd` | Diagnostic list (loclist) |
 | `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) |
-| `<Space>ti` | Toggle inlay hints |
+| `<leader>ti` | Toggle inlay hints |
 
 ### Adding a new LSP server
 
@@ -447,63 +539,7 @@ and optional `setup`/`overrides` for per-theme customization.
   automatically included in `vim.pack.add` via `M.sources`.
 
 
-## Keymaps
-
-Keymaps are split across files by feature:
-
-- **`keymaps.lua`** -- global keymaps: Telescope search (`<leader>s*`),
-  clipboard yank, split navigation (`<C-h/j/k/l>`), buffer navigation
-  (`H`/`L` for prev/next, `<leader><leader>` for alternate, `<leader>m`
-  for the buffer picker — `<M-1>`..`<M-9>` jumps to a row by number,
-  `<leader>bd` / `<leader>qq` to close a buffer without collapsing its
-  split via mini.bufremove), visual indent, toggle keymaps (`<leader>td`
-  diagnostics, `<leader>ts` symbol scope), yank helpers (`yp`, `yc`,
-  `yu`), `<leader>uo` / `:Typora`
-  (open the current file in the Typora app — writes pending changes first;
-  pairs with the `typora` shell alias), `jk` in insert mode to exit to
-  normal mode. Custom pickers live in `pickers/`.
-- **`lsp.lua`** (LspAttach) -- buffer-local LSP keymaps: go-to
-  (`gd`, `gD`, `gy`), peek floats (`<leader>p*` — `pd`/`pt`/`pi`/`pr` for
-  definition/type/impl/references, `pq` close-all; goto-preview), actions
-  (`<leader>ca`, `<leader>rn`), diagnostics (`<leader>ce`, `<leader>cd`),
-  Telescope references (`grr`, `gri`)
-- **`format.lua`** -- global keymaps: `<leader>cf` (manual format via conform.nvim, not LSP-gated, works in all buffers), `<leader>tf` (toggle format-on-save)
-- **`outline.lua`** -- aerial symbol outline: `<leader>o` (toggle the
-  docked sidebar), `<leader>O` (toggle the nav popup with code preview),
-  `<leader>sb` (Telescope fuzzy over symbols); buffer-local `]a`/`[a`
-  (next/prev symbol) on attached buffers; sidebar-local `zh` (toggle
-  highlight-on-hover of the source line)
-- **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
-  navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
-- **`gitui.lua`** -- Neogit `<leader>g*` popups (status/commit/push/pull/log/
-  diff/branch/rebase/worktree) and diffview.nvim `<leader>v*` direct entry
-  points (uncommitted/PR-vs-base/range/history/close). See the Git (Neogit)
-  and Reviewing diffs sections for details
-- **`session.lua`** -- session keymaps (`<leader>q*`)
-- **`rust.lua`** (FileType rust) -- buffer-local Rust keymaps: runnables
-  (`<leader>cR`), expand macro (`<leader>cm`), open Cargo.toml (`<leader>cC`),
-  debuggables (`<leader>dR`), grouped hover/actions (`K`, `<leader>ca`).
-  See the Rust section for the full tables.
-- **`debugging.lua`** -- global debug keymaps: `<leader>d*` (breakpoint,
-  continue, step, REPL, UI, eval) plus `<F5>` / `<F9>`–`<F12>`
-- **`testing.lua`** -- global neotest keymaps: `<leader>n*` (run
-  nearest/file/last, debug nearest, summary, output)
-- **`keymaps.lua`** (AI section) -- `<Tab>` (NES jump/apply), `<C-.>`
-  (focus CLI, CSI u terminals), `<leader>ai` (focus CLI fallback),
-  `<leader>aa` (toggle Claude CLI), `<leader>as`
-  (select different CLI tool), `<leader>ad` (kill CLI session), `<leader>ap`
-  (select prompt), `<leader>at` (send position/selection), `<leader>af`
-  (send file). `<M-a>` in any Telescope picker sends selection(s) to CLI.
-
-All keymaps have `desc` strings. To discover them:
-- `<leader>?` shows all global mappings via which-key
-- which-key popup appears after 300ms on `<leader>`, `g`, `[`, `]`
-- `:map` / `:nmap <leader>` for the full list
-
-Which-key uses an explicit trigger list (see `whichkey.lua`). If you add a
-new single-char group in `wk.add()`, add its trigger too.
-
-### Clipboard split
+## Clipboard split
 
 `y`/`Y` copy to the system clipboard, but `d`, `x`, `c`, and `dd` stay in
 Neovim's default register. Visual-mode `p` pastes without clobbering the
@@ -513,7 +549,8 @@ it. The failure mode is silent: if you `dd` a line expecting it on your
 system clipboard, you'll paste whatever was there before. Use `"+d`
 explicitly when you need to cut-to-clipboard.
 
-### Spell checking
+
+## Spell checking
 
 Off by default. Toggle with `<leader>tz` (US English). Built into Neovim — no plugin needed.
 
@@ -534,7 +571,9 @@ names, jargon) across machines. `zg` appends to this file automatically.
 all fold and scroll commands), but all spell commands are searchable via
 `<leader>sk` — type "spell", "typo", or "spelling".
 
-### Window/tab title
+
+<a id="window-tab-title"></a>
+## Window/tab title
 
 `titling.lua` sets `'title'`/`'titlestring'` to `<project> — <file> [+]`,
 where project is the git toplevel (or cwd) basename. `<leader>ut` (or
@@ -563,6 +602,7 @@ This is a live app preference, not a file in this repo, so it's a one-time
 manual step per machine.
 
 
+<a id="file-explorer"></a>
 ## File Explorer (nvim-tree)
 
 Setup lives in `filetree.lua`. A sidebar file tree with VS Code-style git
@@ -633,6 +673,28 @@ Inside the tree (buffer-local, set by `on_attach`):
   `<leader>sk`.
 
 
+<a id="outline-aerial"></a>
+## Outline (aerial)
+
+Setup lives in `outline.lua`: aerial.nvim provides a symbol outline, either
+as a docked sidebar or a floating nav popup with an inline code preview.
+
+| Key | Action |
+|---|---|
+| `<leader>o` | Toggle the docked outline sidebar |
+| `<leader>O` | Toggle the nav popup (floating, with code preview) |
+| `<leader>sb` | Telescope fuzzy picker over the current buffer's symbols |
+| `]a` / `[a` | Next / previous symbol (buffer-local, on attached buffers) |
+| `zh` | Toggle highlight-on-hover of the source line (sidebar-local) |
+
+Aerial's outline buffer is synthetic (no backing file) and can't be
+session-restored — see [Design Decisions](#design-decisions) →
+"Synthetic sidebar buffers can't be session-serialized" for why `session.lua`
+closes it before saving instead of trying to preserve its open state. Reopen
+with `<leader>o` after a session restore.
+
+
+<a id="git-neogit"></a>
 ## Git (Neogit)
 
 Setup lives in `gitui.lua`. Neogit is a Magit-style git dashboard: a
@@ -712,13 +774,15 @@ section below for the full set of review workflows.
 ### Which git tool to use
 
 - **gitsigns** (`git.lua`) — gutter signs, per-hunk stage/reset/blame
-  (`<leader>h*`, `]c`/`[c`). Always on, no buffer to open.
+  (`<leader>h*`, e.g. `<leader>hb` blame; `]c`/`[c` hunk nav). Always on,
+  no buffer to open.
 - **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
 
 
+<a id="reviewing-diffs"></a>
 ## Reviewing diffs (diffview.nvim)
 
 Setup lives alongside Neogit in `gitui.lua` (`packadd('diffview.nvim')`).
@@ -871,6 +935,7 @@ It's a private Claude artifact by default; share it from claude.ai if you
 want it visible on another machine or to someone else.
 
 
+<a id="ai-sidekick"></a>
 ## AI (sidekick.nvim)
 
 Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
@@ -889,15 +954,15 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 |---|---|
 | `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
 | `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
-| `<Space>tc` | Toggle all AI completions globally (inline ghost text + NES) |
+| `<leader>ta` | Toggle all AI completions globally (inline ghost text + NES) |
 | `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
-| `<Space>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
-| `<Space>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
-| `<Space>as` | Select a different CLI tool (copilot, gemini, etc.) |
-| `<Space>ad` | Kill CLI session (tears down process + buffer) |
-| `<Space>ap` | Select prompt |
-| `<Space>at` | Send position (normal) or selection (visual) to CLI |
-| `<Space>af` | Send file path to CLI |
+| `<leader>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
+| `<leader>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
+| `<leader>as` | Select a different CLI tool (copilot, gemini, etc.) |
+| `<leader>ad` | Kill CLI session (tears down process + buffer) |
+| `<leader>ap` | Select prompt |
+| `<leader>at` | Send position (normal) or selection (visual) to CLI |
+| `<leader>af` | Send file path to CLI |
 | `<M-a>` (in picker) | Send picker selection(s) to CLI |
 
 ### NES vs Copilot inline completion
@@ -928,6 +993,7 @@ mechanism (`virt_text_pos='inline'`).
 4. Install `claude` CLI if not already present.
 
 
+<a id="rust"></a>
 ## Rust (rustaceanvim + DAP + neotest)
 
 IDE-grade run/debug/test for Rust, split across three modules: `rust.lua`
@@ -989,41 +1055,41 @@ tree. `<leader>nd` debugs the nearest test (breakpoints honored via dap).
 | Keymap | Action |
 |---|---|
 | `K` | Rust hover actions (richer than plain LSP hover) |
-| `<Space>ca` | Code action (rustaceanvim grouped variant) |
-| `<Space>cR` | Runnables — run a binary/target |
-| `<Space>cm` | Expand macro under cursor |
-| `<Space>cC` | Open the crate's `Cargo.toml` |
-| `<Space>dR` | Debuggables — start a Rust debug session |
+| `<leader>ca` | Code action (rustaceanvim grouped variant) |
+| `<leader>cR` | Runnables — run a binary/target |
+| `<leader>cm` | Expand macro under cursor |
+| `<leader>cC` | Open the crate's `Cargo.toml` |
+| `<leader>dR` | Debuggables — start a Rust debug session |
 | `grx` | Run/Debug codelens under cursor (native codelens, now functional) |
 
-**Debug** (global, `<Space>d*` = Debug group — from `debugging.lua`):
+**Debug** (global, `<leader>d*` = Debug group — from `debugging.lua`):
 
 | Keymap | Action |
 |---|---|
-| `<Space>db` / `<F9>` | Toggle breakpoint |
-| `<Space>dB` | Conditional breakpoint (prompts for condition) |
-| `<Space>dc` / `<F5>` | Continue / start |
-| `<Space>di` / `<F11>` | Step into |
-| `<Space>do` / `<F10>` | Step over |
-| `<Space>dO` / `<F12>` | Step out |
-| `<Space>dl` | Run last |
-| `<Space>dq` | Terminate |
-| `<Space>dr` | Toggle REPL |
-| `<Space>du` | Toggle dap-ui |
-| `<Space>de` | Eval expression (normal: under cursor; visual: selection) |
+| `<leader>db` / `<F9>` | Toggle breakpoint |
+| `<leader>dB` | Conditional breakpoint (prompts for condition) |
+| `<leader>dc` / `<F5>` | Continue / start |
+| `<leader>di` / `<F11>` | Step into |
+| `<leader>do` / `<F10>` | Step over |
+| `<leader>dO` / `<F12>` | Step out |
+| `<leader>dl` | Run last |
+| `<leader>dq` | Terminate |
+| `<leader>dr` | Toggle REPL |
+| `<leader>du` | Toggle dap-ui |
+| `<leader>de` | Eval expression (normal: under cursor; visual: selection) |
 
-**Test** (global, `<Space>n*` = Test group — from `testing.lua`):
+**Test** (global, `<leader>n*` = Test group — from `testing.lua`):
 
 | Keymap | Action |
 |---|---|
-| `<Space>nn` | Run nearest test |
-| `<Space>nf` | Run all tests in file |
-| `<Space>nl` | Run last |
-| `<Space>nd` | Debug nearest test (via dap) |
-| `<Space>nS` | Stop running test(s) |
-| `<Space>ns` | Toggle summary tree |
-| `<Space>no` | Show output for nearest |
-| `<Space>nO` | Toggle output panel |
+| `<leader>nn` | Run nearest test |
+| `<leader>nf` | Run all tests in file |
+| `<leader>nl` | Run last |
+| `<leader>nd` | Debug nearest test (via dap) |
+| `<leader>nS` | Stop running test(s) |
+| `<leader>ns` | Toggle summary tree |
+| `<leader>no` | Show output for nearest |
+| `<leader>nO` | Toggle output panel |
 
 ### Extending neotest to other languages
 
