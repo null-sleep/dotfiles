@@ -476,7 +476,9 @@ Keymaps are split across files by feature:
 - **`git.lua`** (gitsigns on_attach) -- buffer-local git keymaps: hunk
   navigation (`]c`/`[c`), staging/reset (`<leader>h*`), blame (`<leader>hb`)
 - **`gitui.lua`** -- Neogit `<leader>g*` popups (status/commit/push/pull/log/
-  diff/branch/rebase/worktree). See the Git (Neogit) section for details
+  diff/branch/rebase/worktree) and diffview.nvim `<leader>v*` direct entry
+  points (uncommitted/PR-vs-base/range/history/close). See the Git (Neogit)
+  and Reviewing diffs sections for details
 - **`session.lua`** -- session keymaps (`<leader>q*`)
 - **`rust.lua`** (FileType rust) -- buffer-local Rust keymaps: runnables
   (`<leader>cR`), expand macro (`<leader>cm`), open Cargo.toml (`<leader>cC`),
@@ -725,6 +727,30 @@ diffview lazily initializes its own defaults the first time any view opens,
 and `plugin/diffview.lua` registers all commands and default keymaps
 unconditionally on load. Everything below works with zero extra config.
 
+`gitui.lua` also binds direct entry points under `<leader>v` ("Diffview"),
+kept as its own which-key group rather than folded into Neogit's `<leader>g*`
+so the two tools stay visually distinct:
+
+| Keymap | Opens |
+|---|---|
+| `<leader>vv` | Uncommitted changes (flow 1 below) |
+| `<leader>vm` | PR vs base branch (flow 2 below) |
+| `<leader>vr` | Last N commits, squashed (flow 3 below) |
+| `<leader>vh` | Walk each of the last N commits (flow 3 below) |
+| `<leader>vf` | Current file's history |
+| `<leader>vq` | Close the active Diffview |
+
+**Feeding N to `vr`/`vh`:** a Vim count prefix wins — `5<leader>vr` opens
+`HEAD~5..HEAD` directly, no prompt. With no count, both fall back to a
+`vim.ui.input` prompt ("Commits back: ") that starts empty rather than
+defaulting to some arbitrary N; empty or non-numeric input cancels quietly.
+
+**Base-branch detection (`<leader>vm`):** resolved at runtime via
+`git symbolic-ref refs/remotes/origin/HEAD`, the same mechanism as the zsh
+`git_base_branch()` function — it is never hardcoded to `main`. If it warns
+that `origin/HEAD` isn't set, run `git remote set-head origin --auto` once
+per clone (same fix the shell function suggests).
+
 Three review shapes map to three different invocations:
 
 ### 1. Uncommitted local changes
@@ -732,6 +758,8 @@ Three review shapes map to three different invocations:
 ```vim
 :DiffviewOpen
 ```
+
+Keymap: `<leader>vv`.
 
 No args diffs against the index. The file panel splits into two sections —
 **Changes** (working tree vs index, i.e. unstaged) and **Staged changes**
@@ -754,6 +782,9 @@ only) / `w` (worktree — both sections, equivalent to the bare command above).
 :DiffviewOpen origin/main...HEAD
 ```
 
+Keymap: `<leader>vm` — runs exactly this, with the base branch resolved at
+runtime (`origin/<detected base>`, never hardcoded `main`; see above).
+
 **Triple-dot, not double-dot.** `a...b` diffs against the merge-base — "what
 did this branch add since it forked from main" — matching the `gdm` shell
 alias's semantics (`git diff $(git_base_branch)...`). `a..b` is a plain
@@ -764,6 +795,7 @@ There is no "Staged changes" section for a rev-range diff — it's read-only.
 
 Append `--imply-local` to swap the `HEAD` side for your real local files
 (live LSP) while still diffing against the merge-base on the other side.
+`<leader>vm` doesn't append this — type the full command when you need it.
 
 Neogit shortcut: `<leader>gg` → `d` → `r` (range) → choose **2. Symmetric
 Difference (a...b)** → supply `origin/main` and `HEAD` via the prompts.
@@ -776,16 +808,21 @@ Two different questions, two different commands:
   squashed diff across the range, browsed file-by-file like flows 1 & 2.
   Closest match to the `gd`/`gds` shell functions. Note `HEAD~4` alone (no
   `..`) diffs your *working tree* against that single rev, not a range.
+  Keymap: `4<leader>vr` (count prefix) or bare `<leader>vr` (prompts for N).
 - **"Walk me through each commit"** — `:DiffviewFileHistory --range=HEAD~4..HEAD`:
   a genuine git-log browser (commit list panel, `j`/`k` between commits,
-  `<CR>` opens that commit's diff). No shell equivalent today.
+  `<CR>` opens that commit's diff). No shell equivalent today. Keymap:
+  `4<leader>vh` (count prefix) or bare `<leader>vh` (prompts for N).
 - **One commit only** (≈ `gdn`) — `:DiffviewOpen <hash>^!` ("just this
-  commit," like `git show`).
+  commit," like `git show`). No keymap — type the hash.
+- **Just this file's history** — `:DiffviewFileHistory %`, or `<leader>vf`
+  from any buffer — same commit-browser UI as the range command above, but
+  scoped to the current file's log.
 
 Neogit's `d` → `r` popup covers the squashed-range case too — choose
 **1. Range (a..b)** instead of symmetric difference. `:DiffviewFileHistory`
-has no Neogit popup binding; reach it from the command line, or via `L`
-("open commit log") inside any file panel.
+has no Neogit popup binding; reach it from `<leader>v*`, the command line,
+or via `L` ("open commit log") inside any file panel.
 
 ### Command reference
 
@@ -801,9 +838,8 @@ has no Neogit popup binding; reach it from the command line, or via `L`
 
 ### Gotchas
 
-- **No default close keymap** — every flow above ends with
-  `:DiffviewClose` or `:tabclose` typed out; nothing in `gitui.lua` binds
-  this yet.
+- **Closing** — `<leader>vq` (bound in `gitui.lua`) or `:DiffviewClose` /
+  `:tabclose`.
 - **Live index refresh** — `watch_index` defaults on, so staging a file in
   Neogit while a Diffview tab is open updates that tab's buffers
   automatically.

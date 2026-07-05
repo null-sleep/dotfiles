@@ -56,3 +56,55 @@ nmap('<leader>gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
 -- the default tab binding. open() accepts a per-call `kind` (verified vs source).
 -- Uncomment to enable a floating opener alongside <leader>gg.
 -- nmap('<leader>gG', { kind = 'floating' }, 'Git: status (floating)')
+
+-- <leader>v maps — diffview.nvim direct entry points, kept in their own group
+-- rather than folded into <leader>g* so Neogit's popups and diffview's views
+-- stay visually distinct in which-key. require('diffview') is safe to call
+-- top-level here: packadd('diffview.nvim') already ran above.
+local dv = require('diffview')
+
+-- Remote-tracking base ref, e.g. 'origin/main' — never hardcode 'main'.
+-- Mirrors the zsh git_base_branch() (~/.zshrc_config.zsh) so <leader>vm agrees
+-- with the gdm shell alias about what "the base branch" is. Run
+-- `git remote set-head origin --auto` once per clone to populate origin/HEAD.
+local function base_ref()
+  local out = vim.fn.systemlist({ 'git', 'symbolic-ref', 'refs/remotes/origin/HEAD' })
+  if vim.v.shell_error == 0 and out[1] then
+    return (out[1]:gsub('^refs/remotes/', ''))  -- 'refs/remotes/origin/main' -> 'origin/main'
+  end
+  vim.notify("diffview: origin/HEAD not set — run 'git remote set-head origin --auto'",
+    vim.log.levels.WARN)
+  return nil
+end
+
+-- Resolve "how many commits back" for the range-based maps below. A count
+-- prefix wins (5<leader>vr -> 5); with no count, prompt instead — starting
+-- empty rather than defaulting to some arbitrary N. Empty/non-numeric input
+-- cancels silently, same spirit as titling.lua's vim.ui.input cancel guard.
+local function with_n(cb)
+  local n = vim.v.count  -- 0 when no count was typed
+  if n > 0 then return cb(n) end
+  vim.ui.input({ prompt = 'Commits back: ' }, function(input)
+    local num = tonumber(input)
+    if not num or num < 1 then return end
+    cb(math.floor(num))
+  end)
+end
+
+vim.keymap.set('n', '<leader>vv', function() dv.open({}) end,
+  { desc = 'Diffview: uncommitted changes' })
+vim.keymap.set('n', '<leader>vm', function()
+  local base = base_ref()
+  if base then dv.open({ base .. '...HEAD' }) end
+end, { desc = 'Diffview: PR vs base branch' })
+vim.keymap.set('n', '<leader>vr', function()
+  with_n(function(n) dv.open({ ('HEAD~%d..HEAD'):format(n) }) end)
+end, { desc = 'Diffview: last N commits (squashed)' })
+vim.keymap.set('n', '<leader>vh', function()
+  with_n(function(n) dv.file_history(nil, { ('--range=HEAD~%d..HEAD'):format(n) }) end)
+end, { desc = 'Diffview: walk last N commits' })
+vim.keymap.set('n', '<leader>vf', function()
+  dv.file_history(nil, { vim.fn.expand('%:p') })
+end, { desc = 'Diffview: current file history' })
+vim.keymap.set('n', '<leader>vq', function() dv.close() end,
+  { desc = 'Diffview: close' })
