@@ -28,6 +28,7 @@ wk.add({
   { '<leader>t',  group = 'Toggle' },
   { '<leader>h',  group = 'Git hunk' },
   { '<leader>g',  group = 'Git' },
+  { '<leader>v',  group = 'Diffview' },
   { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
   { '<leader>a',  group = 'AI' },
@@ -100,6 +101,12 @@ local keywords = {
   ['<leader>pi'] = 'peek implementation popup float goto-preview',
   ['<leader>pr'] = 'peek references usages popup float goto-preview',
   ['<leader>pq'] = 'peek close all windows goto-preview',
+  ['<leader>vv'] = 'diffview uncommitted changes diff',
+  ['<leader>vm'] = 'diffview pr review merge base branch symmetric difference gdm',
+  ['<leader>vr'] = 'diffview last n commits range squashed',
+  ['<leader>vh'] = 'diffview file history walk commits log',
+  ['<leader>vf'] = 'diffview current file history log',
+  ['<leader>vq'] = 'diffview close quit',
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords`
