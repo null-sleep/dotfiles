@@ -114,9 +114,10 @@ document is confusing when tables sit side by side.
 - The `## Contents` TOC, when adding/removing a top-level section.
 - The `Architecture` file-responsibilities table and `Load order` line,
   when adding/removing a module `require()`d from `init.lua`.
-- `README.md` at the repo root, which has its own overlapping keymap/prefix
-  tables (currently using `<Space>` notation) — check it for parity when a
-  keymap documented there changes. Not automated; check by hand.
+- `README.md` at the repo root does **not** carry its own nvim keymap/prefix
+  tables anymore — its `## Neovim` section only covers install/first-launch
+  and points here for everything else. Don't let README re-accumulate keymap
+  tables; see its own `CLAUDE.md` → "Ownership rule: README vs GUIDE.md".
 - The top disclaimer ("this guide may be outdated, the code is truth") —
   keep it; don't let this doc imply more authority than the source.
 
@@ -134,3 +135,40 @@ document is confusing when tables sit side by side.
   `<leader>sk` fuzzy picker).
 - `rust` must `require()` before `testing` in `init.lua` — `testing.lua`
   needs `rustaceanvim.neotest` on the runtimepath.
+
+## Non-code buffer exceptions
+
+`lua/buffers.lua` is the canonical, reusable home for "is this a non-code
+panel/terminal/CLI buffer?" (`special_filetypes` registry + `is_special(buf)`).
+It replaced ad-hoc, duplicated filetype lists that kept getting reinvented per
+feature (one such list was even missing entries another had). See GUIDE.md
+"Non-code buffer exceptions need a shared predicate" for the full rationale.
+
+- **Registering a new panel plugin.** When adding a plugin that owns its own
+  persistent panel/terminal/CLI buffer, add its filetype to
+  `special_filetypes` in `lua/buffers.lua` — do this alongside registering it
+  with stickybuf (see GUIDE.md "Special/sidebar windows need pinning"), since
+  the two lists cover related but distinct problems (pinning vs. exclusion).
+- **Guarding a code-only global keymap.** A new global normal-mode keymap that
+  only makes sense in a real code buffer (outline, format, symbol jump, etc.)
+  should decline in special buffers via `require('buffers').is_special(0)`,
+  with a brief `vim.notify` — not a silent no-op (a silent decline reads as a
+  broken keymap). **Caveat:** if the keymap toggles a panel that is itself in
+  the registry (like `<leader>o` and the aerial sidebar), exempt that
+  buffer's own filetype from the guard so the toggle can still close its own
+  panel: `is_special(0) and vim.bo.filetype ~= '<own-ft>'`. If two such panels
+  should swap into each other instead of just self-closing (like `<leader>o`
+  file tree ↔ outline, see GUIDE.md "File tree and outline swap into each
+  other"), exempt the *other* panel's filetype too, and have the handler close
+  the other panel before opening its own.
+- **Wrapper re-evaluation trigger.** The guard is currently inlined at two
+  call sites (`<leader>o`/`<leader>O` in `outline.lua`). When a **third**
+  `is_special`-guarded keymap is added anywhere, extract a
+  `code_buffer_only(fn, opts)` wrapper into `buffers.lua` and migrate all
+  call sites to it, instead of inlining a fourth copy of the same guard.
+- **Do not fold in `autosave.lua`, `statusline.lua`, or `git.lua`'s satellite
+  scrollbar.** Their exclusion lists answer different questions ("should I
+  save this", "is this a dashboard", "hide the scrollbar here") than "is this
+  a code buffer" — e.g. autosave's list includes `gitcommit`/`gitrebase`,
+  which are editable code buffers, not panels. Keep them separate; routing
+  them through `is_special()` would couple unrelated concerns.
