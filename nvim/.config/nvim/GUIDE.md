@@ -734,18 +734,18 @@ so the two tools stay visually distinct:
 | Keymap | Opens |
 |---|---|
 | `<leader>vv` | Uncommitted changes (flow 1 below) |
-| `<leader>vm` | PR vs base branch (flow 2 below) |
-| `<leader>vr` | Last N commits, squashed (flow 3 below) |
+| `<leader>vp` | PR vs base branch — diffs against the merge-base, not a plain two-point diff (flow 2 below) |
+| `<leader>vn` | Last N commits, squashed (flow 3 below) |
 | `<leader>vh` | Walk each of the last N commits (flow 3 below) |
 | `<leader>vf` | Current file's history |
 | `<leader>vq` | Close the active Diffview |
 
-**Feeding N to `vr`/`vh`:** a Vim count prefix wins — `5<leader>vr` opens
+**Feeding N to `vn`/`vh`:** a Vim count prefix wins — `5<leader>vn` opens
 `HEAD~5..HEAD` directly, no prompt. With no count, both fall back to a
 `vim.ui.input` prompt ("Commits back: ") that starts empty rather than
 defaulting to some arbitrary N; empty or non-numeric input cancels quietly.
 
-**Base-branch detection (`<leader>vm`):** resolved at runtime via
+**Base-branch detection (`<leader>vp`):** resolved at runtime via
 `git symbolic-ref refs/remotes/origin/HEAD`, the same mechanism as the zsh
 `git_base_branch()` function — it is never hardcoded to `main`. If it warns
 that `origin/HEAD` isn't set, run `git remote set-head origin --auto` once
@@ -782,7 +782,7 @@ only) / `w` (worktree — both sections, equivalent to the bare command above).
 :DiffviewOpen origin/main...HEAD
 ```
 
-Keymap: `<leader>vm` — runs exactly this, with the base branch resolved at
+Keymap: `<leader>vp` — runs exactly this, with the base branch resolved at
 runtime (`origin/<detected base>`, never hardcoded `main`; see above).
 
 **Triple-dot, not double-dot.** `a...b` diffs against the merge-base — "what
@@ -795,7 +795,7 @@ There is no "Staged changes" section for a rev-range diff — it's read-only.
 
 Append `--imply-local` to swap the `HEAD` side for your real local files
 (live LSP) while still diffing against the merge-base on the other side.
-`<leader>vm` doesn't append this — type the full command when you need it.
+`<leader>vp` doesn't append this — type the full command when you need it.
 
 Neogit shortcut: `<leader>gg` → `d` → `r` (range) → choose **2. Symmetric
 Difference (a...b)** → supply `origin/main` and `HEAD` via the prompts.
@@ -808,11 +808,23 @@ Two different questions, two different commands:
   squashed diff across the range, browsed file-by-file like flows 1 & 2.
   Closest match to the `gd`/`gds` shell functions. Note `HEAD~4` alone (no
   `..`) diffs your *working tree* against that single rev, not a range.
-  Keymap: `4<leader>vr` (count prefix) or bare `<leader>vr` (prompts for N).
+  Keymap: `4<leader>vn` (count prefix) or bare `<leader>vn` (prompts for N).
 - **"Walk me through each commit"** — `:DiffviewFileHistory --range=HEAD~4..HEAD`:
-  a genuine git-log browser (commit list panel, `j`/`k` between commits,
-  `<CR>` opens that commit's diff). No shell equivalent today. Keymap:
-  `4<leader>vh` (count prefix) or bare `<leader>vh` (prompts for N).
+  a genuine git-log browser (commit list panel). No shell equivalent today.
+  Keymap: `4<leader>vh` (count prefix) or bare `<leader>vh` (prompts for N).
+
+  | Key | Action |
+  |---|---|
+  | `j` / `<Down>` | Next commit |
+  | `k` / `<Up>` | Previous commit |
+  | `<CR>` / `o` / `l` | Open the diff for the selected commit |
+  | `<Tab>` / `<S-Tab>` | Next/previous file within that commit's diff (only matters if the commit touched multiple files) |
+  | `gf` | Open the file in the previous tabpage |
+  | `y` | Yank the commit hash |
+  | `L` | Show full commit details |
+
+  The walk: `j`/`k` to pick a commit, `<CR>` to view its diff, `<Tab>`/`<S-Tab>`
+  only if that commit touched more than one file.
 - **One commit only** (≈ `gdn`) — `:DiffviewOpen <hash>^!` ("just this
   commit," like `git show`). No keymap — type the hash.
 - **Just this file's history** — `:DiffviewFileHistory %`, or `<leader>vf`
