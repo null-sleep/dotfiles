@@ -104,18 +104,20 @@ vim.keymap.set('n', '<C-LeftMouse>', function()
   vim.api.nvim_feedkeys(keys, 'nx', false)
   vim.lsp.buf.definition()
 end, { desc = 'LSP: Go to definition (Ctrl+click)' })
--- Skip terminal buffers (toggleterm, sidekick's CLI) and special panel
--- filetypes (aerial, nvim-tree) as alternate-buffer targets — landing on one
--- of these via '#' is never useful and stickybuf doesn't guard this direction
--- (it only protects a pinned window from foreign buffers, not the reverse).
-local alt_buffer_skip_filetypes = { aerial = true, NvimTree = true }
+-- Skip non-code buffers (terminals, sidekick's CLI, aerial, nvim-tree) as
+-- alternate-buffer targets — landing on one of these via '#' is never useful
+-- and stickybuf doesn't guard this direction (it only protects a pinned
+-- window from foreign buffers, not the reverse). Uses the shared
+-- buffers.is_special() predicate — see GUIDE.md "Non-code buffer exceptions
+-- need a shared predicate".
+local buffers = require('buffers')
 vim.keymap.set('n', '<leader><leader>', function()
   local alt = vim.fn.bufnr('#')
   if alt == -1 or not vim.api.nvim_buf_is_valid(alt) then
     vim.notify('No alternate buffer', vim.log.levels.WARN)
     return
   end
-  if vim.bo[alt].buftype == 'terminal' or alt_buffer_skip_filetypes[vim.bo[alt].filetype] then
+  if buffers.is_special(alt) then
     -- Silently declining with no feedback reads as a broken keymap; say why.
     vim.notify('Alternate buffer is a terminal/panel — skipped', vim.log.levels.WARN)
     return
@@ -125,8 +127,22 @@ end, { desc = 'Toggle alternate buffer' })
 vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
   { desc = 'Buffer picker' })
 
--- File tree: opens and reveals current file, or closes if already open
-vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFindFileToggle<CR>', { desc = 'Explorer: Toggle' })
+-- File tree: opens and reveals current file, or closes if already open.
+-- Only one left-edge sidebar at a time: opening the tree closes the outline
+-- first if it's showing (symmetric with outline.lua's <leader>o, which closes
+-- the tree before opening the outline). Checked via is_visible()/is_open(),
+-- not before/after state, so this only fires on the OPEN edge of the toggle —
+-- closing the tree never touches the outline.
+vim.keymap.set('n', '<leader>e', function()
+  local nvim_tree_api = require('nvim-tree.api')
+  if not nvim_tree_api.tree.is_visible() then
+    local ok, aerial = pcall(require, 'aerial')
+    if ok and aerial.is_open() then
+      aerial.close()
+    end
+  end
+  vim.cmd('NvimTreeFindFileToggle')
+end, { desc = 'Explorer: Toggle' })
 
 -- Open the current file in Typora (macOS GUI markdown editor). Works on any
 -- buffer — Typora opens plain text fine too — so it's a global mapping plus a

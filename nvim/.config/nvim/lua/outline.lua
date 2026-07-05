@@ -135,6 +135,44 @@ pcall(require('telescope').load_extension, 'aerial')
 
 -- Keymaps (global — toggles/search should work from any buffer, not just ones
 -- aerial has attached to; see on_attach above for the buffer-local ]a/[a).
-vim.keymap.set('n', '<leader>o',  '<cmd>AerialToggle<CR>',     { desc = 'Toggle: Outline sidebar (aerial)' })
-vim.keymap.set('n', '<leader>O',  '<cmd>AerialNavToggle<CR>',  { desc = 'Toggle: Outline nav popup (aerial)' })
+--
+-- The toggles no-op (with a notify) from a non-code buffer — terminal,
+-- sidekick CLI — where opening/focusing an outline is never useful. EXCEPT
+-- aerial and NvimTree, which are exempted from this guard: the two left-edge
+-- sidebars swap into each other (pressing <leader>o from the file tree closes
+-- it and opens the outline; see filetree.lua's <leader>e for the reverse),
+-- and pressing <leader>o from inside aerial itself just closes it (normal
+-- toggle-off). See buffers.lua / GUIDE.md "Non-code buffer exceptions need a
+-- shared predicate" for the shared is_special() this is built on.
+local buffers = require('buffers')
+local function outline_guard()
+  local ft = vim.bo.filetype
+  return buffers.is_special(0) and ft ~= 'aerial' and ft ~= 'NvimTree'
+end
+-- Only one left-edge sidebar at a time: opening the outline closes the file
+-- tree first if it's showing (symmetric with filetree.lua's <leader>e, which
+-- closes the outline before opening the tree). Checked via is_open()/
+-- is_visible(), not before/after state, so this only fires on the OPEN edge
+-- of the toggle — closing the outline never touches the tree.
+vim.keymap.set('n', '<leader>o', function()
+  if outline_guard() then
+    vim.notify('Outline: not available in this buffer', vim.log.levels.WARN)
+    return
+  end
+  local aerial = require('aerial')
+  if not aerial.is_open() then
+    local ok, nvim_tree_api = pcall(require, 'nvim-tree.api')
+    if ok and nvim_tree_api.tree.is_visible() then
+      nvim_tree_api.tree.close()
+    end
+  end
+  aerial.toggle()
+end, { desc = 'Toggle: Outline sidebar (aerial)' })
+vim.keymap.set('n', '<leader>O', function()
+  if outline_guard() then
+    vim.notify('Outline: not available in this buffer', vim.log.levels.WARN)
+    return
+  end
+  vim.cmd('AerialNavToggle')
+end, { desc = 'Toggle: Outline nav popup (aerial)' })
 vim.keymap.set('n', '<leader>sb', '<cmd>Telescope aerial<CR>', { desc = 'Search: Outline symbols (aerial)' })
