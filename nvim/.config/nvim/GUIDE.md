@@ -25,6 +25,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Format-on-save](#format-on-save)
   - [Themes](#themes)
   - [Clipboard split](#clipboard-split)
+  - [Structural selection](#structural-selection)
   - [Spell checking](#spell-checking)
   - [Window/tab title](#window-tab-title)
   - [File Explorer (nvim-tree)](#file-explorer)
@@ -46,8 +47,10 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `init.lua` | Sets leader key, requires all modules in dependency order |
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
 | `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
+| `treesitter_context.lua` | nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature |
 | `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
 | `outline.lua` | aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; Telescope symbol picker (`<leader>sb`); buffer-local `]a`/`[a` symbol nav |
+| `structural_select.lua` | Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite) |
 | `pickers/buffer.lua` | Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row |
 | `pickers/gitstatus.lua` | Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle |
 | `pickers/common.lua` | Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers |
@@ -60,6 +63,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `format.lua` | conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`) |
 | `statusline.lua` | lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline |
 | `session.lua` | persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps |
+| `gpg_watch.lua` | GPG signing watcher: fires a "Signed ✓" notification ~3s after a gitcommit buffer is confirmed (enough time for YubiKey touch + signing); the "Touch YubiKey" prompt itself comes from the pinentry wrapper script. See Git (Neogit) → Commit flow + GPG signing |
 | `git.lua` | gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit) |
 | `gitui.lua` | Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module |
 | `filetree.lua` | nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file |
@@ -91,9 +95,10 @@ this file after updating plugins to keep versions consistent across machines.
 
 ### Load order
 
-From `init.lua`: configs -> plugins -> keymaps -> completion -> lsp ->
-rust -> debugging -> testing -> ai -> format -> linting -> statusline ->
-session -> git -> gitui -> terminal -> whichkey -> autosave -> filetree -> neovide.
+From `init.lua`: configs -> plugins -> treesitter_context -> outline ->
+structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
+testing -> ai -> format -> linting -> statusline -> session -> gpg_watch ->
+git -> gitui -> terminal -> titling -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath).
@@ -234,6 +239,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>q*` | Session save/restore | session.lua | (see `session.lua`) |
 | `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
 | `y`/`Y`/`d`/`x`/`c`/`dd`, `"+d` | Clipboard split | keymaps.lua | [Clipboard split](#clipboard-split) |
+| `<M-o>`/`<M-i>` | Structural (treesitter) selection grow/shrink | structural_select.lua | [Structural selection](#structural-selection) |
 
 ### Global keymaps
 
@@ -548,6 +554,24 @@ clipboard either. This is non-standard -- most configs use
 it. The failure mode is silent: if you `dd` a line expecting it on your
 system clipboard, you'll paste whatever was there before. Use `"+d`
 explicitly when you need to cut-to-clipboard.
+
+
+## Structural selection
+
+`structural_select.lua`: Helix-style expand/shrink selection, built directly
+on the core `vim.treesitter` API (no extra plugin — nvim-treesitter's
+`main`-branch rewrite removed the old built-in incremental-selection module).
+
+| Key | Action |
+|---|---|
+| `<M-o>` | Grow: select the smallest syntax node that strictly contains the current selection |
+| `<M-i>` | Shrink: pop back to the previous (smaller) selection |
+
+Works from normal mode too — a first `<M-o>` starts a visual selection at the
+node under the cursor. State is a buffer-local stack of past ranges; it
+resets automatically whenever a grow starts from a selection that doesn't
+match the stack top (e.g. you moved the cursor or made a fresh selection),
+so it can never go stale.
 
 
 ## Spell checking
