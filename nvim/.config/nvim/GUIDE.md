@@ -745,11 +745,13 @@ so the two tools stay visually distinct:
 `vim.ui.input` prompt ("Commits back: ") that starts empty rather than
 defaulting to some arbitrary N; empty or non-numeric input cancels quietly.
 
-**Base-branch detection (`<leader>vp`):** resolved at runtime via
-`git symbolic-ref refs/remotes/origin/HEAD`, the same mechanism as the zsh
-`git_base_branch()` function — it is never hardcoded to `main`. If it warns
-that `origin/HEAD` isn't set, run `git remote set-head origin --auto` once
-per clone (same fix the shell function suggests).
+**Base-branch detection (`<leader>vp`):** mirrors the zsh `git_base_branch()`
+function's two-tier lookup — fast path `git symbolic-ref refs/remotes/origin/HEAD`,
+falling back to `git remote show origin` (a network call) if the local ref
+isn't populated. Unlike the shell function there is **no final `main`
+fallback**: if both tiers fail, `<leader>vp` warns and does nothing rather
+than silently guessing a branch name. Run `git remote set-head origin --auto`
+once per clone to populate the fast path and skip the network round-trip.
 
 Three review shapes map to three different invocations:
 

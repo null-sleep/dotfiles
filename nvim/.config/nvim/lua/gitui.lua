@@ -65,14 +65,24 @@ local dv = require('diffview')
 
 -- Remote-tracking base ref, e.g. 'origin/main' — never hardcode 'main'.
 -- Mirrors the zsh git_base_branch() (~/.zshrc_config.zsh) so <leader>vp agrees
--- with the gdm shell alias about what "the base branch" is. Run
--- `git remote set-head origin --auto` once per clone to populate origin/HEAD.
+-- with the gdm shell alias about what "the base branch" is: fast local ref
+-- first, network fallback second. Unlike the zsh version there is no final
+-- 'main' fallback — silently guessing the base branch is worse than aborting.
 local function base_ref()
   local out = vim.fn.systemlist({ 'git', 'symbolic-ref', 'refs/remotes/origin/HEAD' })
   if vim.v.shell_error == 0 and out[1] then
     return (out[1]:gsub('^refs/remotes/', ''))  -- 'refs/remotes/origin/main' -> 'origin/main'
   end
-  vim.notify("diffview: origin/HEAD not set — run 'git remote set-head origin --auto'",
+  -- Local ref not populated (git remote set-head origin --auto never run) —
+  -- ask the remote directly, same as git_base_branch()'s slow path.
+  local remote_out = vim.fn.systemlist({ 'git', 'remote', 'show', 'origin' })
+  if vim.v.shell_error == 0 then
+    for _, line in ipairs(remote_out) do
+      local branch = line:match('HEAD branch:%s*(%S+)')
+      if branch then return 'origin/' .. branch end
+    end
+  end
+  vim.notify("diffview: could not detect base branch — run 'git remote set-head origin --auto'",
     vim.log.levels.WARN)
   return nil
 end
