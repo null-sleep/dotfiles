@@ -64,7 +64,7 @@ nmap('<leader>gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
 local dv = require('diffview')
 
 -- Remote-tracking base ref, e.g. 'origin/main' — never hardcode 'main'.
--- Mirrors the zsh git_base_branch() (~/.zshrc_config.zsh) so <leader>vm agrees
+-- Mirrors the zsh git_base_branch() (~/.zshrc_config.zsh) so <leader>vp agrees
 -- with the gdm shell alias about what "the base branch" is. Run
 -- `git remote set-head origin --auto` once per clone to populate origin/HEAD.
 local function base_ref()
@@ -78,7 +78,7 @@ local function base_ref()
 end
 
 -- Resolve "how many commits back" for the range-based maps below. A count
--- prefix wins (5<leader>vr -> 5); with no count, prompt instead — starting
+-- prefix wins (5<leader>vn -> 5); with no count, prompt instead — starting
 -- empty rather than defaulting to some arbitrary N. Empty/non-numeric input
 -- cancels silently, same spirit as titling.lua's vim.ui.input cancel guard.
 local function with_n(cb)
@@ -93,11 +93,11 @@ end
 
 vim.keymap.set('n', '<leader>vv', function() dv.open({}) end,
   { desc = 'Diffview: uncommitted changes' })
-vim.keymap.set('n', '<leader>vm', function()
+vim.keymap.set('n', '<leader>vp', function()
   local base = base_ref()
   if base then dv.open({ base .. '...HEAD' }) end
 end, { desc = 'Diffview: PR vs base branch' })
-vim.keymap.set('n', '<leader>vr', function()
+vim.keymap.set('n', '<leader>vn', function()
   with_n(function(n) dv.open({ ('HEAD~%d..HEAD'):format(n) }) end)
 end, { desc = 'Diffview: last N commits (squashed)' })
 vim.keymap.set('n', '<leader>vh', function()
