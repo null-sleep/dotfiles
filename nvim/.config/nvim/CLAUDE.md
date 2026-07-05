@@ -4,6 +4,28 @@ This is the nvim config subtree of a stow-managed dotfiles repo. `GUIDE.md`
 in this directory is the maintained reference doc for the whole config —
 read it before making non-trivial changes here.
 
+## Update GUIDE.md in the same change
+
+**Whenever you add a new lua module (a `require()` in `init.lua`) or a new
+keymap, update `GUIDE.md` as part of that same change — not as a follow-up.**
+This applies to your own edits and to any config change you make on the
+user's behalf. Concretely:
+
+- New module → add its `Architecture` file-responsibilities row and, if it's
+  `require()`d from `init.lua`, extend the `Load order` line. Give it a Part 2
+  section too if it has keymaps or behavior worth explaining (see below) —
+  a bare Architecture row is not enough on its own for anything with a keymap.
+- New keymap → add it to the right table per "Where new content lands" below,
+  and never leave a keymap undocumented.
+- Renamed/removed module or keymap → update the same spots, and grep for
+  stale references (`grep -rn 'GUIDE.md' lua/` catches section-title refs;
+  grep the key/module name itself for prose mentions elsewhere in the guide).
+
+This guide went stale before (three modules and a handful of keymaps had no
+documented home) precisely because updates landed in the code without a
+matching GUIDE.md edit. Treat an undocumented file or keymap as an incomplete
+change, the same way you'd treat a missing test.
+
 ## Maintaining `GUIDE.md`
 
 `GUIDE.md` is organized in two tiers, each an H1:
