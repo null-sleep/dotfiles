@@ -49,6 +49,12 @@ nmap('<leader>gb', { 'branch' },   'Git: branch')     -- ≈ gcb / gnb
 nmap('<leader>gr', { 'rebase' },   'Git: rebase')     -- ≈ grb
 nmap('<leader>gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
 
+-- Mirrors <leader>vq (diffview close, below). Neogit's status buffer already
+-- closes on plain 'q'; this is just the leader-namespaced equivalent so both
+-- git views close the same way.
+vim.keymap.set('n', '<leader>gq', function() require('neogit').close() end,
+  { desc = 'Git: close status' })
+
 -- Not mapped but reachable by one keystroke inside the status buffer:
 -- s stage, u unstage, x discard, Z stash, P push, ? help, etc.
 
@@ -61,6 +67,13 @@ nmap('<leader>gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
 -- rather than folded into <leader>g* so Neogit's popups and diffview's views
 -- stay visually distinct in which-key. require('diffview') is safe to call
 -- top-level here: packadd('diffview.nvim') already ran above.
+--
+-- No unified/inline diff mode: diffview's layouts are all split-based (2/3/4-way,
+-- side-by-side or stacked). <leader>vc (below) cycles the 2-way layout between
+-- diff2_horizontal (side-by-side) and diff2_vertical (stacked) — same as the
+-- default g<C-x>, just easier to reach; there's no unified pane to cycle to.
+-- For an actual inline unified diff, expand a file in the Neogit status buffer
+-- (<leader>gg, then <tab> on a file) instead — that's independent of diffview.
 local dv = require('diffview')
 
 -- Remote-tracking base ref, e.g. 'origin/main' — never hardcode 'main'.
@@ -103,6 +116,11 @@ end
 
 vim.keymap.set('n', '<leader>vv', function() dv.open({}) end,
   { desc = 'Diffview: uncommitted changes' })
+vim.keymap.set('n', '<leader>vc', function() require('diffview.actions').cycle_layout() end,
+  { desc = 'Diffview: cycle layout (side-by-side/stacked)' })
+  -- Leader-namespaced alternative to the default g<C-x>. No-ops outside a
+  -- diffview view (cycle_layout checks lib.get_current_view() itself), so
+  -- this is safe to leave mapped globally rather than buffer-local.
 vim.keymap.set('n', '<leader>vp', function()
   local base = base_ref()
   if base then dv.open({ base .. '...HEAD' }) end
