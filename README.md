@@ -2,6 +2,43 @@
 
 Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
+## Contents
+
+**[Part 1: Essentials](#part-1-essentials)**
+- [Quick start (fresh machine)](#quick-start-fresh-machine)
+- [Fonts](#fonts)
+- [Setup](#setup) · [Stow](#stow)
+- [Verify your setup](#verify-your-setup)
+- [Languages](#languages) · [Format-on-save tools](#format-on-save-tools)
+
+**[Part 2: Reference](#part-2-reference)**
+
+*AI & Claude tooling*
+- [Claude Code](#claude-code) — [LSP plugins](#lsp-plugins-code-intelligence) · [rtk](#rtk-token-optimizer) · [Theme](#theme)
+- [Unified theme switching](#unified-theme-switching)
+- [Claude Squad](#claude-squad)
+
+*Editors*
+- [Neovim](#neovim)
+- [Neovide](#neovide)
+- [Typora](#typora)
+
+*Terminals & multiplexing*
+- [iTerm2](#iterm2) · [Kitty](#kitty) · [Zellij](#zellij)
+
+*Shell*
+- [ZSH](#zsh) — [zoxide](#directory-jumping-zoxide) · [troubleshooting antigen](#troubleshooting-antigen)
+
+*Version control*
+- [Git](#git) — [SSH for GitHub](#ssh-for-github)
+
+*Optional / utilities*
+- [Colima](#colima) · [rcmd](#rcmd)
+
+
+# Part 1: Essentials
+
+<a id="quick-start-fresh-machine"></a>
 ## Quick start (fresh machine)
 
 Ordered path for a brand-new macOS machine. Each step links to its detailed
@@ -67,7 +104,7 @@ stow zellij                  # needs the zellij formula
 
 > **Stowing only symlinks configs — it does not install the tools they depend
 > on.** Install the [Fonts](#fonts) above first, then work through the per-tool
-> dependency steps in [Languages](#languages), [ZSH](#zsh), and [Neo Vim](#neo-vim)
+> dependency steps in [Languages](#languages), [ZSH](#zsh), and [Neovim](#neovim)
 > — a fresh machine needs all of them, not just the stow commands above.
 
 Stow reads `.stowrc` in this repo which sets `--target` to `~`, so you don't need to pass `-t ~` manually.
@@ -79,6 +116,26 @@ dotfiles/tmux/.config/tmux/tmux.conf
 ```
 
 Then run `stow tmux`.
+
+## Stow
+
+To exclude files or folders from being symlinked, create a `.stow-local-ignore` file in the package directory (e.g. `nvim/.stow-local-ignore`):
+
+```
+node_modules
+*.zwc
+```
+
+Patterns are Perl-style regex, one per line. Note: adding this file overrides stow's default ignore list (which skips `.git`, `README.*`, etc.), so include those if needed. See `man stow` under "IGNORE LISTS" for the full defaults.
+
+If stow already created symlinks before you added the ignore (e.g. `node_modules` was already symlinked), restow the package to pick up the change:
+
+```bash
+cd ~/src/dotfiles
+stow -R nvim
+```
+
+`-R` (restow) unstows and re-stows, recreating symlinks while respecting the updated `.stow-local-ignore`.
 
 ## Verify your setup
 
@@ -160,48 +217,8 @@ npm install -g @fsouza/prettierd                            # JS, TS, JSON, YAML
 Run `:ConformInfo` inside Neovim to see which formatters are configured
 per filetype and which binaries are detected on `$PATH`.
 
-## Colima
 
-Free container runtime for macOS — a Docker Desktop alternative.
-
-```bash
-brew install colima docker
-
-# Apple Silicon
-colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
-
-# Intel
-colima start --cpu 2 --memory 4
-```
-
-The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_bitgo.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
-
-### Default config (so `colima start` needs no flags)
-
-Instead of passing flags every time, bake the defaults into a template that
-Colima applies to any **newly created** profile. A plain `colima start` then
-picks up the same CPU/memory/arch/vz config as the `colima_start` helper.
-
-```bash
-# Generate the default template at ~/.colima/_templates/default.yaml,
-# pre-filled with all keys and their defaults, then open it for editing.
-colima template
-```
-
-Set these keys for the Apple Silicon config:
-
-```yaml
-cpu: 8
-memory: 8
-arch: aarch64
-vmType: vz
-rosetta: true
-```
-
-The template only applies at VM *creation*. If a profile already exists, edit
-its live config with `colima start --edit` (or re-create with
-`colima delete && colima start`) — `arch` and `vmType` in particular cannot
-change after the VM is built.
+# Part 2: Reference
 
 ## Claude Code
 
@@ -244,6 +261,7 @@ All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-st
 
 `settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `setup-*.sh` scripts merge just their own keys into it idempotently with `jq`, so re-running any of them is a no-op.
 
+<a id="lsp-plugins-code-intelligence"></a>
 ### LSP plugins (code intelligence)
 
 Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hover, call hierarchy) that works per file type only when the matching language-server plugin is enabled **and** its server binary is on `PATH`. This repo enables four, via `setup-lsp-plugins.sh`:
@@ -259,6 +277,7 @@ Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hove
 
 > **Lua server vs. Mason.** `lua-language-server` is installed **twice, deliberately**: the Homebrew copy (`/opt/homebrew/bin`, on `PATH`) is what Claude Code uses, and nvim uses its own **Mason** copy (`~/.local/share/nvim/mason/bin`, *not* on `PATH`, launched by absolute path). They're independent installs in separate prefixes — they don't collide, share config, or update together (`brew upgrade` vs. `:MasonUpdate`). The brew copy is required because Claude resolves the binary via `PATH` and Mason's bin dir isn't on it. The other three servers (`pyright`, `rust-analyzer`, `gopls`) are global by nature, so both tools share the single PATH copy.
 
+<a id="rtk-token-optimizer"></a>
 ### rtk — token optimizer
 
 [rtk](https://www.rtk-ai.app/) ("Rust Token Killer", `brew "rtk"`) is a CLI proxy that compresses noisy command output (git, grep, ls, test runners, build tools, …) before it reaches the context window — the project claims ~60–90% reduction on common dev commands. It hooks into Claude Code transparently; you don't change how you work.
@@ -373,6 +392,7 @@ The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 | dark  | `dracula`          | `dracula`          | dark (pinned)    |
 | auto  | follows macOS      | follows macOS      | Auto (schedule)  |
 
+<a id="one-time-iterm2-setup-single-profile-follows-macos"></a>
 ### One-time iTerm2 setup (single profile, follows macOS)
 
 **iTerm2 follows macOS appearance natively** — no script, daemon, or escape
@@ -530,7 +550,7 @@ gh auth login
 - **Review before pushing**: hit `tab` to see the diff, then `s` to commit + push or `c` to checkout the branch locally.
 - **Failed to start session**: if you see `timed out waiting for tmux session`, update the underlying agent (`claude`, `codex`, etc.) — the error is almost always a stale binary.
 
-## Neo Vim
+## Neovim
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
 
@@ -555,526 +575,33 @@ On first launch nvim will:
 4. Download the `blink.cmp` fuzzy binary (pre-built, requires `curl`)
 5. Install LSP servers via mason (requires internet)
 
-### Treesitter
-
-Treesitter is configured using nvim 0.12's native API — no plugin config table needed.
-The `nvim-treesitter` plugin is registered via `vim.pack` (nvim's built-in package manager)
-and is used solely for parser management (installing/updating parsers).
-
-Highlighting and folding are handled natively:
-- **Highlighting**: `vim.treesitter.start()` is attached per buffer via a `FileType` autocmd
-- **Folding**: AST-based folding via `vim.treesitter.foldexpr()` (files open fully expanded)
-- **Large files**: treesitter is skipped for buffers >50k lines or >1.5MB to prevent UI lag
-- **Auto-install on startup**: missing parsers from `ensure_installed` are installed automatically on startup
-- **Auto-install on open**: if a file is opened and its parser isn't installed, `TSInstall` is triggered automatically
-- **Auto-recompile on update**: a `PackChanged` autocmd detects when `nvim-treesitter` is updated and re-runs `TSUpdate` to recompile parsers
-
-Parsers are locked in `nvim-pack-lock.json` — commit this file to pin versions across machines.
-
-**Commands:**
-
-| Command | Description |
-|---|---|
-| `:TSUpdate` | Update all installed parsers |
-| `:TSUpdate <lang>` | Update a specific parser |
-| `:TSInstall <lang>` | Install a parser manually |
-| `:InspectTree` | View the parsed AST for the current buffer |
-| `:Inspect` | Show highlight groups under the cursor |
-| `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
-
-### Telescope
-
-Fuzzy finder for files, text search, buffers, and help. Uses `telescope-fzf-native` (compiled C extension) for faster sorting. Leader key is `<Space>`.
-
-**Keymaps:**
-
-| Keymap | Action |
-|---|---|
-| `<Space>sf` | Find files by name |
-| `<Space>sg` | Live grep (search file contents) |
-| `<Space>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) |
-| `<Space>sh` | Search help tags |
-| `<Space>sr` | Resume last search |
-| `<Space>s/` | Fuzzy search inside current buffer |
-| `<Space>so` | Recent files |
-| `<Space>sm` | Modified files (git status) |
-| `<Space>ss` | Symbols (workspace) — fans query to all active LSPs; type `name path` to also filter by file |
-| `<Space>sS` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
-| `<Space>st` | Theme picker (live preview) |
-| `<Space>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
-| `<Space>sF` | Toggle file-type filter presets (scopes `<Space>sf` and `<Space>sg`) |
-
-**Inside the telescope window:**
-
-| Key | Action |
-|---|---|
-| Type anything | Fuzzy filter results |
-| `<C-n>` / `<C-p>` | Move down / up |
-| `<CR>` | Open highlighted entry (or all multi-selected entries) |
-| `<C-v>` | Open in vertical split |
-| `<C-x>` | Open in horizontal split |
-| `<C-t>` | Open in new tab |
-| `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
-| `<C-q>` | Send all current results to the quickfix list and open it |
-| `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
-| `<M-d>` | In the buffer picker (`<Space>m`): delete the highlighted buffer (or all multi-selected) |
-| `<Esc>` | Close |
-
-**Multi-select workflows:**
-- `<Tab>` marks an entry (a `+` appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
-- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs; `<M-q>` sends just the selected entries to the quickfix list.
-- `<C-q>` ignores tab marks and dumps the entire result list into qflist — handy after a grep when you want every match.
-- Common pattern: `<Space>sg` → search → `<Tab>` the matches you want → `<M-q>` → `:cdo s/old/new/g | update`.
-
-**Per-picker notes:**
-- `<Space>sf` / `<Space>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
-- `<Space>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
-- `<Space>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
-- `<Space>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
-
-**Tips:**
-- Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
-- In `<Space>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`
-- `<Space>sr` reopens the last search with the same query — useful when you close telescope and want to get back
-- `<Space>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<Space>sf` and `<Space>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `lua/pickers/filter.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
-- `<Space>ss` uses a two-token prompt: the first word is the symbol name query sent to the LSP; everything after the first space narrows results by file path. E.g. `render utils` finds symbols named "render" in files matching "utils". By default the query fans out to every active LSP client in the session (not just the current buffer's). `<Space>ts` toggles to buffer-only mode.
-
-**Commands:**
-
-| Command | Description |
-|---|---|
-| `:checkhealth telescope` | Verify telescope and fzf-native are working |
-
-### LSP (Language Server Protocol)
-
-IDE features powered by nvim's built-in LSP client. Four plugins work together:
-- **mason.nvim** — installs and manages language servers (`:Mason` to open UI)
-- **mason-lspconfig.nvim** — bridges mason and lspconfig, auto-installs servers on startup
-- **nvim-lspconfig** — pre-configured setups for each language server
-- **lazydev.nvim** — provides Neovim API type annotations to lua_ls (no manual workspace config needed)
-
-Configured servers: `lua_ls`, `pyright`, `ts_ls`, `gopls`, `rust_analyzer`, `elixirls`
-
-To add a new server: add it to `ensure_installed` in `lua/lsp.lua` and add a `vim.lsp.config()` call.
-
-**Mason commands:**
-
-| Command | Description |
-|---|---|
-| `:Mason` | Open mason UI to install/update/remove servers |
-| `:MasonInstall <server>` | Install a specific server |
-| `:MasonUninstall <server>` | Remove a server |
-| `:MasonUpdate` | Update all installed servers |
-
-**LSP keymaps** (active only in buffers with an attached server):
-
-| Keymap | Action |
-|---|---|
-| `gd` | Go to definition |
-| `gD` | Go to declaration |
-| `gri` | Go to implementation (opens in telescope) |
-| `gy` | Go to type definition |
-| `grr` | References (opens in telescope) |
-| `grx` | Run codelens under cursor |
-| `K` | Hover docs |
-| `<C-s>` | Signature help |
-| `<Space>rn` | Rename symbol |
-| `<Space>ca` | Code actions |
-| `<Space>cf` | Format buffer or selection |
-| `[d` / `]d` | Jump to previous / next diagnostic |
-| `<Space>cd` | Send diagnostics to location list |
-
-**Diagnostic commands:**
-
-| Command | Description |
-|---|---|
-| `:checkhealth lsp` | Verify LSP health and active clients |
-| `:lua print(vim.inspect(vim.lsp.get_clients()))` | Show all active LSP clients |
-
-**Diagnostic toggles:**
-
-Diagnostic virtual text and gutter signs are **off by default** — underlines remain active
-so diagnostics are still visible on hover (`K` or `<Space>e`).
-
-**LSP features** (enabled automatically when the server supports them):
-
-- **Inlay hints** — parameter names, inferred types (useful for Rust/Go/TS). Toggle with `<Space>ti` when noisy.
-- **Document highlight** — when cursor pauses on a symbol (~300ms), other occurrences in the buffer are highlighted.
-- **Codelens** — virtual text annotations (run tests, implement interface, etc.). `grx` runs the codelens under cursor.
-
-| Keymap | Action |
-|---|---|
-| `<Space>td` | Toggle diagnostic virtual text and gutter signs on/off |
-| `<Space>ti` | Toggle inlay hints on/off |
-| `<Space>tb` | Toggle inline git blame |
-| `<Space>ts` | Toggle symbol search scope (all active LSPs ↔ buffer LSP only) |
-
-### Autocompletion (blink.cmp)
-
-Completion engine written in Rust — faster than nvim-cmp with better fuzzy matching.
-Installed via `vim.pack` pinned to the latest `v1.x.x` release tag.
-
-On first launch, blink.cmp automatically downloads a pre-built Rust binary for fuzzy matching
-(requires `curl` and `git`). You'll see a notification while it downloads. No manual steps needed.
-
-**Sources:** LSP, file paths, snippets, buffer words
-
-**Keymaps (inside completion menu):**
-
-| Key | Action |
-|---|---|
-| `<Tab>` | Next item (falls back to normal Tab when menu is closed) |
-| `<S-Tab>` | Previous item |
-| `<CR>` | Accept selected item (falls back to normal Enter) |
-| `<C-u>` / `<C-d>` | Scroll documentation popup up / down |
-| `<C-space>` | Manually trigger completion |
-| `<C-e>` | Cancel / close completion menu |
-
-**Signature help** is enabled automatically — shows function parameter hints when typing inside `()`.
-
-**If the binary fails to download** (no internet, corporate proxy, etc.), blink.cmp silently falls
-back to a pure Lua implementation with no action required. To force a re-download:
-```
-:lua require('blink.cmp.fuzzy.download').ensure_downloaded(function() end)
-```
-
-**Commands:**
-
-| Command | Description |
-|---|---|
-| `:checkhealth blink.cmp` | Verify blink.cmp and fuzzy binary status |
-
-### Git Signs and Scrollbar (gitsigns.nvim + satellite.nvim)
-
-**gitsigns.nvim** shows changed, added, and deleted lines in the gutter next to line numbers:
-
-| Sign | Meaning |
-|---|---|
-| `▎` | Added line |
-| `▎` | Changed line |
-| `▂` / `▔` | Deleted line (below / above) |
-| `▎` | Changed and deleted |
-| `░` | Untracked file |
-
-**Git hunk keymaps:**
-
-| Keymap | Action |
-|---|---|
-| `]c` / `[c` | Jump to next / previous hunk |
-| `<Space>hs` | Stage hunk |
-| `<Space>hr` | Reset hunk |
-| `<Space>hu` | Undo stage hunk |
-| `<Space>hp` | Preview hunk |
-| `<Space>hb` | Blame line (full commit info) |
-
-**satellite.nvim** adds a scrollbar on the right edge of the focused window with colour-coded marks showing where things are across the whole file:
-
-- Git changes (add/change/delete) — matches gitsigns colours
-- LSP diagnostics (error/warn/info/hint)
-- Search results
-- Quickfix list items
-
-Useful for navigating large files — you can see at a glance where modified code, errors, and search matches are without scrolling.
-
-**Commands:**
-
-| Command | Description |
-|---|---|
-| `:SatelliteRefresh` | Force refresh scrollbar if out of sync |
-| `:SatelliteDisable` / `:SatelliteEnable` | Toggle scrollbar |
-
-### Session Management (persistence.nvim)
-
-Automatically saves and restores open buffers per directory. Sessions are saved on quit and
-can be restored on next launch. With `branch = true`, each git branch gets its own session —
-switching branches won't mix up your open files.
-
-**Sessions are saved automatically on quit.** To restore, use the keymaps below after opening
-nvim in the same directory.
-
-**Keymaps:**
-
-| Keymap | Action |
-|---|---|
-| `<Space>qs` | Restore session for the current directory |
-| `<Space>qS` | Pick from all saved sessions |
-| `<Space>ql` | Restore the last session (regardless of directory) |
-| `<Space>qd` | Stop saving — quit without persisting current state |
-
-
-### Auto-save (auto-save.nvim)
-
-Buffers are saved automatically on focus loss, leaving insert mode, and after text changes (1s debounce).
-Special buffers (telescope, mason, gitcommit) are excluded. No keymaps — it just works in the background.
-
-### Terminal (toggleterm.nvim)
-
-A togglable floating terminal that persists state across hides.
-
-**Keymaps:**
-
-| Keymap | Action |
-|---|---|
-| `<C-\>` | Toggle terminal (normal, insert, or terminal mode) |
-| `<Space>tt` | Toggle terminal (discoverable via which-key) |
-| `<Esc>` (in terminal) | Exit terminal mode → normal mode |
-| `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
-| `<C-]>` (in terminal) | Cycle to next terminal |
-| `<C-[>` (in terminal) | Cycle to previous terminal |
-
-**Tips:**
-
-- **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>` sends EOF to the shell and closes it entirely — faster than typing `exit`.
-- **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
-- **Cycle between terminals**: `<C-]>` / `<C-[>` cycle next/previous through open terminals (wrap around). Works in both terminal and normal mode within the terminal buffer.
-- **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
-- **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
-- **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.
-- **`<Esc>` caveat**: the `<Esc>` mapping exits terminal mode in all terminal buffers. TUI programs opened inside the terminal (e.g. `vim`, `htop`, `fzf`) also need `<Esc>` for their own UI — use `<C-\><C-n>` manually in those cases, or add a filetype guard in `lua/terminal.lua`.
-
-### Auto-pairs (nvim-autopairs)
-
-Automatically closes brackets, quotes, and other pairs. Treesitter-aware — won't auto-pair inside
-strings or comments where it would be wrong.
-
-### Notifications (mini.notify)
-
-Floating notification windows that auto-dismiss. Replaces vim's default `vim.notify` which echoes
-to the command line and prompts on long messages. LSP progress notifications are suppressed to
-avoid noise from language servers scanning the workspace.
-
-### Markdown Rendering (render-markdown.nvim)
-
-Renders markdown files in the buffer with formatted headings, bold, italic, code blocks, and lists.
-Active automatically when opening `.md` files.
-
-### Git Editor Buffers (gitcommit / gitrebase)
-
-When `git commit` or `git rebase -i` opens a buffer in the existing nvim instance (via `nvim-editor` — see ZSH section), these buffer-local keymaps are active:
-
-| Keymap | Action |
-|---|---|
-| **`<Space>w`** | **Save and close buffer** — writes the file and closes the buffer, signalling git to proceed |
-| **`<Space>x`** | **Discard and close** — quits with a non-zero exit code (`:cq`), signalling git to abort; nvim server stays running |
-
-The underlying commands if you prefer typing them: `:w | bd` to confirm, `:cq` to abort. Note: `:wq` and `:q` would quit the whole nvim session — avoid them here.
-
-These keymaps are only active in `gitcommit` and `gitrebase` buffers.
-
-#### YubiKey touch indicator
-
-If your commits are GPG-signed and require a YubiKey touch, a `mini.notify` popup fires at two points:
-
-- **"Touch YubiKey ↯"** — appears as soon as GPG calls pinentry (i.e. the moment your key needs to be touched)
-- **"Signed ✓"** — appears ~3 s after `<Space>w`, once signing is expected to have completed
-
-This requires a one-time system config change (not stowed — lives in `~/.gnupg/`):
+> **Keymaps, plugins, and per-feature behavior live in
+> [`nvim/.config/nvim/GUIDE.md`](nvim/.config/nvim/GUIDE.md)** — the canonical,
+> maintained reference for the nvim config (Architecture, Design Decisions, a
+> Keymap index, and per-tool sections, all in `<leader>` notation). This
+> README covers only installing and first-launching Neovim.
+
+### GPG commit signing — YubiKey touch notifications (one-time setup)
+
+Optional. If your commits are GPG-signed on a YubiKey, nvim pops a
+"Touch YubiKey ↯" / "Signed ✓" notification during `git commit` (the
+notification behavior itself is documented in GUIDE.md). Point gpg-agent at
+the bundled pinentry wrapper once per machine (not stowed — lives in `~/.gnupg/`):
 
 ```bash
-# Point gpg-agent at the nvim pinentry wrapper
 echo 'pinentry-program ~/.config/nvim/scripts/pinentry-yubikey-notify.sh' > ~/.gnupg/gpg-agent.conf
 gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
 ```
 
-The wrapper delegates to `/opt/homebrew/bin/pinentry-mac` after notifying nvim, so normal pinentry behaviour is preserved. To revert:
+The wrapper delegates to `/opt/homebrew/bin/pinentry-mac` after notifying nvim,
+so normal pinentry behavior is preserved. To revert:
 
 ```bash
 echo 'pinentry-program /opt/homebrew/bin/pinentry-mac' > ~/.gnupg/gpg-agent.conf
 gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
 ```
 
-### General Keymaps
-
-| Keymap | Action |
-|---|---|
-| `:Q` | Quit all |
-| `<Space>qq` | Close buffer |
-| `<Space>o` / `:Typora` | Open current file in the Typora app (writes pending changes first) |
-| `y` / `Y` | Yank to system clipboard (dd, x, c stay in Neovim register) |
-| `p` (visual) | Paste without clobbering register |
-| `<` / `>` (visual) | Indent/dedent and stay in visual mode |
-| `Ctrl+h/j/k/l` | Navigate between splits |
-| `H` / `L` | Previous / next buffer |
-| `<Space><Space>` | Switch to alternate buffer (`<C-^>`) |
-| `<Esc>` | Clear search highlights |
-| `<Space>?` | Show all keymaps (which-key popup) |
-| `<Space>sk` | Fuzzy-search all keymaps (Telescope picker, includes built-in motions) |
-| `yp` | Yank relative file path |
-| `yP` | Yank absolute file path |
-| `yc` | Yank Claude @-reference with line numbers |
-| `yC` | Yank Claude @-reference (absolute path) |
-| `yu` | Yank GitHub permalink |
-
-### File Explorer (nvim-tree)
-
-Sidebar file tree. `<Space>e` opens the tree and reveals the current file, or closes it if already open.
-
-**Features:**
-- Git status decorations on files and directories (added, modified, untracked, etc.)
-- LSP diagnostics icons (error/warn/info/hint) next to files, including parent dirs
-- Modified indicator on buffers with unsaved changes
-- `D` sends files to macOS trash (recoverable); `d` is permanent delete
-- Auto-closes when it's the last window open
-
-**Keymaps (inside the tree):**
-
-| Key | Action |
-|---|---|
-| `l` or `<CR>` | Open file / expand directory |
-| `h` | Collapse directory |
-| `a` | Create file or directory (append `/` for dir) |
-| `d` | Delete (permanent) |
-| `D` | Trash (sends to macOS trash) |
-| `r` | Rename |
-| `x` | Cut |
-| `c` | Copy |
-| `p` | Paste |
-| `f` | Live filter (type to narrow tree to matches) |
-| `F` | Clear filter |
-| `W` | Collapse all |
-| `I` | Toggle dotfiles |
-| `H` | Toggle git-ignored files |
-| `R` | Refresh |
-| `q` | Close tree |
-| `g?` | Show all nvim-tree keybindings |
-
-**Tips:**
-- Use the tree for **spatial orientation** (seeing where files sit relative to each other), not for search — `<Space>sf` and `<Space>sg` are faster for finding files and text.
-- `<Space>e` always reveals the current file when opening, so it doubles as "where am I?" after jumping to a file via Telescope.
-- Press `f` to narrow a big tree — type part of a filename and only matches are shown. `F` clears the filter. This is tree-scoped, not project-wide.
-
-### Spell Checking
-
-Built into Neovim — no plugin needed. Off by default. Toggle with `<Space>tz`.
-
-| Key | Action |
-|---|---|
-| `]s` / `[s` | Next / previous misspelled word |
-| `1z=` | Accept top suggestion instantly (no menu) |
-| `z=` | Open correction menu for word under cursor |
-| `zg` | Add word to personal dictionary |
-| `zw` | Mark word as misspelled |
-
-Personal dictionary lives at `nvim/.config/nvim/spell/en.utf-8.add` inside the
-dotfiles repo. Commit it to persist custom words across machines — `zg` appends
-to it automatically.
-
-`]s`/`[s` appear in the `[`/`]` which-key popup. `zg`, `z=`, `1z=`, and `zw`
-are searchable via `<Space>sk` — type "spell", "typo", or "spelling".
-
-### Keymap Discovery (which-key.nvim)
-
-Press `<Space>` and wait — a popup appears showing all available keymaps for that prefix,
-grouped by category. Helps discover keymaps without needing to remember them all.
-
-For fuzzy search instead of hierarchical browsing, use `<Space>sk` — opens a Telescope picker
-over all mappings (which-key entries plus built-in normal-mode commands curated in `lua/builtins.lua`).
-
-| Prefix | Group |
-|---|---|
-| `<Space>s` | Search |
-| `<Space>q` | Session/Quit |
-| `<Space>t` | Toggle |
-| `<Space>h` | Git hunk |
-| `<Space>r` | Refactor |
-| `<Space>c` | Code |
-| `g` | Go to |
-| `[` / `]` | Previous / Next |
-
-Dismiss the popup with `<Esc>`. The popup appears after 300ms by default.
-
-### Statusline (lualine.nvim)
-
-Statusline that automatically matches the active colorscheme. Shows mode, filename, git branch,
-diff counts, diagnostics, LSP status, search count, progress, and cursor position.
-
-**Layout:**
-
-```
-| mode | filename | branch diff diagnostics | ... | lsp_status | searchcount progress | line:col |
-```
-
-- **LSP status** — only visible when a language server is attached to the current buffer
-- **Search count** — only visible while a `/` search is active
-- Theme updates automatically when you switch themes (via `<Space>st` or `lua/themes.lua`)
-
-### Themes
-
-All themes are configured in `lua/themes.lua`. Switch themes interactively with `<Space>st` (live preview as you scroll), or edit `M.active` directly:
-
-```lua
-M.active = 'catppuccin'        -- default dark
-M.active = 'catppuccin-latte'  -- light variant
-M.active = 'tokyonight-day'    -- light variant
-M.active = 'rose-pine-dawn'    -- light variant
-```
-
-The active theme is persisted to `~/.local/share/nvim/theme.txt` and restored on next launch. The theme picker (`<Space>st`) saves automatically on selection.
-
-See `M.variants` in `lua/themes.lua` for all available colorscheme names with descriptions.
-
-To customise a theme, edit its `setup` function or `overrides` table in `lua/themes.lua`.
-
-**Tip:** position the cursor on any UI element and run `:Inspect` to find its highlight group name for overrides.
-
-**Installed themes:** catppuccin, tokyonight, gruvbox, rose-pine, kanagawa, nightfox, cyberdream, dracula, solarized,
-github-nvim-theme, zenbones, oxocarbon, modus-themes, midnight, onedark, vscode, everforest, nordic.
-
-### Navigation
-
-**Scrolling:**
-
-| Key | Action |
-|---|---|
-| `Ctrl+d` | Scroll down half page |
-| `Ctrl+u` | Scroll up half page |
-| `Ctrl+f` | Scroll down full page |
-| `Ctrl+b` | Scroll up full page |
-
-**Jumping:**
-
-| Key | Action |
-|---|---|
-| `gg` | Top of file |
-| `G` | Bottom of file |
-| `{number}G` | Jump to line number |
-| `%` | Jump to matching bracket |
-| `{` / `}` | Previous / next blank line |
-
-**Jumplist (navigate location history):**
-
-| Key | Action |
-|---|---|
-| `Ctrl+o` | Jump back to previous location |
-| `Ctrl+i` | Jump forward to next location |
-
-Large moves (`gd`, Telescope selection, `gg`, `G`, `/search`) save your position to the jumplist. `<C-o>`/`<C-i>` walk that history. `:jumps` shows the full list. Both are searchable via `<Space>sk` — type "jump", "back", or "forward".
-
-**Viewport (move screen, cursor stays):**
-
-| Key | Action |
-|---|---|
-| `zz` | Center current line on screen |
-| `zt` | Current line to top |
-| `zb` | Current line to bottom |
-
-**Search:**
-
-| Key | Action |
-|---|---|
-| `/term` | Search forward |
-| `n` / `N` | Next / previous match |
-| `*` / `#` | Next / previous occurrence of word under cursor |
-
-**Remaps not yet configured** — listed here for reference when customising `keymaps.lua`:
-
-| Remap | What it does | Why |
-|---|---|---|
-| `J` in visual → move lines down | Move selected lines down | More intuitive than `:m '>+1` |
-| `K` in visual → move lines up | Move selected lines up | More intuitive than `:m '<-2` |
-| `n` → `nzzzv` | Center screen after search jump | Keeps match in the middle of the viewport |
-
-### Neovide
+## Neovide
 
 GUI frontend for Neovim. Two config files split by mechanism:
 
@@ -1117,19 +644,7 @@ brew install --cask typora
 Two ways to open a file in it:
 
 - **Shell:** `typora notes.md` — alias for `open -a Typora` (in `.zshrc_config.zsh`).
-- **Neovim:** `<Space>o` (or `:Typora`) opens the current buffer's file in Typora, writing any pending changes first. Discoverable via `<Space>?` and `<Space>sk` (search "typora" or "markdown"). Mirrors the [vscode-open-in-typora](https://github.com/typora/vscode-open-in-typora) extension — `open -a Typora` on macOS, no cursor-position handoff (Typora has no such CLI flag).
-
-## rcmd
-
-App/window switcher driven by the Right Command key. Config (assignments, Stages, and settings) is a plain YAML file at `~/.config/rcmd/config.yaml`, managed via stow.
-
-```bash
-brew install --cask rcmd
-cd ~/src/dotfiles
-stow rcmd
-```
-
-The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.
+- **Neovim:** `<leader>uo` (or `:Typora`) opens the current buffer's file in Typora, writing any pending changes first. Discoverable via `<leader>?` and `<leader>sk` (search "typora" or "markdown"). Mirrors the [vscode-open-in-typora](https://github.com/typora/vscode-open-in-typora) extension — `open -a Typora` on macOS, no cursor-position handoff (Typora has no such CLI flag).
 
 ## iTerm2
 
@@ -1150,7 +665,7 @@ To import color themes manually: **iTerm2 → Settings → Profiles → Colors �
 
 ### Option-as-Meta
 
-For nvim mappings using `<M-...>` (e.g. `<M-1>`..`<M-9>` to jump to a buffer in `<Space>sb`) to work, iTerm2 needs to send Option as Meta instead of typing special characters (`¡`, `™`, etc.):
+For nvim mappings using `<M-...>` (e.g. `<M-1>`..`<M-9>` to jump to a buffer row in the `<leader>m` buffer picker) to work, iTerm2 needs to send Option as Meta instead of typing special characters (`¡`, `™`, etc.):
 
 **iTerm2 → Settings → Profiles → Keys → General → Left Option key: `Esc+`**
 
@@ -1343,6 +858,7 @@ echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 
 Open a new shell. On the first launch antigen clones every bundle (takes ~20s) and writes a cached loader to `~/.antigen/init.zsh`. Subsequent launches just source the cache.
 
+<a id="directory-jumping-zoxide"></a>
 ### Directory jumping (zoxide)
 
 `z <partial-dir>` jumps to the most "frecent" (frequency + recency) directory matching the term; `zi <partial-dir>` opens an fzf picker. This is provided by [zoxide](https://github.com/ajeetdsouza/zoxide), a Rust binary — **not** an antigen bundle. `.zshrc_config.zsh` initializes it after the plugins load:
@@ -1470,22 +986,57 @@ Host github.com
 
 Verify with `ssh -T git@github.com` — a successful run prints `Hi <username>!`. `~/.gitconfig` and `~/.ssh/config` are per-machine and **not** managed by stow.
 
-## Stow
+## Colima
 
-To exclude files or folders from being symlinked, create a `.stow-local-ignore` file in the package directory (e.g. `nvim/.stow-local-ignore`):
-
-```
-node_modules
-*.zwc
-```
-
-Patterns are Perl-style regex, one per line. Note: adding this file overrides stow's default ignore list (which skips `.git`, `README.*`, etc.), so include those if needed. See `man stow` under "IGNORE LISTS" for the full defaults.
-
-If stow already created symlinks before you added the ignore (e.g. `node_modules` was already symlinked), restow the package to pick up the change:
+Free container runtime for macOS — a Docker Desktop alternative.
 
 ```bash
-cd ~/src/dotfiles
-stow -R nvim
+brew install colima docker
+
+# Apple Silicon
+colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
+
+# Intel
+colima start --cpu 2 --memory 4
 ```
 
-`-R` (restow) unstows and re-stows, recreating symlinks while respecting the updated `.stow-local-ignore`.
+The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_bitgo.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
+
+### Default config (so `colima start` needs no flags)
+
+Instead of passing flags every time, bake the defaults into a template that
+Colima applies to any **newly created** profile. A plain `colima start` then
+picks up the same CPU/memory/arch/vz config as the `colima_start` helper.
+
+```bash
+# Generate the default template at ~/.colima/_templates/default.yaml,
+# pre-filled with all keys and their defaults, then open it for editing.
+colima template
+```
+
+Set these keys for the Apple Silicon config:
+
+```yaml
+cpu: 8
+memory: 8
+arch: aarch64
+vmType: vz
+rosetta: true
+```
+
+The template only applies at VM *creation*. If a profile already exists, edit
+its live config with `colima start --edit` (or re-create with
+`colima delete && colima start`) — `arch` and `vmType` in particular cannot
+change after the VM is built.
+
+## rcmd
+
+App/window switcher driven by the Right Command key. Config (assignments, Stages, and settings) is a plain YAML file at `~/.config/rcmd/config.yaml`, managed via stow.
+
+```bash
+brew install --cask rcmd
+cd ~/src/dotfiles
+stow rcmd
+```
+
+The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.

@@ -22,14 +22,19 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Keymap index](#keymap-index)
 - **Part 2: Reference**
   - [LSP](#lsp)
+  - [Autocompletion (blink.cmp)](#autocompletion)
   - [Format-on-save](#format-on-save)
   - [Themes](#themes)
+  - [Treesitter](#treesitter)
+  - [Telescope](#telescope)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
+  - [Session (persistence.nvim)](#session)
   - [Spell checking](#spell-checking)
   - [Window/tab title](#window-tab-title)
   - [File Explorer (nvim-tree)](#file-explorer)
   - [Outline (aerial)](#outline-aerial)
+  - [Terminal (toggleterm.nvim)](#terminal)
   - [Git (Neogit)](#git-neogit)
   - [Reviewing diffs (diffview.nvim)](#reviewing-diffs)
   - [AI (sidekick.nvim)](#ai-sidekick)
@@ -46,7 +51,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 |---|---|
 | `init.lua` | Sets leader key, requires all modules in dependency order |
 | `configs.lua` | Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check |
-| `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs |
+| `plugins.lua` | `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments) |
 | `treesitter_context.lua` | nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature |
 | `keymaps.lua` | Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.) |
 | `outline.lua` | aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; Telescope symbol picker (`<leader>sb`); buffer-local `]a`/`[a` symbol nav |
@@ -74,11 +79,13 @@ Requires a Nerd Font for statusline separators and completion icons.
 | `pickers/keybindings.lua` | Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too |
 | `builtins.lua` | Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins |
 | `autosave.lua` | auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon |
+| (mini.notify) | mini.notify: floating notification popups for `vim.notify()` calls (gpg_watch's "Signed ✓", outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua` |
 | `ai.lua` | sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout |
 | `themes.lua` | Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()` |
 | `pickers/theme.lua` | Custom Telescope picker for live theme preview with restore-on-cancel |
 | `spell.lua` | Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary |
 | `utils.lua` | `gh()` URL builder, async nvim update check via Homebrew |
+| `buffers.lua` | Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua) |
 | `yank.lua` | Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks |
 | `neovide.lua` | Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches. |
 
@@ -178,8 +185,80 @@ conditional pinning that doesn't fit the filetype-list model.)
 Note stickybuf only protects the window from being hijacked *by* a foreign
 buffer — it doesn't stop you from deliberately switching *to* a special buffer
 (e.g. via the alternate-buffer register). `<leader><leader>` in `keymaps.lua`
-guards against that separately, by skipping terminal/aerial/nvim-tree buffers
-before jumping.
+guards against that separately, using `buffers.is_special()` (see below) to
+skip non-code buffers before jumping.
+
+### Non-code buffer exceptions need a shared predicate
+
+Several features need to answer "is this buffer a real code/text buffer, or a
+special panel/CLI?" — the alternate-buffer jump above, and toggles like
+`<leader>o`/`<leader>O` (outline.lua) that are meaningless from a terminal or
+the sidekick CLI. This used to be a hand-rolled filetype list
+inlined at each call site (and one such list was actually missing entries).
+`buffers.lua` is now the single home for this: a `special_filetypes` registry
+(`aerial`, `NvimTree`, `toggleterm`, `sidekick_terminal`) plus
+`is_special(buf)`, which also treats `buftype == 'terminal'`/`'prompt'` as
+special. New panel/terminal plugins register their filetype here (see
+CLAUDE.md "Non-code buffer exceptions").
+
+Two deliberate boundaries:
+
+- **`buftype == 'nofile'` is NOT treated as special** — it over-matches
+  (dashboards, Neogit/diffview, quickfix, help all use it too), so it's left
+  out rather than risk silently capturing buffers no one meant to exclude. One
+  consequence: `<leader>o` pressed from one of those `nofile` buffers doesn't
+  decline — aerial's `attach_mode = 'global'` just shows the outline for
+  whichever code buffer was last focused. Accepted, not a bug.
+- **`autosave.lua`, `statusline.lua`, and `git.lua`'s satellite scrollbar keep
+  their own separate exclusion lists** and deliberately do NOT route through
+  `is_special()` — they're answering different questions ("should I save
+  this", "is this a dashboard", "hide the scrollbar here"), not "is this a
+  code buffer". Autosave's list, for instance, includes `gitcommit`/
+  `gitrebase` — editable code buffers, not panels, just ones you don't want
+  auto-saved mid-message. Folding these onto one shared list would couple
+  unrelated concerns: adding a filetype for one consumer's benefit would
+  silently change behavior for the others.
+
+`outline.lua`'s guard has two built-in exemptions: `aerial` and `NvimTree` are
+both in the registry (needed so the alt-buffer jump skips them), but
+`<leader>o`/`<leader>O` explicitly exempt both `filetype == 'aerial'` and
+`filetype == 'NvimTree'` from their own guard — see "File tree and outline
+swap into each other" below for why. When adding a similar code-only-keymap
+guard for a toggle that owns its own registered panel, apply the same kind of
+exemption for that panel's own filetype.
+
+### File tree and outline swap into each other
+
+`<leader>e` (file tree) and `<leader>o` (outline) both want the true left
+edge of the tabpage (aerial's `placement = 'edge'`, see "Special/sidebar
+windows need pinning" above) — without coordination they'd stack side by
+side instead of one replacing the other. Both keymaps check the other
+plugin's visibility before opening:
+
+- `outline.lua`'s `<leader>o`: if aerial isn't already open (i.e. this press
+  is going to open it), close the file tree first via
+  `nvim-tree.api`'s `tree.is_visible()`/`tree.close()`.
+- `keymaps.lua`'s `<leader>e`: symmetric — if the tree isn't already visible,
+  close aerial first via `aerial.is_open()`/`aerial.close()`.
+
+Each check only fires on the *opening* edge of that key's own toggle —
+closing one panel never reaches into the other. This is what makes the
+sidebars swap: pressed from inside the file tree, `<leader>o` closes the tree
+and opens the outline (and vice versa for `<leader>e` from inside the
+outline), while pressing a key from a plain code buffer just toggles that
+one panel normally.
+
+This is why `NvimTree` must be exempted from `outline.lua`'s `is_special`
+guard (previous section) — without the exemption, pressing `<leader>o` from
+inside the file tree would hit the guard's notify-and-decline path instead of
+reaching the swap logic. Terminal and sidekick CLI buffers are deliberately
+**not** exempted: there's no "other panel" for a terminal to swap into, so
+`<leader>o` pressed there still just declines.
+
+No shared "sidebar coordination" module was introduced for this — it's a
+symmetric pair between exactly two plugins, each already owning its own
+keymap file, so the check lives directly in both `outline.lua` and
+`keymaps.lua` rather than behind a new abstraction.
 
 ### Synthetic sidebar buffers can't be session-serialized
 
@@ -222,7 +301,8 @@ get you there, plus the *defined in* file for a quick source jump.
 
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
-| `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | Global keymaps (below) |
+| `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | [Telescope](#telescope) → Keymaps |
+| `<C-\>`, `<leader>tt`/`tb` | Terminal (toggleterm) | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`rn`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`/`sb`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
@@ -236,7 +316,8 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
 | `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
-| `<leader>q*` | Session save/restore | session.lua | (see `session.lua`) |
+| `<leader>q*` | Session save/restore | session.lua | [Session (persistence.nvim)](#session) |
+| `<Tab>`/`<S-Tab>`/`<CR>`/`<C-u>`/`<C-d>`/`<C-space>`/`<C-e>` (completion menu) | Autocompletion | completion.lua | [Autocompletion (blink.cmp)](#autocompletion) |
 | `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
 | `y`/`Y`/`d`/`x`/`c`/`dd`, `"+d` | Clipboard split | keymaps.lua | [Clipboard split](#clipboard-split) |
 | `<M-o>`/`<M-i>` | Structural (treesitter) selection grow/shrink | structural_select.lua | [Structural selection](#structural-selection) |
@@ -247,16 +328,10 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 
 | Key | Action | Defined in |
 |---|---|---|
-| `<leader>sf` | Find files | `pickers/filter.lua` |
-| `<leader>sg` | Live grep | `pickers/filter.lua` |
-| `<leader>sm` | Git-status picker (diff preview) | `pickers/gitstatus.lua` |
-| `<leader>ss` | Workspace symbols (all active LSPs) | `pickers/symbols.lua` |
-| `<leader>sS` | Document symbols (current buffer) | `pickers/symbols.lua` |
-| `<leader>sk` | Fuzzy-search all keymaps + built-ins | `pickers/keybindings.lua` |
-| `<M-1>`..`<M-9>` | Row-jump inside the buffer/git-status pickers | `pickers/common.lua` |
 | `H` / `L` | Previous / next buffer | keymaps.lua |
-| `<leader><leader>` | Alternate buffer (skips terminal/aerial/nvim-tree) | keymaps.lua |
-| `<leader>m` | Buffer picker (`<M-1>`..`<M-9>` jumps to a row) | keymaps.lua / `pickers/buffer.lua` |
+| `<Esc>` (normal mode) | Close any floating windows (hover, peek, diagnostics) and clear search highlights; suppresses CursorHold hover from immediately reopening (cleared on next cursor move) | keymaps.lua |
+| `:Q` | Quit all (`qa`) | keymaps.lua |
+| `<leader><leader>` | Alternate buffer (skips non-code buffers, see `buffers.lua`) | keymaps.lua |
 | `<leader>bd` / `<leader>qq` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
@@ -477,6 +552,48 @@ output, temporarily add `vim.lsp.set_log_level('debug')` to `lsp.lua`.
 | `:lua vim.cmd.edit(vim.lsp.get_log_path())` | Open LSP log file |
 
 
+<a id="autocompletion"></a>
+## Autocompletion (blink.cmp)
+
+Completion engine written in Rust, set up in `completion.lua`. Sources:
+LSP, file paths, snippets, buffer words. Ghost text is disabled — Copilot's
+inline completion (`textDocument/inlineCompletion`) supplies its own; see
+[AI (sidekick.nvim)](#ai-sidekick) → NES vs Copilot inline completion for how
+`<Tab>` arbitrates between the completion menu, Copilot ghost text, and a
+literal tab.
+
+### Keymaps (inside the completion menu)
+
+| Key | Action |
+|---|---|
+| `<Tab>` | Next item (see the AI section for the full priority chain when Copilot ghost text is also showing) |
+| `<S-Tab>` | Previous item |
+| `<CR>` | Accept selected item (falls back to normal Enter) |
+| `<C-u>` / `<C-d>` | Scroll documentation popup up / down |
+| `<C-space>` | Manually trigger completion |
+| `<C-e>` | Cancel / close completion menu |
+
+Signature help is enabled automatically — shows parameter hints while typing
+inside `()`.
+
+### Fuzzy matcher fallback
+
+On first launch blink.cmp downloads a pre-built Rust fuzzy-matcher binary
+(requires `curl`; see the top-level first-launch steps). If the download
+fails (no internet, corporate proxy, etc.), it silently falls back to a pure
+Lua implementation — no action required. To force a re-download:
+
+```
+:lua require('blink.cmp.fuzzy.download').ensure_downloaded(function() end)
+```
+
+### Commands
+
+| Command | Purpose |
+|---|---|
+| `:checkhealth blink.cmp` | Verify blink.cmp and fuzzy-binary status |
+
+
 ## Format-on-save
 
 conform.nvim runs CLI formatters per filetype on every `BufWritePre`
@@ -545,6 +662,107 @@ and optional `setup`/`overrides` for per-theme customization.
   automatically included in `vim.pack.add` via `M.sources`.
 
 
+## Treesitter
+
+Configured using nvim 0.12's native API — no plugin config table needed.
+`nvim-treesitter` (registered via `vim.pack`) is used solely for parser
+management (installing/updating parsers); highlighting and folding are
+attached directly in `plugins.lua`.
+
+- **Highlighting** — `vim.treesitter.start()` is attached per buffer via a
+  `FileType` autocmd (`ts_filetypes`, derived from `ensure_installed`).
+- **Folding** — AST-based via `vim.treesitter.foldexpr()`; files open fully
+  expanded (`foldlevel = 99`).
+- **Large files are skipped** — buffers over 50k lines or 1.5MB get neither
+  highlighting nor folding attached, to avoid UI lag.
+- **Auto-install on startup** — parsers missing from `ensure_installed` are
+  installed the next time nvim starts. There is **no** auto-install when
+  opening a file whose language isn't in that list — for those, run
+  `:TSInstall <lang>` once and add the language to `ensure_installed` in
+  `plugins.lua` for future machines.
+- **Auto-recompile on update** — a `PackChanged` autocmd detects when
+  `nvim-treesitter` itself is updated and re-runs `:TSUpdate` to recompile
+  parsers against the new version.
+
+Parser versions are pinned in `nvim-pack-lock.json` (see [Architecture](#architecture)
+→ Plugin loading pattern).
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `:TSUpdate` | Update all installed parsers |
+| `:TSUpdate <lang>` | Update a specific parser |
+| `:TSInstall <lang>` | Install a parser manually |
+| `:InspectTree` | View the parsed AST for the current buffer |
+| `:Inspect` | Show highlight groups under the cursor |
+| `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
+
+
+## Telescope
+
+Fuzzy finder for files, text search, buffers, and help. Uses
+`telescope-fzf-native` (compiled C extension) for faster sorting.
+
+### Keymaps
+
+| Keymap | Action |
+|---|---|
+| `<leader>sf` | Find files by name |
+| `<leader>sg` | Live grep (search file contents) |
+| `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture |
+| `<leader>sh` | Search help tags |
+| `<leader>sr` | Resume last search |
+| `<leader>s/` | Fuzzy search inside current buffer |
+| `<leader>so` | Recent files |
+| `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
+| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). `<leader>ts` toggles to buffer-only mode |
+| `<leader>sS` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
+| `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
+| `<leader>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
+| `<leader>sF` | Toggle file-type filter presets (scopes `<leader>sf` and `<leader>sg`) |
+
+**Inside the telescope window:**
+
+| Key | Action |
+|---|---|
+| Type anything | Fuzzy filter results |
+| `<C-n>` / `<C-p>` | Move down / up |
+| `<CR>` | Open highlighted entry (or all multi-selected entries) |
+| `<C-v>` | Open in vertical split |
+| `<C-x>` | Open in horizontal split |
+| `<C-t>` | Open in new tab |
+| `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
+| `<C-q>` | Send all current results to the quickfix list and open it |
+| `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
+| `<M-d>` | In the buffer picker (`<leader>m`): delete the highlighted buffer (or all multi-selected) |
+| `<Esc>` | Close |
+
+**Multi-select workflows:**
+- `<Tab>` marks an entry (a `+` appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
+- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs; `<M-q>` sends just the selected entries to the quickfix list.
+- `<C-q>` ignores tab marks and dumps the entire result list into qflist — handy after a grep when you want every match.
+- Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<M-q>` → `:cdo s/old/new/g | update`.
+
+**Per-picker notes:**
+- `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
+- `<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
+- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
+- `<leader>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
+
+**Tips:**
+- Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
+- In `<leader>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`.
+- `<leader>sr` reopens the last search with the same query — useful when you close telescope and want to get back.
+- `<leader>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<leader>sf` and `<leader>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `pickers/filter.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
+
+### Commands
+
+| Command | Purpose |
+|---|---|
+| `:checkhealth telescope` | Verify telescope and fzf-native are working |
+
+
 ## Clipboard split
 
 `y`/`Y` copy to the system clipboard, but `d`, `x`, `c`, and `dd` stay in
@@ -572,6 +790,29 @@ node under the cursor. State is a buffer-local stack of past ranges; it
 resets automatically whenever a grow starts from a selection that doesn't
 match the stack top (e.g. you moved the cursor or made a fresh selection),
 so it can never go stale.
+
+
+<a id="session"></a>
+## Session (persistence.nvim)
+
+Setup lives in `session.lua`. Sessions save automatically on quit and restore
+per directory; `branch = true` gives each git branch its own session, so
+switching branches doesn't mix up open files.
+
+| Keymap | Action |
+|---|---|
+| `<leader>qs` | Restore session for the current directory |
+| `<leader>qS` | Pick from all saved sessions |
+| `<leader>ql` | Restore the last session (regardless of directory) |
+| `<leader>qd` | Stop saving — quit without persisting current state |
+
+Terminal windows are excluded from saved sessions (`sessionoptions:remove('terminal')`)
+— restoring one would only re-spawn an empty shell with no scrollback, and a
+restored sidekick CLI buffer wouldn't be in sidekick's runtime registry, so
+`<leader>aa` could no longer manage it. Aerial's outline sidebar is also
+excluded (closed before save, not restored) — see
+[Design Decisions](#design-decisions) → "Synthetic sidebar buffers can't be
+session-serialized".
 
 
 ## Spell checking
@@ -695,6 +936,11 @@ Inside the tree (buffer-local, set by `on_attach`):
   the keypress (which-key would wait for a second key). Both explorer
   keymaps are registered as plain descriptions so they appear in
   `<leader>sk`.
+- `<leader>e` and the outline's `<leader>o` (`outline.lua`) swap into each
+  other: pressed from inside the outline sidebar, `<leader>e` closes it and
+  opens the tree instead (and vice versa). Only one left-edge sidebar is ever
+  open at a time. See [Design Decisions](#design-decisions) → "File tree and
+  outline swap into each other".
 
 
 <a id="outline-aerial"></a>
@@ -716,6 +962,44 @@ session-restored — see [Design Decisions](#design-decisions) →
 "Synthetic sidebar buffers can't be session-serialized" for why `session.lua`
 closes it before saving instead of trying to preserve its open state. Reopen
 with `<leader>o` after a session restore.
+
+`<leader>o`/`<leader>O` no-op (with a `vim.notify` warning) when pressed from a
+terminal or the sidekick CLI, where toggling the outline is never useful. From
+the **file tree**, `<leader>o` instead swaps: it closes the tree and opens the
+outline (and `<leader>e` does the reverse from inside the outline) — only one
+left-edge sidebar is ever open at a time. Pressed from inside the aerial
+sidebar itself, `<leader>o`/`<leader>O` just close it (normal toggle-off). See
+[Design Decisions](#design-decisions) → "Non-code buffer exceptions need a
+shared predicate" and "File tree and outline swap into each other".
+
+
+<a id="terminal"></a>
+## Terminal (toggleterm.nvim)
+
+Setup lives in `terminal.lua`. A togglable floating terminal (85% of window)
+that persists state across hides, plus a VS Code-style bottom panel.
+
+### Keymaps
+
+| Keymap | Action |
+|---|---|
+| `<C-\>` | Toggle floating terminal (normal, insert, or terminal mode) |
+| `<leader>tt` | Toggle floating terminal (discoverable via which-key) |
+| `` <C-`> `` / `<C-/>` / `<leader>tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
+| `<Esc>` (in terminal) | Exit terminal mode → normal mode |
+| `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
+| `<C-]>` (in terminal) | Cycle to next terminal |
+| `<C-[>` (in terminal) | Cycle to previous terminal |
+
+**Tips:**
+- **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>` sends EOF to the shell and closes it entirely — faster than typing `exit`.
+- **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
+- **Cycle between terminals**: `<C-]>` / `<C-[>` cycle next/previous through open terminals (wrap around). Works in both terminal and normal mode within the terminal buffer.
+- **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
+- **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
+- **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.
+- **`<Esc>` caveat**: the `<Esc>` mapping exits terminal mode in all terminal buffers. TUI programs opened inside the terminal (e.g. `vim`, `htop`, `fzf`) also need `<Esc>` for their own UI — use `<C-\><C-n>` manually in those cases, or add a filetype guard in `terminal.lua`.
+- **`<S-CR>` sends a literal newline** instead of submitting, inside these terminals and the bottom panel — see [LSP](#lsp) → Things to watch out for, "Shift+Enter → newline in terminals" for the CSI-u terminal requirement.
 
 
 <a id="git-neogit"></a>
@@ -804,6 +1088,26 @@ section below for the full set of review workflows.
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
+
+**Gutter sign legend** (gitsigns):
+
+| Sign | Meaning |
+|---|---|
+| `▎` | Added line |
+| `▎` | Changed line |
+| `▂` / `▔` | Deleted line (below / above) |
+| `▎` | Changed and deleted |
+| `░` | Untracked file |
+
+**satellite.nvim** adds a scrollbar on the right edge of the focused window
+with color-coded marks for git changes (matches the gitsigns colors above),
+LSP diagnostics, search results, and quickfix list items — useful for seeing
+at a glance where changes/errors/matches are in a large file without scrolling.
+
+| Command | Purpose |
+|---|---|
+| `:SatelliteRefresh` | Force refresh scrollbar if out of sync |
+| `:SatelliteDisable` / `:SatelliteEnable` | Toggle scrollbar |
 
 
 <a id="reviewing-diffs"></a>
