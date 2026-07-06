@@ -226,16 +226,27 @@ vim.api.nvim_create_autocmd('LspAttach', {
       vim.lsp.inline_completion.enable(true, { bufnr = buf })
     end
 
-    -- gd jumps to where the thing is implemented (function body, struct definition, etc.)
-    map('n', 'gd',               vim.lsp.buf.definition,      'LSP: Go to definition')
+    -- Telescope pickers for LSP jumps that can return multiple results
+    -- (gd/gy/gri/grr below) — without this, nvim's default handler dumps
+    -- multiple results into the quickfix list instead of showing a picker.
+    -- A single result still jumps straight there either way.
+    local ok, builtin = pcall(require, 'telescope.builtin')
+
+    -- gd jumps to where the thing is implemented (function body, struct definition, etc.).
+    -- Can resolve to multiple targets (e.g. a trait method with several impls).
+    map('n', 'gd', ok and builtin.lsp_definitions or vim.lsp.buf.definition, 'LSP: Go to definition')
     -- gD jumps to the declaration (signature without body) — useful in Rust (trait).
     -- Not supported by all LSPs: gopls and pyright don't implement textDocument/declaration
     -- since Go/Python have no separate declaration concept (declaration == definition).
+    -- No telescope.builtin.lsp_declarations exists, so this stays on the plain LSP handler.
     if client:supports_method('textDocument/declaration') then
       map('n', 'gD',             vim.lsp.buf.declaration,     'LSP: Go to declaration')
     end
+    -- gy: rust-analyzer often resolves this to several targets (trait bounds,
+    -- generics), so route through Telescope rather than the default quickfix
+    -- dump. A single result still jumps straight there.
     if client:supports_method('textDocument/typeDefinition') then
-      map('n', 'gy',             vim.lsp.buf.type_definition, 'LSP: Go to type definition')
+      map('n', 'gy', ok and builtin.lsp_type_definitions or vim.lsp.buf.type_definition, 'LSP: Go to type definition')
     end
     -- <leader>p*: peek the same targets as gd/gy/gri/grr, but in a scrollable float
     -- (the real file) instead of jumping. <leader>pq closes all open peeks.
@@ -267,7 +278,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Override nvim 0.12's grr/gri defaults with telescope pickers for a
     -- multi-result UI. Uses the gr* convention so the rest of the prefix group
     -- (grn, gra, grt, grx) keeps working and vim's gi (last insert) is preserved.
-    local ok, builtin = pcall(require, 'telescope.builtin')
     map('n', 'grr', ok and builtin.lsp_references      or vim.lsp.buf.references,     'LSP: References')
     if client:supports_method('textDocument/implementation') then
       map('n', 'gri', ok and builtin.lsp_implementations or vim.lsp.buf.implementation, 'LSP: Go to implementation')
