@@ -684,6 +684,11 @@ This writes a `com.googlecode.iterm2.plist` to the folder. On a new machine, clo
 
 To import color themes manually: **iTerm2 → Settings → Profiles → Colors → Color Presets → Import** and select the `.itermcolors` files.
 
+On a new machine, also run from the **iTerm2** app menu:
+
+- **iTerm2 → Make iTerm2 Default Term** — makes iTerm2 the default terminal app.
+- **iTerm2 → Install Shell Integration** — enables shell integration (command status, marks, `it2` utilities).
+
 ### Option-as-Meta
 
 For nvim mappings using `<M-...>` (e.g. `<M-1>`..`<M-9>` to jump to a buffer row in the `<leader>m` buffer picker) to work, iTerm2 needs to send Option as Meta instead of typing special characters (`¡`, `™`, etc.):
