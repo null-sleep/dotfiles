@@ -14,7 +14,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 **[Part 2: Reference](#part-2-reference)**
 
 *AI & Claude tooling*
-- [Claude Code](#claude-code) — [LSP plugins](#lsp-plugins-code-intelligence) · [rtk](#rtk-token-optimizer) · [Theme](#theme)
+- [Claude Code](#claude-code) — [Recommended manual settings](#recommended-manual-settings) · [LSP plugins](#lsp-plugins-code-intelligence) · [rtk](#rtk-token-optimizer) · [Theme](#theme)
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
 
@@ -260,6 +260,27 @@ All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-st
 | `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
 
 `settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `setup-*.sh` scripts merge just their own keys into it idempotently with `jq`, so re-running any of them is a no-op.
+
+### Recommended manual settings
+
+A few `~/.claude/settings.json` keys are worth setting by hand on a fresh
+machine but aren't worth a `setup-*.sh` script for — either because they're a
+single key, or because whether you want them is a judgment call rather than
+a fixed default:
+
+- **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
+  Claude Code from sending non-essential telemetry (Statsig analytics,
+  Sentry error reports). Doesn't affect core inference traffic.
+- **`model`** — set to `"opusplan"` to use Opus while in plan mode and fall
+  back to the default model otherwise.
+- **`effortLevel`** — set to `"high"` for more thorough reasoning on
+  supported models.
+- **`tui`** — set to `"fullscreen"` for the flicker-free alt-screen renderer
+  with virtualized scrollback.
+
+(`statusLine`, `enabledPlugins`, and `theme` are **not** in this list — they're
+already handled by `setup-statusline.sh`, `setup-lsp-plugins.sh`, and
+`setup-theme.sh` above.)
 
 <a id="lsp-plugins-code-intelligence"></a>
 ### LSP plugins (code intelligence)
