@@ -1098,3 +1098,12 @@ launchctl start com.user.yknotify
 
 The `.zshrc_work.zsh` `yknotify_check` function warns at shell start if the
 LaunchAgent is not loaded.
+
+**Do Not Disturb / Focus mode:** notifications are sent via `terminal-notifier
+-ignoreDnD`, but on macOS 14+ this flag alone is not enough to break through
+Focus. You must also allowlist `terminal-notifier` explicitly:
+
+> System Settings → Focus → Do Not Disturb → (i) → Apps → Add `terminal-notifier`
+
+Without this, notifications are silently queued in Notification Center and
+never shown as banners while Focus is active.
