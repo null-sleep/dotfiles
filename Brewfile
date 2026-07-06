@@ -92,6 +92,11 @@ cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
 
 #-----------------------------------------------------------------------------
+# Utilities
+#-----------------------------------------------------------------------------
+brew "terminal-notifier"  # macOS notification helper; used by yknotify (YubiKey touch alerts)
+
+#-----------------------------------------------------------------------------
 # Containers — Docker Desktop alternative (comment out if you don't use Docker)
 #-----------------------------------------------------------------------------
 brew "colima"
