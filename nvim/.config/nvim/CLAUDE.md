@@ -11,10 +11,10 @@ keymap, update `GUIDE.md` as part of that same change — not as a follow-up.**
 This applies to your own edits and to any config change you make on the
 user's behalf. Concretely:
 
-- New module → add its `Architecture` file-responsibilities row and, if it's
+- New module → add its `Architecture` file-responsibilities entry and, if it's
   `require()`d from `init.lua`, extend the `Load order` line. Give it a Part 2
   section too if it has keymaps or behavior worth explaining (see below) —
-  a bare Architecture row is not enough on its own for anything with a keymap.
+  a bare Architecture entry is not enough on its own for anything with a keymap.
 - New keymap → add it to the right table per "Where new content lands" below,
   and never leave a keymap undocumented.
 - Renamed/removed module or keymap → update the same spots, and grep for
@@ -46,8 +46,8 @@ change, the same way you'd treat a missing test.
 - A new **feature-specific keymap** → the keymap table inside that
   feature's own Part 2 section, next to the prose explaining it — **not**
   the Keymap index. Add a *By prefix* orientation row pointing there.
-- A new **tool/module** → its own Part 2 `##` section, a row in the
-  `Architecture` file-responsibilities table, and a `Load order` update if
+- A new **tool/module** → its own Part 2 `##` section, a bullet in the
+  `Architecture` file-responsibilities list, and a `Load order` update if
   it's a new `require()` in `init.lua`.
 - A new **"how do I add an X"** recipe (LSP server, formatter, theme,
   neotest adapter) → lives beside its tool's Part 2 section, not in a
@@ -103,6 +103,20 @@ they render as inert/broken markup in-editor, even though they work fine on
 GitHub. Use headings + native folding (`zc`/`zo` in nvim, the outline panel
 in Typora) as the portable equivalent instead.
 
+### Tables vs. bullet lists
+
+Tables are for short, roughly-uniform cells (key → action, prefix → file).
+When a column would hold long, variable-length prose — a paragraph-per-row
+description like the old `Architecture` → `File responsibilities` table —
+don't force it into a table: `render-markdown.nvim`'s column-width layout
+combined with `'wrap'` breaks long cells into misaligned, broken-looking
+rows (this is what prompted the rewrite; see the `File responsibilities`
+list for the resulting pattern). Use a bullet list instead
+(`- **`file.lua`** — description`) — no column alignment to fight, and it
+reads the same in nvim, GitHub, and Typora. Convert an existing table to a
+list as soon as its longest cell is forcing multi-line wraps; don't wait
+for it to get worse.
+
 ### Notation
 
 Use `<leader>`, never `<Space>` — `vim.g.mapleader` is set to `' '` in
@@ -112,7 +126,7 @@ document is confusing when tables sit side by side.
 ### Keep in sync when editing
 
 - The `## Contents` TOC, when adding/removing a top-level section.
-- The `Architecture` file-responsibilities table and `Load order` line,
+- The `Architecture` file-responsibilities list and `Load order` line,
   when adding/removing a module `require()`d from `init.lua`.
 - `README.md` at the repo root does **not** carry its own nvim keymap/prefix
   tables anymore — its `## Neovim` section only covers install/first-launch

@@ -96,6 +96,16 @@ Plain-word headings don't need this — their auto-slugs are unambiguous.
 README is read in the same tools as GUIDE.md (nvim, Typora). Use headings +
 native folding instead.
 
+### Tables vs. bullet lists
+
+Tables work well for short, uniform cells (file → symlink method, plugin →
+binary → install command). Don't force a column into a table when it holds
+long, variable-length prose (a paragraph-per-row description) — both
+`render-markdown.nvim` and GitHub wrap/misalign long cells badly. Use a
+bullet list instead (`- **item** — description`). See
+`nvim/.config/nvim/GUIDE.md`'s `Architecture` → `File responsibilities` list
+for the pattern this replaced a table with.
+
 ### Notation
 
 If README ever needs to mention an nvim keymap, use `<leader>`, not
