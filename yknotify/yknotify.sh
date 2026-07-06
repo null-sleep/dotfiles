@@ -19,6 +19,6 @@ while IFS= read -r line; do
     LAST_NTFY="$NOW"
 
     message="$(echo "$line" | jq -r '.type')"
-    "$TERM_NTFY_BIN" -title "YubiKey" -message "Touch required ($message)" -sound Submarine -ignoreDnD
+    "$TERM_NTFY_BIN" -title "YubiKey" -message "Touch required ($message)" -sound Morse -ignoreDnD
 
 done < <("$YKNTFY_BIN")
