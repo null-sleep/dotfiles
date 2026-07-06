@@ -33,7 +33,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [rcmd](#rcmd)
+- [Colima](#colima) · [rcmd](#rcmd) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -1066,3 +1066,35 @@ stow rcmd
 ```
 
 The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.
+
+## yknotify
+
+macOS daemon that watches the system log for YubiKey touch events and fires a
+notification. Configured to skip FIDO2 (browser/WebAuthn) and only notify for
+OpenPGP touches (GPG signing, SSH, sudo) with a 10-second cooldown.
+
+The stow package places two files:
+
+- `~/yknotify.sh` — wrapper that reads yknotify's NDJSON output and fires notifications
+- `~/Library/LaunchAgents/com.user.yknotify.plist` — runs the wrapper as a persistent background agent
+
+**One-time setup:**
+
+```bash
+go install github.com/noperator/yknotify@latest
+cd ~/src/dotfiles
+
+# Expand $USER placeholder in the plist, then stow
+sed -i '' "s/__USER__/$USER/g" yknotify/Library/LaunchAgents/com.user.yknotify.plist
+stow --no-folding yknotify
+
+launchctl load ~/Library/LaunchAgents/com.user.yknotify.plist
+launchctl start com.user.yknotify
+```
+
+> **Note:** The `sed` step above modifies the tracked plist in-place to embed
+> your username (launchd requires absolute paths). Commit the change after
+> running it so the plist reflects your actual username.
+
+The `.zshrc_bitgo.zsh` `yknotify_check` function warns at shell start if the
+LaunchAgent is not loaded.

@@ -39,6 +39,16 @@ kill-mcp-chrome() {
   kill "${pids[@]}"
 }
 
+## yknotify (YubiKey touch notifier)
+yknotify_check() {
+  if ! launchctl list com.user.yknotify &>/dev/null; then
+    echo "ATTENTION: yknotify LaunchAgent is not loaded!"
+    echo "Run: launchctl load ~/Library/LaunchAgents/com.user.yknotify.plist"
+  fi
+}
+
+yknotify_check
+
 ## BG Admin
 alias bga='/Users/dhruvjauhar/src/bitgo-admin/bin/bgadmin'
 
