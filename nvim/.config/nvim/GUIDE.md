@@ -372,7 +372,13 @@ Peek is additive; jumps are unchanged.
 | — | `<leader>pq` | Close all open peek floats |
 
 `gy`/`gri` (and their `pt`/`pi` peeks) and `gD` are capability-gated — they only
-map when the server supports the method. `grr`/`gri` use Telescope pickers.
+map when the server supports the method. `gd`/`gy`/`gri`/`grr` all use Telescope
+pickers (falling back to the plain LSP handler if Telescope fails to load) —
+a single result still jumps straight there, but a server resolving to several
+targets (e.g. a trait method with multiple impls, or a type with several
+bounds) shows a picker instead of dumping into the quickfix list. `gD` has no
+Telescope equivalent (`telescope.builtin` has no `lsp_declarations`), so it
+stays on the plain handler.
 
 **Hover, actions & diagnostics:**
 
