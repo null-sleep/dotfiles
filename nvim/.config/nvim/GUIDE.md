@@ -397,7 +397,11 @@ stays on the plain handler.
 
 Example: adding `clangd` (C/C++).
 
-1. **`lsp.lua` -- `ensure_installed`** -- add `'clangd'` so Mason auto-installs it.
+1. **`lsp.lua` -- `mason-tool-installer`'s `ensure_installed`** -- add `'clangd'`
+   so Mason installs (and later auto-updates) it. This list is now the single
+   source of truth for installing/updating every Mason package, servers
+   included -- mason-lspconfig no longer carries its own `ensure_installed`
+   (see "Things to watch out for" -> Mason auto-update).
 
 2. **`lsp.lua` -- `vim.lsp.enable()`** -- add `'clangd'` to the list.
    This is the single source of truth for active servers (`automatic_enable`
@@ -444,6 +448,13 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 
 - **Diagnostics default to minimal** -- virtual_text and signs are OFF.
   `<leader>td` toggles them on. Underline is always on.
+
+- **Mason auto-update** -- `mason-tool-installer`'s `ensure_installed` (in
+  `lsp.lua`) covers every Mason package, servers included; mason-lspconfig
+  only enables them now. `auto_update` + `debounce_hours = 24` re-checks for
+  updates at most once/day on startup and updates in place, async. The
+  plugin notifies per-package on install/failure itself; `:Mason` still
+  works for manual inspection/retry.
 
 - **Document highlight** -- gated on `textDocument/documentHighlight`.
   Driven by `updatetime` (300ms) in `configs.lua`.

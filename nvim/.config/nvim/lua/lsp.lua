@@ -20,13 +20,29 @@ require('mason').setup({
   },
 })
 
--- mason-tool-installer: declaratively install formatter/linter CLIs (the binaries
--- conform.nvim and nvim-lint shell out to). mason-lspconfig handles LSP servers;
--- this handles everything else. Excludes mix_format/credo (per-project Elixir mix
--- deps, not Mason packages) and xmllint/just (system / user-provided CLIs).
+-- mason-tool-installer: installs/updates every Mason package this config uses —
+-- LSP servers (mason-lspconfig below only enables them) and formatter/linter/
+-- debug-adapter CLIs. Excludes mix_format/credo (per-project Elixir mix deps,
+-- not Mason packages) and xmllint/just (system/user-provided CLIs).
+-- auto_update + debounce_hours: re-checks for updates at most once/24h on
+-- startup; notifies per-package itself (:help mason-tool-installer-auto_update).
 vim.cmd.packadd('mason-tool-installer.nvim')
 require('mason-tool-installer').setup({
+  auto_update = true,
+  debounce_hours = 24,
   ensure_installed = {
+    -- LSP servers (lspconfig names; mapped to Mason package names via the
+    -- mason-lspconfig integration). rust_analyzer omitted: rustaceanvim
+    -- (rust.lua) manages it via rustup, not Mason.
+    'lua_ls',
+    'pyright',
+    'ts_ls',
+    'gopls',
+    'elixirls',
+    'kotlin_language_server',
+    'eslint',
+    'copilot',
+    -- formatter/linter/debug-adapter CLIs
     'stylua',         -- lua formatter
     'ruff',           -- python formatter + linter
     'prettierd',      -- js/ts/json/yaml formatter
@@ -40,53 +56,10 @@ require('mason-tool-installer').setup({
   },
 })
 
--- Notify on startup if any Mason packages have updates available (async, won't delay startup).
-vim.api.nvim_create_autocmd('VimEnter', {
-  once = true,
-  callback = function()
-    local registry = require('mason-registry')
-    -- refresh() reloads the registry index, then we compare each installed
-    -- package's on-disk version against the registry's latest. mason-org dropped
-    -- the old async pkg:check_new_version; get_installed_version/get_latest_version
-    -- are the current API (both sync, but get_latest_version can throw → pcall).
-    registry.refresh(function()
-      local outdated = {}
-      for _, pkg in ipairs(registry.get_installed_packages()) do
-        local installed = pkg:get_installed_version()
-        local ok, latest = pcall(pkg.get_latest_version, pkg)
-        if ok and installed and latest and installed ~= latest then
-          outdated[#outdated + 1] = pkg.name
-        end
-      end
-      if #outdated > 0 then
-        vim.schedule(function()
-          vim.notify(
-            ('Mason: %d update(s) available — :Mason → U'):format(#outdated),
-            vim.log.levels.INFO,
-            { title = 'Mason' }
-          )
-        end)
-      end
-    end)
-  end,
-})
-
--- mason-lspconfig: auto-installs servers from ensure_installed on startup
+-- mason-lspconfig: install/update is owned by mason-tool-installer above;
+-- this only enables servers. automatic_enable = false keeps vim.lsp.enable()
+-- below as the single source of truth for which servers are active.
 require('mason-lspconfig').setup({
-  ensure_installed = {
-    'lua_ls',
-    'pyright',
-    'ts_ls',
-    'gopls',
-    -- rust_analyzer intentionally omitted: rustaceanvim (lua/rust.lua) manages the
-    -- Rust client and points it at the rustup-provided rust-analyzer, not Mason's.
-    'elixirls',
-    'kotlin_language_server',
-    'eslint',
-    'copilot',
-  },
-  -- Disable automatic_enable so our explicit vim.lsp.enable() below is the
-  -- single source of truth for which servers are active.
   automatic_enable = false,
 })
 
