@@ -15,7 +15,6 @@ require('format')
 require('linting')
 require('statusline')
 require('session')
-require('gpg_watch')
 require('git')
 require('gitui')  -- neogit.nvim (Magit-style dashboard) + diffview.nvim
 require('terminal')

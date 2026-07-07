@@ -66,7 +66,6 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
-- **`gpg_watch.lua`** — GPG signing watcher: fires a "Signed ✓" notification ~3s after a gitcommit buffer is confirmed (enough time for YubiKey touch + signing); the "Touch YubiKey" prompt itself comes from the pinentry wrapper script. See Git (Neogit) → Commit flow + GPG signing
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file
@@ -77,7 +76,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/keybindings.lua`** — Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon
-- **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (gpg_watch's "Signed ✓", outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
+- **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom Telescope picker for live theme preview with restore-on-cancel
@@ -102,7 +101,7 @@ this file after updating plugins to keep versions consistent across machines.
 
 From `init.lua`: configs -> plugins -> treesitter_context -> outline ->
 structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
-testing -> ai -> format -> linting -> statusline -> session -> gpg_watch ->
+testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> titling -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
@@ -1072,9 +1071,8 @@ reachable from here:
 Committing (`c` then `c` in the commit popup, or `<leader>gc`) opens a real
 **`gitcommit`-filetype buffer** — the existing `git.lua` FileType maps and
 signing flow apply unchanged: `<leader>w` confirms (write + close),
-`<leader>x` aborts (`:cq`), and `gpg_watch`'s YubiKey-touch "Signed ✓" notice
-fires the same as for `git commit` from the shell. If this ever fights the
-flow, `commit_editor.kind` in `gitui.lua`'s `setup()` is the escape hatch.
+`<leader>x` aborts (`:cq`). If this ever fights the flow, `commit_editor.kind`
+in `gitui.lua`'s `setup()` is the escape hatch.
 
 ### Diffs
 

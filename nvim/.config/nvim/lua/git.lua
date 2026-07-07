@@ -59,9 +59,6 @@ vim.api.nvim_create_autocmd('FileType', {
   callback = function(args)
     local function confirm()
       vim.cmd('write')
-      -- Schedule "Signed ✓" ~3s after editor closes — enough time for YubiKey
-      -- touch + GPG signing. The touch prompt fires via pinentry-yubikey-notify.sh.
-      require('gpg_watch').after_commit()
       -- flatten unblocks the guest on BufUnload/BufDelete (fired by bwipeout).
       -- When nvim is invoked standalone as $EDITOR (no parent instance and
       -- flatten not active), fall back to :quit so the terminal regains focus.
