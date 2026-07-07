@@ -303,7 +303,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<C-\>`, `<leader>tt`/`tb` | Terminal (toggleterm) | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`rn`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
-| `<leader>o`/`O`/`sb`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
+| `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>g*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
@@ -717,7 +717,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last search |
-| `<leader>s/` | Fuzzy search inside current buffer |
+| `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
 | `<leader>so` | Recent files |
 | `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). `<leader>ts` toggles to buffer-only mode |
@@ -957,7 +957,7 @@ as a docked sidebar or a floating nav popup with an inline code preview.
 |---|---|
 | `<leader>o` | Toggle the docked outline sidebar |
 | `<leader>O` | Toggle the nav popup (floating, with code preview) |
-| `<leader>sb` | Telescope fuzzy picker over the current buffer's symbols |
+| `<leader>sb` | Fuzzy search inside current buffer (alias for `<leader>s/`) — use `<leader>ss`/`sS` for symbol search |
 | `]a` / `[a` | Next / previous symbol (buffer-local, on attached buffers) |
 | `zh` | Toggle highlight-on-hover of the source line (sidebar-local) |
 
