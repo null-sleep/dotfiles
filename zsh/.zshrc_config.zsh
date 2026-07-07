@@ -217,6 +217,8 @@ alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
 alias gbd='git branch | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | fzf -m | xargs git branch -D'
+# Delete all merged branches (non-interactive; uses -d so unmerged branches are refused)
+alias gclean='git branch --merged | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | xargs -n 1 git branch -d'
 alias gdm='git diff $(git_base_branch)...'
 alias gs='git status'
 alias gl='git log'
