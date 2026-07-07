@@ -10,6 +10,7 @@ vim.keymap.set('n', '<leader>sg', function() require('pickers.filter').live_grep
 vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
+vim.keymap.set('n', '<leader>sb', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sm', function() require('pickers.gitstatus').open() end,
   { desc = 'Search: Modified files' })
 vim.keymap.set('n', '<leader>ss', function() require('pickers.symbols').workspace() end,
