@@ -52,12 +52,12 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
-- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; Telescope symbol picker (`<leader>sb`); buffer-local `]a`/`[a` symbol nav
+- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row
 - **`pickers/gitstatus.lua`** — Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle
 - **`pickers/common.lua`** — Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers
-- **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sS`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
+- **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
@@ -69,7 +69,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
+- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports a `keywords` table consumed by `pickers/keybindings.lua` for aliasing keymaps whose `desc` lacks searchable terms
 - **`pickers/filter.lua`** — Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep)
@@ -299,7 +299,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
 | `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | [Telescope](#telescope) → Keymaps |
-| `<C-\>`, `<leader>tt`/`tb` | Terminal (toggleterm) | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
+| `<C-\>`, `<leader>T*` | Terminal (toggleterm) — own prefix so gitsigns/LSP buffer-local `<leader>t*` toggles can't shadow it | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`rn`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
@@ -486,7 +486,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
   transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
 
-- **Shift+Enter → newline in terminals** — inside `<C-\>` / `<leader>tt`
+- **Shift+Enter → newline in terminals** — inside `<C-\>` / `<leader>Tt`
   terminals (and the bottom panel), `<S-CR>` sends a linefeed so CLIs like
   Claude/Codex insert a newline instead of submitting (`terminal.lua`).
   This only works if the terminal transmits Shift+Enter distinctly via CSI u.
@@ -731,7 +731,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<leader>so` | Recent files |
 | `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). `<leader>ts` toggles to buffer-only mode |
-| `<leader>sS` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
+| `<leader>sd` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
 | `<leader>sF` | Toggle file-type filter presets (scopes `<leader>sf` and `<leader>sg`) |
@@ -967,7 +967,7 @@ as a docked sidebar or a floating nav popup with an inline code preview.
 |---|---|
 | `<leader>o` | Toggle the docked outline sidebar |
 | `<leader>O` | Toggle the nav popup (floating, with code preview) |
-| `<leader>sb` | Fuzzy search inside current buffer (alias for `<leader>s/`) — use `<leader>ss`/`sS` for symbol search |
+| `<leader>sb` | Fuzzy search inside current buffer (alias for `<leader>s/`) — use `<leader>ss`/`sd` for symbol search |
 | `]a` / `[a` | Next / previous symbol (buffer-local, on attached buffers) |
 | `zh` | Toggle highlight-on-hover of the source line (sidebar-local) |
 
@@ -998,8 +998,9 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | Keymap | Action |
 |---|---|
 | `<C-\>` | Toggle floating terminal (normal, insert, or terminal mode) |
-| `<leader>tt` | Toggle floating terminal (discoverable via which-key) |
-| `` <C-`> `` / `<C-/>` / `<leader>tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
+| `<leader>Tt` | Toggle floating terminal (discoverable via which-key) |
+| `<leader>Th` / `<leader>Tv` | Open a horizontal / vertical split terminal |
+| `` <C-`> `` / `<C-/>` / `<leader>Tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
 | `<Esc>` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
 | `<C-]>` (in terminal) | Cycle to next terminal |
@@ -1095,8 +1096,9 @@ section below for the full set of review workflows.
 ### Which git tool to use
 
 - **gitsigns** (`git.lua`) — gutter signs, per-hunk stage/reset/blame
-  (`<leader>h*`, e.g. `<leader>hb` blame; `]c`/`[c` hunk nav). Always on,
-  no buffer to open.
+  (`<leader>h*`, e.g. `<leader>hb` blame; `]c`/`[c` hunk nav; `<leader>tb`
+  toggles the inline current-line blame annotation). Always on, no buffer
+  to open.
 - **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
@@ -1369,7 +1371,7 @@ version noise. The rustup proxy is toolchain-matched and honors per-project
   terminal split. Workspace-aware (rust-analyzer picks the right `-p` package).
 - **`grx`** on the `fn main` line — runs the `▶ Run` codelens directly.
 - **`:RustLsp run`** — re-run the *last* runnable (fast edit-run loop).
-- Or just a terminal: `<leader>tb`, then `cargo run -p <crate>`.
+- Or just a terminal: `<leader>Tb`, then `cargo run -p <crate>`.
 
 ### Debugging
 

@@ -175,4 +175,6 @@ vim.keymap.set('n', '<leader>O', function()
   end
   vim.cmd('AerialNavToggle')
 end, { desc = 'Toggle: Outline nav popup (aerial)' })
-vim.keymap.set('n', '<leader>sb', '<cmd>Telescope aerial<CR>', { desc = 'Search: Outline symbols (aerial)' })
+-- No dedicated key for :Telescope aerial — it overlapped <leader>sd (document
+-- symbols picker, which also covers fields/variables) and the sidebar/popup
+-- above. The command remains available by name.
