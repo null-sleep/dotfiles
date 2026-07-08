@@ -1,10 +1,9 @@
 # TODO
 
-1. Code Outline Support
-  - aerial.nvim, can replace <leader>sS
-2.a Git Integration and Workflow (hunk navigation, diff view - split and unified)
-  - lazygit in toggleterm: bind <leader>gg to open lazygit in a floating terminal
-  - neogit + diffview.nvim:  Magit-style native nvim git UI
+Shipped items are pruned as they land (see GUIDE.md for what exists today:
+aerial outline, Neogit + diffview, nvim-dap debugging, neotest).
+
+2.a Git Integration and Workflow — DONE except:
   - enable spell check when reviewing?
 2.b GitHub Integration: octo.nvim — lets you view, comment and review GitHub PRs
   - Heavy plugin may want to avoid or defer
@@ -20,7 +19,6 @@
 8. [What if I never?] Project tree
   - neo-tree.nvim
   - oil.nvim
-9. Debugging support for some languages
 10. trouble.nvim — a proper diagnostic list window. You have <leader>cd which opens telescope for diagnostics, but trouble gives a persistent, navigable panel that's better for working through a build full of errors.
 11. Spell Check
   - Add the spell source to blink.cmp so suggestions appear inline while typing
@@ -29,10 +27,6 @@
 13. Harpoon — quick file navigation and marking. I have a lot of files open at once and I often want to jump back and forth between a few of them.
 14. I should not, but if I did: https://nvimluau.dev/romgrk-barbar-nvim
 15. Low effort way of showing buffer name of inactive windows?
-16. Debugging support for some languages. Look into nvim-dap.
-17. Run tests from nvim. Look into vim-test or neotest.
-18. Code Outliner — aerial.nvim similar to VS Code
-  - Can be inspiration to simplify or even replace <leader>sS, which is currently a bit of a mess showing too many usless items.
 19. Neovide direct open should load zsh env vars. See related plan.
 20. Learn colapse/expand code blocks, and other text objects like sentences, paragraphs, etc.
 
