@@ -66,6 +66,8 @@ CLAUDE_THEMES="$HOME/.claude/themes"
 NVIM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/theme.txt"
 
 # --- predefined pair -------------------------------------------------------
+# KEEP IN SYNC: claude/setup-theme.sh seeds active.json from the LIGHT Claude
+# slug (its DEFAULT_FILE) — update both together.
 #         Claude slug        nvim variant       macOS dark
 LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false" )
 DARK=(    "dracula"          "dracula"          "true"  )

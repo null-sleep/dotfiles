@@ -14,6 +14,9 @@ set -euo pipefail
 SETTINGS="$HOME/.claude/settings.json"
 THEME="custom:active"
 THEMES_DIR="$HOME/.claude/themes"
+# KEEP IN SYNC: the light slug in zsh/.local/bin/theme's LIGHT array — if the
+# theme pair changes there, change this seed too or a fresh machine seeds a
+# palette the switcher never uses.
 DEFAULT_FILE="$THEMES_DIR/catppuccin-latte.json"   # seed for active.json
 ACTIVE_FILE="$THEMES_DIR/active.json"
 

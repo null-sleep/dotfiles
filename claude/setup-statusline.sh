@@ -19,14 +19,16 @@ fi
 
 # Check if statusLine already exists
 if jq -e '.statusLine' "$SETTINGS" >/dev/null 2>&1; then
-  current=$(jq -r '.statusLine.command' "$SETTINGS")
+  # // empty: without it a statusLine object missing .command prints the
+  # literal string "null" and the repair below never fires.
+  current=$(jq -r '.statusLine.command // empty' "$SETTINGS")
   if echo "$current" | grep -q '/Users/'; then
     echo "Updating hardcoded path in statusLine.command to use \$HOME..."
     jq --arg cmd "$SCRIPT_CMD" '.statusLine.command = $cmd' "$SETTINGS" > "${SETTINGS}.tmp" \
       && mv "${SETTINGS}.tmp" "$SETTINGS"
     echo "Done."
   else
-    echo "statusLine already configured: $current"
+    echo "statusLine already configured: ${current:-<none>}"
   fi
 else
   echo "Adding statusLine block to $SETTINGS..."

@@ -7,6 +7,13 @@
 
 input=$(cat)
 
+# Per-session scratch state (prev cost, context history). ~/.cache, not /tmp:
+# /tmp is shared across users (predictable names are squattable) and cleared
+# on reboot. The monthly cost log stays in ~/.claude/cost-log — that's
+# persistent data, not scratch.
+STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline"
+mkdir -p "$STATE_DIR"
+
 # Parse all top-level fields in a single jq call
 eval "$(echo "$input" | jq -r '
   @sh "model=\(.model.display_name // "")",
@@ -24,7 +31,7 @@ last_msg_cost=""
 monthly_cost=""
 if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
   if [ -n "$session_id" ] && [ -n "$cost" ] && [ "$cost" != "0" ]; then
-    PREV_COST_FILE="/tmp/claude-ctx-prevcost-${session_id}"
+    PREV_COST_FILE="$STATE_DIR/prevcost-${session_id}"
     prev_cost=$(cat "$PREV_COST_FILE" 2>/dev/null || echo "0")
     last_msg_cost=$(awk -v c="$cost" -v p="$prev_cost" 'BEGIN { printf "%.2f", c - p }')
     echo "$cost" > "$PREV_COST_FILE"
@@ -33,7 +40,11 @@ if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
     mkdir -p "$COST_DIR"
     MONTH_FILE="$COST_DIR/$(date +%Y-%m).tsv"
     if [ -f "$MONTH_FILE" ] && grep -q "^${session_id}	" "$MONTH_FILE" 2>/dev/null; then
-      awk -v sid="$session_id" -v c="$cost" -F'\t' 'BEGIN{OFS="\t"} $1==sid{$2=c}{print}' "$MONTH_FILE" > "${MONTH_FILE}.tmp" && mv "${MONTH_FILE}.tmp" "$MONTH_FILE"
+      # mktemp, not a fixed .tmp name: two concurrent sessions ending a
+      # message together would truncate each other's rewrite mid-mv and drop
+      # a row. mv stays atomic; last-writer-wins is fine for a cost counter.
+      month_tmp=$(mktemp "${MONTH_FILE}.XXXXXX")
+      awk -v sid="$session_id" -v c="$cost" -F'\t' 'BEGIN{OFS="\t"} $1==sid{$2=c}{print}' "$MONTH_FILE" > "$month_tmp" && mv "$month_tmp" "$MONTH_FILE"
     else
       printf '%s\t%s\n' "$session_id" "$cost" >> "$MONTH_FILE"
     fi
@@ -49,13 +60,13 @@ current_input=$(echo "$input" | jq -r '
 ')
 
 # --- Context growth tracking ---
-HISTORY_FILE="/tmp/claude-ctx-growth-${session_id}"
+HISTORY_FILE="$STATE_DIR/growth-${session_id}"
 bars=""
 
 # Clean up history files from old sessions (>7d), at most once per hour
-CLEANUP_STAMP="/tmp/claude-ctx-cleanup-stamp"
+CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
 if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then
-  find /tmp -maxdepth 1 \( -name 'claude-ctx-growth-*' -o -name 'claude-ctx-prevcost-*' \) -mtime +7 -delete 2>/dev/null
+  find "$STATE_DIR" -maxdepth 1 \( -name 'growth-*' -o -name 'prevcost-*' \) -mtime +7 -delete 2>/dev/null
   touch "$CLEANUP_STAMP"
 fi
 
