@@ -26,6 +26,23 @@ function M.promote_to_full_height(win, side)
   vim.api.nvim_win_call(win, function() vim.cmd(cmd) end)
 end
 
+-- Shared terminal-mode nav keymaps for terminal-owning buffers: `jj` exits
+-- terminal mode, <C-h/j/k/l> jump splits. opts.esc = true also maps <Esc>
+-- to exit — toggleterm buffers want it; sidekick's CLI must NOT set it
+-- (Esc is forwarded to Claude for interrupts). Callers add their own
+-- buffer-specific extras (<C-]> cycling, <S-CR>) next to their call site.
+function M.term_nav_keymaps(buf, opts)
+  local o = { buffer = buf }
+  if opts and opts.esc then
+    vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], o)
+  end
+  vim.keymap.set('t', 'jj',    [[<C-\><C-n>]], o)
+  vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], o)
+  vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], o)
+  vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], o)
+  vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], o)
+end
+
 -- Check for newer Neovim version via Homebrew (async, non-blocking).
 -- Shows a notification if an update is available.
 --

@@ -47,8 +47,12 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHo
 -- Poll for external changes every 500ms (catches edits when nvim has no focus).
 -- Checks ALL open buffers against disk; reloads silently when 'autoread' is set.
 -- Only fires in normal mode to avoid disrupting insert/visual/cmdline edits.
--- Stored on _G so re-sourcing stops the old timer before creating a new one.
-if _G._checktime_timer then _G._checktime_timer:stop() end
+-- Stored on _G so re-sourcing stops the old timer before creating a new one
+-- (close() too — a stopped-but-unclosed uv handle leaks).
+if _G._checktime_timer then
+  _G._checktime_timer:stop()
+  _G._checktime_timer:close()
+end
 _G._checktime_timer = assert(vim.uv.new_timer())
 _G._checktime_timer:start(500, 500, vim.schedule_wrap(function()
   if vim.api.nvim_get_mode().mode == 'n' then

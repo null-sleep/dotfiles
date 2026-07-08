@@ -29,9 +29,16 @@ vim.keymap.set('n', '<leader>sF', function() require('pickers.filter').pick() en
 vim.keymap.set('n', '<Esc>', function()
   local closed_any = false
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative ~= '' then
-      pcall(vim.api.nvim_win_close, win, true)
-      closed_any = true
+    if vim.api.nvim_win_is_valid(win) then
+      local cfg = vim.api.nvim_win_get_config(win)
+      -- focusable == false marks passive helper floats (satellite scrollbar,
+      -- treesitter-context header) — closing those just makes them vanish
+      -- until their next redraw. Only user-facing floats (hover, peek,
+      -- diagnostics) should close.
+      if cfg.relative ~= '' and cfg.focusable ~= false then
+        pcall(vim.api.nvim_win_close, win, true)
+        closed_any = true
+      end
     end
   end
   if closed_any then
