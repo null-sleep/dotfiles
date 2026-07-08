@@ -24,11 +24,13 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [LSP](#lsp)
   - [Autocompletion (blink.cmp)](#autocompletion)
   - [Format-on-save](#format-on-save)
+  - [Linting (nvim-lint)](#linting-nvim-lint)
   - [Themes](#themes)
   - [Treesitter](#treesitter)
   - [Telescope](#telescope)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
+  - [Editing utilities](#editing-utilities)
   - [Session (persistence.nvim)](#session)
   - [Spell checking](#spell-checking)
   - [Window/tab title](#window-tab-title)
@@ -39,6 +41,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Reviewing diffs (diffview.nvim)](#reviewing-diffs)
   - [AI (sidekick.nvim)](#ai-sidekick)
   - [Rust (rustaceanvim + DAP + neotest)](#rust)
+  - [Neovide](#neovide)
 
 
 # Part 1: Essentials
@@ -49,9 +52,10 @@ Requires a Nerd Font for statusline separators and completion icons.
 
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check
-- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments)
+- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
+- **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row
@@ -64,6 +68,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Named to avoid shadowing `require('dap')` / `require('debug')`
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
+- **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
@@ -257,6 +262,30 @@ symmetric pair between exactly two plugins, each already owning its own
 keymap file, so the check lives directly in both `outline.lua` and
 `keymaps.lua` rather than behind a new abstraction.
 
+### Nested nvim routes into the parent (flatten.nvim)
+
+Shells inside an nvim-owned terminal (toggleterm, the sidekick CLI) inherit
+`$NVIM`. When something there runs `nvim file` — or `$EDITOR` fires for
+`git commit` — flatten.nvim (configured in `plugins.lua`) intercepts the
+child process and opens its buffer in the *parent* instance instead of
+nesting an editor inside a terminal window. Pieces that make this work:
+
+- **`block_for` gitcommit/gitrebase** — for git editor buffers the guest
+  process stays alive until the buffer is deleted, so git sees the edit
+  complete. `git.lua`'s `<leader>w` confirm map ends with `bwipeout`, which
+  is what unblocks the guest.
+- **Float handling** — flatten's `pre_open`/`post_open` hooks snapshot and
+  close any open toggleterm floats, then restore them when the edit is done.
+  All of it runs through `vim.schedule` because opening/closing floats
+  synchronously during buffer transitions raises E1159.
+- **`should_nest` via `NVIM_NEST=1`** — escape hatch: prefix a command with
+  `NVIM_NEST=1` to genuinely nest instead of routing to the parent.
+- **`nvim-editor`** (zsh package) is just `exec nvim "$@"` — the routing
+  intelligence lives here, in the host, not in the shim.
+- **claude-nvim** (zsh package) deliberately *defeats* flatten with
+  `env -u NVIM` for its isolated headless runs — a bare `nvim +qa` from a
+  Claude session would otherwise be routed to, and quit, the live editor.
+
 ### Synthetic sidebar buffers can't be session-serialized
 
 `mksession` serializes a window by the *file* its buffer points at. Aerial's
@@ -312,6 +341,9 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>n*` | Test (neotest) | testing.lua | [Rust](#rust) → Keymaps (Test table) |
 | `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
 | `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
+| `<leader>tl`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
+| `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
+| `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
 | `<leader>q*` | Session save/restore | session.lua | [Session (persistence.nvim)](#session) |
 | `<Tab>`/`<S-Tab>`/`<CR>`/`<C-u>`/`<C-d>`/`<C-space>`/`<C-e>` (completion menu) | Autocompletion | completion.lua | [Autocompletion (blink.cmp)](#autocompletion) |
@@ -655,6 +687,34 @@ line, optionally uninstall the binary. Filetypes with no entry fall back
 to LSP formatting via `lsp_format = 'fallback'`.
 
 
+<a id="linting-nvim-lint"></a>
+## Linting (nvim-lint)
+
+Setup lives in `linting.lua`. nvim-lint runs CLI linters on save/read
+(deliberately not InsertLeave — slow linters like golangci-lint would re-run
+on every insert exit) and publishes results as regular diagnostics, flowing
+into the shared `vim.diagnostic` config (`<leader>td` toggles display).
+
+| Keymap | Action |
+|---|---|
+| `<leader>cl` | Lint the buffer now (works even when lint-on-save is off) |
+| `<leader>tl` | Toggle lint-on-save globally — turning it off also clears nvim-lint's existing diagnostics |
+
+**Diagnostics come from TWO subsystems, not just this one.** LSP servers
+(lsp.lua) publish their own diagnostics — lua_ls, clippy via rust-analyzer,
+eslint — which is why lua/rust/js/ts are intentionally absent from
+`linters_by_ft`. nvim-lint covers what the LSPs don't: `ruff` (python),
+`golangci-lint` (go), `credo` (elixir, via the project's `mix credo`),
+`yamllint`, `checkmake`. When adding or auditing a linter, check lsp.lua too.
+
+The `<leader>tl` toggle clears only nvim-lint's namespaces (named per linter,
+e.g. "ruff") and never touches LSP-delivered diagnostics (`nvim.lsp.*`
+namespaces). Per-buffer opt-out for vendored files:
+`:lua vim.b.disable_lint = true`. Linter binaries install via
+mason-tool-installer (lsp.lua's `ensure_installed`), except credo which runs
+from the project.
+
+
 ## Themes
 
 Theme configuration lives in `themes.lua`. Each theme entry has a `src`
@@ -804,6 +864,30 @@ node under the cursor. State is a buffer-local stack of past ranges; it
 resets automatically whenever a grow starts from a selection that doesn't
 match the stack top (e.g. you moved the cursor or made a fresh selection),
 so it can never go stale.
+
+
+## Editing utilities
+
+Helpers in `edit.lua`, bound in `keymaps.lua` under the `<leader>u`
+(Utilities) group.
+
+| Keymap / command | Action |
+|---|---|
+| `<leader>us` (normal) | Strip trailing whitespace, whole file (preserves view/jumplist) |
+| `<leader>us` (visual) | Strip trailing whitespace in the selection |
+| `:StripWS` | Same, over a `:range` (defaults to whole file) |
+| `<leader>uc` (visual) | Reflow pasted Claude/terminal text — see below |
+| `:CleanPaste` | Same, over a `:range` (defaults to whole buffer) |
+
+**CleanPaste** normalizes text copied out of terminals/Claude Code: converts
+NBSP to spaces, strips indent and `⏺` turn markers, and joins soft-wrapped
+continuation lines back into paragraphs while preserving structural lines
+(bullets, headings, tables, numbered items, blockquotes). The result also
+lands on the system clipboard.
+
+Gotcha (documented at the keymap): the visual `<leader>uc` mapping uses a `:`
+RHS, not `<cmd>` — `:` exits visual mode first, which is what updates the
+`'<`/`'>` marks before the range evaluates. Don't "modernize" it to `<cmd>`.
 
 
 <a id="session"></a>
@@ -1003,13 +1087,12 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `` <C-`> `` / `<C-/>` / `<leader>Tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
 | `<Esc>` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
-| `<C-]>` (in terminal) | Cycle to next terminal |
-| `<C-[>` (in terminal) | Cycle to previous terminal |
+| `<C-]>` (in terminal) | Cycle to next terminal (wraps, so repeated presses reach every terminal) |
 
 **Tips:**
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>` sends EOF to the shell and closes it entirely — faster than typing `exit`.
 - **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
-- **Cycle between terminals**: `<C-]>` / `<C-[>` cycle next/previous through open terminals (wrap around). Works in both terminal and normal mode within the terminal buffer.
+- **Cycle between terminals**: `<C-]>` cycles to the next open terminal and wraps around. Works in both terminal and normal mode within the terminal buffer. (There is deliberately no cycle-previous key — `<C-[>` is the same keycode as `<Esc>` and shadowed it.)
 - **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
 - **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
 - **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.
@@ -1465,3 +1548,32 @@ ensure the treesitter parser is installed. E.g. for Go:
   skipped step 3 above.
 - **`require('rustaceanvim.neotest')` errors on startup**: `rust` must load
   before `testing` in `init.lua` (see Load order).
+
+
+## Neovide
+
+Runtime config and keymaps live in `neovide.lua`, gated by
+`if not vim.g.neovide then return end` — terminal nvim skips the file
+entirely. Startup-time settings (fork, frame, font) live in `neovide.toml`
+instead, since Neovide reads them before nvim launches. Install/symlink steps
+are in the repo README → "Neovide".
+
+**macOS-style keymaps** (terminal nvim can't receive `<D-...>`):
+
+| Keymap | Action |
+|---|---|
+| `Cmd+C` (visual) | Copy to system clipboard |
+| `Cmd+V` | Paste from system clipboard — normal mode puts, visual replaces the selection without clobbering registers (`"_d"+P`), insert/cmdline use `<C-r>+`, terminal exits to normal, puts, re-enters |
+| `Cmd+S` | Save (`:w`) |
+| `Cmd+=` / `Cmd+-` | Zoom in / out (`neovide_scale_factor`) |
+| `Cmd+0` | Reset zoom to 1.0 |
+| `Cmd+Opt+Left` / `Cmd+Opt+Right` | Jumplist back / forward |
+
+Other Neovide-only behavior:
+
+- `option_key_is_meta = 'both'` — Option acts as Meta so `<M-...>` keymaps
+  (buffer-picker rows, telescope `<M-q>`/`<M-d>`, structural selection) work.
+- **Force Click** on the trackpad triggers `:NeovideForceClick` — macOS
+  "Look Up" popover for text, Quick Look for file paths/URLs. No setup.
+- Animations are tuned short (cursor 0.05s, scroll 0.1s); floating shadow is
+  off so floats match terminal nvim's flat edges.

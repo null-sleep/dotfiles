@@ -641,18 +641,9 @@ ln -s ~/.config/nvim/neovide.toml "$HOME/Library/Application Support/neovide/con
 
 This works for both terminal and GUI launches (Spotlight, dock) — unlike the `$NEOVIDE_CONFIG` env var, which only propagates to terminal-launched processes.
 
-**macOS-style keymaps** (Neovide-only — terminal nvim can't receive `<D-...>`):
-
-| Keymap | Action |
-|---|---|
-| `Cmd+C` (visual) | Copy to system clipboard |
-| `Cmd+V` (any mode) | Paste from system clipboard |
-| `Cmd+S` | Save (`:w`) |
-| `Cmd+=` / `Cmd+-` | Zoom in / out (`neovide_scale_factor`) |
-| `Cmd+0` | Reset zoom to 1.0 |
-| `Cmd+Opt+Left` / `Cmd+Opt+Right` | Jumplist back / forward |
-
-**Force Click** on the trackpad triggers `:NeovideForceClick` automatically — shows the macOS "Look Up" popover for text and Quick Look previews for file paths/URLs under the cursor. No setup needed.
+Keymaps and runtime behavior (Cmd+C/V/S, zoom, jumplist keys, Force Click)
+are documented in the nvim config's own reference:
+`nvim/.config/nvim/GUIDE.md` → "Neovide".
 
 ## Typora
 
