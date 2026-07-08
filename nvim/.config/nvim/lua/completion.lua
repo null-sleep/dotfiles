@@ -10,12 +10,11 @@ require('blink.cmp').setup({
     ['<Tab>']     = {
       'select_next',
       function()
-        if vim.lsp.inline_completion.is_enabled({ bufnr = 0 }) then
-          local item = vim.lsp.inline_completion.get()
-          if item ~= nil and item ~= false then
-            vim.lsp.inline_completion.accept()
-            return true
-          end
+        -- get() both applies the pending ghost text and returns whether one
+        -- existed (there is no separate accept() in the 0.12 API).
+        if vim.lsp.inline_completion.is_enabled({ bufnr = 0 })
+            and vim.lsp.inline_completion.get() then
+          return true
         end
       end,
       'fallback',
