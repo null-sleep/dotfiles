@@ -36,12 +36,16 @@ require('gitsigns').setup({
     end, 'Git hunk: Previous')
 
     -- Actions
+    -- stage_hunk is a toggle: on an unstaged hunk it stages, on a staged
+    -- hunk it unstages — which is why there is no separate undo-stage map
+    -- (gitsigns deprecated undo_stage_hunk in favor of the toggle; the old
+    -- key also had different semantics — it popped the *last-staged* hunk
+    -- from anywhere, the toggle needs the cursor on the hunk).
     -- stage_hunk/reset_hunk also accept a range for visual-mode partial staging:
     --   map('v', '<leader>hs', function() gs.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, ...)
     --   map('v', '<leader>hr', function() gs.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, ...)
-    map('n', '<leader>hs', gs.stage_hunk,                                  'Git hunk: Stage')
+    map('n', '<leader>hs', gs.stage_hunk,                                  'Git hunk: Stage/unstage (toggle)')
     map('n', '<leader>hr', gs.reset_hunk,                                  'Git hunk: Reset')
-    map('n', '<leader>hu', gs.undo_stage_hunk,                             'Git hunk: Undo stage')
     map('n', '<leader>hp', gs.preview_hunk,                                'Git hunk: Preview')
     map('n', '<leader>hb', function() gs.blame_line({ full = true }) end,  'Git hunk: Blame line')
     map('n', '<leader>tb', gs.toggle_current_line_blame,                   'Toggle: Inline blame')
