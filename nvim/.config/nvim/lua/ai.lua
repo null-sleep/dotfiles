@@ -60,7 +60,12 @@ require('sidekick').setup({
 -- else around the new column. SidekickCliAttach fires on every show path
 -- (cli.show / cli.toggle / cli.focus), so this covers both user triggers and
 -- internal re-shows (e.g. cli.send to a hidden CLI).
+-- clear = true so a re-source doesn't register duplicate handlers (the
+-- config's standard re-source guard, see configs.lua).
+local augroup = vim.api.nvim_create_augroup('UserSidekick', { clear = true })
+
 vim.api.nvim_create_autocmd('User', {
+  group = augroup,
   pattern = 'SidekickCliAttach',
   desc = 'Sidekick CLI: promote to full-height edge column',
   callback = function(args)
@@ -77,6 +82,7 @@ vim.api.nvim_create_autocmd('User', {
 -- own keymaps; this restores just `jj` without touching <Esc> (which the
 -- CLI needs to forward to Claude for interrupts).
 vim.api.nvim_create_autocmd('FileType', {
+  group = augroup,
   pattern = 'sidekick_terminal',
   desc = 'Sidekick CLI: keymaps for terminal and normal mode',
   callback = function(args)

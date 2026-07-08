@@ -59,6 +59,7 @@ require('gitsigns').setup({
 -- Note: :wq/:q would quit the whole nvim session; :cq exits only the
 -- --remote-wait client process, leaving the nvim server running.
 vim.api.nvim_create_autocmd('FileType', {
+  group    = vim.api.nvim_create_augroup('UserGitEditor', { clear = true }),
   pattern  = { 'gitcommit', 'gitrebase' },
   callback = function(args)
     local function confirm()
