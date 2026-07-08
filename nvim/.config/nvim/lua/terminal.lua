@@ -128,6 +128,7 @@ end
 -- exiting terminal mode. Removed; <C-]> cycles next and wraps around, so
 -- repeated presses reach every terminal.
 vim.api.nvim_create_autocmd('TermOpen', {
+  group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
   callback = function()
     -- Skip sidekick CLI buffers — sidekick manages its own keymaps.

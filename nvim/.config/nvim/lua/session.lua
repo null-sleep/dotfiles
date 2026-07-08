@@ -29,6 +29,7 @@ vim.opt.sessionoptions:remove('terminal')
 -- Safe to close in PersistenceSavePre: it only fires from persistence's
 -- VimLeavePre hook, i.e. nvim is already quitting.
 vim.api.nvim_create_autocmd('User', {
+  group   = vim.api.nvim_create_augroup('UserSessionSave', { clear = true }),
   pattern = 'PersistenceSavePre',
   desc = 'Session: close synthetic-buffer panels (aerial) before mksession so they leave no blank scratch window',
   callback = function()
