@@ -29,7 +29,7 @@ require('toggleterm').setup({
   -- autochdir = false (default): set to true to make the terminal cwd follow
   -- the current buffer's directory — useful for multi-project Neovim sessions.
   --
-  -- size: ignored for float direction, but used by <leader>th and <leader>tv
+  -- size: ignored for float direction, but used by <leader>Th and <leader>Tv
   -- which override direction per-invocation. Function form lets us vary by direction.
   size = function(term)
     if term.direction == 'horizontal' then return math.floor(vim.o.lines * 0.3) end
@@ -125,8 +125,8 @@ end
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
 -- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
 -- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
--- exiting terminal mode. Removed; use <C-]> for next and <S-C-]> or
--- <leader>tt + count for previous.
+-- exiting terminal mode. Removed; <C-]> cycles next and wraps around, so
+-- repeated presses reach every terminal.
 vim.api.nvim_create_autocmd('TermOpen', {
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
   callback = function()
@@ -150,24 +150,29 @@ vim.api.nvim_create_autocmd('TermOpen', {
   end,
 })
 
-vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<CR>', { desc = 'Toggle: Terminal (float)' })
-vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Toggle: Terminal (horizontal split)' })
-vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Toggle: Terminal (vertical split)' })
+-- Terminal keymaps live under their own <leader>T prefix, NOT <leader>t:
+-- gitsigns (<leader>tb, buffer-local blame toggle) and lsp.lua (<leader>th,
+-- buffer-local hover toggle) attach to nearly every buffer, and buffer-local
+-- maps always shadow globals — <leader>t* terminal keys were unreachable in
+-- practice. <leader>t stays the pure Toggle namespace.
+vim.keymap.set('n', '<leader>Tt', '<cmd>ToggleTerm<CR>', { desc = 'Terminal: Float' })
+vim.keymap.set('n', '<leader>Th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Terminal: Horizontal split' })
+vim.keymap.set('n', '<leader>Tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Terminal: Vertical split' })
 
 -- VS Code–style bottom terminal panel. Triggers cover every environment:
 --   <C-`>  works in Neovide + kitty (kitty keyboard protocol)
 --   <C-/>  Neovim sees <C-_> in terminals / <C-/> in GUI — reliable in iTerm2 too
---   <leader>tb  universal fallback (also shown in which-key)
+--   <leader>Tb  universal fallback (also shown in which-key)
 -- Bound in normal, insert, and terminal mode so it works from sidekick/float
 -- terminals too. The hide-from-within bind is buffer-local (set in on_open
 -- above) and overrides this global mapping inside the bottom panel itself.
 for _, lhs in ipairs(bottom_panel_keys) do
-  vim.keymap.set({ 'n', 'i', 't' }, lhs, toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+  vim.keymap.set({ 'n', 'i', 't' }, lhs, toggle_bottom_term, { desc = 'Terminal: Bottom panel' })
 end
-vim.keymap.set('n', '<leader>tb', toggle_bottom_term, { desc = 'Toggle: Terminal (bottom panel)' })
+vim.keymap.set('n', '<leader>Tb', toggle_bottom_term, { desc = 'Terminal: Bottom panel' })
 
 -- Pre-warm: spawn the shell into a hidden buffer so the first <C-\> /
--- <leader>tt opens an already-running terminal instead of paying ~50–200ms
+-- <leader>Tt opens an already-running terminal instead of paying ~50–200ms
 -- of shell startup. Toggleterm's Terminal:spawn() creates the buffer and
 -- runs termopen without opening a window — no flicker, no monkey-patching
 -- (unlike the sidekick pre-warm in ai.lua, where start() always opens a

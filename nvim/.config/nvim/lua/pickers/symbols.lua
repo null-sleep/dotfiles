@@ -60,7 +60,7 @@
 --        of terminal width (global flex would switch to horizontal on wide
 --        terminals, which doesn't suit tall symbol lists).
 --
--- DOCUMENT PICKER (M.document, bound to <leader>sS)
+-- DOCUMENT PICKER (M.document, bound to <leader>sd)
 --   Single-buffer outline. Reuses telescope's lsp_document_symbols (still
 --   parsing item.text via gen_from_lsp_symbols) since document symbols
 --   come from a single client and don't carry containerName ambiguity.
