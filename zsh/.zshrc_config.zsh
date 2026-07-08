@@ -53,11 +53,8 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   # plugins, e.g. docker, write completions here). Deferred until after apply so
   # it can't pre-create $ZSH and sabotage antigen's clone (see IMPORTANT above).
   mkdir -p "$ZSH_CACHE_DIR/completions"
-
-  # Remove git alias set by oh-my-zsh git plugin to allow git function definitions
-  unalias git 2>/dev/null
 else
-  echo "Antigen not found. Run: mkdir -p ~/.antigen && curl -L git.io/antigen > ~/.antigen/antigen.zsh"
+  echo "Antigen not found. Run: mkdir -p ~/.antigen && curl -L https://raw.githubusercontent.com/zsh-users/antigen/master/bin/antigen.zsh > ~/.antigen/antigen.zsh"
 fi
 
 #------------------------------------------------------------------------------
@@ -135,14 +132,20 @@ _update_term_title
 # antigen bundle ptavares/zsh-direnv
 [[ -f ~/.zsh-direnv/zsh-direnv.plugin.zsh ]] && source ~/.zsh-direnv/zsh-direnv.plugin.zsh
 
-# Raise open file descriptor limit if below 10240 (some older macOS defaults to 256)
-[[ $(ulimit -n) -lt 10240 ]] && ulimit -n 10240
+# Raise open file descriptor limit if below 10240 (some older macOS defaults
+# to 256). The `unlimited` guard matters: in zsh arithmetic the bare word
+# resolves as a (zero-valued) variable, so without it `unlimited < 10240`
+# would be "true" and we'd LOWER the limit.
+_nofile=$(ulimit -n)
+[[ $_nofile != unlimited && $_nofile -lt 10240 ]] && ulimit -n 10240
+unset _nofile
 
 # Enable alias expansion in completions by pressing tab
 zstyle ':completion:*' completer _expand_alias _complete _ignored
 
-# Path Updates
-export PATH="$HOME/.local/bin:$PATH"
+# Path Updates — last prepend wins, so ~/.local/bin stays at the END of this
+# block: user-local scripts (theme, claude-nvim, nvim-editor) must shadow any
+# same-named homebrew/cargo binary, not the other way around.
 # Homebrew: Apple Silicon uses /opt/homebrew, Intel uses /usr/local (already in PATH by default)
 [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
 # Prefer Homebrew's python@3.12 (unversioned python3/pip3) over macOS's outdated
@@ -151,6 +154,7 @@ export PATH="$HOME/.local/bin:$PATH"
 [[ -d /opt/homebrew/opt/python@3.12/libexec/bin ]] && export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:$PATH"
 # Rust
 export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 # Open configs
 alias zshrc="nvim ~/.zshrc"
