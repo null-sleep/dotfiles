@@ -33,7 +33,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [rcmd](#rcmd) · [yknotify](#yknotify)
+- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -253,8 +253,9 @@ All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-st
 | File | Method |
 |---|---|
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
-| `~/.claude/themes/catppuccin-latte.json` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/themes/*.json` (10 themes, incl. the `catppuccin-latte`/`dracula` pair the `theme` switcher uses) | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/review-pr/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 | `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
@@ -602,6 +603,7 @@ On first launch nvim will:
 > Keymap index, and per-tool sections, all in `<leader>` notation). This
 > README covers only installing and first-launching Neovim.
 
+<a id="gpg-yubikey-notifications"></a>
 ### GPG commit signing — YubiKey touch notifications (one-time setup)
 
 Optional. If your commits are GPG-signed on a YubiKey, nvim pops a
@@ -656,7 +658,8 @@ brew install --cask typora
 Two ways to open a file in it:
 
 - **Shell:** `typora notes.md` — alias for `open -a Typora` (in `.zshrc_config.zsh`).
-- **Neovim:** `<leader>uo` (or `:Typora`) opens the current buffer's file in Typora, writing any pending changes first. Discoverable via `<leader>?` and `<leader>sk` (search "typora" or "markdown"). Mirrors the [vscode-open-in-typora](https://github.com/typora/vscode-open-in-typora) extension — `open -a Typora` on macOS, no cursor-position handoff (Typora has no such CLI flag).
+- **Neovim:** `<leader>uo` (or `:Typora`) — documented in
+  `nvim/.config/nvim/GUIDE.md` → Keymap index → Global keymaps.
 
 ## iTerm2
 
@@ -664,14 +667,16 @@ Two ways to open a file in it:
 
 Color themes (Dracula, Nord, Catppuccin Latte) and an exported settings snapshot are stored in `iterm2/`.
 
-To sync settings automatically across machines:
+Settings sync via the tracked export, `iterm2/iTerm2 State.itermexport` — a
+deliberate snapshot, not live folder-sync (which would rewrite an untracked
+plist on every quit and keep the repo perpetually dirty; that plist is
+gitignored as a guard):
 
-1. **iTerm2 → Settings → General → Preferences**
-2. Check **"Load preferences from a custom folder or URL"**
-3. Set path to `~/src/dotfiles/iterm2`
-4. Check **"Save changes to folder when iTerm2 quits"**
-
-This writes a `com.googlecode.iterm2.plist` to the folder. On a new machine, clone the repo and point iTerm2 to the same path — all profiles, keybindings, and appearance settings will load automatically.
+- **Export (after deliberately changing settings):** iTerm2 → Settings →
+  General → Settings → **"Export All Settings & Data"**, save over
+  `iterm2/iTerm2 State.itermexport`, commit.
+- **Import (new machine):** same pane → **"Import All Settings & Data"**,
+  pick the file from the cloned repo. Restart iTerm2.
 
 To import color themes manually: **iTerm2 → Settings → Profiles → Colors → Color Presets → Import** and select the `.itermcolors` files.
 
@@ -888,10 +893,10 @@ So the only per-machine step is `brew install zoxide` (included in the deps abov
 
 ### nvim-editor
 
-`nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. It routes editor calls through the existing nvim instance when available:
+`nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. The script itself is just `exec nvim "$@"` — the routing lives in **flatten.nvim** inside the host editor:
 
-- **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): opens the file in the parent nvim via `--remote-wait`, blocking until the buffer is closed.
-- **Standalone terminal** (iTerm, Kitty, etc.): falls back to a fresh `nvim` process.
+- **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): flatten.nvim intercepts the child nvim and opens the buffer in the parent instance, blocking for `gitcommit`/`gitrebase` buffers so git waits for the edit (see GUIDE.md → Design Decisions → "Nested nvim routes into the parent").
+- **Standalone terminal** (iTerm, Kitty, etc.): just a fresh `nvim` process.
 
 This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR` caller automatically use your existing nvim session when you're working inside one.
 
@@ -1011,6 +1016,7 @@ colima start --cpu 2 --memory 4
 
 The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running.
 
+<a id="colima-default-config"></a>
 ### Default config (so `colima start` needs no flags)
 
 Instead of passing flags every time, bake the defaults into a template that
@@ -1037,6 +1043,26 @@ The template only applies at VM *creation*. If a profile already exists, edit
 its live config with `colima start --edit` (or re-create with
 `colima delete && colima start`) — `arch` and `vmType` in particular cannot
 change after the VM is built.
+
+## macos
+
+Stow package for machine-level macOS launchd agents. It currently holds the
+theme-follow agent:
+
+- `~/Library/LaunchAgents/com.dhruv.theme-follow.plist` — runs `theme watch`
+  so Claude Code and Neovim follow macOS appearance changes.
+- `macos/setup-theme-follow.sh` — loads the agent (`.stow-local-ignore`d, run
+  from the repo).
+
+```bash
+cd ~/src/dotfiles
+stow --no-folding macos
+bash macos/setup-theme-follow.sh
+```
+
+The mechanics (why the agent exists, how `theme watch` works) are documented
+in [Unified theme switching](#unified-theme-switching) → "Auto-follow on
+macOS appearance changes" — this section is just the package-level setup.
 
 ## rcmd
 
