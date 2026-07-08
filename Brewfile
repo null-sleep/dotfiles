@@ -49,6 +49,11 @@ brew "tree-sitter-cli" # builds treesitter parsers
 brew "go"
 brew "node"
 brew "python@3.12"     # keg-only; .zshrc_config.zsh prepends it to PATH
+brew "elixir"          # runtime for elixirls (lsp.lua ensure_installed) — Mason's
+                       # install fails on every launch without it; includes Erlang
+brew "ruff"            # python format-on-save (README → "Format-on-save tools");
+                       # Mason installs a separate copy for nvim — this one is for
+                       # shell/pre-commit use
 
 #-----------------------------------------------------------------------------
 # Claude Code LSP servers — needed on PATH by Claude Code's LSP plugins (see
@@ -111,4 +116,6 @@ brew "docker"
 # brew "zellij"        # terminal multiplexer; config in zellij/     (then `stow zellij`)
 # brew "tmux"          # required by claude-squad
 # brew "claude-squad"  # `cs` AI session manager — plain core formula, no tap (see Claude Squad section)
-# brew "elixir"        # runtime for the elixir-ls LSP (includes Erlang)
+# brew "gnupg"         # GPG commit signing via YubiKey (README → "GPG commit signing")
+# brew "pinentry-mac"  # pinentry the YubiKey touch-notify wrapper delegates to
+#                      # (nvim/.config/nvim/scripts/pinentry-yubikey-notify.sh)
