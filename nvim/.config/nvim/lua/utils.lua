@@ -28,21 +28,35 @@ end
 
 -- Check for newer Neovim version via Homebrew (async, non-blocking).
 -- Shows a notification if an update is available.
+--
+-- Guards: skipped when headless or in claude-nvim throwaway runs (same
+-- CLAUDE_NVIM=1 marker plugins.lua honors), and debounced to once per 24h
+-- via a stamp file — the stamp is written *before* the async call so
+-- parallel launches can't race into duplicate checks. The version compare
+-- uses vim.version.cmp, not string equality: a local/dev build newer than
+-- brew's stable must not notify, and tostring(vim.version()) carries
+-- prerelease/build suffixes that would never equal brew's version string.
 function M.check_nvim_update()
+  if vim.env.CLAUDE_NVIM == '1' or not M.has_ui() then return end
+
+  local stamp = vim.fs.joinpath(vim.fn.stdpath('cache'), 'nvim-update-check')
+  local stat = vim.uv.fs_stat(stamp)
+  if stat and os.time() - stat.mtime.sec < 24 * 60 * 60 then return end
+  vim.fn.writefile({}, stamp)
+
   vim.system(
     { 'brew', 'info', '--json=v2', 'neovim' },
     { text = true },
     function(result)
       if result.code ~= 0 then return end
       local ok, info = pcall(vim.json.decode, result.stdout)
-      if not ok or not info.formulae or not info.formulae[1] then return end
-      local latest = info.formulae[1].versions.stable
-      if not latest then return end
-      local current = tostring(vim.version())
-      if latest ~= current then
+      local stable = ok and vim.tbl_get(info, 'formulae', 1, 'versions', 'stable')
+      local latest = stable and vim.version.parse(stable)
+      if latest and vim.version.cmp(latest, vim.version()) > 0 then
         vim.schedule(function()
           vim.notify(
-            ('Neovim update available: %s → %s  (brew upgrade neovim)'):format(current, latest),
+            ('Neovim update available: %s → %s  (brew upgrade neovim)'):format(
+              tostring(vim.version()), stable),
             vim.log.levels.INFO
           )
         end)
