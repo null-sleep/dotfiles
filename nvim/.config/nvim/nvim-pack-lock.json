@@ -21,10 +21,6 @@
       "rev": "dca1a190aa85f9065979ef35802fb77131911106",
       "src": "https://github.com/stevearc/conform.nvim"
     },
-    "cursortab.nvim": {
-      "rev": "cda0dbf3c3a0fc79f37226e5881f10e802ea0db9",
-      "src": "https://github.com/cursortab/cursortab.nvim"
-    },
     "cyberdream.nvim": {
       "rev": "39f69ebcd8de69c741bb7a65353aa37dd0680ad1",
       "src": "https://github.com/scottmckendry/cyberdream.nvim"
