@@ -7,7 +7,11 @@
 -- keybindings. Group labels from ancestor nodes and custom keywords (from
 -- whichkey.lua) are included in the search text but not the display.
 --
--- Results are computed once on first open and cached for the session.
+-- Results are rebuilt on every open (cheap: one tree walk + two keymap
+-- syscalls). Not cached for the session — which-key's tree is per-buffer, so a
+-- session cache froze out buffer-local / LspAttach maps and leaked the
+-- first-open buffer's local maps everywhere. which-key already invalidates its
+-- own tree on LspAttach/BufEnter, so an external cache only fights that.
 
 local pickers      = require('telescope.pickers')
 local finders      = require('telescope.finders')
@@ -31,12 +35,10 @@ local function breadcrumb(node)
   return table.concat(parts, ' > ')
 end
 
--- Cache: computed once on first open, reused for the session.
-local cached_results
-
 local function build_results()
-  -- update = true forces a fresh tree rebuild (matches what <leader>? does
-  -- internally) so we get all keymaps, not a potentially stale cache.
+  -- update = true forces a fresh rebuild of the current buffer's tree (matches
+  -- what <leader>? does internally), so we pick up buffer-local / LspAttach maps
+  -- live on each open rather than a stale snapshot.
   local mode = require('which-key.buf').get({ mode = 'n', update = true })
   if not mode then return nil end
 
@@ -96,10 +98,8 @@ local function build_results()
 end
 
 function M.open()
-  if not cached_results then
-    cached_results = build_results()
-  end
-  if not cached_results then
+  local results = build_results()
+  if not results then
     vim.notify('pickers.keybindings: no keybindings available', vim.log.levels.WARN)
     return
   end
@@ -108,7 +108,7 @@ function M.open()
     prompt_title  = 'Keybindings',
     layout_config = { width = 0.6, height = 0.4 },
     finder = finders.new_table({
-      results = cached_results,
+      results = results,
       entry_maker = function(item)
         local display = string.format('%-20s %s', item.keys, item.desc)
         return {

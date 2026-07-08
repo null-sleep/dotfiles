@@ -316,11 +316,11 @@ belt-and-braces.
   useless symlink; root README already links GUIDE).
 
 ## Follow-ups (deferred by user — revisit later, do NOT implement now)
-- `pickers/keybindings.lua:35,99` session-wide cache staleness (buffer-local /
-  LspAttach-created maps never appear after first open; first-open buffer's
-  local maps shown everywhere). Proposed fix when revisited: delete the cache,
-  rebuild per open (~ms). Include in the plans/ copy of this doc so it isn't
-  lost.
+- ~~`pickers/keybindings.lua:35,99` session-wide cache staleness~~ **SHIPPED:**
+  deleted the session cache; `M.open()` now rebuilds via `build_results()` on
+  every open (cheap — one which-key tree walk + two keymap syscalls). which-key
+  already invalidates its own per-buffer tree on LspAttach/BufEnter, so the
+  external cache was both redundant and the cause of the staleness/leak.
 
 ## Won't-fix (deliberate)
 - zsh eval-init caching (C9) — ms-level win, staleness risk.
