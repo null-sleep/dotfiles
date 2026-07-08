@@ -56,10 +56,13 @@ local action_state = require('telescope.actions.state')
 local M = {}
 
 function M.open()
-  -- Snapshot current state for restore-on-cancel.
-  -- vim.g.colors_name reflects the active variant (e.g. 'catppuccin-latte').
-  local original_color = vim.g.colors_name
-  local original_bg = vim.o.background
+  -- Snapshot current state for restore-on-cancel. themes.active is the
+  -- variant-level source of truth; vim.g.colors_name would be wrong here —
+  -- for virtual variants it holds the underlying colorscheme (e.g. 'gruvbox'
+  -- while 'gruvbox-light' is active), so cancelling would restore the dark
+  -- base. No background snapshot needed: themes.apply() owns background as
+  -- part of its documented sequence.
+  local original = themes.active
 
   local variants = themes.all_variants()
   local need_restore = true
@@ -105,9 +108,8 @@ function M.open()
   local orig_close_windows = picker.close_windows
   picker.close_windows = function(status)
     orig_close_windows(status)
-    if need_restore and original_color then
-      vim.o.background = original_bg
-      themes.apply(original_color)
+    if need_restore and original then
+      themes.apply(original)
     end
   end
 
