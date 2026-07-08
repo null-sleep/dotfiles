@@ -866,7 +866,7 @@ brew install fzf ripgrep direnv zoxide
 # configured plugins into ~/.antigen/bundles on first shell launch — no need
 # to install oh-my-zsh separately.
 mkdir -p ~/.antigen
-curl -L git.io/antigen > ~/.antigen/antigen.zsh
+curl -L https://raw.githubusercontent.com/zsh-users/antigen/master/bin/antigen.zsh > ~/.antigen/antigen.zsh
 
 # Install zsh-direnv plugin
 git clone https://github.com/ptavares/zsh-direnv.git ~/.zsh-direnv
