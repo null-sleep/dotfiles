@@ -200,10 +200,14 @@ mode="${1:-toggle}"
 case "$mode" in
   -h|--help|help) help ;;
   toggle)
-    case "$(macos_appearance)" in
+    # Reading the appearance needs no Automation permission — fall back to the
+    # defaults-based reader when osascript is denied. (Only the *write* inside
+    # apply_mode needs Automation; it already warns gracefully.)
+    current="$(macos_appearance)"; [ -n "$current" ] || current="$(macos_appearance_fast)"
+    case "$current" in
       dark) apply_mode light 1 ;;
       light) apply_mode dark 1 ;;
-      *) echo "theme: cannot read macOS appearance (grant Automation access?)" >&2; exit 1 ;;
+      *) echo "theme: cannot read macOS appearance" >&2; exit 1 ;;
     esac ;;
   dark|light) apply_mode "$mode" 1 ;;
   auto)

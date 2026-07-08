@@ -55,6 +55,9 @@ sub="${1:-check}"; shift || true
 case "$sub" in
   theme)
     v="${1:?usage: claude-nvim theme <variant>}"
+    # The variant is interpolated into a +lua string below — restrict it to
+    # slug characters so a quote/bracket can't break out of the lua literal.
+    [[ $v =~ ^[A-Za-z0-9_-]+$ ]] || { echo "ERROR: invalid variant name '$v'" >&2; exit 2; }
     # Validate the variant first: themes.apply() silently no-ops unknown names
     # (returns before touching the colorscheme), so a pcall alone can't catch a
     # typo — it would report the still-active startup theme as "OK".
