@@ -1095,10 +1095,12 @@ section below for the full set of review workflows.
 
 ### Which git tool to use
 
-- **gitsigns** (`git.lua`) — gutter signs, per-hunk stage/reset/blame
-  (`<leader>h*`, e.g. `<leader>hb` blame; `]c`/`[c` hunk nav; `<leader>tb`
-  toggles the inline current-line blame annotation). Always on, no buffer
-  to open.
+- **gitsigns** (`git.lua`) — gutter signs, per-hunk actions, always on, no
+  buffer to open: `<leader>hs` stage/unstage (a toggle — press again on a
+  staged hunk to unstage it; there is no separate undo-stage key),
+  `<leader>hr` reset, `<leader>hp` preview, `<leader>hb` blame line,
+  `<leader>tb` toggle the inline current-line blame annotation,
+  `]c`/`[c` hunk nav.
 - **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
