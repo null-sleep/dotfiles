@@ -730,8 +730,8 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
 | `<leader>so` | Recent files |
 | `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
-| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). `<leader>ts` toggles to buffer-only mode |
-| `<leader>sd` | Symbols (document) — columns: icon, name, kind; type `function` / `variable` to filter by kind |
+| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode |
+| `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker (fuzzy-search all mappings, including built-in motions) |
 | `<leader>sF` | Toggle file-type filter presets (scopes `<leader>sf` and `<leader>sg`) |
