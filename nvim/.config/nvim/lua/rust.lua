@@ -28,6 +28,26 @@ vim.g.rustaceanvim = {
         check = { command = 'clippy' },
       },
     },
+    -- Standalone .rs files with no Cargo project up the tree (e.g. the fixtures/
+    -- demo files) start rust-analyzer in detached mode. There, clippy-on-save
+    -- shells out to `cargo check` on a lone file — which cargo (1.85+) treats as
+    -- a nightly-only single-file *script* (`-Zscript`/frontmatter) and refuses on
+    -- stable — dumping a screenful of cargo backtrace into mini.notify on every
+    -- open. Turn checkOnSave off when there's no Cargo.toml ancestor: the file
+    -- still gets hover/goto/outline (the reason fixtures exist), minus the noise.
+    -- Real Cargo projects (Cargo.toml found) keep full clippy-on-save.
+    -- rustaceanvim calls this with the resolved root_dir, which in detached mode
+    -- is just the file's own directory, so probe for Cargo.toml rather than nil.
+    settings = function(project_root, default_settings)
+      local settings = vim.deepcopy(default_settings)
+      -- rust-project.json alongside Cargo.toml: a non-Cargo project is still a
+      -- real project where clippy-on-save should stay on — only a truly
+      -- detached file (neither marker up the tree) gets checkOnSave disabled.
+      if not (project_root and vim.fs.root(project_root, { 'Cargo.toml', 'rust-project.json' })) then
+        settings['rust-analyzer'].checkOnSave = false
+      end
+      return settings
+    end,
   },
   -- dap = {} accepts rustaceanvim's default adapter, which auto-detects Mason's
   -- codelldb. If a debug session dies instantly on Apple Silicon (a liblldb pairing

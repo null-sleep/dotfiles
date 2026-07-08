@@ -1450,6 +1450,32 @@ version noise. The rustup proxy is toolchain-matched and honors per-project
 `rust-toolchain.toml`. If you ever *do* want Mason's, override
 `vim.g.rustaceanvim.server.cmd` in `rust.lua`.
 
+### Standalone `.rs` files (no Cargo project)
+
+Opening a lone `.rs` file with no `Cargo.toml` up the tree — e.g. the
+`fixtures/` demo files — starts rust-analyzer in **detached/standalone mode**.
+By default that used to dump a screenful of cargo backtrace into mini.notify on
+every open: clippy-on-save shells out to `cargo check` on the single file, and
+cargo (1.85+) treats a bare `.rs` as a nightly-only single-file *script*
+(`-Zscript`/frontmatter) it refuses to build on stable.
+
+`rust.lua`'s `server.settings` function turns `checkOnSave` **off** whenever no
+Rust *project marker* is found up the tree (it probes the resolved root dir,
+which in detached mode is just the file's own directory), which kills that
+backtrace. The markers it looks for are `{ 'Cargo.toml', 'rust-project.json' }` —
+`Cargo.toml` for normal crates, `rust-project.json` for non-Cargo (buck/bazel-style)
+projects, both of which are real projects where clippy-on-save should stay on.
+**If Rust's project conventions change** — a new manifest/workspace-marker
+filename appears, or rust-analyzer starts recognizing a different discovery
+file — **add it to that list in `rust.lua`** (and update this line), otherwise
+such a project would be misdetected as a standalone file and lose clippy-on-save.
+Real Cargo projects still get full clippy-on-save. What remains is a short,
+expected `INFO` ("detached mode, reduced functionality") plus a one-line health
+`WARN` that rust-analyzer couldn't discover a workspace — that WARN is
+rust-analyzer core behavior for any Cargo-less file and isn't suppressed
+per-file on purpose (rustaceanvim's `status_notify_level` is global, so silencing
+it would also hide genuine "can't find your Cargo.toml" errors in real projects).
+
 ### Running a program
 
 - **`<leader>cR`** — runnables picker; select the binary → runs `cargo run` in a
