@@ -1,5 +1,3 @@
-zsh/.stow-local-ignore
-
 # Claude Code local state: personal permission allowlist + transient agent worktrees.
 # Anchored to repo root so it does NOT match the `claude/.claude/` stow package.
 /.claude/

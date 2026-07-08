@@ -52,7 +52,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh rcmd && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)). First create `zsh/.stow-local-ignore` if this is a personal (non-work) machine — see [Per-machine config](#per-machine-config).
+6. **Stow the configs** — `stow nvim zsh rcmd && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -928,15 +928,7 @@ Best-effort timeout via coreutils `timeout`/`gtimeout` (`brew install coreutils`
 `.zshrc_config.zsh` conditionally sources two optional files:
 
 - **`~/.zshrc_halp.zsh`** — stowed from this repo. Shared per-project tooling. Lives in version control.
-- **`~/.zshrc_bitgo.zsh`** — *not* stowed. `zsh/.stow-local-ignore` excludes it so each work machine drops its own copy at `~/.zshrc_bitgo.zsh`. The repo copy is a reference template.
-
-> **Gotcha:** `zsh/.stow-local-ignore` is itself gitignored (see the root `.gitignore`), so it does **not** exist on a fresh clone. Until you create it, `stow zsh` will symlink `.zshrc_bitgo.zsh` into `~` along with everything else — and a non-work machine then runs the BitGo colima/AWS setup on every shell launch. On a personal machine, create it **before** stowing:
->
-> ```bash
-> printf '.zshrc_bitgo.zsh\n' > zsh/.stow-local-ignore
-> ```
->
-> On a BitGo work machine, skip this and drop your real `~/.zshrc_bitgo.zsh` in place instead.
+- **`~/.zshrc_bitgo.zsh`** — *not* stowed. The committed `zsh/.stow-local-ignore` excludes it, so `stow zsh` never symlinks it — the repo copy is a reference template. On a BitGo work machine, drop your real copy at `~/.zshrc_bitgo.zsh` and it gets sourced automatically.
 
 Secrets go in `~/.zshenv`, which is not managed by stow.
 
