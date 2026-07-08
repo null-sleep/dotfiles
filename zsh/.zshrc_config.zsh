@@ -180,10 +180,11 @@ if [[ "$TERM_PROGRAM" == "vscode" ]]; then
     fi
 else
     # Default to nvim for all other terminals (GoLand, iTerm, etc.).
-    # nvim-editor reuses the existing nvim instance when $NVIM is set (i.e.
-    # inside a toggleterm or any nvim-spawned terminal), falling back to a
-    # fresh nvim process otherwise. --remote-wait blocks until the buffer is
-    # closed, which is required for git commit, kubectl edit, etc.
+    # nvim-editor is a plain `exec nvim "$@"` shim — the reuse-the-parent
+    # behavior lives in flatten.nvim inside the HOST nvim: when $EDITOR runs
+    # in an nvim-owned terminal, flatten intercepts the child and opens the
+    # buffer in the parent instead, blocking for gitcommit/gitrebase so git
+    # waits for :w. Standalone shells just get a normal nvim.
     export EDITOR="nvim-editor"
     export GIT_EDITOR="nvim-editor"
     export KUBE_EDITOR="nvim-editor"
@@ -216,7 +217,7 @@ git_base_branch() {
 
 ## Git Aliases
 alias g=git
-alias gt=git
+alias gt=git  # NOTE: shadows the Graphite CLI's `gt` — remove this line if you adopt Graphite
 alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
