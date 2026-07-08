@@ -31,8 +31,13 @@ local common        = require('pickers.common')
 local M = {}
 
 function M.open()
-  -- Resolve git toplevel
-  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  -- Resolve git toplevel from the current buffer's directory, not nvim's cwd
+  -- (same as yank.lua) — editing a file outside the cwd's repo must show THAT
+  -- file's repo status. Unnamed buffers fall back to cwd. List-form
+  -- systemlist so no shell parses the path.
+  local dir = vim.fn.expand('%:p:h')
+  if dir == '' then dir = vim.fn.getcwd() end
+  local git_root = vim.fn.systemlist({ 'git', '-C', dir, 'rev-parse', '--show-toplevel' })[1]
   if vim.v.shell_error ~= 0 or not git_root then
     vim.notify('Not a git repository', vim.log.levels.WARN)
     return

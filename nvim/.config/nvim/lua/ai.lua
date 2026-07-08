@@ -77,16 +77,16 @@ vim.api.nvim_create_autocmd('User', {
   end,
 })
 
--- Add `jj` to exit terminal mode in sidekick CLI buffers. terminal.lua's
--- generic TermOpen autocmd skips sidekick_terminal so sidekick can own its
--- own keymaps; this restores just `jj` without touching <Esc> (which the
--- CLI needs to forward to Claude for interrupts).
+-- Terminal-nav keymaps for sidekick CLI buffers. terminal.lua's generic
+-- TermOpen autocmd skips sidekick_terminal so sidekick can own its own
+-- keymaps; this restores the shared nav set WITHOUT <Esc> (esc = false —
+-- the CLI needs Esc forwarded to Claude for interrupts).
 vim.api.nvim_create_autocmd('FileType', {
   group = augroup,
   pattern = 'sidekick_terminal',
   desc = 'Sidekick CLI: keymaps for terminal and normal mode',
   callback = function(args)
-    vim.keymap.set('t', 'jj', [[<C-\><C-n>]], { buffer = args.buf })
+    utils.term_nav_keymaps(args.buf, { esc = false })
 
     -- <C-\> opens the toggleterm float from the sidekick CLI. Needed because
     -- toggleterm's terminal-mode toggle is buffer-local to its own terminals, so
@@ -97,12 +97,6 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, [[<C-\>]], function()
       vim.cmd(vim.v.count1 .. 'ToggleTerm')
     end, { buffer = args.buf, desc = 'Open toggleterm float' })
-
-    -- Split navigation from terminal mode (mirrors terminal.lua's TermOpen bindings).
-    vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], { buffer = args.buf })
-    vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], { buffer = args.buf })
-    vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], { buffer = args.buf })
-    vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], { buffer = args.buf })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)

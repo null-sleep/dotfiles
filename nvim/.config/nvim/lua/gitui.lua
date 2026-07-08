@@ -87,13 +87,14 @@ local function base_ref()
     return (out[1]:gsub('^refs/remotes/', ''))  -- 'refs/remotes/origin/main' -> 'origin/main'
   end
   -- Local ref not populated (git remote set-head origin --auto never run) —
-  -- ask the remote directly, same as git_base_branch()'s slow path.
-  local remote_out = vim.fn.systemlist({ 'git', 'remote', 'show', 'origin' })
-  if vim.v.shell_error == 0 then
-    for _, line in ipairs(remote_out) do
-      local branch = line:match('HEAD branch:%s*(%S+)')
-      if branch then return 'origin/' .. branch end
-    end
+  -- ask the remote directly, same as git_base_branch()'s slow path. This is
+  -- a network call; the 3s timeout bounds how long <leader>vp can freeze the
+  -- UI on a slow/absent remote (timeout kills the process → non-zero code →
+  -- falls through to the warn below).
+  local res = vim.system({ 'git', 'remote', 'show', 'origin' }, { text = true, timeout = 3000 }):wait()
+  if res.code == 0 and res.stdout then
+    local branch = res.stdout:match('HEAD branch:%s*(%S+)')
+    if branch then return 'origin/' .. branch end
   end
   vim.notify("diffview: could not detect base branch — run 'git remote set-head origin --auto'",
     vim.log.levels.WARN)
