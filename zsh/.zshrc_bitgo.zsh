@@ -25,8 +25,6 @@ colima_check_and_start() {
   fi
 }
 
-colima_check_and_start
-
 ## Kill all MCP Chrome instances (grafana, redash, etc.)
 kill-mcp-chrome() {
   local pids
@@ -47,10 +45,20 @@ yknotify_check() {
   fi
 }
 
-yknotify_check
+# Run the colima/yknotify checks once per boot, not on every shell startup —
+# `colima list` alone costs a few hundred ms per new tab/pane. macOS clears
+# /tmp at boot (and periodically after ~3 days, which just re-runs the check
+# occasionally — fine). The functions stay defined for manual use.
+_bitgo_checks_stamp="/tmp/.bitgo-shell-checks-$UID"
+if [[ ! -e $_bitgo_checks_stamp ]]; then
+  colima_check_and_start
+  yknotify_check
+  touch "$_bitgo_checks_stamp"
+fi
+unset _bitgo_checks_stamp
 
 ## BG Admin
-alias bga='/Users/dhruvjauhar/src/bitgo-admin/bin/bgadmin'
+alias bga='$HOME/src/bitgo-admin/bin/bgadmin'
 
 ## Run evals
 command -v atlas >/dev/null && eval "$(atlas init zsh)"
