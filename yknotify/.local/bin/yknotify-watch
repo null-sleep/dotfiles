@@ -1,0 +1,49 @@
+#!/bin/bash
+# yknotify-watch — read yknotify's NDJSON touch events and fire a macOS
+# notification. Skips FIDO2 (browser/WebAuthn) so only OpenPGP touches (GPG
+# signing, SSH, sudo) notify, with a 10-second cooldown. Run by the
+# com.dhruv.yknotify LaunchAgent; see README → "yknotify".
+
+# launchd's PATH has no homebrew dir, so command -v alone can't find brew
+# binaries — probe the known locations too (Apple Silicon + Intel). A hard
+# exit on a missing binary is deliberate: the plist's ThrottleInterval turns
+# it into a visible, throttled error in /tmp/yknotify.err.log instead of a
+# silent respawn loop.
+find_bin() {
+    local name="$1" p
+    shift
+    p="$(command -v "$name" 2>/dev/null)" && { echo "$p"; return; }
+    for p in "$@"; do
+        [[ -x "$p" ]] && { echo "$p"; return; }
+    done
+    return 1
+}
+
+YKNTFY_BIN="$(find_bin yknotify "$HOME/go/bin/yknotify")" || {
+    echo "yknotify-watch: yknotify not found — go install github.com/noperator/yknotify@latest" >&2
+    exit 1
+}
+TERM_NTFY_BIN="$(find_bin terminal-notifier /opt/homebrew/bin/terminal-notifier /usr/local/bin/terminal-notifier)" || {
+    echo "yknotify-watch: terminal-notifier not found — brew install terminal-notifier" >&2
+    exit 1
+}
+
+LAST_NTFY=0
+while IFS= read -r line; do
+    type="$(jq -r '.type' <<<"$line")"
+
+    # Skip FIDO2 touch events (browser/webauthn) — only notify for OpenPGP (GPG/SSH/sudo)
+    if [[ "$type" == 'FIDO2' ]]; then
+        continue
+    fi
+
+    # 10-second cooldown between notifications
+    NOW="$(date +%s)"
+    if [[ "$NOW" -le "$((LAST_NTFY + 10))" ]]; then
+        continue
+    fi
+    LAST_NTFY="$NOW"
+
+    "$TERM_NTFY_BIN" -title "YubiKey" -message "Touch required ($type)" -sound Morse -ignoreDnD
+
+done < <("$YKNTFY_BIN")

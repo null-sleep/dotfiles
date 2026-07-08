@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.dhruv.yknotify — runs yknotify-watch, which watches the system log for
+  YubiKey touch prompts and fires a notification (OpenPGP only; FIDO2 skipped).
+
+  Portable on purpose: the program is "/bin/bash -c exec \"$HOME/.local/bin/
+  yknotify-watch\"", so $HOME is expanded at launch — no hardcoded user path,
+  the exact same plist works on any machine. (yknotify-watch is stowed to
+  ~/.local/bin by this package.)
+
+  Install/load with yknotify/setup-yknotify.sh (after `stow --no-folding yknotify`).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dhruv.yknotify</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>exec "$HOME/.local/bin/yknotify-watch"</string>
+    </array>
+
+    <!-- Start at login and keep alive: the watcher is a forever loop, so if it
+         ever exits (crash, manual kill) launchd relaunches it. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Don't hammer relaunches if it dies immediately (e.g. a missing
+         binary — yknotify-watch exits 1 with a message in the error log). -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/yknotify.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/yknotify.err.log</string>
+</dict>
+</plist>
