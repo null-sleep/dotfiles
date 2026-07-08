@@ -1075,28 +1075,30 @@ OpenPGP touches (GPG signing, SSH, sudo) with a 10-second cooldown.
 
 The stow package places two files:
 
-- `~/yknotify.sh` — wrapper that reads yknotify's NDJSON output and fires notifications
-- `~/Library/LaunchAgents/com.user.yknotify.plist` — runs the wrapper as a persistent background agent
+- `~/.local/bin/yknotify-watch` — wrapper that reads yknotify's NDJSON output and fires notifications
+- `~/Library/LaunchAgents/com.dhruv.yknotify.plist` — runs the wrapper as a
+  persistent background agent. Portable on purpose: it execs
+  `"$HOME/.local/bin/yknotify-watch"` via `/bin/bash -c`, so no username is
+  baked into the plist (same pattern as the theme-follow agent).
 
 **One-time setup:**
 
 ```bash
 go install github.com/noperator/yknotify@latest
+brew install terminal-notifier   # already in the Brewfile
 cd ~/src/dotfiles
-
-# Expand $USER placeholder in the plist, then stow
-sed -i '' "s/__USER__/$USER/g" yknotify/Library/LaunchAgents/com.user.yknotify.plist
 stow --no-folding yknotify
-
-launchctl load ~/Library/LaunchAgents/com.user.yknotify.plist
-launchctl start com.user.yknotify
+bash yknotify/setup-yknotify.sh
 ```
 
-> **Note:** The `sed` step above modifies the tracked plist in-place to embed
-> your username (launchd requires absolute paths). Commit the change after
-> running it so the plist reflects your actual username.
+The setup script bootstraps the agent into your GUI session (bootout +
+bootstrap, idempotent — re-run after editing the plist), and also boots out
+the legacy `com.user.yknotify` label if a machine still has the package's old
+layout loaded. Logs land in `/tmp/yknotify.{out,err}.log`; if a required
+binary is missing the watcher exits with a clear message there instead of
+silently respawn-looping.
 
-The `.zshrc_bitgo.zsh` `yknotify_check` function warns at shell start if the
+The `.zshrc_bitgo.zsh` `yknotify_check` function warns (once per boot) if the
 LaunchAgent is not loaded.
 
 **Do Not Disturb / Focus mode:** notifications are sent via `terminal-notifier

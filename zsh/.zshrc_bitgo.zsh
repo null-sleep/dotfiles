@@ -39,9 +39,9 @@ kill-mcp-chrome() {
 
 ## yknotify (YubiKey touch notifier)
 yknotify_check() {
-  if ! launchctl list com.user.yknotify &>/dev/null; then
+  if ! launchctl list com.dhruv.yknotify &>/dev/null; then
     echo "ATTENTION: yknotify LaunchAgent is not loaded!"
-    echo "Run: launchctl load ~/Library/LaunchAgents/com.user.yknotify.plist"
+    echo "Run: bash ~/src/dotfiles/yknotify/setup-yknotify.sh"
   fi
 }
 
