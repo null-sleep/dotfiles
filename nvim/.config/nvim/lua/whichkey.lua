@@ -24,6 +24,7 @@ wk.setup({
 -- pause on every gcc with no real benefit.
 wk.add({
   { '<leader>s',  group = 'Search' },
+  { '<leader>b',  group = 'Buffer' },
   { '<leader>q',  group = 'Session/Quit' },
   { '<leader>t',  group = 'Toggle' },
   { '<leader>T',  group = 'Terminal' },
@@ -93,8 +94,8 @@ local keywords = {
   ['<leader>ut'] = 'title rename window tab iterm neovide project name',
   ['<leader>us'] = 'strip whitespace trim trailing spaces clean',
   ['<leader>uc'] = 'clean paste reflow dedent terminal claude format fix',
-  ['<leader>up'] = 'scratch buffer toggle pad notes temporary snacks',
-  ['<leader>uS'] = 'scratch buffer select list snacks',
+  ['<leader>bs'] = 'scratch buffer toggle pad notes temporary snacks',
+  ['<leader>bS'] = 'scratch buffer select list snacks',
   ['<leader>db'] = 'breakpoint dap debugger',
   ['<leader>dc'] = 'debug continue start dap run',
   ['<leader>du'] = 'dap-ui debugger panel scopes stack watches',

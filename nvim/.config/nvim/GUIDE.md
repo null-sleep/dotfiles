@@ -76,7 +76,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
-- **`scratch.lua`** — snacks.nvim, `scratch` module only: floating, persistent scratchpad keyed by cwd/branch/count, `<leader>up` toggle, `<leader>uS` select/list
+- **`scratch.lua`** — snacks.nvim, `scratch` module only: floating, persistent scratchpad keyed by cwd/branch/count, `<leader>bs` toggle, `<leader>bS` select/list
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and `tags` (dim pill labels) consumed by `pickers/keybindings.lua`
 - **`pickers/filter.lua`** — Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep)
@@ -1115,8 +1115,11 @@ equivalents (mini.notify, telescope, ...).
 
 | Keymap | Action |
 |---|---|
-| `<leader>up` | Toggle the scratch buffer (float) |
-| `<leader>uS` | Select/list scratch buffers (recent first) |
+| `<leader>bs` | Toggle the scratch buffer (float) |
+| `<leader>bS` | Select/list scratch buffers (recent first) |
+
+Under `<leader>b` (Buffer) rather than `<leader>u` (Utilities) — open to
+remapping these if they stop feeling right.
 
 **Tips:**
 - **Persistence**: content auto-saves to disk when the buffer is hidden
@@ -1124,7 +1127,7 @@ equivalents (mini.notify, telescope, ...).
   under `stdpath("data")/scratch`, not a synthetic buffer.
 - **Multiple scratchpads**: each scratch buffer is keyed by name, filetype,
   cwd, git branch, and an optional count prefix (`filekey`), so different
-  projects/branches get their own scratchpad automatically, and `2<leader>up`
+  projects/branches get their own scratchpad automatically, and `2<leader>bs`
   opens a distinct pad #2 from the default.
 - **Run Lua inline**: set the buffer's filetype to `lua` (`:set ft=lua`),
   write some code, and press `<cr>` to execute it via `Snacks.debug.run()` —
