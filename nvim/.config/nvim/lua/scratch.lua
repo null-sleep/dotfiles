@@ -13,7 +13,8 @@ require('snacks').setup({
   },
 })
 
-vim.keymap.set('n', '<leader>up', function() Snacks.scratch() end,
+-- Open to remapping these if <leader>b* stops feeling right.
+vim.keymap.set('n', '<leader>bs', function() Snacks.scratch() end,
   { desc = 'Toggle scratch buffer' })
-vim.keymap.set('n', '<leader>uS', function() Snacks.scratch.select() end,
+vim.keymap.set('n', '<leader>bS', function() Snacks.scratch.select() end,
   { desc = 'Select scratch buffer' })
