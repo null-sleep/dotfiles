@@ -1117,6 +1117,8 @@ equivalents (mini.notify, telescope, ...).
 |---|---|
 | `<leader>bs` | Toggle the scratch buffer (float) |
 | `<leader>bS` | Select/list scratch buffers (recent first) |
+| `<c-x>` (in `<leader>bS` picker) | Delete the scratch buffer under cursor |
+| `<c-n>` (in `<leader>bS` picker) | Create a new scratch buffer |
 
 Under `<leader>b` (Buffer) rather than `<leader>u` (Utilities) — open to
 remapping these if they stop feeling right.
@@ -1133,6 +1135,13 @@ remapping these if they stop feeling right.
   write some code, and press `<cr>` to execute it via `Snacks.debug.run()` —
   output appears inline, errors show as diagnostics. Handy for quick nvim API
   experiments without leaving the buffer.
+- **Deleting a scratchpad**: there's no direct delete-current-buffer keymap —
+  open `<leader>bS`, move to the entry, and press `<c-x>` (works in both
+  normal and insert/prompt mode inside the picker). It removes the file and
+  its `.meta` sidecar immediately and refreshes the list.
+- **Zero scratchpads is fine**: if every scratchpad has been deleted,
+  `<leader>bs` just creates a fresh one — there's no "no scratch buffers
+  exist" error state.
 
 
 <a id="git-neogit"></a>
