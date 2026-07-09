@@ -53,6 +53,8 @@ vim.pack.add(vim.list_extend({
   -- Workflow
   { src = gh('folke/persistence.nvim') },
   { src = gh('okuuva/auto-save.nvim') },
+  -- Scratch buffers: floating, persistent scratchpads keyed by cwd/branch/count.
+  { src = gh('folke/snacks.nvim') },
   { src = gh('windwp/nvim-autopairs') },
   { src = gh('stevearc/conform.nvim') },
   { src = gh('mfussenegger/nvim-lint') },

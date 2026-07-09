@@ -18,6 +18,7 @@ require('session')
 require('git')
 require('gitui')  -- neogit.nvim (Magit-style dashboard) + diffview.nvim
 require('terminal')
+require('scratch')  -- snacks.nvim scratch buffers
 require('titling')
 require('whichkey')
 require('autosave')

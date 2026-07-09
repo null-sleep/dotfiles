@@ -1,0 +1,19 @@
+vim.cmd.packadd('snacks.nvim')
+
+-- Only enabling the scratch module; every other snacks.nvim module
+-- (dashboard, notifier, picker, etc.) stays off — this config already has
+-- its own equivalents (mini.notify, telescope, ...).
+require('snacks').setup({
+  scratch = {
+    win = {
+      width = 100,
+      height = 30,
+      border = 'rounded',  -- match toggleterm's curved float style (nvim_open_win vocabulary differs)
+    },
+  },
+})
+
+vim.keymap.set('n', '<leader>up', function() Snacks.scratch() end,
+  { desc = 'Toggle scratch buffer' })
+vim.keymap.set('n', '<leader>uS', function() Snacks.scratch.select() end,
+  { desc = 'Select scratch buffer' })

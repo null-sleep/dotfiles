@@ -208,6 +208,10 @@
       "src": "https://github.com/alvarosevilla95/sidekick.nvim",
       "version": "'fix/nes-missing-request-id'"
     },
+    "snacks.nvim": {
+      "rev": "882c996cf28183f4d63640de0b4c02ec886d01f2",
+      "src": "https://github.com/folke/snacks.nvim"
+    },
     "solarized.nvim": {
       "rev": "c0dfe1cbfabd93b546baf5f1408f5df7e02e2050",
       "src": "https://github.com/maxmx03/solarized.nvim"
