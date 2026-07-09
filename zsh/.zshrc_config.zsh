@@ -215,6 +215,24 @@ git_base_branch() {
     || echo "main"
 }
 
+# Delete all local branches that have been merged into the current branch.
+# Safe by default: skips trunk branches, the current branch, and any branch
+# checked out in another worktree (git branch -d would error on those anyway).
+# Uses -d (not -D) so unmerged branches are always refused.
+gclean() {
+  # Branches checked out in any worktree — deleting these would error.
+  local worktree_branches
+  worktree_branches=$(git worktree list --porcelain \
+    | awk '/^branch / { sub("refs/heads/", "", $2); print $2 }')
+
+  git branch --merged \
+    | grep -v '^\*' \
+    | grep -vE '^\s*(master|main|hotfix)\s*$' \
+    | sed 's/^[[:space:]]*//' \
+    | grep -Fxv "$worktree_branches" \
+    | xargs -r git branch -d
+}
+
 ## Git Aliases
 alias g=git
 alias gt=git  # NOTE: shadows the Graphite CLI's `gt` — remove this line if you adopt Graphite
@@ -222,8 +240,6 @@ alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
 alias gbd='git branch | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | fzf -m | xargs git branch -D'
-# Delete all merged branches (non-interactive; uses -d so unmerged branches are refused)
-alias gclean='git branch --merged | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | xargs -n 1 git branch -d'
 alias gdm='git diff $(git_base_branch)...'
 alias gs='git status'
 alias gl='git log'
