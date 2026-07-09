@@ -26,23 +26,36 @@ local M = {}
 -- of breadcrumb() output (which joins with ' > '). Missing key = no glyph but
 -- breadcrumb text still shows. Covers whichkey.lua groups + common builtins groups.
 local group_icons = {
-  Search           = '',
-  Git              = '󰊢',
-  ['Git hunk']     = '󰊢',
-  Terminal         = '',
-  Toggle           = '󰔡',
-  Debug            = '',
-  Test             = '󰙨',
-  AI               = '󱚦',
-  Code             = '',
-  Diffview         = '',
-  Utilities        = '',
-  Peek             = '',
-  Refactor         = '',
-  ['Session/Quit'] = '󰈆',
-  ['Go to']        = '󰈲',
-  Previous         = '',
-  Next             = '',
+  Search           = '\u{F002}',   -- nf-fa-search
+  Git              = '\u{F02A2}',  -- nf-md-git
+  ['Git hunk']     = '\u{F02A2}',  -- nf-md-git
+  Terminal         = '\u{F489}',   -- nf-dev-terminal
+  Toggle           = '\u{F0521}',  -- nf-md-toggle_switch
+  Debug            = '\u{F17A9}',  -- nf-md-bug_outline (nf v3)
+  Test             = '\u{F0668}',  -- nf-md-flask_outline
+  AI               = '\u{F16A6}',  -- nf-md-robot_outline
+  Code             = '\u{F121}',   -- nf-fa-code
+  Diffview         = '\u{F0219}',  -- nf-md-compare_horizontal
+  Utilities        = '\u{F0AD}',   -- nf-fa-wrench
+  Peek             = '\u{F06E}',   -- nf-fa-eye
+  Refactor         = '\u{F021}',   -- nf-fa-refresh
+  ['Session/Quit'] = '\u{F0206}',  -- nf-md-exit_to_app
+  ['Go to']        = '\u{F0232}',  -- nf-md-arrow_right_bold
+  Previous         = '\u{F104}',   -- nf-fa-angle_left
+  Next             = '\u{F105}',   -- nf-fa-angle_right
+  -- builtins groups
+  ['Undo/Redo']           = '\u{F0E2}',   -- nf-fa-undo
+  ['Put']                 = '\u{F0188}',  -- nf-md-clipboard_outline
+  ['Delete/Substitute']   = '\u{F014}',   -- nf-fa-trash_o
+  ['Line operations']     = '\u{F039}',   -- nf-fa-align_justify
+  Insert                  = '\u{F044}',   -- nf-fa-pencil_square_o
+  ['Marks/Jumps']         = '\u{F0311}',  -- nf-md-bookmark_outline
+  ['Folding']             = '\u{F0295}',  -- nf-md-arrow_collapse
+  Scrolling               = '\u{F07D}',   -- nf-fa-arrows_v
+  ['Line navigation']     = '\u{F061}',   -- nf-fa-arrow_right
+  ['Sentence/Paragraph']  = '\u{F036}',   -- nf-fa-align_left
+  ['Window/Tab']          = '\u{F2D2}',   -- nf-mdi-window_restore
+  ['Spelling']            = '\u{F0246}',  -- nf-md-spellcheck
 }
 
 -- Breadcrumb string → decorated column text with optional icon.
