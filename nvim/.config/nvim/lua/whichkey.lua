@@ -114,5 +114,40 @@ local keywords = {
   ['<leader>vq'] = 'diffview close quit',
 }
 
--- Exported for pickers/keybindings.lua: `require('whichkey').keywords`
-return { keywords = keywords }
+-- Per-keymap tags for the <leader>sk picker. Keyed by lhs (same keys as
+-- `keywords`). Value is a list of tag strings rendered as dim "+tag" pills.
+-- Empty table = tags column stays hidden (width 0).
+local tags = {
+  ['<leader>gd']  = { 'git' },
+  ['<leader>gs']  = { 'git' },
+  ['<leader>gc']  = { 'git' },
+  ['<leader>gb']  = { 'git' },
+  ['<leader>vv']  = { 'git', 'diff' },
+  ['<leader>vp']  = { 'git', 'diff' },
+  ['<leader>vh']  = { 'git', 'diff' },
+  ['<leader>vf']  = { 'git', 'diff' },
+  ['<leader>tb']  = { 'git' },
+  ['<leader>Tb']  = { 'terminal' },
+  ['<leader>Tt']  = { 'terminal' },
+  ['<leader>db']  = { 'debug' },
+  ['<leader>dc']  = { 'debug' },
+  ['<leader>du']  = { 'debug' },
+  ['<leader>dR']  = { 'debug', 'rust' },
+  ['<leader>nn']  = { 'test' },
+  ['<leader>nd']  = { 'test', 'debug' },
+  ['<leader>ns']  = { 'test' },
+  ['<leader>cR']  = { 'rust' },
+  ['<leader>tz']  = { 'spell' },
+  [']s']          = { 'spell' },
+  ['[s']          = { 'spell' },
+  ['<leader>sd']  = { 'lsp' },
+  ['<leader>pd']  = { 'lsp' },
+  ['<leader>pt']  = { 'lsp' },
+  ['<leader>pi']  = { 'lsp' },
+  ['<leader>pr']  = { 'lsp' },
+  ['K']           = { 'lsp' },
+  ['<leader>a']   = { 'ai' },
+}
+
+-- Exported for pickers/keybindings.lua: `require('whichkey').keywords/tags`
+return { keywords = keywords, tags = tags }
