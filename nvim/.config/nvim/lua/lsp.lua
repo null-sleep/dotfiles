@@ -246,13 +246,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- grn (rename) alongside gra/grr/gri/grt/grx, so a <leader>rn alias would
     -- just duplicate a built-in for the cost of an entire top-level leader group.
     map({'n','x'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
-    -- Show the diagnostic(s) under the cursor in a float, without moving the
-    -- cursor. (The old `jump = true` here was a no-op: open_float's opts have
-    -- no `jump` field — that belongs to vim.diagnostic.jump — so it was
-    -- silently dropped and never moved anything.) Moving to a diagnostic is
-    -- [d/]d's job, and they now auto-open this same float on landing.
-    -- scope = 'cursor' shows only the diagnostic under the cursor, not every
-    -- diagnostic on the line (the open_float default).
+    -- Show the diagnostic under the cursor in a float, without moving (moving
+    -- to next/prev is [d/]d's job). scope = 'cursor' limits it to the cursor's
+    -- diagnostic rather than every one on the line (open_float's default).
     map('n', '<leader>ce',       function() vim.diagnostic.open_float({ scope = 'cursor' }) end, 'LSP: Show diagnostic')
     map('n', '<leader>cd',       vim.diagnostic.setloclist,   'LSP: Diagnostic list')
 
