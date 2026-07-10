@@ -42,21 +42,34 @@ picker both key off it.
 ### 2. Desc format (`Group: Action`)
 
 Desc should match `^%u[%w%s%-/]*: ` (capitalized group, colon, space, then
-the action) — e.g. `Git hunk: Stage`, `Debug: Continue`. Maintain a small
-allowlist of intentional singletons that don't need a prefix (these are
-global, ungrouped actions, not part of any leader namespace): `Exit insert
-mode`, `Clear search highlights and close floats`, `Toggle alternate
-buffer`, `Yank to system clipboard (unless register specified)`, `Yank line
-to system clipboard (unless register specified)`, `Dedent and reselect`,
-`Indent and reselect`, `Paste without yanking replaced text`, `Copy`,
-`Paste`, `Paste over selection`, `Paste (terminal)`, `Save`, `Zoom in`,
-`Zoom out`, `Reset zoom`, `Move to left/right split`/`Move to split
-above/below`, `Split: narrower/shorter/taller/wider`, `Previous/Next buffer`,
-`Jumplist: back/forward (mouse back/forward button)`, `LSP: Go to
-definition (Ctrl+click)`. Extend this allowlist rather than flagging a
-deliberately bare global keymap as a violation — but do flag anything new
-that looks like it belongs to a leader namespace and just forgot the
-prefix.
+the action) — e.g. `Git hunk: Stage`, `Debug: Continue`. This check is
+scoped to what its intent covers: **leader-namespace maps and other global
+maps that belong to a which-key group** — the descs the `<leader>sk`
+picker's desc-derived tags and which-key popup headings key off.
+
+**Exempt as a class: buffer-local plugin-panel action labels.** Maps set
+buffer-locally inside a plugin panel's own buffer describe in-panel
+actions, not grouped global commands — a `Group:` prefix there would be
+noise. Examples of the exempt class: nvim-tree's `on_attach` action labels
+in `lua/filetree.lua`, and the sidekick CLI terminal's buffer-local maps in
+`lua/ai.lua`. Recognize the class (buffer-local + set inside a plugin
+panel's attach/autocmd), don't allowlist the literal strings — the
+exemption must survive a label rewording.
+
+For global maps, maintain a small allowlist of intentional singletons that
+don't need a prefix (global, ungrouped actions, not part of any leader
+namespace): `Exit insert mode`, `Clear search highlights and close floats`,
+`Toggle alternate buffer`, `Yank to system clipboard (unless register
+specified)`, `Yank line to system clipboard (unless register specified)`,
+`Dedent and reselect`, `Indent and reselect`, `Paste without yanking
+replaced text`, `Copy`, `Paste`, `Paste over selection`, `Paste (terminal)`,
+`Save`, `Zoom in`, `Zoom out`, `Reset zoom`, `Move to left/right split`/
+`Move to split above/below`, `Split: narrower/shorter/taller/wider`,
+`Previous/Next buffer`, `Jumplist: back/forward (mouse back/forward
+button)`, `LSP: Go to definition (Ctrl+click)`. Extend this allowlist
+rather than flagging a deliberately bare global keymap as a violation — but
+do flag anything new that looks like it belongs to a leader namespace and
+just forgot the prefix.
 
 ### 3. Select-mode hazard (F1 regression guard)
 
