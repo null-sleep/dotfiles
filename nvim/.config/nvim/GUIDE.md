@@ -580,9 +580,11 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Mason auto-update** -- `mason-tool-installer`'s `ensure_installed` (in
   `lsp.lua`) covers every Mason package, servers included; mason-lspconfig
   only enables them now. `auto_update` + `debounce_hours = 24` re-checks for
-  updates at most once/day on startup and updates in place, async. The
-  plugin notifies per-package on install/failure itself; `:Mason` still
-  works for manual inspection/retry.
+  updates at most once/day on startup and updates in place, async.
+  `start_delay = 30000` pushes that check 30s past startup so it doesn't
+  collide with session restore or LSP indexing. The plugin notifies
+  per-package on install/failure itself; `:Mason` still works for manual
+  inspection/retry.
 
 - **Document highlight** -- gated on `textDocument/documentHighlight`.
   Driven by `updatetime` (300ms) in `configs.lua`.

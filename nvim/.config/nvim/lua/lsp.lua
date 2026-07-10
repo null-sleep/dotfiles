@@ -26,10 +26,15 @@ require('mason').setup({
 -- not Mason packages) and xmllint/just (system/user-provided CLIs).
 -- auto_update + debounce_hours: re-checks for updates at most once/24h on
 -- startup; notifies per-package itself (:help mason-tool-installer-auto_update).
+-- start_delay: the check is pure maintenance (installed tools work either
+-- way), so push it well past startup instead of racing session restore and
+-- the async LSP storm (rust-analyzer indexing alone can run 10s+ on a real
+-- Rust repo) -- 30s clears that tail; the value isn't sensitive (30-60s fine).
 vim.cmd.packadd('mason-tool-installer.nvim')
 require('mason-tool-installer').setup({
   auto_update = true,
   debounce_hours = 24,
+  start_delay = 30000,   -- 30_000 ms
   ensure_installed = {
     -- LSP servers (lspconfig names; mapped to Mason package names via the
     -- mason-lspconfig integration). rust_analyzer omitted: rustaceanvim
