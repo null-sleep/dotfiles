@@ -216,10 +216,11 @@ local close_buffer = function()
 end
 vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Buffer: Close' })
 
--- <leader>qq: quit nvim entirely (what its letters actually suggest), guarded
--- by a confirm prompt since :qa is destructive if there are unsaved buffers
--- nvim doesn't already block on. Matches the q-closes-the-thing convention
--- used by every other namespace (gq/vq/pq/dq/nq).
+-- <leader>qq: quit nvim entirely (what its letters actually suggest). The
+-- confirm prompt guards against ACCIDENTALLY quitting the whole session --
+-- losing window layout, terminal state, a running CLI -- not against data
+-- loss (plain :qa already aborts with E37 on modified buffers). Matches the
+-- q-closes-the-thing convention used by every other namespace (gq/vq/pq/dq/nq).
 vim.keymap.set('n', '<leader>qq', function()
   if vim.fn.confirm('Quit Neovim?', '&Yes\n&No', 2) == 1 then
     vim.cmd('qa')
