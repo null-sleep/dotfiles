@@ -58,7 +58,7 @@ vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
 -- Yank to system clipboard (dd, x, c stay in Neovim register).
 -- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
 -- honoured — only bare y/Y without a register prefix go to clipboard.
-vim.keymap.set({'n', 'v'}, 'y', function()
+vim.keymap.set({'n', 'x'}, 'y', function()
   if vim.v.register ~= '"' then return 'y' end
   return '"+y'
 end, { expr = true, desc = 'Yank to system clipboard (unless register specified)' })
@@ -69,11 +69,14 @@ vim.keymap.set('n', 'Y', function()
 end, { expr = true, desc = 'Yank line to system clipboard (unless register specified)' })
 
 -- Stay in visual mode after indent/dedent
-vim.keymap.set('v', '<', '<gv', { desc = 'Dedent and reselect' })
-vim.keymap.set('v', '>', '>gv', { desc = 'Indent and reselect' })
+vim.keymap.set('x', '<', '<gv', { desc = 'Dedent and reselect' })
+vim.keymap.set('x', '>', '>gv', { desc = 'Indent and reselect' })
 
--- Paste over selection without clobbering the register
-vim.keymap.set('v', 'p', '"_dP', { desc = 'Paste without yanking replaced text' })
+-- Paste over selection without clobbering the register.
+-- 'x' (visual-only), never 'v' (visual+select): blink.cmp drops snippet
+-- placeholders in select mode, where typing should insert literal text —
+-- a 'v' mapping here would hijack that keystroke into a paste instead.
+vim.keymap.set('x', 'p', '"_dP', { desc = 'Paste without yanking replaced text' })
 
 -- Split navigation
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move to left split' })
@@ -100,8 +103,8 @@ vim.keymap.set('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next buffer' })
 -- Works in Neovide directly. In iTerm2, requires "Report mouse clicks & drags"
 -- to be on (default) and the focused app to use mouse mode — nvim enables it
 -- via `mouse=a` (see configs.lua).
-vim.keymap.set({ 'n', 'v' }, '<X1Mouse>', '<C-o>', { desc = 'Jumplist: back (mouse back button)' })
-vim.keymap.set({ 'n', 'v' }, '<X2Mouse>', '<C-i>', { desc = 'Jumplist: forward (mouse forward button)' })
+vim.keymap.set({ 'n', 'x' }, '<X1Mouse>', '<C-o>', { desc = 'Jumplist: back (mouse back button)' })
+vim.keymap.set({ 'n', 'x' }, '<X2Mouse>', '<C-i>', { desc = 'Jumplist: forward (mouse forward button)' })
 
 -- Ctrl + LeftClick → LSP go-to-definition (VS Code-style). The <LeftMouse>
 -- feedkeys places the cursor under the pointer before the LSP call, so the

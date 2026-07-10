@@ -32,12 +32,12 @@ vim.keymap.set('n', '<D-M-Right>', '<C-i>', { desc = 'Jumplist: Forward' })
 -- redo, so n/v need real put commands. Visual uses "_d"+P (delete selection
 -- into the black hole, put from clipboard) to match the register-preserving
 -- v-mode `p` mapping in keymaps.lua.
-vim.keymap.set('v', '<D-c>', '"+y',          { desc = 'Copy' })
+vim.keymap.set('x', '<D-c>', '"+y',          { desc = 'Copy' })
 vim.keymap.set('n', '<D-v>', '"+p',              { desc = 'Paste' })
-vim.keymap.set('v', '<D-v>', '"_d"+P',           { desc = 'Paste over selection' })
+vim.keymap.set('x', '<D-v>', '"_d"+P',           { desc = 'Paste over selection' })
 vim.keymap.set({ 'i', 'c' }, '<D-v>', '<C-r>+',  { desc = 'Paste' })
 vim.keymap.set('t', '<D-v>', [[<C-\><C-n>"+pi]],          { desc = 'Paste (terminal)' })
-vim.keymap.set({ 'n', 'i', 'v' }, '<D-s>', '<Cmd>w<CR>',   { desc = 'Save' })
+vim.keymap.set({ 'n', 'i', 'x' }, '<D-s>', '<Cmd>w<CR>',   { desc = 'Save' })
 
 -- Cmd+= / Cmd+- to zoom in/out (adjusts scale factor, font stays sharp).
 vim.g.neovide_scale_factor = 1.0

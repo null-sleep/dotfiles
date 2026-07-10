@@ -76,7 +76,7 @@ require('conform').setup({
 -- so it remains a reliable escape hatch when format-on-save is toggled off.
 -- Mapped unconditionally — conform falls back to LSP and no-ops if neither
 -- a configured formatter nor an LSP is available.
-vim.keymap.set({ 'n', 'v' }, '<leader>cf', function()
+vim.keymap.set({ 'n', 'x' }, '<leader>cf', function()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end, { desc = 'Format buffer' })
 

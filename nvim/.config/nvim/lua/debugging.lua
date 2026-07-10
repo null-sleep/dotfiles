@@ -45,7 +45,7 @@ map('n', '<leader>dl', dap.run_last,  { desc = 'Debug: Run last' })
 map('n', '<leader>dq', dap.terminate, { desc = 'Debug: Terminate' })
 map('n', '<leader>dr', function() dap.repl.toggle() end, { desc = 'Debug: Toggle REPL' })
 map('n', '<leader>du', function() dapui.toggle() end,    { desc = 'Debug: Toggle UI' })
-map({ 'n', 'v' }, '<leader>de', function() dapui.eval() end, { desc = 'Debug: Eval expression' })
+map({ 'n', 'x' }, '<leader>de', function() dapui.eval() end, { desc = 'Debug: Eval expression' })
 
 -- VS Code-style function keys (universal debugger muscle memory)
 map('n', '<F5>',  dap.continue,         { desc = 'Debug: Continue' })
