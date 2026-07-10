@@ -54,7 +54,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, `diffopt` with `linematch:60` + histogram, etc.), auto-reload for external file changes (focus/idle/buffer-switch + terminal exit, plus a 500ms poll timer), nvim update check
-- **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix/nofile windows (skips `is_special()` panels and any buffer already binding `q`)
+- **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix/nofile windows (skips `is_special()` panels and any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
@@ -76,7 +76,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
-- **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file
+- **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
 - **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -91,7 +91,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/theme.lua`** — Custom Telescope picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
-- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua)
+- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
 
@@ -137,6 +137,19 @@ or config reloads):
 
 - **Timers** use globals with stop-before-create: `if _G._checktime_timer then _G._checktime_timer:stop() end` before creating a new one. Prevents timer leaks on re-source.
 - **Autocmds** use `nvim_create_augroup` with `clear = true`. The augroup is wiped before re-adding its autocmds, so re-source never duplicates handlers.
+
+### Quit nvim when only sidebars remain
+
+Closing your last code window shouldn't leave a lone nvim-tree or aerial
+panel sitting there — the `QuitPre` handler in `autocmds.lua` closes any
+remaining sidebar windows so nvim actually exits. It counts windows: if
+`total − floating − sidebars == 1`, the single remaining normal window is the
+one being quit, so the sidebars are closed. This replaced an nvim-tree-only
+version in `filetree.lua`. It keys off `buffers.is_sidebar()`, which is
+deliberately narrower than `is_special()`: a lone `toggleterm` is special but
+must **not** trigger a quit, so terminals/CLI panels are excluded from the
+sidebar list. Adding a new docked nav panel? Add its filetype to
+`sidebar_filetypes` in `buffers.lua` (separate from `special_filetypes`).
 
 ### Cursor-restore rides BufReadPost
 
