@@ -38,6 +38,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Outline (aerial)](#outline-aerial)
   - [Terminal (toggleterm.nvim)](#terminal)
   - [Scratch buffers (snacks.nvim)](#scratch-buffers)
+  - [Indent guides (snacks.nvim)](#indent-guides)
   - [Git (Neogit)](#git-neogit)
   - [Reviewing diffs (diffview.nvim)](#reviewing-diffs)
   - [AI (sidekick.nvim)](#ai-sidekick)
@@ -76,7 +77,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete, auto-close when last window; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
-- **`scratch.lua`** — snacks.nvim, `scratch` module only: floating, persistent scratchpad keyed by cwd/branch/count, `<leader>bs` toggle, `<leader>bS` select/list
+- **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/filter.lua`** — Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep)
@@ -88,7 +89,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom Telescope picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua)
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
@@ -352,6 +353,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
+| `<leader>tg` | Toggle indent guides + current-scope highlight | scratch.lua | [Indent guides (snacks.nvim)](#indent-guides) |
 | `<leader>q*` | Session save/restore | session.lua | [Session (persistence.nvim)](#session) |
 | `<Tab>`/`<S-Tab>`/`<CR>`/`<C-u>`/`<C-d>`/`<C-space>`/`<C-e>` (completion menu) | Autocompletion | completion.lua | [Autocompletion (blink.cmp)](#autocompletion) |
 | `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
@@ -370,7 +372,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader><leader>` | Alternate buffer (skips non-code buffers, see `buffers.lua`) | keymaps.lua |
 | `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
 | `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
-| `<leader>qq` | Quit all (`:qa`, with a confirm prompt) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
+| `<leader>qq` | Quit all (`:qa`, behind a floating confirm popup — `y` confirms, anything else is No) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
@@ -577,7 +579,8 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   just hides the window), `<leader>ad` calls `close()` which terminates the
   CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
   the chat; `<leader>ad` when you're done with the conversation. Guarded by
-  a `vim.fn.confirm()` prompt — it sits one key from `<leader>aa`/`<leader>as`,
+  a floating confirm popup (`utils.confirm` — single-keypress `y` confirms,
+  anything else is No) — it sits one key from `<leader>aa`/`<leader>as`,
   so a typo can't silently discard a running conversation.
 
 ### Troubleshooting
@@ -919,7 +922,7 @@ switching branches doesn't mix up open files.
 | `<leader>qd` | Stop saving — quit without persisting current state |
 
 The which-key `Session/Quit` group (`<leader>q`) also holds `<leader>qq` —
-quit-all with a confirm prompt, defined in `keymaps.lua` rather than here
+quit-all behind a floating confirm popup, defined in `keymaps.lua` rather than here
 since it's a plain `:qa`, not a persistence.nvim feature (see the
 [Global keymaps](#global-keymaps) table).
 
@@ -1161,6 +1164,56 @@ now tells the whole buffer story: `<leader>bb` picker, `<leader>bd` close,
 - **Zero scratchpads is fine**: if every scratchpad has been deleted,
   `<leader>bs` just creates a fresh one — there's no "no scratch buffers
   exist" error state.
+
+
+<a id="indent-guides"></a>
+## Indent guides (snacks.nvim)
+
+Setup lives in `scratch.lua`, in the same `require('snacks').setup({...})`
+call as the `scratch` module above — both modules share one setup call since
+that's how snacks.nvim is configured. The `indent` module draws a vertical
+guide line at every indent level, plus a distinct highlight on the guide for
+the block the cursor is currently inside (its "scope").
+
+Guides are **off by default** — the module is configured with `enabled =
+false`, which survives snacks' auto-enable (setup only forces `enabled` on when
+it's left `nil`), so nothing activates on `BufReadPost` and
+`Snacks.indent.enabled` stays `false` until you turn it on. Press `<leader>tg`
+to toggle guides for the session; the char/scope/animate settings below are
+still registered up front, so `enable()` applies them the moment it first
+fires.
+
+The guide character is `▏` (a thin vertical bar) for both the regular indent
+guides and the current-scope guide — a plain, unobtrusive glyph that reads as
+a ruled line rather than decoration. Animation is disabled (`animate.enabled
+= false`): the cursor-scope highlight jumps instantly to the new block
+instead of easing into it, matching this config's general preference for
+snappy, non-animated UI feedback.
+
+Highlight colors are defined in `themes.lua`'s `M.global_overrides` (applied
+after every colorscheme, so they survive theme switching):
+- `SnacksIndent` links to `NonText` — same treatment as nvim-tree's
+  `NvimTreeIndentMarker`, visible but unobtrusive.
+- `SnacksIndentScope` links to `CursorLineNr`, not snacks' own default of
+  `Special` — `Special` is already reassigned elsewhere in this config's
+  overrides (aerial's Class icon/text groups) and tends to be a loud accent
+  color in most themes, more than a steady-state indent guide warrants.
+  `CursorLineNr` is calibrated by every theme to be a readable-but-restrained
+  accent, which fits a steady "you are here" scope marker better.
+
+The default filter already excludes panel buffers (anything with
+`buftype ~= ''`), so nvim-tree, aerial, toggleterm, and other sidebars/floats
+never grow indent guides — no extra config needed here.
+
+**Escape hatch**: to turn off guides for one buffer, set
+`vim.b.snacks_indent = false`; to turn them off everywhere without touching
+the toggle below, set `vim.g.snacks_indent = false`.
+
+### Keymaps
+
+| Keymap | Action |
+|---|---|
+| `<leader>tg` | Toggle indent guides + current-scope highlight |
 
 
 <a id="git-neogit"></a>
@@ -1439,7 +1492,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 2. **CLI integration** — opens Claude in a terminal split.
    `<leader>aa` toggles Claude (defaults to Claude, session stays alive
    when hidden). `<leader>as` switches to a different CLI tool.
-   `<leader>ad` tears down the session entirely (with a confirm prompt).
+   `<leader>ad` tears down the session entirely (behind a floating confirm popup).
 
 | Keymap | Action |
 |---|---|
@@ -1450,7 +1503,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
 | `<leader>as` | Select a different CLI tool (copilot, gemini, etc.) |
-| `<leader>ad` | Kill CLI session (tears down process + buffer; confirm prompt) |
+| `<leader>ad` | Kill CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
 | `<leader>at` | Send position (normal) or selection (visual) to CLI |
 | `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |

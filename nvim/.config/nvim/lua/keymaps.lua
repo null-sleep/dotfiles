@@ -217,14 +217,13 @@ end
 vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Buffer: Close' })
 
 -- <leader>qq: quit nvim entirely (what its letters actually suggest). The
--- confirm prompt guards against ACCIDENTALLY quitting the whole session --
--- losing window layout, terminal state, a running CLI -- not against data
--- loss (plain :qa already aborts with E37 on modified buffers). Matches the
--- q-closes-the-thing convention used by every other namespace (gq/vq/pq/dq/nq).
+-- floating confirm popup (utils.confirm — y confirms, anything else is No)
+-- guards against ACCIDENTALLY quitting the whole session -- losing window
+-- layout, terminal state, a running CLI -- not against data loss (plain :qa
+-- already aborts with E37 on modified buffers). Matches the q-closes-the-thing
+-- convention used by every other namespace (gq/vq/pq/dq/nq).
 vim.keymap.set('n', '<leader>qq', function()
-  if vim.fn.confirm('Quit Neovim?', '&Yes\n&No', 2) == 1 then
-    vim.cmd('qa')
-  end
+  require('utils').confirm('Quit Neovim?', function() vim.cmd('qa') end)
 end, { desc = 'Session: Quit all (confirm)' })
 
 -- Toggle spell checking
@@ -236,6 +235,11 @@ end, { desc = 'Toggle: Spell check' })
 vim.keymap.set('n', '<leader>tn', function()
   vim.opt.relativenumber = not vim.opt.relativenumber:get()
 end, { desc = 'Toggle: Relative line numbers' })
+
+-- Toggle indent guides + current-scope highlight (snacks.indent).
+vim.keymap.set('n', '<leader>tg', function()
+  if Snacks.indent.enabled then Snacks.indent.disable() else Snacks.indent.enable() end
+end, { desc = 'Toggle: Indent guides' })
 
 -- Add word to dictionary, skipping duplicates
 vim.keymap.set('n', 'zg', require('spell').add_word, { desc = 'Spell: Add word to dictionary' })
@@ -308,13 +312,13 @@ vim.keymap.set('n', '<leader>as',
   function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
 -- close() kills the terminal process, deletes the buffer, and detaches the
 -- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
--- show/hide without losing state. Guarded with a confirm prompt: <leader>ad
--- sits one key from <leader>aa/<leader>as, so a typo shouldn't be able to
--- silently discard a running Claude conversation.
+-- show/hide without losing state. Guarded with a floating confirm popup
+-- (utils.confirm — y confirms, anything else is No): <leader>ad sits one key
+-- from <leader>aa/<leader>as, so a typo shouldn't be able to silently discard
+-- a running Claude conversation.
 vim.keymap.set('n', '<leader>ad', function()
-  if vim.fn.confirm('Kill CLI session? (This tears down the terminal and session state)', '&Yes\n&No', 2) == 1 then
-    require('sidekick.cli').close()
-  end
+  require('utils').confirm('Kill CLI session? (This tears down the terminal and session state)',
+    function() require('sidekick.cli').close() end)
 end, { desc = 'AI: Kill CLI session' })
 vim.keymap.set('n', '<leader>ao',
   function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
