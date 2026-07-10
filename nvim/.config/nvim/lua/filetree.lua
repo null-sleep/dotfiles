@@ -90,6 +90,33 @@ do
   end)
 end
 
+-- Rewrite imports when a file is renamed/moved/deleted through the tree.
+-- lsp-file-operations subscribes to nvim-tree's rename/move/delete events and
+-- fires the LSP workspace/willRename→didRename requests, so files that
+-- imported the old path get rewritten (VS Code's "update imports?" behavior).
+-- Runs after nvim-tree.setup() above so the tree is fully loaded before we
+-- subscribe to its event API (require('nvim-tree.api').events).
+--
+-- This is the EVENT half of the wiring; the CAPABILITY half (advertising
+-- workspace/willRenameFiles to servers) lives in lsp.lua. Both are required —
+-- drop the capability and this subscription still runs but every server
+-- returns nothing, so it no-ops with no error. Keep them in sync
+-- (grep 'lsp-file-operations'). See GUIDE.md "Renaming a file rewrites its imports".
+--
+-- Only catches renames done INSIDE nvim (tree `r`). An external `git mv` never
+-- announces the rename to nvim, so no editor (this or VS Code) can auto-fix
+-- imports for it — those stay a manual fixup.
+--
+-- Guarded against re-source: nvim-tree's api.events.subscribe is append-only
+-- (no dedup), so a second setup() on `:source %` would fire willRename/didRename
+-- twice per rename for the rest of the session. The global flag makes setup()
+-- run once per nvim instance (see GUIDE.md "Re-source safety").
+if not vim.g._lsp_file_ops_setup then
+  vim.g._lsp_file_ops_setup = true
+  vim.cmd.packadd('nvim-lsp-file-operations')
+  require('lsp-file-operations').setup()
+end
+
 -- Auto-quit when only sidebars remain: generalized across all sidebars
 -- (nvim-tree, aerial) and lives in autocmds.lua now — see
 -- GUIDE.md "Quit nvim when only sidebars remain".

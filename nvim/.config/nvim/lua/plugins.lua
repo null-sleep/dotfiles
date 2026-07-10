@@ -23,6 +23,12 @@ vim.pack.add(vim.list_extend({
   { src = gh('mason-org/mason-lspconfig.nvim') },
   { src = gh('neovim/nvim-lspconfig') },
   { src = gh('folke/lazydev.nvim') },
+  -- Rewrite imports when a file is renamed/moved/deleted *inside* nvim (the
+  -- nvim-tree `r` path), by firing the LSP workspace/willRename→didRename
+  -- requests servers expose for exactly this. Wiring is split in two halves
+  -- that must stay in sync — capability in lsp.lua, event subscription in
+  -- filetree.lua (grep 'lsp-file-operations'). Uses plenary (above).
+  { src = gh('antosha417/nvim-lsp-file-operations') },
 
   -- Completion
   { src = gh('saghen/blink.cmp'), version = vim.version.range('1.*') },
