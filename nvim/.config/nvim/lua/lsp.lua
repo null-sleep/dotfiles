@@ -353,5 +353,28 @@ vim.lsp.config('copilot', {
 -- account for the LSP-delivered ones here too, don't assume everything is an autocmd.
 vim.lsp.config('eslint', {})
 
+-- File-operation capabilities (nvim-lsp-file-operations). Advertise
+-- workspace/willRenameFiles + didRenameFiles to every server so a rename done
+-- *inside* nvim (nvim-tree `r`) makes the server rewrite imports/references in
+-- the files that pointed at the old path — the VS Code "update imports?" behavior.
+--
+-- This is the CAPABILITY half of the wiring. The EVENT half — subscribing to
+-- nvim-tree's rename events and actually firing the requests — lives in
+-- filetree.lua and no-ops silently unless this capability was advertised. The
+-- two are useless apart, so keep them in sync: if you move or remove one, do
+-- the same to the other (grep 'lsp-file-operations'). See GUIDE.md
+-- "Renaming a file rewrites its imports".
+--
+-- Merged onto the '*' config (all servers) via vim.lsp.config's deep-extend,
+-- NOT a plain assignment on a named server — so it layers with any other '*'
+-- capabilities already registered (blink.cmp advertises its completion caps
+-- the same way). The two contributions live in disjoint capability subtrees
+-- (workspace.fileOperations vs textDocument.completion), so the deep-merge
+-- keeps both; a shallow `capabilities = ...` overwrite would drop the other.
+vim.cmd.packadd('nvim-lsp-file-operations')
+vim.lsp.config('*', {
+  capabilities = require('lsp-file-operations').default_capabilities(),
+})
+
 -- rust_analyzer omitted: started by rustaceanvim, not the native vim.lsp path.
 vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'elixirls', 'kotlin_language_server', 'eslint', 'copilot' })

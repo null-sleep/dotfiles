@@ -66,7 +66,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/common.lua`** — Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
-- **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
+- **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Named to avoid shadowing `require('dap')` / `require('debug')`
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
@@ -76,7 +76,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
-- **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
+- **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
 - **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -138,6 +138,7 @@ or config reloads):
 - **Timers** use globals with stop-before-create: `if _G._checktime_timer then _G._checktime_timer:stop() end` before creating a new one. Prevents timer leaks on re-source.
 - **Autocmds** use `nvim_create_augroup` with `clear = true`. The augroup is wiped before re-adding its autocmds, so re-source never duplicates handlers.
 - **Comma-list options** that append (e.g. `diffopt` in `configs.lua`) filter out their own prior value before re-adding it, so re-sourcing doesn't accumulate duplicate entries (`linematch:60,linematch:60,…`).
+- **Append-only event subscriptions** that can't dedup (e.g. nvim-tree's `api.events.subscribe`, used by the lsp-file-operations wiring) are guarded by a run-once global flag (`filetree.lua`'s `_lsp_file_ops_setup`), so re-sourcing doesn't stack duplicate handlers that fire twice per event.
 
 ### Quit nvim when only sidebars remain
 
@@ -194,6 +195,57 @@ unsupported methods.
 
 Features gated this way: inlay hints, document highlight, codelens,
 declaration, type definition, implementation.
+
+### Renaming a file rewrites its imports
+
+Renaming a file has two independent problems, solved by different machinery:
+
+- **The stale buffer** — an open buffer keeps pointing at the old path, and
+  re-saving it recreates the old file. Renaming *inside* nvim-tree (`r`) avoids
+  this: the tree moves the file and repoints the open buffer for you. Nothing
+  extra needed.
+- **Broken imports** — every file that imported the old path is now wrong. Only
+  the language server can fix these, and only if it's *told a rename happened*
+  before it happens (`workspace/willRenameFiles` is client-initiated). This is
+  what `nvim-lsp-file-operations` provides.
+
+The plugin is wired in **two halves that are useless apart** — keep them in
+sync (grep `lsp-file-operations`):
+
+- **Capability half** (`lsp.lua`) — merges the plugin's `default_capabilities()`
+  onto the `'*'` `vim.lsp.config` so every server advertises willRename/didRename
+  (also create/delete). Done via deep-extend, not a plain `capabilities =`
+  assignment, so it layers with blink.cmp's own `'*'` completion capabilities
+  instead of clobbering them (disjoint subtrees: `workspace.fileOperations` vs
+  `textDocument.completion`).
+- **Event half** (`filetree.lua`) — `require('lsp-file-operations').setup()`,
+  which subscribes to nvim-tree's rename/move/delete events and fires the LSP
+  requests. Must run *after* `nvim-tree.setup()` (it hooks the tree's event
+  API). Without the capability half it still runs but every server returns
+  nothing, so it no-ops silently — that's the failure mode to remember if
+  renames stop fixing imports.
+
+**Only renames done inside nvim are caught.** An external `git mv` never
+announces the rename to nvim (from the outside a rename is indistinguishable
+from a delete-plus-create), so no editor — this config or VS Code — can
+auto-rewrite imports for it. The server will still *flag* the now-broken
+imports as diagnostics once it re-indexes; you fix those by hand. The
+takeaway: to get automatic import fixing, rename via the tree (`r`), not from
+the shell.
+
+Correctness of the rewrite is the language server's, not the plugin's — the
+plugin only relays the workspace-edit the server returns (rock-solid with
+`ts_ls`; only as good as the server elsewhere). Those edits land in files you
+don't have open, *outside* your undo tree, so `u` won't revert them — git is
+the safety net. Glance at `git diff` after a rename before committing.
+
+Two upstream caveats worth knowing (neither is our wiring): the `willRename`
+request is sent **synchronously**, bounded by the plugin's timeout (~10s), so a
+hung server can briefly block the rename. And the pinned rev still calls the
+deprecated `vim.lsp.get_active_clients()`, so the *first* in-tree rename of a
+session prints a one-time deprecation warning — harmless on 0.12.4, but it will
+hard-break whenever nvim removes the stub. Watch the pin / upstream for a fix
+(this config is otherwise strict about deprecations).
 
 ### Special/sidebar windows need pinning
 
@@ -1042,6 +1094,12 @@ and diagnostic decorations.
   uses `/usr/bin/trash`). `d` remains permanent delete.
 - **Polished prompts** — `select_prompts = true` routes rename/delete
   confirmations through `vim.ui.select` (telescope-ui-select).
+- **Rename fixes imports** — renaming (`r`) or moving a file in the tree fires
+  the LSP file-operation requests via nvim-lsp-file-operations, so files that
+  imported the old path get rewritten (VS Code's "update imports?" behavior).
+  Only works for renames done *in the tree* — an external `git mv` can't be
+  caught. See [Design Decisions](#design-decisions) → "Renaming a file rewrites
+  its imports".
 - **Auto-close** — a `QuitPre` autocmd closes the tree when it's the last
   non-floating window, avoiding an orphaned tree buffer.
 
@@ -1064,7 +1122,7 @@ Inside the tree (buffer-local, set by `on_attach`):
 | `a` | Create file or directory (append `/` for dir) |
 | `d` | Delete (permanent) |
 | `D` | Trash (sends to macOS trash) |
-| `r` | Rename |
+| `r` | Rename (fixes imports in referencing files via LSP — see Features) |
 | `x` / `c` / `p` | Cut / copy / paste |
 | `f` | Live filter — type to narrow tree to matching filenames |
 | `F` | Clear live filter |
