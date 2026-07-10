@@ -214,7 +214,7 @@ vim.api.nvim_create_user_command('Q', 'qa', {})
 local close_buffer = function()
   require('mini.bufremove').delete(0, false)
 end
-vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Close buffer' })
+vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Buffer: Close' })
 
 -- <leader>qq: quit nvim entirely (what its letters actually suggest), guarded
 -- by a confirm prompt since :qa is destructive if there are unsaved buffers

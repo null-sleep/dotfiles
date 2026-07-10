@@ -57,7 +57,7 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost' }, {
 -- remains a reliable escape hatch when auto-linting is off.
 vim.keymap.set('n', '<leader>cl', function()
   lint.try_lint()
-end, { desc = 'Lint buffer' })
+end, { desc = 'Code: Lint buffer' })
 
 -- Toggles auto-linting globally. Per-buffer override (e.g. for vendored files):
 -- :lua vim.b.disable_lint = true. Clears existing diagnostics when turning off so

@@ -15,6 +15,6 @@ require('snacks').setup({
 
 -- Open to remapping these if <leader>b* stops feeling right.
 vim.keymap.set('n', '<leader>bs', function() Snacks.scratch() end,
-  { desc = 'Toggle scratch buffer' })
+  { desc = 'Buffer: Toggle scratch' })
 vim.keymap.set('n', '<leader>bS', function() Snacks.scratch.select() end,
-  { desc = 'Select scratch buffer' })
+  { desc = 'Buffer: Select scratch' })
