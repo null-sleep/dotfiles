@@ -44,6 +44,21 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHo
   desc = 'Reload files changed outside Neovim',
   command = 'checktime',
 })
+-- Returning from a terminal is exactly when files tend to have changed on disk
+-- (you just ran git/make/a formatter). BufEnter above already catches
+-- switching back to a *file* buffer, but TermClose and an in-place TermLeave
+-- don't always route through BufEnter — these close that gap instantly instead
+-- of waiting up to 500ms for the poll below. Skip nofile buffers (nothing on
+-- disk to re-check).
+vim.api.nvim_create_autocmd({ 'TermClose', 'TermLeave' }, {
+  group = checktime_group,
+  desc = 'Reload files changed while in a terminal',
+  callback = function()
+    if vim.o.buftype ~= 'nofile' then
+      vim.cmd('checktime')
+    end
+  end,
+})
 -- Poll for external changes every 500ms (catches edits when nvim has no focus).
 -- Checks ALL open buffers against disk; reloads silently when 'autoread' is set.
 -- Only fires in normal mode to avoid disrupting insert/visual/cmdline edits.
