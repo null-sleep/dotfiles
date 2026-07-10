@@ -180,13 +180,22 @@ vim.api.nvim_create_user_command('Q', 'qa', {})
 -- Close buffer without closing the window/pane. mini.bufremove picks a
 -- replacement buffer for every window showing it (alternate, then most
 -- recent, then a scratch buffer) so all splits stay open.
--- <leader>bd matches the common convention (LazyVim, bufdelete.nvim, etc.);
--- <leader>qq kept as an alias for existing muscle memory.
+-- <leader>bd matches the common convention (LazyVim, bufdelete.nvim, etc.) and
+-- is the only close-buffer key -- <leader>qq below is Session/Quit, not Buffer.
 local close_buffer = function()
   require('mini.bufremove').delete(0, false)
 end
 vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Close buffer' })
-vim.keymap.set('n', '<leader>qq', close_buffer, { desc = 'Close buffer' })
+
+-- <leader>qq: quit nvim entirely (what its letters actually suggest), guarded
+-- by a confirm prompt since :qa is destructive if there are unsaved buffers
+-- nvim doesn't already block on. Matches the q-closes-the-thing convention
+-- used by every other namespace (gq/vq/pq/dq/nq).
+vim.keymap.set('n', '<leader>qq', function()
+  if vim.fn.confirm('Quit Neovim?', '&Yes\n&No', 2) == 1 then
+    vim.cmd('qa')
+  end
+end, { desc = 'Session: Quit all (confirm)' })
 
 -- Toggle spell checking
 vim.keymap.set('n', '<leader>tz', function()

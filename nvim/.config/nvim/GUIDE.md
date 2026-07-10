@@ -368,7 +368,8 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<Esc>` (normal mode) | Close any floating windows (hover, peek, diagnostics) and clear search highlights | keymaps.lua |
 | `:Q` | Quit all (`qa`) | keymaps.lua |
 | `<leader><leader>` | Alternate buffer (skips non-code buffers, see `buffers.lua`) | keymaps.lua |
-| `<leader>bd` / `<leader>qq` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
+| `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
+| `<leader>qq` | Quit all (`:qa`, with a confirm prompt) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
@@ -912,6 +913,11 @@ switching branches doesn't mix up open files.
 | `<leader>qS` | Pick from all saved sessions |
 | `<leader>ql` | Restore the last session (regardless of directory) |
 | `<leader>qd` | Stop saving — quit without persisting current state |
+
+The which-key `Session/Quit` group (`<leader>q`) also holds `<leader>qq` —
+quit-all with a confirm prompt, defined in `keymaps.lua` rather than here
+since it's a plain `:qa`, not a persistence.nvim feature (see the
+[Global keymaps](#global-keymaps) table).
 
 Terminal windows are excluded from saved sessions (`sessionoptions:remove('terminal')`)
 — restoring one would only re-spawn an empty shell with no scrollback, and a
