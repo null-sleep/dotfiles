@@ -4,6 +4,7 @@
 -- One augroup, cleared on re-source so `:source %` never duplicates handlers
 -- (see GUIDE.md "Re-source safety").
 local augroup = vim.api.nvim_create_augroup('UserAutocmds', { clear = true })
+local buffers = require('buffers')
 
 -- Auto-create missing parent directories when writing a file, so
 -- `:e src/new/deep/file.lua` followed by `:w` doesn't fail with "no such
@@ -84,10 +85,39 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
     local buf = args.buf
     local bt = vim.bo[buf].buftype
     if bt ~= 'help' and bt ~= 'quickfix' and bt ~= 'nofile' then return end
-    if require('buffers').is_special(buf) then return end
+    if buffers.is_special(buf) then return end
     for _, m in ipairs(vim.api.nvim_buf_get_keymap(buf, 'n')) do
       if m.lhs == 'q' then return end
     end
     vim.keymap.set('n', 'q', '<Cmd>close<CR>', { buffer = buf, desc = 'Close window' })
+  end,
+})
+
+-- Quit nvim when the only non-floating windows left are sidebars. Without
+-- this, closing your last code window leaves a lone nvim-tree/aerial panel
+-- sitting there and you have to close it by hand. Generalized from the old
+-- nvim-tree-only handler to every sidebar via `is_sidebar()` — which is
+-- deliberately NARROWER than `is_special()`: a lone toggleterm is special but
+-- must NOT trigger a quit. Window arithmetic: if total minus floating minus
+-- sidebars == 1, the one remaining normal window is the one being quit, so
+-- close the sidebars and let nvim exit.
+vim.api.nvim_create_autocmd('QuitPre', {
+  group = augroup,
+  desc = 'Quit nvim when only sidebars remain',
+  callback = function()
+    local sidebar_wins, floating, total = {}, 0, 0
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      total = total + 1
+      if vim.api.nvim_win_get_config(w).relative ~= '' then
+        floating = floating + 1
+      elseif buffers.is_sidebar(vim.api.nvim_win_get_buf(w)) then
+        table.insert(sidebar_wins, w)
+      end
+    end
+    if total - floating - #sidebar_wins == 1 then
+      for _, w in ipairs(sidebar_wins) do
+        pcall(vim.api.nvim_win_close, w, true)
+      end
+    end
   end,
 })

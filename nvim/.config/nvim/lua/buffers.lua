@@ -18,6 +18,17 @@ M.special_filetypes = {
   sidekick_terminal = true,  -- sidekick AI CLI
 }
 
+-- Sidebars: persistent navigation panels docked to a window edge. A STRICT
+-- SUBSET of `special_filetypes` that deliberately excludes terminals/CLI/
+-- prompt buffers. Consumed by the "quit nvim when only sidebars remain"
+-- autocmd (autocmds.lua), which must NOT treat a lone toggleterm as reason to
+-- quit — so it can't reuse `is_special()`. Kept as its own list for the same
+-- reason autosave/statusline keep theirs (see CLAUDE.md): different question.
+M.sidebar_filetypes = {
+  NvimTree = true,  -- file tree
+  aerial   = true,  -- outline sidebar
+}
+
 -- True when `buf` is a non-code buffer: a terminal/prompt buftype, or a
 -- registered special filetype. `nofile` is deliberately NOT treated as
 -- special — it over-matches (dashboards, Neogit/diffview, quickfix, help all
@@ -31,6 +42,14 @@ function M.is_special(buf)
   local bt = vim.bo[buf].buftype
   if bt == 'terminal' or bt == 'prompt' then return true end
   return M.special_filetypes[vim.bo[buf].filetype] == true
+end
+
+-- True when `buf` is a docked sidebar (see `sidebar_filetypes`). Narrower than
+-- `is_special()`: a terminal or CLI panel is special but not a sidebar.
+---@param buf? integer buffer handle, default current (0)
+function M.is_sidebar(buf)
+  buf = buf or 0
+  return M.sidebar_filetypes[vim.bo[buf].filetype] == true
 end
 
 return M
