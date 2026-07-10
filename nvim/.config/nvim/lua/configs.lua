@@ -83,9 +83,14 @@ opt.splitbelow = true                  -- horizontal splits open below
 -- Better diff alignment. linematch:60 pairs up similar lines within a hunk so
 -- a one-token edit reads as a change instead of a delete+add block; the
 -- histogram algorithm produces more stable, less jumpy hunks than the default
--- Myers. Append (don't assign) so the built-in defaults — internal, filler,
--- closeoff — survive. Visible everywhere diffs render: diffview.nvim, Neogit,
--- gitsigns hunk previews, `nvim -d`.
+-- Myers. nvim 0.12 already ships `linematch:40` in the default diffopt, so
+-- strip any existing linematch/algorithm entry first — otherwise appending
+-- would leave two `linematch:N` values in the list — then re-add ours. Keeps
+-- the other defaults (internal, filler, closeoff, indent-heuristic, inline).
+-- Visible everywhere diffs render: diffview.nvim, Neogit, gitsigns previews.
+opt.diffopt = vim.tbl_filter(function(v)
+  return not (v:match('^linematch:') or v:match('^algorithm:'))
+end, opt.diffopt:get())
 opt.diffopt:append('linematch:60')
 opt.diffopt:append('algorithm:histogram')
 
