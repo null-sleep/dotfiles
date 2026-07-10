@@ -272,6 +272,17 @@ vim.diagnostic.config({
   -- source = 'if_many': only show the diagnostic source label (eg. pyright, eslint)
   -- when multiple sources produce diagnostics on the same line
   float            = { border = 'rounded', source = 'if_many' },
+  -- After a [d/]d jump, auto-open a cursor-scoped, non-focusable float so the
+  -- message is visible without another keypress. Matters here because
+  -- virtual_text and signs are both off (low-noise default) — otherwise a jump
+  -- lands on a diagnostic you can't actually read. Inherits the `float` opts
+  -- above (rounded border, source = if_many).
+  jump             = {
+    on_jump = function(diagnostic, bufnr)
+      if not diagnostic then return end
+      vim.diagnostic.open_float({ bufnr = bufnr, scope = 'cursor', focusable = false })
+    end,
+  },
 })
 
 -- per-server configuration using vim.lsp.config (nvim-lspconfig v3 / nvim 0.11+)

@@ -451,7 +451,7 @@ stays on the plain handler.
 | `grn` (nvim core default, not remapped) | Rename symbol |
 | `<leader>ce` | Show diagnostic float under cursor |
 | `<leader>cd` | Diagnostic list (loclist) |
-| `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) |
+| `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) — auto-opens a cursor-scoped float on the diagnostic it lands on, since virtual text/signs are off |
 | `<leader>ti` | Toggle inlay hints |
 
 ### Adding a new LSP server
@@ -607,6 +607,9 @@ for gopls, `Cargo.toml` for rust_analyzer) to detect the project root.
 
 **Diagnostics not visible:**
 virtual_text and signs are OFF by default. `<leader>td` toggles them on.
+Jumping with `[d`/`]d` auto-opens a float on the landed diagnostic, and
+`<leader>ce` opens one on demand — so a message is always reachable without
+turning virtual text back on.
 
 **Completion not working:**
 Check statusline for the LSP server name (is it attached?). Large projects
