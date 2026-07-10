@@ -58,6 +58,8 @@ end
 -- tags that aren't mechanically derivable, e.g. cross-references like
 -- 'rust'/'diff'/'debug'/'lsp'/'ai') — additive, never replacing the derived
 -- tag, and skipping the override when it duplicates what was already derived.
+-- Returns the merged list plus the derived tag itself (pill_tags below needs
+-- to know which entry is the derived one).
 local function resolve_tags(lhs, desc, overrides)
   local tags = {}
   local derived = derive_tag(desc)
@@ -65,7 +67,19 @@ local function resolve_tags(lhs, desc, overrides)
   for _, extra in ipairs(overrides[lhs] or {}) do
     if extra ~= derived then tags[#tags + 1] = extra end
   end
-  return tags
+  return tags, derived
+end
+
+-- Display-only filter: the derived tag usually just repeats the row's own
+-- which-key group breadcrumb (e.g. <leader>vv shows "Diffview ›" AND would
+-- show "+diffview"), so rendering it as a pill is redundant and widens the
+-- tags column for nothing. Hide it from the PILLS when it case-insensitively
+-- equals the breadcrumb — but the full tag list still goes into the search
+-- ordinal, so typing the group name keeps matching. Override tags (the
+-- non-derivable extras) always render.
+local function pill_tags(tags, derived, bc)
+  if not derived or bc:lower() ~= derived then return tags end
+  return vim.tbl_filter(function(t) return t ~= derived end, tags)
 end
 
 -- Measure display column widths from the full result set.
@@ -75,7 +89,7 @@ local function compute_widths(results)
   for _, r in ipairs(results) do
     key  = math.max(key,  vim.fn.strdisplaywidth(r.keys))
     bc   = math.max(bc,   vim.fn.strdisplaywidth(bc_label(r.bc)))
-    tags = math.max(tags, vim.fn.strdisplaywidth(tags_label(r.tags)))
+    tags = math.max(tags, vim.fn.strdisplaywidth(tags_label(r.pills)))
   end
   return {
     key  = math.min(key + 1, 18),
@@ -100,10 +114,10 @@ end
 -- Renders one row. Pure — no side effects.
 local function make_display(displayer, item)
   return displayer({
-    { item.keys,             'TelescopeResultsIdentifier' },
-    { bc_label(item.bc),     'Comment' },
+    { item.keys,              'TelescopeResultsIdentifier' },
+    { bc_label(item.bc),      'Comment' },
     { item.desc },
-    { tags_label(item.tags), 'Comment' },
+    { tags_label(item.pills), 'Comment' },
   })
 end
 
@@ -157,13 +171,16 @@ local function build_results()
 
     local bc   = breadcrumb(node)
     local kw   = keywords[keys] or ''
-    local tags = resolve_tags(keys, desc, tags_map)
+    local tags, derived = resolve_tags(keys, desc, tags_map)
     local tags_str = table.concat(tags, ' ')
     -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
     local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. tags_str
 
     seen[keys] = true
-    table.insert(results, { keys = display_keys, bc = bc, desc = desc, tags = tags, ordinal = ordinal })
+    table.insert(results, {
+      keys = display_keys, bc = bc, desc = desc,
+      pills = pill_tags(tags, derived, bc), ordinal = ordinal,
+    })
   end)
 
   -- Merge built-in commands not covered by which-key presets (builtins.lua).
@@ -175,12 +192,15 @@ local function build_results()
       if not seen[norm] then
         seen[norm] = true
         local kw   = keywords[entry.lhs] or ''
-        local tags = resolve_tags(entry.lhs, entry.desc, tags_map)
+        local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp  = entry.group or ''
         local tags_str = table.concat(tags, ' ')
         -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
         local ordinal = entry.lhs .. ' ' .. grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. tags_str
-        table.insert(results, { keys = entry.lhs, bc = grp, desc = entry.desc, tags = tags, ordinal = ordinal })
+        table.insert(results, {
+          keys = entry.lhs, bc = grp, desc = entry.desc,
+          pills = pill_tags(tags, derived, grp), ordinal = ordinal,
+        })
       end
     end
   end

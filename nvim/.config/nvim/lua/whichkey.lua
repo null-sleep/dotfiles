@@ -127,7 +127,6 @@ local keywords = {
 -- ISN'T the derivable prefix. Entries here are MERGED with the derived tag,
 -- never replace it — see resolve_tags() in pickers/keybindings.lua.
 local tags = {
-  ['<leader>cR'] = { 'rust' },              -- desc already derives 'rust'; kept for clarity
   ['<leader>dR'] = { 'rust' },              -- desc derives 'debug'; Rust debuggables is also rust
   ['<leader>vv'] = { 'diff' },
   ['<leader>vp'] = { 'diff' },
