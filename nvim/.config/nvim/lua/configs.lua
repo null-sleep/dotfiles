@@ -65,6 +65,15 @@ opt.wrap = true                        -- wrap long lines
 opt.splitright = true                  -- vertical splits open to the right
 opt.splitbelow = true                  -- horizontal splits open below
 
+-- Better diff alignment. linematch:60 pairs up similar lines within a hunk so
+-- a one-token edit reads as a change instead of a delete+add block; the
+-- histogram algorithm produces more stable, less jumpy hunks than the default
+-- Myers. Append (don't assign) so the built-in defaults — internal, filler,
+-- closeoff — survive. Visible everywhere diffs render: diffview.nvim, Neogit,
+-- gitsigns hunk previews, `nvim -d`.
+opt.diffopt:append('linematch:60')
+opt.diffopt:append('algorithm:histogram')
+
 opt.spell = false                      -- spell checking off by default; toggle with <leader>tz
 opt.spelllang = 'en_us'                -- language: US English
 -- Explicit path so zg additions land in the stowed dotfiles folder and can
