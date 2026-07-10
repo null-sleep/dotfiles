@@ -89,6 +89,13 @@ incidental — several buffers in the `is_special()` set (nvim-tree, aerial,
 neogit, toggleterm) already bind or consume `q`. Getting the "don't clobber
 an existing `q`" guard right is the bulk of the work here; budget for it.
 
+Final approach (implemented): target `help`/`quickfix`/`nofile` buftypes,
+then use `is_special()` as an *exclusion* (skip the interactive panels and
+terminals that own their own `q` — its intended use), then skip any buffer
+that already binds `q`. So `is_special()` selects what to *leave alone*, not
+what to map — the reverse of the original phrasing, and consistent with the
+item 8 correction.
+
 ### 5. `on_key`-driven auto-hlsearch — REASSESS (do not land first)
 
 Reviewed down from "high value": `vim.on_key` runs on *every* keystroke, and

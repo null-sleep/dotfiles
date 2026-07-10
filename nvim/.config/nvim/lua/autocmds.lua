@@ -66,3 +66,28 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight yanked text',
   callback = function() vim.hl.on_yank() end,
 })
+
+-- `q` closes transient, read-only windows (help, quickfix/loclist, plain
+-- nofile scratch panels) the same way `q` closes a Neogit or fugitive buffer —
+-- so you don't have to reach for `:q`. Deliberately scoped three ways:
+--   * only help/quickfix/nofile buftypes (never a real file buffer);
+--   * skip `is_special()` buffers — that registry marks the interactive
+--     panels/terminals (nvim-tree, aerial, toggleterm, sidekick) that own
+--     their own `q` meaning (macro recording in a terminal, plugin nav in the
+--     sidebars); this is is_special() used as an *exclusion*, its intended use;
+--   * skip any buffer that already binds `q` in normal mode, so a plugin's own
+--     `q` (Neogit/diffview status buffers, etc.) is never clobbered.
+vim.api.nvim_create_autocmd('BufWinEnter', {
+  group = augroup,
+  desc = 'Map q to close transient windows',
+  callback = function(args)
+    local buf = args.buf
+    local bt = vim.bo[buf].buftype
+    if bt ~= 'help' and bt ~= 'quickfix' and bt ~= 'nofile' then return end
+    if require('buffers').is_special(buf) then return end
+    for _, m in ipairs(vim.api.nvim_buf_get_keymap(buf, 'n')) do
+      if m.lhs == 'q' then return end
+    end
+    vim.keymap.set('n', 'q', '<Cmd>close<CR>', { buffer = buf, desc = 'Close window' })
+  end,
+})
