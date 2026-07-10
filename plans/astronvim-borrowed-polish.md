@@ -89,12 +89,15 @@ incidental — several buffers in the `is_special()` set (nvim-tree, aerial,
 neogit, toggleterm) already bind or consume `q`. Getting the "don't clobber
 an existing `q`" guard right is the bulk of the work here; budget for it.
 
-Final approach (implemented): target `help`/`quickfix`/`nofile` buftypes,
-then use `is_special()` as an *exclusion* (skip the interactive panels and
-terminals that own their own `q` — its intended use), then skip any buffer
-that already binds `q`. So `is_special()` selects what to *leave alone*, not
-what to map — the reverse of the original phrasing, and consistent with the
-item 8 correction.
+Final approach (implemented, post-review): target `help`/`quickfix` buftypes
+only, then skip any buffer that already binds `q`; use `<Cmd>silent! close`
+to swallow E444 on the last window. `nofile` was dropped after review — it
+over-matches the exact cases buffers.lua warns about (diffview diff panes,
+LSP hover/diagnostic floats, mini.notify history, code-ish scratch), where a
+stray `q`-closes-window is a silent, layout-corrupting bug. With `nofile`
+gone, the `is_special()` exclusion became dead code (help/quickfix are never
+special) and was removed; if `nofile` is ever re-added, re-add the
+`is_special()` exclusion with it.
 
 ### 5. `on_key`-driven auto-hlsearch — REASSESS (do not land first)
 
