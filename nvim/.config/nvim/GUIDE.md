@@ -321,6 +321,11 @@ All keymaps have `desc` strings. To discover them:
 Which-key uses an explicit trigger list (see `whichkey.lua`). If you add a
 new single-char group in `wk.add()`, add its trigger too.
 
+Visual-mode maps use `'x'` (visual-only), never `'v'` (visual **and**
+select) — blink.cmp's LSP snippet placeholders land in select mode, where
+typing should replace the placeholder with literal text; a `'v'` mapping
+would hijack that keystroke instead.
+
 ### By prefix
 
 Each feature's full keymap table lives in its own Part 2 section (linked

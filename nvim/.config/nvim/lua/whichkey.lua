@@ -10,7 +10,7 @@ wk.setup({
   -- v, d, c, y when single-char groups (g, [, ]) are registered.
   -- When adding a new single-char group in wk.add(), add its trigger here too.
   triggers = {
-    { '<leader>', mode = { 'n', 'v' } },
+    { '<leader>', mode = { 'n', 'x' } },
     { 'g',        mode = 'n' },
     { '[',        mode = 'n' },
     { ']',        mode = 'n' },
