@@ -55,8 +55,14 @@ vim.api.nvim_create_autocmd({ 'TermClose', 'TermLeave' }, {
   desc = 'Reload files changed while in a terminal',
   command = 'checktime',
 })
--- Poll for external changes every 500ms (catches edits when nvim has no focus).
--- Checks ALL open buffers against disk; reloads silently when 'autoread' is set.
+-- Poll for external changes every 2s. Mostly a startup-sweep de-collision,
+-- not a steady-state win: the FocusGained/BufEnter/CursorHold/CursorHoldI +
+-- TermClose/TermLeave autocmds above already cover interactive external-change
+-- detection, so this interval barely matters once nvim is in active use. Its
+-- real value is the initial delay — the first fire does an all-buffer
+-- `checktime` sweep (stats every open buffer against disk), and at 500ms that
+-- used to land mid-restore; 2000ms clears it. Only backstops the "focused,
+-- idle, watching a buffer" case; reloads silently when 'autoread' is set.
 -- Only fires in normal mode to avoid disrupting insert/visual/cmdline edits.
 -- Stored on _G so re-sourcing stops the old timer before creating a new one
 -- (close() too — a stopped-but-unclosed uv handle leaks).
@@ -65,7 +71,7 @@ if _G._checktime_timer then
   _G._checktime_timer:close()
 end
 _G._checktime_timer = assert(vim.uv.new_timer())
-_G._checktime_timer:start(500, 500, vim.schedule_wrap(function()
+_G._checktime_timer:start(2000, 2000, vim.schedule_wrap(function()
   if vim.api.nvim_get_mode().mode == 'n' then
     vim.cmd('checktime')
   end
@@ -114,5 +120,9 @@ vim.filetype.add({
   },
 })
 
-require('utils').check_nvim_update()
+-- Already async, but this moves the `brew info` process spawn off the
+-- startup window; its own 24h/headless guards still apply at fire time.
+vim.defer_fn(function()
+  require('utils').check_nvim_update()
+end, 5000)
 
