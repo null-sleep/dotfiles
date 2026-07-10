@@ -1489,6 +1489,15 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    jumps to or applies the next suggestion. Falls through to literal `<Tab>`
    when no suggestion is active.
 
+   Caveat: in a terminal that can't distinguish `Tab` from `Ctrl-I` (they
+   share ASCII 9 without the kitty keyboard protocol / CSI u), this mapping
+   also captures `<C-i>` — jumplist *forward* — so `<C-i>` triggers NES
+   instead of jumping. Not an issue in this setup's environments (kitty,
+   iTerm2 with CSI u, Neovide, all of which disambiguate), only in legacy
+   terminals (Apple Terminal, ssh without protocol support). Fallbacks that
+   always work: mouse forward button (`<X2Mouse>`) and Neovide's
+   `<D-M-Right>`.
+
 2. **CLI integration** — opens Claude in a terminal split.
    `<leader>aa` toggles Claude (defaults to Claude, session stays alive
    when hidden). `<leader>as` switches to a different CLI tool.
