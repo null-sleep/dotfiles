@@ -1,6 +1,7 @@
 -- General editor autocmds that aren't owned by a specific feature module.
 -- (Feature-local autocmds still live with their feature: checktime in
--- configs.lua, QuitPre in filetree.lua, lint-on-save in linting.lua, etc.)
+-- configs.lua, lint-on-save in linting.lua, the FileCreated subscribe in
+-- filetree.lua, etc.)
 -- One augroup, cleared on re-source so `:source %` never duplicates handlers
 -- (see GUIDE.md "Re-source safety").
 local augroup = vim.api.nvim_create_augroup('UserAutocmds', { clear = true })
