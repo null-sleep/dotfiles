@@ -337,7 +337,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | [Telescope](#telescope) → Keymaps |
 | `<C-\>`, `<leader>T*` | Terminal (toggleterm) — own prefix so gitsigns/LSP buffer-local `<leader>t*` toggles can't shadow it | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
-| `<leader>ca`/`rn`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
+| `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>g*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
@@ -427,7 +427,7 @@ stays on the plain handler.
 | `<C-s>` (normal + insert) | Signature help |
 | `<leader>th` | Toggle auto-hover on CursorHold |
 | `<leader>ca` | Code action |
-| `<leader>rn` | Rename symbol |
+| `grn` (nvim core default, not remapped) | Rename symbol |
 | `<leader>ce` | Show diagnostic float under cursor |
 | `<leader>cd` | Diagnostic list (loclist) |
 | `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) |

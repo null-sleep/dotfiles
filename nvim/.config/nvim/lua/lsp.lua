@@ -85,7 +85,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
     -- Note: Copilot LSP triggers this callback too. Most features are gated by
     -- :supports_method() so they're filtered out. Ungated keymaps (gd, <C-s>,
-    -- <leader>rn, etc.) are harmless — Copilot doesn't implement those methods.
+    -- <leader>ca, etc.) are harmless — Copilot doesn't implement those methods.
 
     local map = function(mode, lhs, rhs, desc)
       vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
@@ -242,7 +242,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
     -- If the terminal hangs after pressing it, run `stty -ixon` in your shell rc.
     map({ 'n', 'i' }, '<C-s>',   vim.lsp.buf.signature_help,  'LSP: Signature help')
-    map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
+    -- Rename intentionally has no <leader>r map: nvim 0.11+ core already binds
+    -- grn (rename) alongside gra/grr/gri/grt/grx, so a <leader>rn alias would
+    -- just duplicate a built-in for the cost of an entire top-level leader group.
     map({'n','x'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
     -- jump = true moves cursor to the exact diagnostic position after opening the float
     map('n', '<leader>ce',       function() vim.diagnostic.open_float({ jump = true }) end, 'LSP: Show diagnostic')
