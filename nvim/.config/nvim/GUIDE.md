@@ -1602,7 +1602,7 @@ tree. `<leader>nd` debugs the nearest test (breakpoints honored via dap).
 | `<leader>nf` | Run all tests in file |
 | `<leader>nl` | Run last |
 | `<leader>nd` | Debug nearest test (via dap) |
-| `<leader>nS` | Stop running test(s) |
+| `<leader>nq` | Stop running test(s) |
 | `<leader>ns` | Toggle summary tree |
 | `<leader>no` | Show output for nearest |
 | `<leader>nO` | Toggle output panel |
