@@ -174,8 +174,19 @@ vim.keymap.set('n', '<leader>Tb', toggle_bottom_term, { desc = 'Terminal: Bottom
 -- (unlike the sidekick pre-warm in ai.lua, where start() always opens a
 -- visible window). :ToggleTerm with no args toggles the lowest-id terminal,
 -- so spawning id=1 here is what <C-\> attaches to on first press.
+--
+-- Fired at 2000ms (before ai.lua's claude pre-warm at 3000ms) so the two
+-- spawns don't land together on a <leader>qs restore window. Terminal:spawn()
+-- isn't idempotent, so guard each terminal in case the user got there first
+-- during the 2s wait: <C-\> within that window pays one cold spawn, which is
+-- an accepted trade-off.
 vim.defer_fn(function()
   if not utils.has_ui() then return end -- headless: skip so spawned shells don't keep nvim alive
-  require('toggleterm.terminal').Terminal:new({ id = 1 }):spawn()
-  ensure_bottom_term():spawn() -- pre-warm the panel too, sharing the one instance
-end, 100)
+  if not require('toggleterm.terminal').get(1, true) then
+    require('toggleterm.terminal').Terminal:new({ id = 1 }):spawn()
+  end
+  local bottom = ensure_bottom_term()
+  if not (bottom.bufnr and vim.api.nvim_buf_is_valid(bottom.bufnr)) then
+    bottom:spawn() -- pre-warm the panel too, sharing the one instance
+  end
+end, 2000)
