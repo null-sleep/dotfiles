@@ -275,9 +275,14 @@ vim.keymap.set('n', '<leader>as',
   function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
 -- close() kills the terminal process, deletes the buffer, and detaches the
 -- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
--- show/hide without losing state.
-vim.keymap.set('n', '<leader>ad',
-  function() require('sidekick.cli').close() end, { desc = 'AI: Kill CLI session' })
+-- show/hide without losing state. Guarded with a confirm prompt: <leader>ad
+-- sits one key from <leader>aa/<leader>as, so a typo shouldn't be able to
+-- silently discard a running Claude conversation.
+vim.keymap.set('n', '<leader>ad', function()
+  if vim.fn.confirm('Kill CLI session? (This tears down the terminal and session state)', '&Yes\n&No', 2) == 1 then
+    require('sidekick.cli').close()
+  end
+end, { desc = 'AI: Kill CLI session' })
 vim.keymap.set('n', '<leader>ao',
   function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
 
