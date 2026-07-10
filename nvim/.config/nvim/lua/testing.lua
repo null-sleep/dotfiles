@@ -30,7 +30,7 @@ map('n', '<leader>nn', function() nt().run.run() end,                     { desc
 map('n', '<leader>nf', function() nt().run.run(vim.fn.expand('%')) end,   { desc = 'Test: Run file' })
 map('n', '<leader>nl', function() nt().run.run_last() end,                { desc = 'Test: Run last' })
 map('n', '<leader>nd', function() nt().run.run({ strategy = 'dap' }) end, { desc = 'Test: Debug nearest' })
-map('n', '<leader>nS', function() nt().run.stop() end,                    { desc = 'Test: Stop' })
+map('n', '<leader>nq', function() nt().run.stop() end,                    { desc = 'Test: Stop' })
 map('n', '<leader>ns', function() nt().summary.toggle() end,             { desc = 'Test: Toggle summary' })
 map('n', '<leader>no', function() nt().output.open({ enter = true }) end, { desc = 'Test: Show output' })
 map('n', '<leader>nO', function() nt().output_panel.toggle() end,         { desc = 'Test: Toggle output panel' })
