@@ -78,6 +78,7 @@ local keywords = {
   ['<leader>qq'] = 'quit all exit nvim qa close',
   ['<leader>tz'] = 'spell typo spelling',
   ['<leader>tn'] = 'line numbers relative relativenumber absolute gutter',
+  ['<leader>tg'] = 'indent guides scope lines snacks toggle blankline ibl',
   ['<leader>tb'] = 'git blame inline current line toggle gitsigns annotation',
   ['<leader>th'] = 'hover hold auto documentation cursorhold toggle lsp',
   ['<leader>Tb'] = 'terminal bottom panel vscode toggleterm horizontal dock',

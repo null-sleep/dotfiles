@@ -58,6 +58,17 @@ M.global_overrides = {
   -- Indent guide lines — default is too faint, NonText is visible but unobtrusive
   NvimTreeIndentMarker       = { link = 'NonText' },
 
+  -- snacks.indent guide lines (see scratch.lua) — same reasoning as
+  -- NvimTreeIndentMarker above: NonText is visible but unobtrusive for the
+  -- steady-state indent columns. The current-scope guide (the indent column
+  -- of whatever block the cursor is in) links to CursorLineNr instead —
+  -- every theme gives it a distinct, readable accent color that's already
+  -- calibrated to stand out against Normal without being as loud as a full
+  -- diagnostic color, so the active scope reads clearly against the dimmer
+  -- NonText guides around it.
+  SnacksIndent      = { link = 'NonText' },
+  SnacksIndentScope = { link = 'CursorLineNr' },
+
   -- Aerial's current-position marker: highlights the sidebar row matching the
   -- source cursor, AND (via highlight_on_hover) the source line matching the
   -- sidebar cursor. Default links to QuickFixLine, which is a loud attention-
