@@ -7,6 +7,10 @@ vim.pack.add(vim.list_extend({
   -- Treesitter
   { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main' },
   { src = gh('nvim-treesitter/nvim-treesitter-context') },
+  -- Textobject queries on the runtimepath — sidekick's {function}/{class}
+  -- context vars resolve via these (see ai.lua). main branch matches the
+  -- nvim-treesitter rewrite.
+  { src = gh('nvim-treesitter/nvim-treesitter-textobjects'), version = 'main' },
 
   -- Telescope (fuzzy finder)
   { src = gh('nvim-lua/plenary.nvim') },
@@ -72,12 +76,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('nvim-neotest/nvim-nio') },
   { src = gh('nvim-neotest/neotest') },
   -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
-  -- TODO: flip src back to 'folke/sidekick.nvim' once PR #277 merges
-  -- (https://github.com/folke/sidekick.nvim/pull/277).
-  {
-    src = gh('alvarosevilla95/sidekick.nvim'),
-    version = 'fix/nes-missing-request-id',
-  },
+  { src = gh('folke/sidekick.nvim') },
 }, themes.sources))
 
 -- Warn about orphaned plugins (on disk but not in vim.pack.add list)
@@ -273,6 +272,12 @@ pcall(function()
     require('nvim-treesitter').install(to_install)
   end
 end)
+
+-- Put nvim-treesitter-textobjects' `queries/<lang>/textobjects.scm` on the
+-- runtimepath so sidekick's {function}/{class} context vars resolve
+-- (context/textobject.lua looks them up via vim.treesitter.query.get). No
+-- setup() needed — that only configures move/select/swap keymaps we don't use.
+pcall(vim.cmd.packadd, 'nvim-treesitter-textobjects')
 
 -- Skip treesitter for buffers >50k lines or >1.5MB
 local function is_large_buffer(buf)

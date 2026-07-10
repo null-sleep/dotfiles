@@ -271,19 +271,40 @@ vim.keymap.set('n', '<leader>as',
 -- show/hide without losing state.
 vim.keymap.set('n', '<leader>ad',
   function() require('sidekick.cli').close() end, { desc = 'AI: Kill CLI session' })
-vim.keymap.set('n', '<leader>ap',
+vim.keymap.set('n', '<leader>ao',
   function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
--- Sidekick template variables (see reference table in this plan):
---   {this}      → {position} in normal mode, {selection} in visual mode
---   {file}      → relative file path
---   {selection} → visual selection text (equivalent to {this} in visual mode)
--- This single binding covers both cases, so a separate <leader>av is not needed.
+
+-- Send-context bindings. Each forwards a sidekick template variable to the
+-- active CLI (see sidekick's cli/context/init.lua for the full var list).
+-- {this} covers both cases:
+--   normal mode → {position}; visual mode → {selection}
+-- so a separate {selection} binding isn't needed.
 vim.keymap.set({ 'n', 'x' }, '<leader>at',
   function() require('sidekick.cli').send({ msg = '{this}' }) end,
   { desc = 'AI: Send this (position or selection)' })
-vim.keymap.set('n', '<leader>af',
+-- {file} on <leader>ap — p = path, matching the `yp`/`yP` yank convention.
+vim.keymap.set('n', '<leader>ap',
   function() require('sidekick.cli').send({ msg = '{file}' }) end,
-  { desc = 'AI: Send file' })
+  { desc = 'AI: Send file (path)' })
+-- {function}/{class} need nvim-treesitter-textobjects (packadd'd in plugins.lua).
+-- They send a position reference (type + name + file:line) for the textobject
+-- at the cursor; outside any function/class the send is a benign no-op.
+vim.keymap.set('n', '<leader>af',
+  function() require('sidekick.cli').send({ msg = '{function}' }) end,
+  { desc = 'AI: Send enclosing function' })
+vim.keymap.set('n', '<leader>ac',
+  function() require('sidekick.cli').send({ msg = '{class}' }) end,
+  { desc = 'AI: Send enclosing class' })
+-- {diagnostics} on <leader>ae — e = diagnostic, mirroring <leader>ce.
+vim.keymap.set('n', '<leader>ae',
+  function() require('sidekick.cli').send({ msg = '{diagnostics}' }) end,
+  { desc = 'AI: Send buffer diagnostics' })
+vim.keymap.set('n', '<leader>ab',
+  function() require('sidekick.cli').send({ msg = '{buffers}' }) end,
+  { desc = 'AI: Send open buffers' })
+vim.keymap.set('n', '<leader>aq',
+  function() require('sidekick.cli').send({ msg = '{quickfix}' }) end,
+  { desc = 'AI: Send quickfix list' })
 
 -- Editing utilities (<leader>u)
 local edit = require('edit')

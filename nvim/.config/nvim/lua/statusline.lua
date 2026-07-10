@@ -51,6 +51,33 @@ require('lualine').setup({
       'diagnostics',
     },
     lualine_x = {
+      -- Copilot / NES activity. Hidden when idle; shows a robot glyph while the
+      -- Copilot LSP is working (NES requests flow through it) and turns red on
+      -- error. sidekick.status.get() returns { busy, kind } or nil when the
+      -- feature is disabled / no Copilot client is attached. pcall-guarded so
+      -- it's a silent no-op on first launch before sidekick loads.
+      {
+        function()
+          local ok, Status = pcall(require, 'sidekick.status')
+          if not ok then return '' end
+          local s = Status.get()
+          if s and (s.busy or s.kind == 'Error') then
+            return '\u{f06a9}'  -- nf-md-robot
+          end
+          return ''
+        end,
+        -- Track the active theme's DiagnosticError fg rather than hardcoding,
+        -- so the error color follows theme switches.
+        color = function()
+          local ok, Status = pcall(require, 'sidekick.status')
+          local s = ok and Status.get() or nil
+          if s and s.kind == 'Error' then
+            local hl = vim.api.nvim_get_hl(0, { name = 'DiagnosticError', link = false })
+            if hl.fg then return { fg = string.format('#%06x', hl.fg) } end
+          end
+          return nil
+        end,
+      },
       {
         'lsp_status',
         fmt = function(status)

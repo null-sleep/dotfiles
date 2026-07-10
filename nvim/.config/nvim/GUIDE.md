@@ -53,7 +53,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check
-- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management, Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
+- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
@@ -70,7 +70,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
-- **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
+- **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, Copilot/NES activity, lsp_status, location), powerline separators, global statusline. The Copilot/NES indicator (in `lualine_x`, left of `lsp_status`) reads `sidekick.status.get()` — hidden when idle, robot glyph while the Copilot LSP is busy (NES requests flow through it), red on error
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
@@ -1432,10 +1432,21 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
 | `<leader>as` | Select a different CLI tool (copilot, gemini, etc.) |
 | `<leader>ad` | Kill CLI session (tears down process + buffer) |
-| `<leader>ap` | Select prompt |
+| `<leader>ao` | Select prompt |
 | `<leader>at` | Send position (normal) or selection (visual) to CLI |
-| `<leader>af` | Send file path to CLI |
+| `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |
+| `<leader>af` | Send enclosing function (needs nvim-treesitter-textobjects) |
+| `<leader>ac` | Send enclosing class (needs nvim-treesitter-textobjects) |
+| `<leader>ae` | Send buffer diagnostics (`e`, mirrors `<leader>ce`) |
+| `<leader>ab` | Send list of open buffers |
+| `<leader>aq` | Send quickfix list |
 | `<M-a>` (in picker) | Send picker selection(s) to CLI |
+
+`<leader>af`/`<leader>ac` send a *position reference* (type + name +
+`file:line`) for the function/class at the cursor, not the code body; outside
+any function/class the send is a benign no-op. They resolve via
+`nvim-treesitter-textobjects` (packadd'd in `plugins.lua`); the other send
+targets come from sidekick's own `cli/context` module.
 
 ### NES vs Copilot inline completion
 
