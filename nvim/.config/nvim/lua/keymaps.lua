@@ -52,8 +52,12 @@ vim.api.nvim_create_autocmd('CursorMoved', {
   callback = function() vim.b.hover_suppressed = false end,
 })
 
--- Exit insert mode without reaching for Escape
+-- Exit insert mode without reaching for Escape. Both map to the same rhs:
+-- jj is the double-tap muscle memory, jk a two-finger inward roll some
+-- find faster — mapping both costs nothing since the timeout starts on
+-- the shared j prefix either way.
 vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
+vim.keymap.set('i', 'jk', '<Esc>', { desc = 'Exit insert mode' })
 
 -- Yank to system clipboard (dd, x, c stay in Neovim register).
 -- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
