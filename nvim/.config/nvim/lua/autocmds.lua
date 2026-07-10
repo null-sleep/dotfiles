@@ -83,28 +83,27 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
--- `q` closes transient, read-only windows (help, quickfix/loclist, plain
--- nofile scratch panels) the same way `q` closes a Neogit or fugitive buffer —
--- so you don't have to reach for `:q`. Deliberately scoped three ways:
---   * only help/quickfix/nofile buftypes (never a real file buffer);
---   * skip `is_special()` buffers — that registry marks the interactive
---     panels/terminals (nvim-tree, aerial, toggleterm, sidekick) that own
---     their own `q` meaning (macro recording in a terminal, plugin nav in the
---     sidebars); this is is_special() used as an *exclusion*, its intended use;
---   * skip any buffer that already binds `q` in normal mode, so a plugin's own
---     `q` (Neogit/diffview status buffers, etc.) is never clobbered.
+-- `q` closes transient, read-only help and quickfix/loclist windows the way
+-- `q` already closes a Neogit or fugitive buffer — so you don't reach for
+-- `:q`. Scoped tightly to the `help`/`quickfix` buftypes on purpose: `nofile`
+-- was NOT included because it over-matches (diffview diff panes, LSP hover/
+-- diagnostic floats, mini.notify history, code-ish scratch), the exact
+-- over-reach buffers.lua warns about — and help/quickfix are the only buffers
+-- with an unambiguous "q closes me" convention. Skips any buffer that already
+-- binds `q` (a quickfix enhancer, say) so a plugin's own map is never
+-- clobbered. `silent!` swallows E444 on the last window. Note: this shadows
+-- macro-recording `q` in these two window types (a non-issue for help/qf).
 vim.api.nvim_create_autocmd('BufWinEnter', {
   group = augroup,
   desc = 'Map q to close transient windows',
   callback = function(args)
     local buf = args.buf
     local bt = vim.bo[buf].buftype
-    if bt ~= 'help' and bt ~= 'quickfix' and bt ~= 'nofile' then return end
-    if buffers.is_special(buf) then return end
+    if bt ~= 'help' and bt ~= 'quickfix' then return end
     for _, m in ipairs(vim.api.nvim_buf_get_keymap(buf, 'n')) do
       if m.lhs == 'q' then return end
     end
-    vim.keymap.set('n', 'q', '<Cmd>close<CR>', { buffer = buf, desc = 'Close window' })
+    vim.keymap.set('n', 'q', '<Cmd>silent! close<CR>', { buffer = buf, desc = 'Close window' })
   end,
 })
 
