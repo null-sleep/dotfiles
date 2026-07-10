@@ -56,3 +56,13 @@ vim.api.nvim_create_autocmd('BufReadPost', {
     end
   end,
 })
+
+-- Briefly flash yanked text so you can see exactly what landed in the
+-- register. Extra useful here because of the split-clipboard maps (`y` yanks
+-- to the system clipboard, `dd`/`x`/`c` stay in the default register — see
+-- keymaps.lua): the flash confirms which characters/lines were captured.
+vim.api.nvim_create_autocmd('TextYankPost', {
+  group = augroup,
+  desc = 'Highlight yanked text',
+  callback = function() vim.hl.on_yank() end,
+})
