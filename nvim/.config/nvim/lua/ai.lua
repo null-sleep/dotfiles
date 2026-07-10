@@ -130,18 +130,90 @@ vim.api.nvim_create_autocmd('FileType', {
 -- editor. Gated on a `.git` ancestor (using vim.fs.root so it works for git
 -- worktrees, where .git is a file rather than a directory) so we don't spawn
 -- claude when nvim opens a single file outside a project.
-if vim.fs.root(0, '.git') and utils.has_ui() then -- skip pre-warm when headless (see above)
+local PREWARM_DELAY = 3000 -- ms; see PersistenceLoadPre/Post below for why not a fixed defer_fn
+
+-- Guard 1 + the show/hide dance, factored out so the timer and the
+-- persistence reschedule below share it.
+local function do_prewarm()
+  -- Headless skip (the PersistenceLoadPost reschedule path isn't otherwise
+  -- has_ui-gated, unlike the initial trigger below): don't spawn claude with
+  -- no UI to warm for.
+  if not utils.has_ui() then return end
+  -- Guard 1: a sidekick CLI already exists (user opened it during the wait,
+  -- or a restore surfaced one) -> don't double-spawn.
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf)
+       and vim.bo[buf].filetype == 'sidekick_terminal' then
+      return
+    end
+  end
+  local cli = require('sidekick.cli')
+  _G.__sidekick_prewarm = true
+  pcall(cli.show, { name = 'claude', focus = false })
   vim.defer_fn(function()
-    local cli = require('sidekick.cli')
-    _G.__sidekick_prewarm = true
-    pcall(cli.show, { name = 'claude', focus = false })
-    vim.defer_fn(function()
-      _G.__sidekick_prewarm = nil
-      if prewarm_term then
-        prewarm_term.open_win = nil
-        prewarm_term = nil
+    _G.__sidekick_prewarm = nil
+    if prewarm_term then
+      prewarm_term.open_win = nil
+      prewarm_term = nil
+    end
+    -- Guard 2: if a *visible* claude CLI appeared during the show->hide
+    -- window (user hit <leader>aa), skip the hide so we don't yank it away.
+    -- Our own pre-warm float is opened with hide=true, so it's excluded here.
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local wbuf = vim.api.nvim_win_get_buf(win)
+      if vim.bo[wbuf].filetype == 'sidekick_terminal'
+         and not vim.api.nvim_win_get_config(win).hide then
+        return
       end
-      pcall(cli.hide, { name = 'claude' })
-    end, 300)
-  end, 100)
+    end
+    pcall(cli.hide, { name = 'claude' })
+  end, 300)
+end
+
+-- Re-schedulable one-shot timer so PersistenceLoadPre/Post (below) can push
+-- the spawn past a <leader>qs restore. Follows configs.lua's `_G`
+-- stop-before-create re-source guard, and additionally closes its own handle
+-- once it fires (repeat = 0, one-shot) so it doesn't leak until the next
+-- re-source.
+local function schedule_prewarm()
+  if _G._sidekick_prewarm_timer then
+    _G._sidekick_prewarm_timer:stop()
+    _G._sidekick_prewarm_timer:close()
+  end
+  _G._sidekick_prewarm_timer = assert(vim.uv.new_timer())
+  _G._sidekick_prewarm_timer:start(PREWARM_DELAY, 0, vim.schedule_wrap(function()
+    if _G._sidekick_prewarm_timer then
+      _G._sidekick_prewarm_timer:close()
+      _G._sidekick_prewarm_timer = nil
+    end
+    do_prewarm()
+  end))
+end
+
+-- persistence.nvim fires these around <leader>qs restore (verified in
+-- persistence.nvim source: LoadPre/:source session/LoadPost). Pre: stop the
+-- timer so claude doesn't spawn mid-restore, competing with rust-analyzer/
+-- LSP/treesitter for the main thread. Post: reschedule so it fires
+-- PREWARM_DELAY *after* restore completes instead of racing it.
+vim.api.nvim_create_autocmd('User', {
+  group = augroup,
+  pattern = 'PersistenceLoadPre',
+  desc = 'Sidekick pre-warm: pause claude spawn during session restore',
+  callback = function()
+    if _G._sidekick_prewarm_timer then
+      _G._sidekick_prewarm_timer:stop()
+      _G._sidekick_prewarm_timer:close()
+      _G._sidekick_prewarm_timer = nil
+    end
+  end,
+})
+vim.api.nvim_create_autocmd('User', {
+  group = augroup,
+  pattern = 'PersistenceLoadPost',
+  desc = 'Sidekick pre-warm: reschedule claude spawn after restore completes',
+  callback = schedule_prewarm,
+})
+
+if vim.fs.root(0, '.git') and utils.has_ui() then -- skip pre-warm when headless (see above)
+  schedule_prewarm()
 end
