@@ -423,7 +423,7 @@ stays on the plain handler.
 | Keymap | Action |
 |---|---|
 | `K` | Hover — docs/type/signature float (not the source; use peek for that) |
-| `<C-s>` | Signature help |
+| `<C-s>` (normal + insert) | Signature help |
 | `<leader>th` | Toggle auto-hover on CursorHold |
 | `<leader>ca` | Code action |
 | `<leader>rn` | Rename symbol |

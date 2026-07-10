@@ -241,7 +241,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('n', 'K', function() vim.lsp.buf.hover({ max_height = 20 }) end, 'LSP: Hover (peek type/signature/docs)')
     -- <C-s> may be captured by terminal as XOFF (flow control freeze) in bash/zsh.
     -- If the terminal hangs after pressing it, run `stty -ixon` in your shell rc.
-    map('n', '<C-s>',            vim.lsp.buf.signature_help,  'LSP: Signature help')
+    map({ 'n', 'i' }, '<C-s>',   vim.lsp.buf.signature_help,  'LSP: Signature help')
     map('n', '<leader>rn',       vim.lsp.buf.rename,          'LSP: Rename symbol')
     map({'n','x'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
     -- jump = true moves cursor to the exact diagnostic position after opening the float
