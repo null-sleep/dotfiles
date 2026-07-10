@@ -377,7 +377,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>tc` | Toggle comment (remaps to `gcc` / `gc`) | keymaps.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
-| `jk` (insert mode) | Exit to normal mode | keymaps.lua |
+| `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
 | `<M-a>` (in any Telescope picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
 
 
