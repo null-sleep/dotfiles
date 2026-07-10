@@ -1,5 +1,6 @@
 vim.g.mapleader = ' '
 require('configs')
+require('autocmds')  -- general editor autocmds (mkdir-on-save, cursor restore, yank hl, ...)
 require('plugins')
 require('treesitter_context')  -- sticky scope header (VS Code-style sticky scroll)
 require('outline')             -- outline sidebar + telescope picker (aerial.nvim)

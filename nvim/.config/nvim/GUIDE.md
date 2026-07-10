@@ -54,6 +54,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check
+- **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers)
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
@@ -107,7 +108,7 @@ this file after updating plugins to keep versions consistent across machines.
 
 ### Load order
 
-From `init.lua`: configs -> plugins -> treesitter_context -> outline ->
+From `init.lua`: configs -> autocmds -> plugins -> treesitter_context -> outline ->
 structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> titling -> whichkey -> autosave -> filetree -> neovide.
