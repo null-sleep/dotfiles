@@ -54,7 +54,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check
-- **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers)
+- **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost")
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
@@ -137,6 +137,20 @@ or config reloads):
 
 - **Timers** use globals with stop-before-create: `if _G._checktime_timer then _G._checktime_timer:stop() end` before creating a new one. Prevents timer leaks on re-source.
 - **Autocmds** use `nvim_create_augroup` with `clear = true`. The augroup is wiped before re-adding its autocmds, so re-source never duplicates handlers.
+
+### Cursor-restore rides BufReadPost
+
+The "restore last cursor position" autocmd in `autocmds.lua` fires on
+`BufReadPost` — the event for a file being *read from disk*. This is worth
+knowing before adding logic near it: synthetic panels (nvim-tree, aerial,
+sidekick, `:terminal`) are built in memory and never fire `BufReadPost`, so
+they never reach it and need no exclusion. Disk-backed snacks scratch buffers
+*can* fire it, but restoring their cursor is harmless. The only real files
+deliberately skipped are `gitcommit`/`gitrebase` (always want line 1). It is
+intentionally not guarded by `buftype`/`is_special()`; if a future plugin
+abuses `BufReadPost` on a synthetic buffer, add a `buftype == ''` guard there
+rather than reaching for the shared predicate. The in-code comment carries
+the same warning for anyone editing the file directly.
 
 ### Picker state with revert-on-cancel
 
