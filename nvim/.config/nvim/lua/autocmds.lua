@@ -9,16 +9,24 @@ local buffers = require('buffers')
 -- Auto-create missing parent directories when writing a file, so
 -- `:e src/new/deep/file.lua` followed by `:w` doesn't fail with "no such
 -- file or directory" — nvim writes the intervening dirs for you.
--- Guarded to skip URL-style buffer names (`fugitive://`, `oil://`, etc.):
--- those aren't real filesystem paths and must never be mkdir'd.
+-- Only real file buffers: an empty `buftype` means an ordinary on-disk file,
+-- so this skips acwrite scheme buffers (`fugitive://`, `oil://` — which route
+-- writes through BufWriteCmd and don't fire BufWritePre anyway) plus
+-- nofile/terminal/prompt in one check, no URL-scheme allowlist to keep current.
+-- mkdir is pcall'd: an uncaught error in BufWritePre aborts the write, so a
+-- failure (E739 when a path component is a file, permission denied) must not
+-- silently drop the save — warn instead.
 vim.api.nvim_create_autocmd('BufWritePre', {
   group = augroup,
   desc = 'Create missing parent dirs on save',
   callback = function(args)
-    if args.match:match('^%w+://') then return end
+    if vim.bo[args.buf].buftype ~= '' then return end
     local dir = vim.fs.dirname(vim.fs.abspath(args.match))
     if vim.fn.isdirectory(dir) == 0 then
-      vim.fn.mkdir(dir, 'p')
+      local ok, err = pcall(vim.fn.mkdir, dir, 'p')
+      if not ok then
+        vim.notify('mkdir failed for ' .. dir .. ': ' .. err, vim.log.levels.WARN)
+      end
     end
   end,
 })
