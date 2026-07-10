@@ -139,8 +139,37 @@ vim.keymap.set('n', '<leader><leader>', function()
   end
   vim.cmd('buffer #')
 end, { desc = 'Toggle alternate buffer' })
+vim.keymap.set('n', '<leader>bb', function() require('pickers.buffer').open() end,
+  { desc = 'Buffer: Picker' })
+-- Kept as a permanent alias: one keystroke shorter, and predates <leader>bb
+-- (added so the Buffer group tells the whole picker+close+scratch+only story).
 vim.keymap.set('n', '<leader>m', function() require('pickers.buffer').open() end,
-  { desc = 'Buffer picker' })
+  { desc = 'Buffer: Picker (alias of <leader>bb)' })
+
+-- Close every listed buffer except the current one. Skips modified buffers
+-- (would lose unsaved changes silently) and special/non-code buffers (via
+-- buffers.is_special() — closing a terminal or sidebar this way is never
+-- what "close other buffers" means) so it only ever touches plain file
+-- buffers, then reports what happened instead of silently doing partial work.
+vim.keymap.set('n', '<leader>bo', function()
+  local current = vim.api.nvim_get_current_buf()
+  local closed, skipped_modified = 0, 0
+  for _, info in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
+    if info.bufnr ~= current then
+      if info.changed == 1 then
+        skipped_modified = skipped_modified + 1
+      elseif not buffers.is_special(info.bufnr) then
+        require('mini.bufremove').delete(info.bufnr, false)
+        closed = closed + 1
+      end
+    end
+  end
+  local msg = ('Closed %d other buffer(s)'):format(closed)
+  if skipped_modified > 0 then
+    msg = msg .. (' (%d skipped: unsaved changes)'):format(skipped_modified)
+  end
+  vim.notify(msg)
+end, { desc = 'Buffer: Close others' })
 
 -- File tree: opens and reveals current file, or closes if already open.
 -- Only one left-edge sidebar at a time: opening the tree closes the outline

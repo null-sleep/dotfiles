@@ -55,11 +55,11 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, etc.), auto-reload timer for external file changes, nvim update check
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
-- **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
+- **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
-- **`pickers/buffer.lua`** — Custom Telescope buffer picker (`<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row
+- **`pickers/buffer.lua`** — Custom Telescope buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row
 - **`pickers/gitstatus.lua`** — Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle
 - **`pickers/common.lua`** — Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
@@ -369,6 +369,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `:Q` | Quit all (`qa`) | keymaps.lua |
 | `<leader><leader>` | Alternate buffer (skips non-code buffers, see `buffers.lua`) | keymaps.lua |
 | `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
+| `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
 | `<leader>qq` | Quit all (`:qa`, with a confirm prompt) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
@@ -794,7 +795,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 |---|---|
 | `<leader>sf` | Find files by name |
 | `<leader>sg` | Live grep (search file contents) |
-| `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture |
+| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last search |
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
@@ -819,7 +820,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
 | `<C-q>` | Send all current results to the quickfix list and open it |
 | `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
-| `<M-d>` | In the buffer picker (`<leader>m`): delete the highlighted buffer (or all multi-selected) |
+| `<M-d>` | In the buffer picker (`<leader>bb`/`<leader>m`): delete the highlighted buffer (or all multi-selected) |
 | `<Esc>` | Close |
 
 **Multi-select workflows:**
@@ -830,7 +831,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 **Per-picker notes:**
 - `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
-- `<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
+- `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
 - `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
 - `<leader>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
 
@@ -1134,7 +1135,9 @@ equivalents (mini.notify, telescope, ...).
 | `<c-n>` (in `<leader>bS` picker) | Create a new scratch buffer |
 
 Under `<leader>b` (Buffer) rather than `<leader>u` (Utilities) — open to
-remapping these if they stop feeling right.
+remapping these if they stop feeling right. The `<leader>b` which-key popup
+now tells the whole buffer story: `<leader>bb` picker, `<leader>bd` close,
+`<leader>bo` close others, plus these two scratch maps.
 
 **Tips:**
 - **Persistence**: content auto-saves to disk when the buffer is hidden
