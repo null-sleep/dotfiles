@@ -376,11 +376,14 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
 | `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
-| `<leader>tc` | Toggle comment (remaps to `gcc` / `gc`) | keymaps.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
 | `<M-a>` (in any Telescope picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
+
+Toggling a comment has no dedicated `<leader>t*` map — use nvim's native
+`gc` (operator, e.g. `gcip`) / `gcc` (current line), which are shorter and
+already which-key-discoverable under the `g` group.
 
 
 # Part 2: Reference
