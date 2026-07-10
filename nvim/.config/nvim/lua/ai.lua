@@ -69,6 +69,12 @@ vim.api.nvim_create_autocmd('User', {
   pattern = 'SidekickCliAttach',
   desc = 'Sidekick CLI: promote to full-height edge column',
   callback = function(args)
+    -- During pre-warm the CLI lives in a deliberately hidden float. Promoting
+    -- it (wincmd L) converts that float into a *visible* split — which the
+    -- pre-warm's Guard 2 then mistakes for a user-opened CLI and leaves on
+    -- screen instead of hiding. The hidden float needs no promotion, so skip
+    -- it while pre-warming.
+    if _G.__sidekick_prewarm then return end
     local layout = require('sidekick.config').cli.win.layout
     local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
     if not side then return end -- float / top / bottom layouts don't need promoting
