@@ -571,7 +571,9 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which
   just hides the window), `<leader>ad` calls `close()` which terminates the
   CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
-  the chat; `<leader>ad` when you're done with the conversation.
+  the chat; `<leader>ad` when you're done with the conversation. Guarded by
+  a `vim.fn.confirm()` prompt — it sits one key from `<leader>aa`/`<leader>as`,
+  so a typo can't silently discard a running conversation.
 
 ### Troubleshooting
 
@@ -1425,7 +1427,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 2. **CLI integration** — opens Claude in a terminal split.
    `<leader>aa` toggles Claude (defaults to Claude, session stays alive
    when hidden). `<leader>as` switches to a different CLI tool.
-   `<leader>ad` tears down the session entirely.
+   `<leader>ad` tears down the session entirely (with a confirm prompt).
 
 | Keymap | Action |
 |---|---|
@@ -1436,7 +1438,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
 | `<leader>as` | Select a different CLI tool (copilot, gemini, etc.) |
-| `<leader>ad` | Kill CLI session (tears down process + buffer) |
+| `<leader>ad` | Kill CLI session (tears down process + buffer; confirm prompt) |
 | `<leader>ao` | Select prompt |
 | `<leader>at` | Send position (normal) or selection (visual) to CLI |
 | `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |
