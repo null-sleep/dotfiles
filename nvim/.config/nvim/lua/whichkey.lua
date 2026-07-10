@@ -118,39 +118,31 @@ local keywords = {
   ['<leader>vq'] = 'diffview close quit',
 }
 
--- Per-keymap tags for the <leader>sk picker. Keyed by lhs (same keys as
--- `keywords`). Value is a list of tag strings rendered as dim "+tag" pills.
--- Empty table = tags column stays hidden (width 0).
+-- Tag OVERRIDES for the <leader>sk picker (D1). Most tags are derived
+-- mechanically by pickers/keybindings.lua from the text before the first
+-- ':' in each keymap's desc (e.g. "Git hunk: Stage" -> "git hunk"), so they
+-- can't go stale the way the old 28-entry hand-maintained table did (it once
+-- tagged a nonexistent <leader>gs and missed 7 real <leader>g* keys added
+-- later). This table is kept deliberately slim: only lhs whose desired tag
+-- ISN'T the derivable prefix. Entries here are MERGED with the derived tag,
+-- never replace it — see resolve_tags() in pickers/keybindings.lua.
 local tags = {
-  ['<leader>gd']  = { 'git' },
-  ['<leader>gs']  = { 'git' },
-  ['<leader>gc']  = { 'git' },
-  ['<leader>gb']  = { 'git' },
-  ['<leader>vv']  = { 'git', 'diff' },
-  ['<leader>vp']  = { 'git', 'diff' },
-  ['<leader>vh']  = { 'git', 'diff' },
-  ['<leader>vf']  = { 'git', 'diff' },
-  ['<leader>tb']  = { 'git' },
-  ['<leader>Tb']  = { 'terminal' },
-  ['<leader>Tt']  = { 'terminal' },
-  ['<leader>db']  = { 'debug' },
-  ['<leader>dc']  = { 'debug' },
-  ['<leader>du']  = { 'debug' },
-  ['<leader>dR']  = { 'debug', 'rust' },
-  ['<leader>nn']  = { 'test' },
-  ['<leader>nd']  = { 'test', 'debug' },
-  ['<leader>ns']  = { 'test' },
-  ['<leader>cR']  = { 'rust' },
-  ['<leader>tz']  = { 'spell' },
-  [']s']          = { 'spell' },
-  ['[s']          = { 'spell' },
-  ['<leader>sd']  = { 'lsp' },
-  ['<leader>pd']  = { 'lsp' },
-  ['<leader>pt']  = { 'lsp' },
-  ['<leader>pi']  = { 'lsp' },
-  ['<leader>pr']  = { 'lsp' },
-  ['K']           = { 'lsp' },
-  ['<leader>a']   = { 'ai' },
+  ['<leader>cR'] = { 'rust' },              -- desc already derives 'rust'; kept for clarity
+  ['<leader>dR'] = { 'rust' },              -- desc derives 'debug'; Rust debuggables is also rust
+  ['<leader>vv'] = { 'diff' },
+  ['<leader>vp'] = { 'diff' },
+  ['<leader>vn'] = { 'diff' },
+  ['<leader>vh'] = { 'diff' },
+  ['<leader>vf'] = { 'diff' },
+  ['<leader>vq'] = { 'diff' },
+  ['<leader>nd'] = { 'debug' },             -- desc derives 'test'; debugging a test is also debug
+  ['K']          = { 'lsp' },
+  ['<leader>pd'] = { 'lsp' },
+  ['<leader>pt'] = { 'lsp' },
+  ['<leader>pi'] = { 'lsp' },
+  ['<leader>pr'] = { 'lsp' },
+  ['<leader>sd'] = { 'lsp' },
+  ['<leader>a']  = { 'ai' },
 }
 
 -- Exported for pickers/keybindings.lua: `require('whichkey').keywords/tags`

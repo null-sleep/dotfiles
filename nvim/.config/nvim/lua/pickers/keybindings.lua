@@ -45,6 +45,29 @@ local function tags_label(tags)
   return '+' .. table.concat(tags, ' +')
 end
 
+-- D1: derive a keymap's primary tag mechanically from its desc, instead of a
+-- hand-maintained per-lhs table that inevitably drifts (see whichkey.lua's
+-- `tags` doc comment). "Git hunk: Stage" -> "git hunk"; a desc with no
+-- "Group: Action" colon (most builtins.lua entries) yields no derived tag.
+local function derive_tag(desc)
+  local prefix = desc:match('^([^:]+):')
+  return prefix and prefix:lower() or nil
+end
+
+-- Merge the derived tag with whichkey.lua's slim override table (only for
+-- tags that aren't mechanically derivable, e.g. cross-references like
+-- 'rust'/'diff'/'debug'/'lsp'/'ai') — additive, never replacing the derived
+-- tag, and skipping the override when it duplicates what was already derived.
+local function resolve_tags(lhs, desc, overrides)
+  local tags = {}
+  local derived = derive_tag(desc)
+  if derived then tags[#tags + 1] = derived end
+  for _, extra in ipairs(overrides[lhs] or {}) do
+    if extra ~= derived then tags[#tags + 1] = extra end
+  end
+  return tags
+end
+
 -- Measure display column widths from the full result set.
 -- Uses strdisplaywidth (not #) so multi-byte Nerd Font glyphs size correctly.
 local function compute_widths(results)
@@ -134,7 +157,7 @@ local function build_results()
 
     local bc   = breadcrumb(node)
     local kw   = keywords[keys] or ''
-    local tags = tags_map[keys] or {}
+    local tags = resolve_tags(keys, desc, tags_map)
     local tags_str = table.concat(tags, ' ')
     -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
     local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. tags_str
@@ -152,7 +175,7 @@ local function build_results()
       if not seen[norm] then
         seen[norm] = true
         local kw   = keywords[entry.lhs] or ''
-        local tags = tags_map[entry.lhs] or {}
+        local tags = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp  = entry.group or ''
         local tags_str = table.concat(tags, ' ')
         -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
