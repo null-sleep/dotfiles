@@ -78,7 +78,7 @@ require('conform').setup({
 -- a configured formatter nor an LSP is available.
 vim.keymap.set({ 'n', 'x' }, '<leader>cf', function()
   require('conform').format({ async = true, lsp_format = 'fallback' })
-end, { desc = 'Format buffer' })
+end, { desc = 'Code: Format buffer' })
 
 -- Toggles the autosave path only — does not affect manual <leader>cf.
 -- Per-buffer override (e.g. for vendored files): :lua vim.b.disable_autoformat = true
