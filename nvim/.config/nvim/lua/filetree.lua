@@ -90,27 +90,14 @@ do
   end)
 end
 
--- Rewrite imports when a file is renamed/moved/deleted through the tree.
--- lsp-file-operations subscribes to nvim-tree's rename/move/delete events and
--- fires the LSP workspace/willRename→didRename requests, so files that
--- imported the old path get rewritten (VS Code's "update imports?" behavior).
--- Runs after nvim-tree.setup() above so the tree is fully loaded before we
--- subscribe to its event API (require('nvim-tree.api').events).
+-- Event half of nvim-lsp-file-operations — capability half in lsp.lua, keep in
+-- sync (grep 'lsp-file-operations'); missing either half silently no-ops, no
+-- error. Subscribes to nvim-tree's rename events so an in-tree rename rewrites
+-- importers (an external `git mv` can't be caught).
+-- Rationale in GUIDE.md "Renaming a file rewrites its imports".
 --
--- This is the EVENT half of the wiring; the CAPABILITY half (advertising
--- workspace/willRenameFiles to servers) lives in lsp.lua. Both are required —
--- drop the capability and this subscription still runs but every server
--- returns nothing, so it no-ops with no error. Keep them in sync
--- (grep 'lsp-file-operations'). See GUIDE.md "Renaming a file rewrites its imports".
---
--- Only catches renames done INSIDE nvim (tree `r`). An external `git mv` never
--- announces the rename to nvim, so no editor (this or VS Code) can auto-fix
--- imports for it — those stay a manual fixup.
---
--- Guarded against re-source: nvim-tree's api.events.subscribe is append-only
--- (no dedup), so a second setup() on `:source %` would fire willRename/didRename
--- twice per rename for the rest of the session. The global flag makes setup()
--- run once per nvim instance (see GUIDE.md "Re-source safety").
+-- After nvim-tree.setup() so its event API is loaded. Run-once guarded because
+-- api.events.subscribe is append-only — a `:source %` would double-fire it.
 if not vim.g._lsp_file_ops_setup then
   vim.g._lsp_file_ops_setup = true
   vim.cmd.packadd('nvim-lsp-file-operations')
