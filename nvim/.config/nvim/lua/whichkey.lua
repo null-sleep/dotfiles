@@ -31,7 +31,6 @@ wk.add({
   { '<leader>h',  group = 'Git hunk' },
   { '<leader>g',  group = 'Git' },
   { '<leader>v',  group = 'Diffview' },
-  { '<leader>r',  group = 'Refactor' },
   { '<leader>c',  group = 'Code' },
   { '<leader>a',  group = 'AI' },
   { '<leader>u',  group = 'Utilities' },
