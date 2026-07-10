@@ -53,6 +53,6 @@ vim.keymap.set('n', '<leader>ut', function()
     if input == nil then return end
     vim.g.custom_title = input ~= '' and input or nil
   end)
-end, { desc = 'Set window/tab title' })
+end, { desc = 'Utilities: Set window/tab title' })
 
 return M
