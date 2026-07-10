@@ -55,7 +55,14 @@ vim.api.nvim_create_autocmd('BufReadPost', {
     -- Run at most once per buffer — BufReadPost can fire again on a later `:e`.
     if vim.b[args.buf].last_loc_restored then return end
     vim.b[args.buf].last_loc_restored = true
+    -- Only touch the cursor when this buffer is the one in the current window
+    -- (a background `:bufload` fires BufReadPost too, and we set the mark on
+    -- window 0 below — don't move an unrelated window's cursor).
+    if vim.api.nvim_win_get_buf(0) ~= args.buf then return end
     local ft = vim.bo[args.buf].filetype
+    -- gitcommit/gitrebase always want line 1. (diff mode also reads files from
+    -- disk, but 'diff' isn't set yet at BufReadPost; a stray jump there is
+    -- harmless and `gg` fixes it, so it's not worth guarding.)
     if ft == 'gitcommit' or ft == 'gitrebase' then return end
     local mark = vim.api.nvim_buf_get_mark(args.buf, '"')
     local lcount = vim.api.nvim_buf_line_count(args.buf)
