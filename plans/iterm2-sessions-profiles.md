@@ -1,5 +1,44 @@
 # Plan: Leverage iTerm2 Profiles & Sessions
 
+## ⏳ TODO / what to do next (open decision — read this first)
+
+**The situation.** Two approaches to syncing iTerm2 config across machines are
+in tension, and it was never resolved:
+
+- **What's shipped today:** the whole iTerm2 state is synced as one opaque
+  blob, `iterm2/iTerm2 State.itermexport` (loaded via Settings → General →
+  Preferences → "Load preferences from a custom folder or URL" → `~/src/dotfiles/iterm2`).
+  This was a deliberate, committed choice — see README → [iTerm2](#iterm2) and
+  the export commits (`080dbf4`, `66be010`). It works, but it's a binary
+  gzip'd tarball: `git diff` can't show what changed, and it re-exports
+  wholesale every time, bundling non-config junk (AI chat DB, window-restore
+  SQLite, logs).
+- **What this plan proposes instead:** manage the actual *profile* as a
+  **Dynamic Profile JSON** (`iterm2/…/DynamicProfiles/default.json`) — plain,
+  diffable, hot-reloaded, stowed like `kitty.conf` — and pare the opaque
+  export down to only what iTerm2 genuinely needs from a custom folder.
+
+**The decision to make:** keep the opaque-export status quo, OR migrate to
+Dynamic Profiles (better, but is the churn worth it for a single "Default"
+profile?). This plan argues for migrating; nothing's been done yet.
+
+**Concrete first step if you migrate** (low-risk, reversible — see "Proposed
+changes" step 1 for detail):
+
+1. iTerm2 → select the Default profile → **Other Actions → Copy Profile as
+   JSON**.
+2. Save to `iterm2/Library/Application Support/iTerm2/DynamicProfiles/default.json`,
+   wrapped as `{"Profiles": [ … ]}`, with a stable `"Guid"`.
+3. `stow --no-folding iterm2`, relaunch iTerm2, confirm the profile loads and
+   the light/dark colors still flip (regression check).
+4. **Only then** decide whether to slim down / retire `iTerm2 State.itermexport`
+   — do **not** delete it first (it currently round-trips keybindings + global
+   settings too; confirm nothing else depends on it — see step 5 + Open
+   questions below).
+
+Everything below is the full research/rationale; this box is just the
+"where do I pick this back up" summary.
+
 ## Context
 
 Today the `iterm2/` stow package only carries color presets
