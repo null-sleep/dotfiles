@@ -1,11 +1,19 @@
-# Features from other editors worth stealing
+# Neovim enhancement backlog
 
-**Status:** research / not started
-**Date:** 2026-06-28
+**Status:** research / backlog — running list, not a committed roadmap
+**Started:** 2026-06-28 · consolidated 2026-07-11
 
-A running list of features from other editors (Zed, VS Code, etc.) that the
-current Neovim setup lacks, mapped to candidate plugins. Add new sections per
-editor over time.
+The single backlog of Neovim features/enhancements this config doesn't have
+yet, mapped to candidate plugins. Consolidated from four docs that used to
+duplicate each other: the by-editor gap analyses (Zed / VS Code / JetBrains
+below), the **LazyVim** and **LunarVim** comparison passes (now the capability
+sections — Editing power, Language servers, Options & autocmds), and the loose
+`TODO.md` wishlist (Smaller wishlist + Learning notes). Items that have their
+own dedicated plan file are pointers under "See dedicated specs," not
+re-listed here. Won't-do decisions are preserved in "Rejected" so they don't
+get re-litigated.
+
+The code is the source of truth; ✅ marks items already shipped.
 
 ---
 
@@ -34,7 +42,9 @@ edit them all in one view, save).
 Closest faithful port of Zed's killer feature. Run a project search, results open
 in a normal buffer, edit them inline (regex/replacement, per-match toggles),
 changes apply to source files on save. Highest value-to-effort; no overlap with
-anything currently installed.
+anything currently installed. Independently reconfirmed by the LazyVim and TODO
+passes. Keymap: LazyVim binds it `<leader>sr`, but that's Telescope resume here
+— use `<leader>sR`.
 - https://github.com/MagicDuck/grug-far.nvim
 
 ### Secondary gaps (each fills a real hole)
@@ -48,7 +58,11 @@ anything currently installed.
 - **Diagnostics / references panel** → `trouble.nvim`
   Zed's problems panel and "find all references in a multibuffer." Pairs with the
   existing LSP setup. (Also relevant to the edgebar idea in
-  `plans/unified-sidebar-panel.md`.)
+  `plans/unified-sidebar-panel.md`.) The LazyVim/LunarVim passes both *rejected*
+  trouble for now — loclist + Telescope + satellite marks cover the
+  diagnostics-list workflow, and `plans/quickfix-improvements.md` owns list
+  ergonomics; reconsider only if that plan stalls or the problems-panel/
+  references ask below wins out.
   - https://github.com/folke/trouble.nvim
 - ✅ **Done: Outline panel (persistent symbol tree)** → `stevearc/aerial.nvim`
   Zed's right-side outline: an always-visible, collapsible tree of the buffer's
@@ -240,6 +254,171 @@ Add further sections here as more editors are reviewed.
 
 ---
 
+## Editing power & motions
+
+From the LazyVim/LunarVim passes. Ordered roughly by payoff. Collision checks
+belong at implementation time against `plans/keymap-tracker.md` (the keymap
+inventory).
+
+- **Surround add/change/delete** — the single biggest editing-power gap;
+  nothing here can surround existing text (nvim-autopairs only *inserts*
+  pairs). `nvim-mini/mini.surround` fits the existing mini.* family; use the
+  `gs`-prefixed keyset (`gsa`/`gsd`/`gsr`/`gsf`/`gsh`) — it keeps `s` free in
+  case flash lands there. Alt: `kylechui/nvim-surround` (`ys`/`cs`/`ds`).
+- **Labeled jump motion → `folke/flash.nvim`** — no long-range motion story
+  today. `s` labeled jump, `S` treesitter-node select, `r`/`R` remote in
+  operator-pending, `<c-s>` toggle during `/`. Conflict: `s` = core substitute
+  (standard flash trade-off); `S` overlaps the hand-built `<M-o>`/`<M-i>`
+  structural select — keep both initially, judge later. (LazyVim rates this a
+  strong yes; the LunarVim pass rated it weakest given the existing structural
+  select — decide based on whether jump-to-arbitrary-position friction is real
+  for you.)
+- **Move line/selection** — no move-line maps today. `<A-j>`/`<A-k>` (LazyVim's
+  keys) are split-resize here, so use **`<A-Up>`/`<A-Down>`** in n/i/x:
+  `:m .+1<CR>==` / `:m .-2<CR>==` (insert: `<Esc>…gi`; visual: `:m '>+1<CR>gv=gv`).
+- **Undo break-points in insert mode** — map `,` `.` `;` each to `<char><c-g>u`
+  so one `u` no longer nukes an entire insert session. Three one-liners.
+- **`j`/`k` → `gj`/`gk` when no count** — `{expr=true}`, `v:count==0 ? 'gj':'j'`
+  (n+x, also `<Down>`/`<Up>`). Matters here because `wrap` is **on**.
+- **`n`/`N` always forward/backward** — regardless of `/` vs `?`; append `zv`
+  to open folds at the match. Expr maps, n/x/o.
+- **snacks `words`** — `]]`/`[[` (and `<a-n>`/`<a-p>`) jump between LSP
+  references of the symbol under cursor. Document-highlight is already wired on
+  LspAttach, so the visual half exists; this adds navigation. Nearly free
+  (snacks already installed). Conflict: `]]`/`[[` are core section motions —
+  confirm they're unused in your languages first.
+
+## Language servers & snippets
+
+- **JSON/YAML LSP + schemastore** — verified gap: no `jsonls`/`yamlls` in
+  `vim.lsp.enable` (`lsp.lua`), so JSON/YAML files get no LSP at all. Add
+  `b0o/schemastore.nvim`, configure both servers via `vim.lsp.config` with
+  `schemas = require('schemastore').json.schemas()` (and `yaml.schemas()`),
+  add both to the mason-tool-installer list. Gets schema validation on
+  package.json, GitHub workflows, docker-compose, etc.
+- **friendly-snippets** — blink.cmp's `snippets` source is enabled
+  (`completion.lua`) but no snippet collection is installed, so it's empty
+  outside LSP-provided snippets. blink auto-loads `rafamadriz/friendly-snippets`
+  once it's on the runtimepath — a one-line `vim.pack.add` entry. (This is the
+  TODO "snippets" item too.)
+
+## Options & autocmds
+
+Options land in `configs.lua`, autocmds in `autocmds.lua`. Only genuine deltas
+(checked-and-already-equivalent options from the LazyVim pass are omitted).
+
+- **Options** — `splitkeep="screen"` (no text jump when splits open/close;
+  noticeable with the bottom panel + sidebars), `jumpoptions="view"` (jumplist
+  restores scroll position — pairs with the mouse-button jumplist maps),
+  `grepprg="rg --vimgrep"` + `grepformat` (makes `:grep` a usable Telescope
+  fallback), `smoothscroll`, `virtualedit="block"`, `shiftround`.
+- **`VimResized` auto-equalize** — `tabdo wincmd =` then return to the active
+  tab (LunarVim's fixed version, commit `aa51c20f`). Relevant here: Neogit
+  opens in a tab, Neovide resizes are common.
+- **Lua `gf` on `require()` paths** — in lua files, make `gf`/`<C-w>f` jump to
+  the module behind `require("foo.bar")`: FileType-lua autocmd setting
+  `includeexpr` (dots→slashes), `suffixesadd=.lua`, runtimepath `/lua` dirs on
+  `path`. lazydev gives completion/types but not this jump. ~15 lines.
+- **Cmdline `<C-j>`/`<C-k>` wildmenu nav** — expr maps in cmdline mode:
+  navigate the wildmenu when the pum is visible, pass through otherwise.
+  Complements the existing window-nav muscle memory.
+- **Prose `wrap`+`spell` for gitcommit/markdown/text** — spell is globally off
+  (toggle `<leader>tz`); this scopes it on where it's useful without flipping
+  the global. (Covers the TODO "spell check when reviewing" item.)
+- **Severity-filtered diagnostic jumps** — `]e`/`[e` errors-only, `]w`/`[w`
+  warnings-only, alongside `]d`/`[d`. Small `vim.diagnostic.jump({severity=…})`
+  wrappers; useful since virtual text is off by default.
+- **Extend the `q`-close handler** — the landed handler covers help/quickfix;
+  add `checkhealth`, `lspinfo`, `neotest-output`/`-summary`/`-output-panel`,
+  `dap-float`. Keep its don't-clobber-existing-`q` guard.
+- **`ts-context-commentstring`** (consider) — correct `gc` commentstring in
+  embedded languages (JS-in-HTML, CSS-in-templates). Low priority for
+  Rust/Go/Python-heavy work; cheap to add when web work picks up.
+- **Terminal-mode window nav `<C-h/j/k/l>`** (consider, with caveat) — leaving
+  a toggleterm split needs `<C-\><C-n>` first today. But `<C-h/j/k/l>` are real
+  shell/TUI keys (readline, the Claude CLI uses several) — scope to non-CLI
+  terminals only, or skip.
+
+## Smaller wishlist (from TODO.md)
+
+- **octo.nvim** — view/comment/review GitHub PRs in-editor. Heavy plugin; may
+  want to defer or avoid.
+- **Markdown auto lists/headings** — continue list markers / heading levels on
+  `<CR>` in markdown.
+- **Telescope preview placement** — where the preview shows and whether it can
+  be dynamic; and having a selected result land near the top of the screen
+  (TODO items 3–4).
+- **Buffer-name display for inactive windows** — low-effort way to show which
+  buffer an inactive window holds.
+- **`nvim-dap-virtual-text`** — inline variable values during DAP sessions;
+  one-line setup next to the existing dap-ui config in `debugging.lua`.
+- **Spell in completion** — add the spell source to blink.cmp so suggestions
+  appear inline while typing; map something ergonomic to `1z=` for quick fixes.
+- **Alt file-explorers** (`neo-tree`/`oil`) — only if nvim-tree frustrations
+  mount; not pursued, noted so the option isn't forgotten.
+- ✅ **Indent guides** — already shipped via `snacks.indent` (`scratch.lua`,
+  toggle `<leader>tg`). No action.
+- ✅ **Next-edit prediction** — shipped via sidekick.nvim's Copilot-LSP NES
+  (not `blink-edit.nvim`, which the TODO note pointed at). No action.
+
+## See dedicated specs
+
+These have their own plan files — pointers only, not re-listed here:
+
+- **Persistent file bookmarks (harpoon)** → `plans/harpoon2.md`
+- **Quickfix / problems-list ergonomics** → `plans/quickfix-improvements.md`
+- **Semantic text objects (`af`/`if`/`ac`/… select, move, swap)** →
+  `plans/treesitter-textobjects.md` (LazyVim's mini.ai delta folded in there)
+- **Filter-preset picker rework** → `plans/filter-picker-rethink.md`
+- **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
+
+## Learning / practice notes
+
+Not build tasks — personal practice reminders kept from `TODO.md` so they
+aren't lost:
+
+- Learn jump-word / sentence / paragraph motions; consider writing a short
+  "vim basics" cheatsheet md.
+- Learn fold collapse/expand and the less-used text objects (sentences,
+  paragraphs, blocks).
+
+## Rejected — don't re-litigate
+
+Merged from the LazyVim and LunarVim passes (and one TODO musing). Recorded so
+they aren't proposed again.
+
+- **Distro machinery** — lazy.nvim / `LazyFile` event / LazyExtras /
+  `opts_extend`; LunarVim's global `lvim` table, `:LvimReload`, `User
+  FileOpened`/`DirOpened` lazy-load events, snapshot commit pinning,
+  template-generated ftplugin LSP startup, none-ls bridge, mason
+  `automatic_installation`. All serve deferred-loading/distro concerns; this
+  config is eager `vim.pack` with `nvim-pack-lock.json` pinning and native
+  `vim.lsp.enable`.
+- **UI swaps already decided against** — snacks picker/explorer/dashboard/
+  notifier/lazygit, noice, bufferline, neo-tree, alpha dashboard, navic winbar,
+  vim-illuminate, indent-blankline, Comment.nvim, project.nvim, lir.nvim,
+  floating lazygit. Deliberate counter-choices exist (Telescope + custom
+  pickers, nvim-tree, mini.notify, lualine-only, Neogit + diffview, native
+  documentHighlight, aerial + treesitter-context, snacks.indent, native `gc`,
+  `vim.fs.root`).
+- **barbar.nvim** — TODO's own note said "I should not, but if I did"; no
+  bufferline is a deliberate choice.
+- **dropbar.nvim breadcrumbs** — tried and removed 2026-07-03; didn't like it.
+- **mini.pairs / Copilot-as-cmp-source / smart `<Tab>`/`<CR>` chains** —
+  nvim-autopairs + the existing blink Tab chain (menu → Copilot ghost →
+  literal) already cover these; switching buys nothing.
+- **`<leader>u*` Snacks.toggle suite** — the `<leader>t*` toggle set already
+  covers diagnostics/inlay/format/lint/spell/numbers/indent/AI/blame/hover.
+- **Root-dir detection abstraction** (LazyVim `util/root.lua`) — big lift,
+  moderate payoff unless monorepo (cwd ≠ project root) work becomes common.
+  Revisit on demand, don't port speculatively.
+- **dial.nvim / yanky / inc-rename** — inc-rename is redundant with core `grn`
+  + `inccommand`; the others don't earn a slot yet.
+- **structlog / `:LvimInfo` / nlsp-settings** — `:checkhealth` + mini.notify +
+  native `exrc` (`.nvim.lua`) cover these at personal scale.
+
+---
+
 ## Sources
 
 - Zed editing / multibuffers — https://zed.dev/docs/editing-code
@@ -248,3 +427,7 @@ Add further sections here as more editors are reviewed.
 - VS Code sticky scroll — https://dev.to/robole/vs-code-sticky-code-sections-for-improved-contextual-browsing-sticky-scroll-1o6
 - VS Code user interface (minimap, peek) — https://code.visualstudio.com/docs/getstarted/userinterface
 - nvim sticky scroll discussion — https://neovim.discourse.group/t/is-there-a-function-plugin-works-like-vs-codes-sticky-scroll/3173
+- LazyVim — `/Users/dhruv/src/LazyVim` (core v16, 2026-07); specs cited inline
+  by file (`lua/lazyvim/plugins/…`, `config/keymaps.lua`, `config/options.lua`).
+- LunarVim — `/Users/dhruv/src/LunarVim` (core, 2026-07); `lua/lvim/core/…`,
+  `lua/lvim/keymappings.lua`, `lua/lvim/lsp/providers/…`.

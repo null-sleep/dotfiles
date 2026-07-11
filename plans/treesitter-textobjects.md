@@ -12,7 +12,7 @@ for the full Helix-vs-nvim delta). The other two items are **done**:
 1. **This plan** — `nvim-treesitter-textobjects` (select/move/swap).
 2. ~~Sticky scope header~~ — `nvim-treesitter-context`, implemented in
    `lua/treesitter_context.lua` (commit `a0c67c5`). Also closes the "sticky
-   scroll" gap listed under VS Code in `plans/features-from-other-editors.md`.
+   scroll" gap listed under VS Code in `plans/nvim-backlog.md`.
 3. ~~Structural/incremental selection~~ (Helix `Alt-o`/`Alt-i`) — implemented
    in `lua/structural_select.lua` (commit `a0c67c5`).
 
@@ -126,3 +126,31 @@ README at implementation time — the module has been iterating.)
    one; `<leader>A` swaps back.
 6. `<leader>sk` (keybinding picker) shows the new `]f`/`[f`/`]k`/`[k` entries
    with descriptions, confirming the which-key registration took.
+
+## LazyVim delta to fold in (from the LazyVim comparison pass)
+
+Folded here from the LazyVim comparison pass (item 2) when the wishlist docs
+were consolidated into `plans/nvim-backlog.md` — LazyVim wires this same plugin
+plus a `mini.ai` layer, and its extras are worth considering when this plan
+lands:
+
+- **Layer `nvim-mini/mini.ai` on top** for what treesitter-textobjects alone
+  doesn't give: **arguments** (already `aa`/`ia` above), **digits** (`d`),
+  and **next/last variants** (`vinq` = "inside next quotes", `il`/`al` next/
+  last). LazyVim's mini.ai spec adds custom specs for buffer (`ag`/`ig`),
+  digits (`d`), and a treesitter-driven `o` object (blocks/conditionals/loops).
+  Source: `lua/lazyvim/plugins/coding.lua` (mini.ai section).
+- **`ai_whichkey` integration** — LazyVim registers every text object in
+  which-key so pressing `va` pops a menu of what's selectable. Source:
+  `lua/lazyvim/util/mini.lua`.
+- **Wiring pattern reference** — main-branch textobjects needs explicit keymap
+  wiring (no module system), exactly as sketched above. LazyVim's per-FileType
+  buffer-local `select()`/`move()` pattern lives in
+  `lua/lazyvim/plugins/treesitter.lua` if a per-language approach is wanted.
+- Pairs with (does not replace) the existing `<M-o>`/`<M-i>` structural select.
+
+⚠ **Keymap collision to resolve first:** this plan's `<leader>a` / `<leader>A`
+parameter-swap keys predate the sidekick AI-CLI `<leader>a*` namespace, which
+now owns that prefix. Re-key the swap maps (e.g. `<leader>sw`/`<leader>sW` or a
+`g`-prefixed pair) before implementing — the sketch above is stale on this
+point.
