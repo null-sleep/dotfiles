@@ -371,6 +371,10 @@ These have their own plan files — pointers only, not re-listed here:
   `plans/treesitter-textobjects.md` (LazyVim's mini.ai delta folded in there)
 - **Filter-preset picker rework** → `plans/filter-picker-rethink.md`
 - **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
+- **cmux-inspired agent event pipeline (needs-input/done status per sidekick
+  session)** → `plans/sidekick-agent-event-pipeline.md` — look into soon.
+  Event pipeline only (Claude Code hooks → per-session registry); UI (status
+  bar, signs, desktop notification) is a follow-on once the pipeline exists.
 
 ## Learning / practice notes
 
@@ -416,6 +420,12 @@ they aren't proposed again.
   + `inccommand`; the others don't earn a slot yet.
 - **structlog / `:LvimInfo` / nlsp-settings** — `:checkhealth` + mini.notify +
   native `exrc` (`.nvim.lua`) cover these at personal scale.
+- **Big-file protection** (`bigfile.nvim` / `snacks.bigfile`) — deferred, not
+  hard-rejected: treesitter is already guarded (>50k lines / >1.5MB in
+  `plugins.lua`). Revisit only if big files still lag from blink or indent
+  guides; if so the move is enabling `snacks.bigfile` (already installed), not
+  a new plugin. (Adjudicated this way across the AstroNvim, LazyVim, and
+  LunarVim passes.)
 
 ---
 
