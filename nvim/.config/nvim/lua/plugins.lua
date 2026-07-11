@@ -413,9 +413,18 @@ require('telescope').setup({
         end
       end
 
+      -- <C-h> aliases the default <C-/>/? which_key popup (shows this picker's
+      -- live keymaps); shadows the global "move to left split" <C-h> only while
+      -- a picker's prompt buffer is focused.
       return {
-        i = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal },
-        n = { ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal },
+        i = {
+          ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal,
+          ['<C-h>'] = actions.which_key,
+        },
+        n = {
+          ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal,
+          ['<C-h>'] = actions.which_key,
+        },
       }
     end)(),
     file_ignore_patterns = { '%.git/', 'node_modules/' },

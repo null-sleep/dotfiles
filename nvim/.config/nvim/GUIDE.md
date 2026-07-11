@@ -940,12 +940,13 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<C-n>` / `<C-p>` | Move down / up |
 | `<CR>` | Open highlighted entry (or all multi-selected entries) |
 | `<C-v>` | Open in vertical split |
-| `<C-x>` | Open in horizontal split |
+| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` duplicates `<C-x>`; overrides the global LSP signature-help key while a picker is focused) |
 | `<C-t>` | Open in new tab |
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
 | `<C-q>` | Send all current results to the quickfix list and open it |
 | `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
-| `<M-d>` | In the buffer picker (`<leader>bb`/`<leader>m`): delete the highlighted buffer (or all multi-selected) |
+| `<C-d>` | In the buffer picker (`<leader>bb`/`<leader>m`): delete the highlighted buffer (or all multi-selected) |
+| `<C-/>` (insert) / `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (Telescope's built-in `which_key`; `<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
 | `<Esc>` | Close |
 
 **Multi-select workflows:**
@@ -956,7 +957,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 **Per-picker notes:**
 - `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
-- `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<M-d>` to bulk-close them; the picker stays open.
+- `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
 - `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
 - `<leader>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
 
