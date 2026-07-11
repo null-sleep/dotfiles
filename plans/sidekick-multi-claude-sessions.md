@@ -253,10 +253,14 @@ This routing layer reaches several sidekick internals: `State.get`/`State.detach
 shape — a nil index, or a visible disambiguation picker. The exception is the
 **`sidekick_cli` WinEnter stamp**: if upstream stops stamping CLI windows,
 active-tracking silently stalls and sends mis-route to a stale `M.active` with
-no error. Two guards for the silent cases: the load-time `assert` on the clone
-shape (impl 1e) turns a preset-shape break into a startup error, and
-verification step 4 exercises the stamp directly (a `notify`-once tripwire —
-"no stamp seen after first attach" — is the fallback if it ever regresses).
+no error. Two guards for the silent cases: a load-time `notify(ERROR)` on the
+clone shape (impl 1e) surfaces a preset-shape break at startup without hard-
+erroring (an `assert` would throw before `ai.lua`'s `return M` and take every
+AI keymap down over a formatting-only regression), and the `SidekickCliAttach`
+handler carries a `notify`-once tripwire (impl 1c) — "first attach but no
+`sidekick_cli` window stamp → warn loud once" — so a future upstream change
+that drops the stamp surfaces immediately instead of silently mis-routing
+sends. Verification step 4 exercises the same stamp at implement-time.
 Worth keeping in perspective: `ai.lua` **already** operates at this coupling
 level (the pre-warm hook overrides `term.open_win` and reads
 `terminal.get`/the session stamp), so this is more of the same surface, not a
@@ -403,13 +407,30 @@ promote-to-full-height handler:
   first show is all it has ever done; re-shows land full-height on their own
   (verification step 10 re-checks).
 - **Flip `_dynamic` to `'started'`** so the detach sweep knows the spawn
-  completed (reuse the `terminal.get` call already there):
+  completed (reuse the `terminal.get` call already there).
+- **Stamp tripwire.** WinEnter tracking (part b) reads the `sidekick_cli`
+  window var sidekick stamps at open (terminal.lua:385). That stamp is the one
+  internal whose loss fails *silently* — if upstream stops setting it, WinEnter
+  never updates `M.active` and sends mis-route to a stale session with no error
+  (see "The internals this leans on"). A first attach means a CLI window just
+  opened, so the stamp *should* be present; if it isn't, notify once per nvim
+  run. Verification step 4 also covers this at implement-time — the tripwire is
+  the backstop for a *future* upstream change we won't re-verify against.
 
 ```lua
 if _G.__sidekick_prewarm then return end
 local term = require('sidekick.cli.terminal').get(args.data.id)
 if term and term.tool and M._dynamic[term.tool.name] == 'registered' then
   M._dynamic[term.tool.name] = 'started'
+end
+-- Silent-surface tripwire: on the first attach where the expected window
+-- stamp is missing, warn loud once — active-session tracking is broken.
+if not _G.__sidekick_stamp_ok and term and term.win
+   and vim.api.nvim_win_is_valid(term.win)
+   and vim.w[term.win].sidekick_cli == nil then
+  vim.notify('sidekick: CLI window stamp (sidekick_cli) missing — active-session tracking is broken, sends may mis-route',
+    vim.log.levels.ERROR)
+  _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
 end
 local layout = require('sidekick.config').cli.win.layout
 local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
@@ -456,12 +477,18 @@ removes the name it's given.)
 stubs from part a):
 
 ```lua
--- Fail loud at load if upstream reshapes the claude preset: the clone in
+-- Warn loud at load if upstream reshapes the claude preset: the clone in
 -- create_session silently drops format/resume/continue otherwise (see "clone
--- the preset"). This is the one clone-shape break that would fail *silently*
--- at send time; asserting here turns it into a startup error instead.
-assert(type(require('sidekick.cli.tool').get('claude').config.format) == 'function',
-  'sidekick: claude preset shape changed — dynamic-session clone will drop format')
+-- the preset"), so context sends to sessions 2+ would quietly degrade to raw
+-- text with no error. A red ERROR notify surfaces that at startup — but does
+-- NOT hard-error: an assert here would throw before this file's `return M`,
+-- so require('ai') would fail and take *every* AI keymap down over what is
+-- only a formatting regression on extra sessions. Notify-and-continue keeps
+-- the keymaps live; the fault stays contained.
+if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' then
+  vim.notify('sidekick: claude preset reshaped — dynamic-session clone will drop format; sends to sessions 2+ may lose context formatting',
+    vim.log.levels.ERROR)
+end
 
 function M._next_auto_name()
   local tools = require('sidekick.config').cli.tools
