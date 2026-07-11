@@ -33,6 +33,30 @@ attaches to it. Toggleterm avoids a window entirely (`toggleterm/terminal.lua:47
 already window-optional: `buf`/`job`/autocmds key off `self.buf`, and every window touch goes
 through `win_valid()` guards.
 
+### More hidden-float fragility (from the Phase 1 review + source tracing)
+
+An adversarial review of the reschedule work (plus reading the sidekick source) surfaced two more
+races that are **inherent to the hidden-float hack** — both dissolve under a windowless start (no
+window during pre-warm ⇒ no `open_win` override, no `_G.__sidekick_prewarm` flag, and `is_open()`
+is false):
+
+- **Cleanup timing race.** `cli.show`'s work runs through a `vim.schedule_wrap`'d `use` callback
+  (`cli/state.lua:148`); `Terminal:init()` (which installs the hidden-float override) and
+  `open_win` run back-to-back inside it. The pre-warm clears `_G.__sidekick_prewarm` on a fixed
+  300 ms timer — so if that scheduled callback is delayed past 300 ms by a main-loop stall (exactly
+  the LSP/treesitter storm the 3 s pre-warm lands in), the override isn't installed when `open_win`
+  runs, claude opens **visible**, and Guard 2 then leaves it up. Low probability (needs a ~300 ms
+  freeze) but it's a *second* path to the same stuck-visible symptom the `wincmd L` bug caused.
+- **`<leader>aa` during the pre-warm window.** While the hidden float is alive (`self.win` valid),
+  `cli.toggle` reads `is_open()` as true and *hides* it — showing nothing
+  (`cli/init.lua:100`, `cli/terminal.lua:487`). A cold `<leader>aa` before the float exists, or
+  after it's hidden, is fine; the ~300 ms show→hide window is the hole.
+
+These are **awkward to fix in the hack** (both are properties of "there is a window"), so the
+Phase 1 follow-up fixed only the confidently-correctable issues in place — the lost `.git` gate on
+the reschedule path and the guards matching any tool instead of claude (`c8f7cf5`) — and left these
+two for this plan to eliminate structurally. They are the strongest remaining argument for Phase B.
+
 ### Decision: don't fork
 
 Sidekick is young and fast-moving (folke). Carrying a patched method means a rebase tax on every
@@ -97,9 +121,15 @@ branch if we ever go that route. When available, replace the hack with the real 
   windowless `spawn()` never shows a window, so there's nothing to hide.
 - **Delete** the `SidekickCliAttach` skip-promote guard from `a989656` — with no pre-warm window,
   there's nothing to mis-promote.
-- **Keep** Guard 1 (skip if a `sidekick_terminal` buffer already exists), the re-schedulable 3s
-  one-shot timer, and the `PersistenceLoadPre/Post` wiring — those are orthogonal to windowing and
-  still wanted. `do_prewarm()` collapses to roughly: guard-1 check → `spawn the claude CLI`.
+- **Keep** Guard 1 (skip if a claude CLI already exists — now matched via
+  `terminal.sessions()` → `t.tool.name == 'claude'` after `c8f7cf5`, not the filetype), the `.git`
+  + `has_ui` gates in `do_prewarm`, the re-schedulable 3s one-shot timer, and the
+  `PersistenceLoadPre/Post` wiring — all orthogonal to windowing and still wanted. `do_prewarm()`
+  collapses to roughly: has_ui/`.git`/guard-1 checks → `spawn the claude CLI`.
+- **Resolves the two review residuals for free.** With no window during pre-warm, the cleanup
+  timing race (#3) and the `<leader>aa`-hides-the-hidden-float bug (#4) both vanish — there's no
+  override to install late and no `is_open()`-true float to toggle. This is the payoff that makes
+  Phase B worth more than the ~ms it saves.
 - Net: the pre-warm becomes structurally identical to `terminal.lua`'s (spawn a hidden buffer, no
   window, first user trigger opens onto it) — the asymmetry that motivated all this disappears.
 
