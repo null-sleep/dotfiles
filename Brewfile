@@ -100,6 +100,8 @@ cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`
 # Utilities
 #-----------------------------------------------------------------------------
 brew "terminal-notifier"  # macOS notification helper; used by yknotify (YubiKey touch alerts)
+brew "watch"              # repeat a command and watch output (not in macOS base);
+                          # e.g. watching `ps` for the nvim claude pre-warm spawn
 
 #-----------------------------------------------------------------------------
 # Containers — Docker Desktop alternative (comment out if you don't use Docker)
