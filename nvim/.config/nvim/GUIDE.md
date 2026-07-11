@@ -1233,7 +1233,7 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `<leader>Tt` | Toggle floating terminal (discoverable via which-key) |
 | `<leader>Th` / `<leader>Tv` | Open a horizontal / vertical split terminal |
 | `` <C-`> `` / `<C-/>` / `<leader>Tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
-| `<Esc>` (in terminal) | Exit terminal mode → normal mode |
+| `<Esc>` / `jj` / `jk` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
 | `<C-]>` (in terminal) | Cycle to next terminal (wraps, so repeated presses reach every terminal) |
 

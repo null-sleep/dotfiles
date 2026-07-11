@@ -134,7 +134,7 @@ vim.api.nvim_create_autocmd('TermOpen', {
     -- Skip sidekick CLI buffers — sidekick manages its own keymaps.
     if vim.bo.filetype == 'sidekick_terminal' then return end
     local opts = { buffer = 0 }
-    utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj exit, <C-h/j/k/l> nav
+    utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
     vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
