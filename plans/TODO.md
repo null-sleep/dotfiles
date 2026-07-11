@@ -38,3 +38,7 @@ aerial outline, Neogit + diffview, nvim-dap debugging, neotest).
 
 ### Nice to have:
 - Indent guides (indent-blankline.nvim or mini.indentscope) — visual context in deeply nested code
+
+# New List
+- [ ] Add a status bar for sidekick to tell me if an claude window needs my input/is done/things like that. idealy for all sidekick windows I have (lets assume they are all claude).
+- [ ] Easy way to have sidekick panels go from being a pane on the right side to opening as a floting window on the right side. Still respect the panel size.
