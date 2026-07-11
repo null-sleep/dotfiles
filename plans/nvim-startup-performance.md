@@ -329,9 +329,18 @@ stat sweep out of restore, see step 4), not a steady-state one, and why it's a m
 **Status:** Phase 1 landed in full — `5bd4882` (#3 mason), `5e381b9` (#4 configs),
 `5bf993b` (#2 terminal), `b7c1bc7` (#1 ai) — plus two follow-up fixes to the pre-warm
 (`a989656` skip-promote, `c8f7cf5` `.git`/tool scoping; both now tracked by
-`plans/sidekick-windowless-prewarm.md`). **Phase 2 has not been started** — per
-"Recommended order", it stays parked until the `<leader>qs` feel is measured in a Rust repo
-and found still wanting.
+`plans/sidekick-windowless-prewarm.md`).
+
+**Phase 1 verified interactively, 2026-07-10 — all checks passed:** claude spawned ~3s out
+(watched via `ps`, using the `watch` formula added to the Brewfile for this); `<leader>qs` felt
+fast; `<leader>aa` at ~5s instant and `<C-\>` warm; the early-`<leader>aa` race guards behaved;
+re-sourcing `ai.lua` twice showed each `UserSidekick` autocmd registered once, a clean
+`:messages`, and the timer arming then self-closing (`<userdata>` → `nil`).
+
+**Phase 2 is parked for good, not just deferred:** the felt problem is fixed, so the
+once-per-session ~22ms module deferrals don't earn their risk (the plan predicted exactly this
+outcome). Steps 5–8 remain written up above should startup cost ever regress enough to
+re-justify them — re-measure with `nvim --startuptime` before reviving them.
 
 ### Design review: "should the sprinkled scaffolding be one abstraction?" — no (for now)
 
