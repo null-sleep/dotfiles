@@ -1622,6 +1622,70 @@ modes (`ia`, `ca`, `!a`) into the default snapshot.** Defer; the decision is loc
 
 ---
 
+## Why this doc exists: Track C of the keymap-optimization audit
+
+This tracker was scoped out of `keymap-optimization.md`'s "Track C —
+Ergonomics: measure, then optimize hot paths" (that plan has since been
+deleted; its other tracks — A: correctness fixes, B: namespace/mnemonic
+consistency, D: tooling/guardrails — all landed and are reflected in
+GUIDE.md and the `keymap-audit` skill). The content below is preserved here
+so the motivating context and candidate follow-ups aren't lost if Track C is
+revived.
+
+> **Status: deferred (2026-07-09).** Nothing below is being implemented now —
+> kept as the backlog of things to try once/if this tracker gets built.
+
+Highest potential payoff, highest muscle-memory cost, and — crucially — the
+config has **no usage data** to rank candidates. Guessing frequency is how
+speculative maps like `<A-hjkl>` happen. So:
+
+### C1. Implement this tracker first (2 small modules)
+
+The research in this doc is done; Primitive 1 (snapshot) + Primitive 2 (usage
+log) are ~150 lines total. Let it run for 2–4 weeks.
+
+**Why it's better than optimizing now:** the audit's Track B reorganizations
+were each justified by *semantics*; Track C changes are justified only by
+*frequency* (shortest keys for hottest actions). Without the log you'd
+optimize by anecdote. With it, decisions become one-liners:
+`jq -r '.lhs' keymap_usage.log | sort | uniq -c | sort -rn | head -20`.
+
+### C2. Candidate promotions to evaluate against the data
+
+Free top-level leader keys today: `f i j k l w x y z / , .` (approximately).
+Candidates, in expected-frequency order:
+
+| Candidate | Today | Proposal | Rationale |
+|---|---|---|---|
+| Find files | `<leader>sf` | also `<leader>f` | likely the single most-used picker; 1 key saved × dozens/day |
+| Grep | `<leader>sg` | also `<leader>/` | mirrors "search" intuition; LazyVim/Helix precedent |
+| Buffer picker | `<leader>m` | keep — already 1 key | verify with data it deserves top-level status vs `<leader>bb` |
+| Resume picker | `<leader>sr` | maybe `<leader>.` | cheap redo of last search |
+
+Add as *aliases* (keep `s*` canonical) — zero unlearning, then let the
+tracker show whether the short forms win.
+
+**Why it's better:** example arithmetic — if `sf` fires 40×/day, `<leader>f`
+saves 40 keystrokes/day and, more importantly, drops the 300ms which-key
+partial-match wait risk on the `s` prefix. If the data says it fires 4×/day,
+skip it and keep the namespace clean. Either way you decide with evidence.
+
+### C3. Resolve `<A-hjkl>` with data
+
+If the log shows zero invocations after a month: unmap, and consider
+`<A-h>/<A-l>` for buffer prev/next (releasing `<S-h>/<S-l>`, restoring native
+`H`/`L`) or window-swap. If they do get used, delete the "speculative"
+label and keep them.
+
+### C4. Insert-escape: `jj` vs `jk` — already resolved
+
+Both `jj` and `jk` are mapped for insert-escape (`keymaps.lua`), so this item
+is done; kept here only as the original reasoning record. `jk` is a
+two-finger inward roll (faster than a double-tap, no key-repeat ambiguity)
+and GUIDE.md documents it as canonical; `jj` stays for muscle memory.
+
+---
+
 ## Resuming notes
 
 If picking this up after time has passed:
