@@ -31,6 +31,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
   - [Editing utilities](#editing-utilities)
+  - [Markdown](#markdown)
   - [Session (persistence.nvim)](#session)
   - [Spell checking](#spell-checking)
   - [Window/tab title](#window-tab-title)
@@ -1059,6 +1060,36 @@ lands on the system clipboard.
 Gotcha (documented at the keymap): the visual `<leader>uc` mapping uses a `:`
 RHS, not `<cmd>` — `:` exits visual mode first, which is what updates the
 `'<`/`'>` marks before the range evaluates. Don't "modernize" it to `<cmd>`.
+
+
+## Markdown
+
+`render-markdown.nvim` (set up in `plugins.lua`) renders markdown inline as you
+edit — headings, fenced code, tables, list bullets — so the many interlinked
+docs in this repo (this guide, `plans/*.md`, the various `CLAUDE.md`) read
+cleanly in-editor without a separate preview. For the full GUI editor, open the
+current file in Typora with `<leader>uo` (see the Keymap index → Global
+keymaps).
+
+### Following links between docs
+
+Markdown links like `[label](other.md)` are followed with native **`gf`**
+("goto file") — there's no plugin for this, it's built in:
+
+| Keys | Action |
+|---|---|
+| `gf` | Open the file under the cursor in the current window |
+| `<C-w>f` | Open it in a horizontal split |
+| `<C-w>gf` | Open it in a new tab |
+| `<C-o>` | Jump back to where you were |
+
+Put the cursor on the **path inside the parens** (the `other.md`, not the
+`[label]` text) before pressing `gf`. This works with no extra config because
+vim's default `path` includes `.` (the current file's own directory) and the
+links in these docs are same-folder relative names that already carry the
+`.md` extension — so `gf` from any `plans/*.md` resolves its sibling docs
+directly. Gotcha: if the cursor sits on the link *label* instead of the path,
+`gf` grabs the wrong word — move into the `(...)`.
 
 
 <a id="session"></a>
