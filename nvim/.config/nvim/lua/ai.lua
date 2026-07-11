@@ -286,6 +286,12 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, '<M-a>', function() require('ai').toggle_active() end,
       { buffer = args.buf, desc = 'AI: Hide CLI panel (toggle)' })
 
+    -- <M-l> opens the session picker (the <leader>al switch/kill picker) in
+    -- place, so you can jump to or tear down another session without the
+    -- jj/jk -> <leader>al round-trip. Same in-panel ergonomic as <M-]>/<M-n>.
+    vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
+      { buffer = args.buf, desc = 'AI: Switch/kill CLI session picker' })
+
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
       return function()
