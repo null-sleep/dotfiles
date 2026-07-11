@@ -321,3 +321,59 @@ buffer being rewritten** — where, after that single `CursorHold`, detection la
 timer. That's why the interval bump is reframed as a **startup** win (delay the first all-buffer
 stat sweep out of restore, see step 4), not a steady-state one, and why it's a mild *regression*
 (0.5s → 2s) in that one AI-review regime — with `1000ms` offered as a hedge.
+
+---
+
+## Post-landing status + design review (2026-07-10)
+
+**Status:** Phase 1 landed in full — `5bd4882` (#3 mason), `5e381b9` (#4 configs),
+`5bf993b` (#2 terminal), `b7c1bc7` (#1 ai) — plus two follow-up fixes to the pre-warm
+(`a989656` skip-promote, `c8f7cf5` `.git`/tool scoping; both now tracked by
+`plans/sidekick-windowless-prewarm.md`). **Phase 2 has not been started** — per
+"Recommended order", it stays parked until the `<leader>qs` feel is measured in a Rust repo
+and found still wanting.
+
+### Design review: "should the sprinkled scaffolding be one abstraction?" — no (for now)
+
+After Phase 1 landed, a design review examined whether the recurring shapes — the two
+hand-rolled `_G` uv timers, the five staggered delays with no central timeline, the repeated
+`has_ui()`/`.git` gates — should be extracted into a shared startup/deferred-task scheduler
+(`startup.lua`: name-keyed delay table, `defer(name, fn, {restore_aware, when})`, one
+`_G._startup_tasks` registry, a single PersistenceLoadPre/Post pair). An adversarial
+counter-review **rejected it**, and the rejection is the settled decision:
+
+- **Effective N is 1, not 3.** The only non-trivial shared machinery — the persistence
+  pause/re-arm pair — has exactly one consumer (the claude pre-warm). The other two sites
+  (`terminal.lua`, `configs.lua` update check) are bare `vim.defer_fn` calls that need nothing
+  beyond the stdlib. The config's own extraction discipline (see nvim `CLAUDE.md`'s
+  "wrapper re-evaluation trigger", and `buffers.lua`'s history) extracts on the *third*
+  duplicated site, after real drift — not before.
+- **Sequencing vs. the sidekick plan.** Migrating `ai.lua`'s scheduling shell pre-Phase-D
+  would rewrite the config's most bug-prone code for zero behavior change, then Phase D would
+  touch it again — double churn — and would stale Phase D's written keep/delete lists.
+- **A central delays table had false uniformity.** Two of five rows (checktime poll,
+  mason `start_delay`) aren't schedulable by such a module at all, and moving mason's `30000`
+  would orphan the 30–60s rationale comment this plan explicitly requires to sit next to the
+  number.
+
+**What was adopted instead:**
+
+1. **Docs-only timeline** — GUIDE.md → Design Decisions → **"Startup stagger timeline"** is
+   now the single place all five delays are visible together, with the slotting rule for new
+   deferred tasks. Keep it in sync when any delay changes.
+2. **A confirmed latent race in the pre-warm timer, fixed in place** (`ai.lua`
+   `schedule_prewarm`): the uv fire and its `schedule_wrap`'d callback are a main-loop hop
+   apart; a `<leader>qs` landing in that gap runs LoadPre + restore + LoadPost synchronously,
+   so the stale queued callback then saw the *re-armed* timer in
+   `_G._sidekick_prewarm_timer`, closed it, and ran `do_prewarm()` immediately — claude
+   spawning right at restore-end (the exact collision the reschedule exists to avoid) and the
+   re-armed pre-warm silently cancelled. Fix: the callback captures its own handle and
+   returns unless `_G._sidekick_prewarm_timer == timer` (identity guard). GUIDE.md's
+   "Re-source safety" Timers bullet documents the three-part pattern (stop-before-create,
+   self-close on fire, identity guard) for any future cancellable one-shot.
+
+**Extraction trigger (recorded so future sessions don't re-litigate):** revisit a shared
+scheduler only if a **second restore-aware task** appears (e.g. deciding the shell pre-warm
+should re-anchor to restore too), and only **after** sidekick Phase D simplifies `ai.lua`.
+Until then, new deferred tasks copy the local patterns and add a row to GUIDE.md's timeline
+table.

@@ -140,6 +140,38 @@ or config reloads):
 - **Comma-list options** that append (e.g. `diffopt` in `configs.lua`) filter out their own prior value before re-adding it, so re-sourcing doesn't accumulate duplicate entries (`linematch:60,linematch:60,…`).
 - **Append-only event subscriptions** that can't dedup (e.g. nvim-tree's `api.events.subscribe`, used by the lsp-file-operations wiring) are guarded by a run-once global flag (`filetree.lua`'s `_lsp_file_ops_setup`), so re-sourcing doesn't stack duplicate handlers that fire twice per event.
 
+### Startup stagger timeline
+
+Several eager background tasks are deliberately staggered across the first
+seconds of a session so no single window absorbs every process spawn —
+especially the `<leader>qs` restore window, where claude + shells + LSP
+indexing used to land together (full rationale and measurements:
+`plans/nvim-startup-performance.md`). The delays were chosen *relative to
+each other*; this table is the one place they're visible together. Adding a
+new deferred task or pre-warm? Slot it consciously against these and update
+this table in the same change.
+
+| Fires at | Task | Owner |
+|----------|------|-------|
+| 2000ms, then every 2s | First all-buffer `checktime` sweep, then steady poll | `configs.lua` |
+| 2000ms | Shell pre-warms (toggleterm float + bottom panel) | `terminal.lua` |
+| 3000ms, restore-aware | Claude CLI pre-warm (sidekick) | `ai.lua` |
+| 5000ms | Neovim update check (`brew info` spawn) | `configs.lua` |
+| 30000ms | mason-tool-installer daily update check (`start_delay`) | `lsp.lua` |
+
+Only the claude pre-warm is restore-aware: `PersistenceLoadPre`/`LoadPost`
+cancel and re-arm its timer so it fires 3s after a restore *completes*
+instead of racing it. The others accept landing near a restore because
+they're cheap (shells) or fully async and debounced (update checks).
+
+A shared "startup scheduler" abstraction for these was proposed and rejected
+(2026-07 design review, recorded in `plans/nvim-startup-performance.md`):
+the only non-trivial shared machinery — the restore pause/re-arm pair — has
+exactly one consumer, and the other sites are bare `vim.defer_fn` calls.
+Re-evaluate extraction only if a **second restore-aware task** appears, and
+only after the sidekick windowless rework
+(`plans/sidekick-windowless-prewarm.md` Phase D) simplifies `ai.lua`.
+
 ### Quit nvim when only sidebars remain
 
 Closing your last code window shouldn't leave a lone nvim-tree or aerial
