@@ -102,11 +102,10 @@ vim.api.nvim_create_autocmd('User', {
     if term and term.tool and M._dynamic[term.tool.name] == 'registered' then
       M._dynamic[term.tool.name] = 'started'
     end
-    -- Silent-surface tripwire: WinEnter active-tracking reads the sidekick_cli
-    -- window stamp (terminal.lua:385) — the one internal whose loss fails
-    -- SILENTLY (sends mis-route to a stale M.active with no error). A first
-    -- attach means a CLI window just opened, so the stamp should be present;
-    -- if it isn't, warn loud once per nvim run.
+    -- Tripwire: WinEnter active-tracking reads the sidekick_cli window stamp —
+    -- the one internal whose loss fails silently (sends mis-route to a stale
+    -- M.active). A first attach means a window just opened, so warn once if the
+    -- stamp is missing.
     if not _G.__sidekick_stamp_ok and term and term.win
        and vim.api.nvim_win_is_valid(term.win)
        and vim.w[term.win].sidekick_cli == nil then
@@ -120,13 +119,9 @@ vim.api.nvim_create_autocmd('User', {
     if not side then return end -- float / top / bottom layouts don't need promoting
     if term and vim.api.nvim_win_is_valid(term.win) then
       utils.promote_to_full_height(term.win, side)
-      -- promote's `wincmd L` re-lays-out the windows and, with equalalways on,
-      -- equalizes the CLI to ~50% — ignoring winfixwidth. Restore the intended
-      -- split width so the FIRST show (which promotes) matches every later
-      -- re-show (attach fires once, so re-shows skip promote). Read the
-      -- terminal's OWN opts.split.width, which remember_width keeps in sync with
-      -- the global set width — so a promote can never stomp a user width back to
-      -- the config default. Falls back to config.
+      -- wincmd L equalizes the split to ~50% (equalalways, ignores winfixwidth),
+      -- so restore the width. Read term.opts.split.width (kept in sync by
+      -- remember_width) so a promote never stomps the user's width.
       local split = (term.opts and term.opts.split) or cfg.split
       local w = split and split.width
       if w and w > 0 then
@@ -136,11 +131,9 @@ vim.api.nvim_create_autocmd('User', {
   end,
 })
 
--- Part b: track the active session on WinEnter. Sidekick stamps CLI windows at
--- open (terminal.lua:385); the pre-warm float is focusable=false and never
--- entered, so no pre-warm guard is needed. This is the ONLY reliable
--- active-session signal (SidekickCliAttach fires once per lifetime, not on
--- switches — see the promote handler above).
+-- Track the active session on WinEnter (via sidekick's sidekick_cli stamp) —
+-- the only reliable signal, since SidekickCliAttach fires once per lifetime,
+-- not on switches. The pre-warm float is focusable=false, so never entered.
 vim.api.nvim_create_autocmd('WinEnter', {
   group = augroup,
   desc = 'Sidekick: track active CLI session',
@@ -150,14 +143,9 @@ vim.api.nvim_create_autocmd('WinEnter', {
   end,
 })
 
--- Remember the CLI width the user sets and apply it GLOBALLY, so every session
--- opens at the same width — toggled (<leader>aa), created (<leader>an), or
--- switched-to (<leader>al) — for one consistent width, not a per-session one.
---
--- open_win reads each terminal's own opts.split.width, and a new terminal
--- deepcopies Config.cli.win at init, so remember_width writes BOTH: every live
--- terminal (so existing sessions' re-shows/switches follow) and the config
--- template (so future <leader>an sessions start at the set width).
+-- Apply a user-set CLI width globally, so every session (aa/an/al) opens at the
+-- same width. open_win reads each terminal's opts.split.width and new terminals
+-- deepcopy Config at init, so write both: live terminals and the config template.
 local function remember_width(w)
   if not (w and w > 0) then return end
   require('sidekick.config').cli.win.split.width = w
@@ -166,12 +154,9 @@ local function remember_width(w)
   end
 end
 
--- Capture on WinClosed (hide via <leader>aa, or switch-away via show_solo): it
--- fires only on close, never during the promote's wincmd L, so it can't latch
--- the transient equalized ~50% width. Skipped on teardown (terminal.get nil —
--- M.terminals is cleared before hide, so killed sessions don't set the width)
--- and when the CLI is the last window (it then spans the full screen, which is
--- not a width the user chose).
+-- Capture on WinClosed (hide/switch-away) — never during promote's wincmd L, so
+-- no transient ~50% width. Skip teardown (terminal.get nil) and the last-window
+-- case (full-screen width, not user-chosen).
 vim.api.nvim_create_autocmd('WinClosed', {
   group = augroup,
   desc = 'Sidekick: remember CLI width for a consistent width across sessions',
@@ -401,18 +386,11 @@ end
 -- show (not toggle): re-entering the label of a *visible* session must
 -- focus it, not hide it. show auto-starts unstarted registered names via
 -- the same select-auto path (state.lua:159).
--- Enforce a single visible CLI window. sidekick shows each session in its own
--- window, so <leader>an / <leader>al would otherwise stack a second split next
--- to the one already open. Hide every OTHER shown session, then show the target.
---
--- Hide SYNCHRONOUSLY via the terminal objects (terminal:hide() acts inline and
--- self-guards on is_open) rather than cli.hide: cli.hide defers its work two
--- vim.schedule hops while cli.show defers one, so routing hides through cli.hide
--- would actually run show-BEFORE-hide and leave the invariant riding on
--- sidekick's internal hop ordering. Iterating terminal objects (not filtering
--- by name through cli.hide) also dodges the same-name-in-two-cwds disambiguation
--- picker. hide (not close) keeps each hidden session's job alive — switching
--- back re-shows the same conversation.
+-- Enforce one visible CLI window: hide the others, then show the target
+-- (<leader>an/<leader>al would otherwise stack a second split). Hide
+-- synchronously via terminal:hide() — cli.hide defers two hops vs cli.show's
+-- one, so it would run show-before-hide; iterating terminals also skips the
+-- same-name disambiguation picker. hide, not close — the job stays alive.
 local function show_solo(name)
   for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
     if t.tool and t.tool.name ~= name then t:hide() end   -- no-op if not shown
