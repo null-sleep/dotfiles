@@ -725,6 +725,14 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   anything else is No) — it sits one key from `<leader>aa`/`<leader>as`,
   so a typo can't silently discard a running conversation.
 
+  With **multiple sessions** running, killing the active one (via `<leader>ad`
+  or the `<leader>al` picker's `<C-d>`) repoints "active" to a *surviving*
+  session — preferring the one you were last on (`<C-]>`'s alt-tab target),
+  else the first by name. So a follow-up `<leader>aa` reattaches to that live
+  instance rather than spawning a brand-new session; it only spawns fresh when
+  no session is left alive. (Implemented by `fallback_active` in `ai.lua`,
+  routed through every teardown site so the same holds when a session self-exits.)
+
 ### Troubleshooting
 
 **Server doesn't start:**
