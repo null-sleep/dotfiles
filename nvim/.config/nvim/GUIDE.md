@@ -440,6 +440,19 @@ it was "handled some other way" — it wasn't, and hit the same blank-buffer
 bug. Lesson: verify each panel individually, don't extrapolate from the one
 that was actually tested.)
 
+**Closing the window isn't enough — the hook also wipes stale `NvimTree_N`
+buffers by name.** A session saved *before* the close-before-save hook existed
+baked in a `badd NvimTree_N` line. On restore that recreates a buffer named
+`NvimTree_N` as a plain *listed* buffer with an empty filetype (not a live
+nvim-tree buffer), so `tree.close_in_all_tabs()` never touches it and
+`mksession` re-records it on every quit — a self-perpetuating loop that
+outlives the window-close fix, and which nvim-tree's `NvimTree_*` name-matching
+later latches onto (the tree "reappearing" on session restore). So `session.lua`
+additionally deletes any buffer whose name matches `NvimTree_%d+$` in the same
+hook. Pre-existing session files self-heal on their next clean quit once this
+runs; a session already corrupted this way can also be fixed by hand-deleting
+its `NvimTree_N` line.
+
 We deliberately **don't** remember aerial's open state and auto-reopen it. The
 tempting way — a session-baked global (`let g:AerialWasOpen` via
 `sessionoptions+=globals`) — has a broad side effect: `globals` isn't scoped to
