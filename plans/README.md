@@ -27,6 +27,7 @@ off or delete them as they land; add new ones freely.
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
   in `669b19e`.
+  - [ ] **Saved picker searches** - when you search something save that somewhere so you can easily re-run it later. This is a feature that I want to add to the picker plugin.
 
 _Add plan work you want to prioritize here._
 
