@@ -33,29 +33,31 @@ attaches to it. Toggleterm avoids a window entirely (`toggleterm/terminal.lua:47
 already window-optional: `buf`/`job`/autocmds key off `self.buf`, and every window touch goes
 through `win_valid()` guards.
 
-### More hidden-float fragility (from the Phase 1 review + source tracing)
+### More hidden-float fragility (from the startup-perf Phase 1 review + source tracing)
 
 An adversarial review of the reschedule work (plus reading the sidekick source) surfaced two more
 races that are **inherent to the hidden-float hack** — both dissolve under a windowless start (no
 window during pre-warm ⇒ no `open_win` override, no `_G.__sidekick_prewarm` flag, and `is_open()`
 is false):
 
-- **Cleanup timing race.** `cli.show`'s work runs through a `vim.schedule_wrap`'d `use` callback
-  (`cli/state.lua:148`); `Terminal:init()` (which installs the hidden-float override) and
+- **#3 — Cleanup timing race.** `cli.show`'s work runs through a `vim.schedule_wrap`'d `use`
+  callback (`cli/state.lua:148`); `Terminal:init()` (which installs the hidden-float override) and
   `open_win` run back-to-back inside it. The pre-warm clears `_G.__sidekick_prewarm` on a fixed
   300 ms timer — so if that scheduled callback is delayed past 300 ms by a main-loop stall (exactly
   the LSP/treesitter storm the 3 s pre-warm lands in), the override isn't installed when `open_win`
   runs, claude opens **visible**, and Guard 2 then leaves it up. Low probability (needs a ~300 ms
   freeze) but it's a *second* path to the same stuck-visible symptom the `wincmd L` bug caused.
-- **`<leader>aa` during the pre-warm window.** While the hidden float is alive (`self.win` valid),
-  `cli.toggle` reads `is_open()` as true and *hides* it — showing nothing
+- **#4 — `<leader>aa` during the pre-warm window.** While the hidden float is alive (`self.win`
+  valid), `cli.toggle` reads `is_open()` as true and *hides* it — showing nothing
   (`cli/init.lua:100`, `cli/terminal.lua:487`). A cold `<leader>aa` before the float exists, or
   after it's hidden, is fine; the ~300 ms show→hide window is the hole.
 
-These are **awkward to fix in the hack** (both are properties of "there is a window"), so the
-Phase 1 follow-up fixed only the confidently-correctable issues in place — the lost `.git` gate on
-the reschedule path and the guards matching any tool instead of claude (`c8f7cf5`) — and left these
-two for this plan to eliminate structurally. They are the strongest remaining argument for Phase B.
+The startup-perf Phase 1 follow-up fixed only the confidently-correctable issues in place — the
+lost `.git` gate on the reschedule path and the guards matching any tool instead of claude
+(`c8f7cf5`). #3 and #4 are **awkward to fix in the hack** (both are properties of "there is a
+window"), so they're carried here: **Phase B** hardens them in the hack as an interim if needed,
+and **Phase D** eliminates them structurally. They are the strongest remaining argument for the
+windowless rework (Phases C–D).
 
 ### Decision: don't fork
 
@@ -66,7 +68,7 @@ PR; keep the hardened monkey-patch as the interim; fork only as a last resort (u
 
 ---
 
-## Phase 0 — Prototype locally to de-risk (throwaway, not committed to this repo)
+## Phase A — Prototype locally to de-risk (throwaway, not committed to this repo)
 
 Prove the two caveats are handleable *before* proposing anything upstream. Edit the installed copy
 (`~/.local/share/nvim/site/pack/core/opt/sidekick.nvim/lua/sidekick/cli/terminal.lua`) on a scratch
@@ -93,14 +95,39 @@ If PTY sizing turns out ugly/unfixable, stop and reassess (the hardened monkey-p
 
 ---
 
-## Phase 1 — Upstream PR to sidekick.nvim
+## Phase B — Harden the hidden-float hack against #3/#4 (interim, in-repo)
+
+**Optional / superseded by Phase D.** These two races live only in the hidden-float hack, which
+Phase D deletes outright — so do this **only if Phase C (upstream) stalls and the races actually
+bite**. If the windowless API lands soon, skip straight to Phase D. Caveat up front: this touches
+the delicate flag/override lifecycle (the same code the `wincmd L`, `.git`, and tool-scoping bugs
+already came from), and Phase D throws it away — hence "interim, only if needed."
+
+- **#3 — make the cleanup event-driven (removes the fixed-timing guess).** Today `do_prewarm`
+  clears `_G.__sidekick_prewarm` and calls `cli.hide` on a fixed 300 ms `vim.defer_fn`, which can
+  fire *before* the scheduled `cli.show` installs the override under a main-loop stall. Instead,
+  trigger the flag-clear + `cli.hide` from **inside the override's `open_win`** — it runs exactly
+  when the hidden float is created, so the cleanup can't out-race the show. Add a fallback timer
+  (~2 s) that clears the flag if `open_win` never fires (show failed / claude missing), so a later
+  real `<leader>aa` can't inherit a stuck override.
+- **#4 — mitigate (no clean full fix in the hack).** The float is genuinely `is_open()`-true while
+  it exists, so `<leader>aa` toggling it closed can't be fully prevented without removing the
+  window. The event-driven cleanup above shrinks the vulnerable window to ~one schedule tick after
+  the float opens; the full fix is Phase D (no float to toggle). Accept the shrunken window as the
+  interim state — document it, don't chase a fragile in-hack workaround.
+- **Commit** as one `fix(nvim):` commit here with `Part-of: plans/sidekick-windowless-prewarm.md`;
+  update GUIDE.md's `Re-source safety` bullet if the timer shape changes.
+
+---
+
+## Phase C — Upstream PR to sidekick.nvim
 
 Open an issue first sketching the approach (cite toggleterm's `spawn()` as prior art), then a PR.
 Shape options (author's call, but propose):
 - A public `M:spawn()` / `M:prewarm()` that starts the job windowless, **or**
 - a `cli.show({ show = false })` / `focus = false, show = false` option that starts without opening.
 
-The PR carries the Phase 0 handling for both caveats:
+The PR carries the Phase A handling for both caveats:
 - Job-start via `nvim_buf_call(self.buf, …)`; `open_win()` moved out of `start()` into `show()`.
 - PTY resize on first real `open_win` (SIGWINCH) so a windowless-started TUI paints correctly.
 - Ready-detection windowless-safe (timeout fallback; don't require `self.win`).
@@ -110,26 +137,26 @@ equivalent in behavior.
 
 ---
 
-## Phase 2 — Simplify `ai.lua` once the API exists (this repo)
+## Phase D — Simplify `ai.lua` once the API exists (this repo)
 
-Depends on Phase 1 landing upstream (then bump `nvim-pack-lock.json`), **or** on a pinned fork
+Depends on Phase C landing upstream (then bump `nvim-pack-lock.json`), **or** on a pinned fork
 branch if we ever go that route. When available, replace the hack with the real API:
 
 - **Delete** the hidden-float `open_win` monkey-patch in the `cli.win.config` callback, the
   `prewarm_term` upvalue, and the `_G.__sidekick_prewarm` flag.
 - **Delete** Guard 2 (the visible-CLI re-check before `cli.hide`) and the `cli.hide` cleanup — a
   windowless `spawn()` never shows a window, so there's nothing to hide.
-- **Delete** the `SidekickCliAttach` skip-promote guard from `a989656` — with no pre-warm window,
-  there's nothing to mis-promote.
+- **Delete** the `SidekickCliAttach` skip-promote guard from `a989656`, **and** whatever Phase B
+  added (the event-driven cleanup / fallback timer) — with no pre-warm window, none of it applies.
 - **Keep** Guard 1 (skip if a claude CLI already exists — now matched via
   `terminal.sessions()` → `t.tool.name == 'claude'` after `c8f7cf5`, not the filetype), the `.git`
   + `has_ui` gates in `do_prewarm`, the re-schedulable 3s one-shot timer, and the
   `PersistenceLoadPre/Post` wiring — all orthogonal to windowing and still wanted. `do_prewarm()`
   collapses to roughly: has_ui/`.git`/guard-1 checks → `spawn the claude CLI`.
-- **Resolves the two review residuals for free.** With no window during pre-warm, the cleanup
-  timing race (#3) and the `<leader>aa`-hides-the-hidden-float bug (#4) both vanish — there's no
-  override to install late and no `is_open()`-true float to toggle. This is the payoff that makes
-  Phase B worth more than the ~ms it saves.
+- **Resolves #3 and #4 for free.** With no window during pre-warm, the cleanup timing race (#3) and
+  the `<leader>aa`-hides-the-hidden-float bug (#4) both vanish — there's no override to install late
+  and no `is_open()`-true float to toggle. This is the payoff that makes this rework worth more than
+  the ~ms it saves.
 - Net: the pre-warm becomes structurally identical to `terminal.lua`'s (spawn a hidden buffer, no
   window, first user trigger opens onto it) — the asymmetry that motivated all this disappears.
 
@@ -140,11 +167,11 @@ branch if we ever go that route. When available, replace the hack with the real 
 
 ---
 
-## Interim (now → until Phase 2)
+## Interim (now → until Phase D)
 
-Keep the hardened monkey-patch (`a989656` guard in place). It works and costs zero fork
-maintenance. If it re-breaks against a sidekick update before Phase 1 lands, patch the specific
-autocmd (as we did for `wincmd L`) rather than escalating to a fork prematurely.
+Keep the hardened monkey-patch (`a989656` + `c8f7cf5` guards in place). It works and costs zero fork
+maintenance. If it re-breaks against a sidekick update before Phase C lands, patch the specific
+autocmd (as we did for `wincmd L`) — or do Phase B — rather than escalating to a fork prematurely.
 
 ## Fallback if upstream declines
 
@@ -154,21 +181,28 @@ maintenance cost if (a) upstream won't take it and (b) breakage is recurring. Pi
 
 ## Workflow
 
-Phase 0 is throwaway (no dotfiles commits). Phase 1 is upstream (a PR to sidekick.nvim, not this
-repo). Phase 2 is one `refactor(nvim):` commit here (docs included), gated on Phase 1 landing +
-lockfile bump. `Part-of: plans/sidekick-windowless-prewarm.md` on the Phase 2 commit.
+Phase A is throwaway (no dotfiles commits). Phase B is one optional interim `fix(nvim):` commit
+here (superseded by D). Phase C is upstream (a PR to sidekick.nvim, not this repo). Phase D is one
+`refactor(nvim):` commit here (docs included), gated on Phase C landing + lockfile bump.
+`Part-of: plans/sidekick-windowless-prewarm.md` on the Phase B and Phase D commits.
 
 ## Verification
 
-Phase 0 (local prototype):
+Phase A (local prototype):
 1. Pre-warm via the throwaway `spawn()` → claude process running (`ps aux | grep claude`), **no**
    window/split visible, no flicker.
 2. `<leader>aa` after pre-warm → CLI opens instantly and **renders at the correct width** (the PTY
    sizing check — no stuck narrow/garbled frame).
 3. Cold `<leader>aa` (no pre-warm), `<leader>aa` toggle, focus, hide, close — all unchanged.
 
-Phase 2 (after simplification):
-4. Full collision test from the startup-perf plan still passes: start nvim in a rust repo →
+Phase B (if done):
+4. Under an artificial main-loop stall right at the 3s mark (e.g. a big synchronous `require` or a
+   busy-loop), the pre-warm still opens **invisibly** — the override installs regardless of timing.
+5. Show-failed path (rename `claude` off `PATH`): the flag clears via the fallback timer, and a
+   later real `<leader>aa` opens a normal visible CLI (no inherited hidden-float override).
+
+Phase D (after simplification):
+6. Full collision test from the startup-perf plan still passes: start nvim in a rust repo →
    `<leader>qs` → claude spawns ~3s after restore, invisibly; `<leader>aa` instant; `<C-\>` warm.
-5. Re-source `ai.lua` twice → single autocmd/timer registration, no leaks.
-6. `:checkhealth`, `:messages` clean; GUIDE.md greps resolve.
+7. Re-source `ai.lua` twice → single autocmd/timer registration, no leaks.
+8. `:checkhealth`, `:messages` clean; GUIDE.md greps resolve.
