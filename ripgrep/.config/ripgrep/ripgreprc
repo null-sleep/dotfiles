@@ -1,0 +1,37 @@
+# ripgrep global config — loaded because $RIPGREP_CONFIG_PATH points here
+# (set in zsh/.zshrc_config.zsh). Every `rg` invocation reads this file,
+# INCLUDING the ones telescope and the snacks nvim picker shell out to. So
+# keep it to `--type-add` lines only: those merely *register* file types and
+# change no search behavior. Do NOT add flags like --smart-case or --hidden
+# here — they would silently apply to every editor picker search too.
+#
+# Type globs are matched against the file NAME only; directory components are
+# ignored. So dir-based conventions can't be captured here (Rust's tests/,
+# Go's testdata/), and Rust's inline #[cfg(test)] unit tests aren't a separate
+# file at all — rusttest below only catches the *_test.rs naming some projects
+# use. List all built-in types with:  rg --type-list
+
+# --- Aliases for awkwardly-named built-in types --------------------------
+# ripgrep's Rust type is `rust`, not `rs`; add the extension-shaped alias so
+# `-trs` works like the built-in `-tgo` / `-tlua` / `-tpy` already do.
+--type-add=rs:*.rs
+
+# --- Per-language test-file types ----------------------------------------
+# Each matches the conventional test-file NAMING for a language we configure
+# an LSP/formatter for in nvim. Use `-t<lang>test` to search only tests, or
+# `-T<lang>test` to exclude them from a search.
+--type-add=gotest:*_test.go
+--type-add=rusttest:*_test.rs
+--type-add=pytest:{test_*,*_test}.py
+--type-add=jstest:*.{test,spec}.{js,jsx,cjs,mjs}
+--type-add=tstest:*.{test,spec}.{ts,tsx,cts,mts}
+--type-add=extest:*_test.exs
+--type-add=kttest:*{Test,Tests}.kt
+--type-add=luatest:*_{spec,test}.lua
+
+# --- Umbrella `test` type ------------------------------------------------
+# Union of every per-language test type above (ripgrep's `include:` composes
+# already-defined types, so these lines must come after them). `-Ttest` drops
+# all test files from a search in one flag; `-ttest` searches only tests
+# across every language.
+--type-add=test:include:gotest,rusttest,pytest,jstest,tstest,extest,kttest,luatest

@@ -33,7 +33,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [yknotify](#yknotify)
+- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -52,7 +52,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh rcmd && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh rcmd ripgrep && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -1076,6 +1076,32 @@ stow rcmd
 ```
 
 The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.
+
+The `rcmd config …` CLI is bundled inside the app but isn't on `PATH` by default. The [`zsh`](#zsh) package exposes it by symlinking `~/.local/bin/rcmd` → `/Applications/rcmd.app/Contents/SharedSupport/rcmdCLI` (tracked as `zsh/.local/bin/rcmd`), so `rcmd config help` / `rcmd config get …` work from any shell once `rcmd.app` is installed. If the app isn't installed the symlink simply dangles — harmless.
+
+## ripgrep
+
+A stow-managed global ripgrep config at `~/.config/ripgrep/ripgreprc` (pointed to by `$RIPGREP_CONFIG_PATH`, exported in [`zsh`](#zsh)) that registers custom [file types](https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#file-types). It contains **only** `--type-add` definitions — no search-behavior flags — because the same file is read by every `rg` invocation, including the ones the Neovim telescope / snacks pickers shell out to.
+
+```bash
+cd ~/src/dotfiles
+stow ripgrep
+```
+
+What it defines:
+
+- **`rs`** — an alias for the built-in `rust` type, so `-trs` works like `-tgo` / `-tlua` / `-tpy` (ripgrep names the Rust type `rust`, not `rs`).
+- **Per-language test types** — `gotest`, `rusttest`, `pytest`, `jstest`, `tstest`, `extest`, `kttest`, `luatest`, each matching that language's test-file naming, plus an umbrella **`test`** type unioning them all.
+
+Use them anywhere `rg` runs — the shell, or a picker's ripgrep-args prompt:
+
+```bash
+rg -trs 'unwrap'            # search only Rust files
+rg 'handleRequest' -Ttest  # everything except test files
+rg 'TODO' -ttest           # only test files, any language
+```
+
+ripgrep type globs match the file *name* only, so directory conventions (Rust's `tests/`, Go's `testdata/`) and Rust's inline `#[cfg(test)]` unit tests aren't captured — see the comments in [`ripgrep/.config/ripgrep/ripgreprc`](ripgrep/.config/ripgrep/ripgreprc). List every type (built-in + custom) with `rg --type-list`.
 
 ## yknotify
 
