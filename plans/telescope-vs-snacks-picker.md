@@ -297,10 +297,42 @@ Same goal, expressed in each setup. **stock** = what you type today; **+lga**
 - +lga: `handleRequest -tgo -g '!*_test.go'`
 - snacks: `handleRequest -- -tgo -g '!*_test.go'`
 
+  Mixing `-tgo` with `-g` works here because `!*_test.go` is an **exclude**
+  glob — it only removes files, so `-tgo` stays in effect. An **include** glob
+  (`-g '*.go'`) would instead *override* `-tgo` and ignore the type entirely;
+  see the Rust-name example below for that trap.
+
 **Grep `TODO`, only under a `handlers/` folder, in TS/TSX**
 - stock: *not from the prompt.*
 - +lga: `TODO -g '**/handlers/**' -g '*.{ts,tsx}'`
 - snacks: `TODO -- -g '**/handlers/**' -g '*.{ts,tsx}'`
+
+**Grep `foo` only in Rust files whose *name* contains `price`**
+- stock: *not from the prompt.*
+- +lga: `foo -g '*price*.rs'`
+- snacks: `foo -- -g '*price*.rs'`
+
+  **Gotcha — combining a name filter with a type is trickier than it looks.**
+  The obvious `-g 'price*' -trs` is wrong *two* ways. Below, each variant with
+  what it actually returns against files
+  `price.rs  get_price.rs  price.py  price.txt`:
+
+  - **`price*` is *starts-with*, not *contains*.**
+    `-g 'price*'` → `price.rs`, `price.py`, `price.txt` — misses `get_price.rs`.
+    Use `*price*` for "name contains price".
+  - **An include `-g` glob overrides `-t`.**
+    `-g '*price*' -trs` → `price.rs`, `get_price.rs`, `price.py`, `price.txt` —
+    the `-trs` is *ignored*, so the non-Rust files leak in. An include glob
+    defines the file set outright; you cannot AND it with a type.
+    **Fix: fold the extension into the glob** → `-g '*price*.rs'` →
+    `price.rs`, `get_price.rs` only.
+  - **Exclude globs *do* combine with `-t`.**
+    `-tgo -g '!*_test.go'` correctly means "Go files, minus tests" — an
+    exclude glob only *removes* files, so the type filter still applies. It's
+    only *include* globs that override `-t`.
+
+  Fuller treatment — glob anchoring, include vs exclude, more examples — is in
+  the ripgrep guide: [`docs/ripgrep.md`](../docs/ripgrep.md#globs).
 
 **Grep the exact phrase `res.status(500)` (literal, not regex)**
 - stock: `'res.status(500)` (fzf exact filters the *displayed lines* rg
