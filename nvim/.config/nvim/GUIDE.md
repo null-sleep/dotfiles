@@ -228,6 +228,27 @@ unsupported methods.
 Features gated this way: inlay hints, document highlight, codelens,
 declaration, type definition, implementation.
 
+### Reveal mode expands, never collapses
+
+`filetree.lua`'s `update_focused_file = { enable = true }` expands the
+ancestor directories of the active file on every switch and scrolls it into
+view — it never collapses anything else already open. This matches VS Code's
+`explorer.autoReveal` and Zed's `auto_reveal_entries`; neither auto-collapses
+siblings either (confirmed against both editors' source/issue trackers). An
+earlier design assumed Zed did auto-collapse and explored a "solo mode" to
+match — that premise was wrong, so it wasn't pursued; nvim-tree's default
+`update_focused_file` already matched the real target behavior. See
+`plans/nvim-tree-solo-reveal.md` for the full exploration, including why
+nvim-tree has no public API for "collapse only the siblings."
+
+`renderer.highlight_opened_files = 'all'` is a separate, unrelated addition:
+it highlights every file with an open buffer (not just the focused one) via
+a background chip (`NvimTreeOpenedHL` linked to `ColorColumn` in
+`themes.lua`, not a text color — the default links to `Special`, which
+clashes with git-status text coloring). `CursorLine` was tried first but was
+too low-contrast against the tree's own background in `catppuccin-latte` to
+be visible.
+
 ### Renaming a file rewrites its imports
 
 Renaming a file has two independent problems, solved by different machinery:
@@ -405,13 +426,19 @@ nesting an editor inside a terminal window. Pieces that make this work:
 ### Synthetic sidebar buffers can't be session-serialized
 
 `mksession` serializes a window by the *file* its buffer points at. Aerial's
-outline buffer has no backing file, so a saved session restores its window as a
-bare `enew` scratch buffer — a junk blank split where the outline used to be.
-`session.lua` closes aerial in persistence's `PersistenceSavePre` hook so the
-synthetic window is simply absent from the saved layout; you reopen it with
-`<leader>o` on demand. This mirrors the nvim-tree explorer (`<leader>e`), which
-also isn't session-restored — you just toggle it back. Any future plugin owning
-a synthetic sidebar buffer needs the same close-before-save treatment.
+outline buffer and nvim-tree's explorer buffer have no backing file, so a
+saved session restores their windows as bare `enew` scratch buffers — junk
+blank splits where the panels used to be. `session.lua` closes both
+(`aerial.close_all()`, `api.tree.close_in_all_tabs()`) in persistence's
+`PersistenceSavePre` hook so the synthetic windows are simply absent from the
+saved layout; you reopen them with `<leader>o` / `<leader>e` on demand. Any
+future plugin owning a synthetic sidebar buffer needs the same
+close-before-save treatment.
+
+(nvim-tree was originally left out of this hook on the unverified assumption
+it was "handled some other way" — it wasn't, and hit the same blank-buffer
+bug. Lesson: verify each panel individually, don't extrapolate from the one
+that was actually tested.)
 
 We deliberately **don't** remember aerial's open state and auto-reopen it. The
 tempting way — a session-baked global (`let g:AerialWasOpen` via
@@ -1125,6 +1152,17 @@ and diagnostic decorations.
   issues. `show_on_dirs = true` propagates to parent directories.
 - **Modified indicator** — buffers with unsaved changes are marked in the
   tree (`highlight_modified = 'name'` highlights the filename).
+- **Open-buffer highlight** — files with a currently loaded buffer (any
+  window, not just the active one) get a background highlight behind their
+  icon+name (`highlight_opened_files = 'all'`, `NvimTreeOpenedHL` linked to
+  `ColorColumn` — bg-only, so it doesn't recolor the text). See
+  [Design Decisions](#design-decisions) → "Reveal mode expands, never
+  collapses" for how this combines with auto-reveal.
+- **Auto-reveal, not auto-collapse** — switching buffers expands the tree
+  down to the active file and scrolls it into view
+  (`update_focused_file = { enable = true }`); it never collapses anything
+  else that's open. See [Design Decisions](#design-decisions) → "Reveal mode
+  expands, never collapses".
 - **Trash** — `D` in the tree sends files to macOS trash (`trash.cmd = 'trash'`,
   uses `/usr/bin/trash`). `d` remains permanent delete.
 - **Polished prompts** — `select_prompts = true` routes rename/delete

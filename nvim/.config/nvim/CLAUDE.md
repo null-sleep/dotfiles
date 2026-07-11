@@ -4,6 +4,22 @@ This is the nvim config subtree of a stow-managed dotfiles repo. `GUIDE.md`
 in this directory is the maintained reference doc for the whole config —
 read it before making non-trivial changes here.
 
+## Never run `nvim` from a Bash tool call without `env -u NVIM`
+
+This machine sets `$NVIM` whenever an nvim instance is running, and this
+config loads `flatten.nvim`, which routes any bare `nvim` invocation into the
+user's live instance instead of starting an isolated one — see GUIDE.md →
+Design Decisions → "Nested nvim routes into the parent (flatten.nvim)". A
+flattened invocation exits 0 with no output, looking like a clean success,
+when it actually never ran standalone (and worst case, a `qa!` reaches the
+live session).
+
+**Always prefix `nvim` invocations from a Bash tool call with `env -u
+NVIM`** — the same trick `claude-nvim` already uses — and confirm the probe
+actually ran standalone (e.g. check an expected output file exists) before
+trusting its result. A project hook in `.claude/settings.json` blocks bare
+`nvim` calls missing this prefix as a backstop.
+
 ## Update GUIDE.md in the same change
 
 **Whenever you add a new lua module (a `require()` in `init.lua`) or a new

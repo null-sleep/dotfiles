@@ -20,20 +20,23 @@ vim.opt.sessionoptions:remove('terminal')
 -- filename to record, so a restored session shows a blank `enew` scratch split
 -- where the panel was. The general fix is to close such windows before the
 -- session is written, keeping that junk out of the saved layout; you reopen the
--- panel on demand (as with the nvim-tree explorer, which also isn't restored).
--- We deliberately don't persist "was it open?" to auto-reopen — that would need
--- `sessionoptions+=globals`, a footgun that bakes unrelated globals into every
--- session. See GUIDE.md "Synthetic sidebar buffers can't be session-serialized".
+-- panel on demand. We deliberately don't persist "was it open?" to auto-reopen
+-- — that would need `sessionoptions+=globals`, a footgun that bakes unrelated
+-- globals into every session. See GUIDE.md "Synthetic sidebar buffers can't be
+-- session-serialized".
 --
--- Aerial's outline (outline.lua) is the one such panel in this config today.
+-- Aerial's outline and nvim-tree's explorer are the two such panels today —
+-- both closed here. (nvim-tree was wrongly assumed to be handled elsewhere
+-- and left out until this bug surfaced; same blank-buffer failure mode.)
 -- Safe to close in PersistenceSavePre: it only fires from persistence's
 -- VimLeavePre hook, i.e. nvim is already quitting.
 vim.api.nvim_create_autocmd('User', {
   group   = vim.api.nvim_create_augroup('UserSessionSave', { clear = true }),
   pattern = 'PersistenceSavePre',
-  desc = 'Session: close synthetic-buffer panels (aerial) before mksession so they leave no blank scratch window',
+  desc = 'Session: close synthetic-buffer panels (aerial, nvim-tree) before mksession so they leave no blank scratch window',
   callback = function()
     require('aerial').close_all()
+    require('nvim-tree.api').tree.close_in_all_tabs()
   end,
 })
 

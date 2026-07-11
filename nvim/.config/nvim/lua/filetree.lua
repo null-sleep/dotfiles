@@ -27,6 +27,9 @@ require('nvim-tree').setup({
     highlight_git = 'name',
     -- Highlight files with unsaved changes
     highlight_modified = 'name',
+    -- Highlight files with an open buffer (any window). Color comes from the
+    -- NvimTreeOpenedHL override in themes.lua, not this option.
+    highlight_opened_files = 'all',
     -- Indent lines make hierarchy easier to read
     indent_markers = { enable = true },
     icons = {

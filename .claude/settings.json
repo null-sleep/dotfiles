@@ -42,6 +42,7 @@
 
       "Bash(nvim --headless *)",
       "Bash(nvim -es *)",
+      "Bash(env -u NVIM *)",
       "Bash(pkill -f *)",
 
       "Bash(stow *)",
@@ -105,6 +106,20 @@
       "Skill(update-config)",
       "Skill(fewer-permission-prompts)",
       "Artifact"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | { read -r cmd; is_nvim=0; for tok in $cmd; do if [ \"$tok\" = \"nvim\" ]; then is_nvim=1; fi; done; if [ \"$is_nvim\" = \"1\" ] && ! printf '%s' \"$cmd\" | grep -q 'env -u NVIM'; then jq -n '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"nvim invoked without env -u NVIM. This repos flatten.nvim would route it into the users live nvim instance via $NVIM instead of an isolated one (see nvim/.config/nvim/CLAUDE.md). Re-issue with env -u NVIM prefixed.\"}}'; fi; }",
+            "statusMessage": "Checking nvim invocation for flatten.nvim safety..."
+          }
+        ]
+      }
     ]
   }
 }
