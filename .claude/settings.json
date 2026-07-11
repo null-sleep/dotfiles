@@ -69,6 +69,10 @@
       "Bash(curl -fsSL *)",
       "Bash(rustup toolchain *)",
 
+      "Bash(claude-nvim check *)",
+      "Bash(claude-nvim lua *)",
+      "Bash(theme status *)",
+
       "Bash(rtk git *)",
       "Bash(rtk nvim *)",
       "Bash(rtk proxy *)",
