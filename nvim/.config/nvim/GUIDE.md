@@ -1239,6 +1239,7 @@ Inside the tree (buffer-local, set by `on_attach`):
 | `h` | Collapse directory |
 | `<C-v>` | Open file in vertical split |
 | `<C-x>` | Open file in horizontal split |
+| `<C-d>` | Close the buffer for the file under the cursor |
 | `a` | Create file or directory (append `/` for dir) |
 | `d` | Delete (permanent) |
 | `D` | Trash (sends to macOS trash) |
