@@ -194,12 +194,18 @@ local function schedule_prewarm()
     _G._sidekick_prewarm_timer:stop()
     _G._sidekick_prewarm_timer:close()
   end
-  _G._sidekick_prewarm_timer = assert(vim.uv.new_timer())
-  _G._sidekick_prewarm_timer:start(PREWARM_DELAY, 0, vim.schedule_wrap(function()
-    if _G._sidekick_prewarm_timer then
-      _G._sidekick_prewarm_timer:close()
-      _G._sidekick_prewarm_timer = nil
-    end
+  local timer = assert(vim.uv.new_timer())
+  _G._sidekick_prewarm_timer = timer
+  timer:start(PREWARM_DELAY, 0, vim.schedule_wrap(function()
+    -- Identity guard: the uv fire and this callback are a main-loop hop
+    -- apart. If <leader>qs lands in that gap, PersistenceLoadPre/Post
+    -- (below) close this timer and arm a fresh one — this callback is then
+    -- stale, and without the check it would close the *new* timer and run
+    -- the pre-warm right at restore-end (the exact collision the reschedule
+    -- exists to avoid). Stale → do nothing; the re-armed timer owns the fire.
+    if _G._sidekick_prewarm_timer ~= timer then return end
+    _G._sidekick_prewarm_timer = nil
+    timer:close()
     do_prewarm()
   end))
 end
