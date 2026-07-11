@@ -197,6 +197,15 @@ command -v fzf >/dev/null && source <(fzf --zsh)
 # (interactive fzf pick). Must init after plugins/compinit. `brew install zoxide`.
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
+# ripgrep — point rg at the stow-managed global config, which registers custom
+# file types (e.g. `-trs` for Rust, and per-language `-Ttest` test-file
+# exclusions). Also picked up by the telescope / snacks nvim pickers, since
+# they shell out to rg. Guarded on the file existing so an unstowed `ripgrep`
+# package doesn't make every rg call warn about a missing config.
+# See ripgrep/.config/ripgrep/ripgreprc.
+[[ -f "$HOME/.config/ripgrep/ripgreprc" ]] \
+  && export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc"
+
 
 # Git
 
