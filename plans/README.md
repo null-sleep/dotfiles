@@ -37,6 +37,10 @@ Grouped by state, not priority.
 
 ## Active — outstanding work with momentum
 
+- [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md) — the single
+  tracking doc for the picker effort (telescope → live-grep-args/snacks):
+  research + swap assessment, the removed `filter.lua` spec + rebuild design,
+  and the `<leader>ss` symbols-picker eval (folded in from two former docs).
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
   done / is idle (pipeline first, UI later).
@@ -57,10 +61,6 @@ Grouped by state, not priority.
   select/move/swap text objects (`af`/`if`/`ac`/…), plus a LazyVim mini.ai delta.
 - [quickfix-improvements.md](quickfix-improvements.md) — quicker.nvim / nvim-bqf
   for a real, prunable quickfix panel.
-- [filter-picker-rethink.md](filter-picker-rethink.md) — externalize filter
-  presets to data + in-flight filter editing in `live_grep`.
-- [symbol-picker-alternatives.md](symbol-picker-alternatives.md) — time-boxed
-  eval of whether snacks.picker / fzf-lua could replace the bespoke symbol picker.
 - [copilot-context-enrichment.md](copilot-context-enrichment.md) — experimental:
   inject LSP/treesitter type context into Copilot's `didChange` for better ghost text.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
@@ -89,8 +89,6 @@ Grouped by state, not priority.
 
 - [nvim-startup-performance.md](nvim-startup-performance.md) — Phase 1 landed and
   verified; Phase 2 parked for good with a documented revival trigger.
-- [floating-terminal-backdrop.md](floating-terminal-backdrop.md) — dim/outline
-  behind the terminal float; explored, working, then reverted — re-apply notes.
 - [keymap-tracker.md](keymap-tracker.md) — deferred keymap-usage-tracker research
   (Neovim/which-key internals) + the parked Track C ergonomics backlog.
 - [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md) —

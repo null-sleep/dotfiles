@@ -231,16 +231,14 @@ several sessions.
 - see `plans/harpoon2.md` for the existing implementation plan
 
 ### Gaps in the current config
-No `<C-q>`-to-qflist keymap and no qf-pruning plugin are wired up yet
-(`pickers/filter.lua` wraps `live_grep`/`find_files` with filter presets, but
-doesn't touch quickfix). Telescope, fzf-native, and ui-select are already
-installed, so this is mostly wiring + one new plugin. Harpoon2 is a fully
-separate, already-planned addition (see above) — not required for the
-quickfix workflow itself.
+No `<C-q>`-to-qflist keymap and no qf-pruning plugin are wired up yet.
+Telescope, fzf-native, and ui-select are already installed, so this is mostly
+wiring + one new plugin. Harpoon2 is a fully separate, already-planned addition
+(see above) — not required for the quickfix workflow itself.
 
 ### Recommendation / priority
-1. Wire `<C-q>` in the existing `live_grep` picker (`pickers/filter.lua`
-   `M.live_grep`) to send results to the quickfix list.
+1. Wire `<C-q>` in the `live_grep` picker (`<leader>sg`, now plain
+   `builtin.live_grep`) to send results to the quickfix list.
 2. Add a `:cbuffer`-reload keymap in the qf window as the zero-dependency
    dismiss workflow.
 3. `nvim-bqf` — if the native `dd`+`:cbuffer` loop feels clunky in practice.
@@ -369,7 +367,8 @@ These have their own plan files — pointers only, not re-listed here:
 - **Quickfix / problems-list ergonomics** → `plans/quickfix-improvements.md`
 - **Semantic text objects (`af`/`if`/`ac`/… select, move, swap)** →
   `plans/treesitter-textobjects.md` (LazyVim's mini.ai delta folded in there)
-- **Filter-preset picker rework** → `plans/filter-picker-rethink.md`
+- **Picker migration (telescope → live-grep-args/snacks), filter-preset rework,
+  and symbols-picker eval** → `plans/telescope-vs-snacks-picker.md`
 - **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
 - **cmux-inspired agent event pipeline (needs-input/done status per sidekick
   session)** → `plans/sidekick-agent-event-pipeline.md` — look into soon.

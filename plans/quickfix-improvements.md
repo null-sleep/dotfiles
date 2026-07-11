@@ -79,7 +79,7 @@ either/or.
   highlighting as you move through the list, without leaving quickfix.
 - **fzf-mode filtering** (`zf`) — fuzzy-filter the list down live, requires
   the `fzf` binary (already on this machine via Homebrew, same as fzf-lua's
-  dependency in `symbol-picker-alternatives.md`) — optional, degrades
+  dependency noted in `telescope-vs-snacks-picker.md` §5) — optional, degrades
   gracefully without it.
 - **Sign-based multi-select** (`<Tab>`) to build a new filtered quickfix list
   from a subset of items.
