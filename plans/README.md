@@ -5,6 +5,26 @@ config). This index is orientation only — **the code is the source of truth**;
 a plan may be stale or superseded by what actually shipped. Plans are pruned
 as they land (see git history for removed ones).
 
+## TODO — things to act on
+
+A running checklist of what I actually want to do next across these plans
+(distinct from the index below, which just catalogs everything). Check items
+off or delete them as they land; add new ones freely.
+
+- [ ] **Decide the iTerm2 sync approach** — keep the opaque state-export blob
+  or migrate to git-diffable Dynamic Profiles. See the "what to do next" box
+  at the top of [iterm2-sessions-profiles.md](iterm2-sessions-profiles.md).
+- [ ] **Confirm all machines have migrated**, then delete
+  [review-remediation-migration.md](review-remediation-migration.md) (it's a
+  one-time checklist that says to delete itself once every machine has pulled +
+  migrated).
+- [ ] **Decide `changelog.md`'s fate** — flesh out the changelog format or drop
+  the idea. See [changelog.md](changelog.md).
+
+_Add plan work you want to prioritize here._
+
+---
+
 Grouped by state, not priority.
 
 ## Active — outstanding work with momentum
