@@ -145,11 +145,18 @@ local function do_prewarm()
   -- has_ui-gated, unlike the initial trigger below): don't spawn claude with
   -- no UI to warm for.
   if not utils.has_ui() then return end
-  -- Guard 1: a sidekick CLI already exists (user opened it during the wait,
-  -- or a restore surfaced one) -> don't double-spawn.
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(buf)
-       and vim.bo[buf].filetype == 'sidekick_terminal' then
+  -- Project skip: only the initial trigger below is `.git`-gated, but the
+  -- PersistenceLoadPost reschedule path lands here too -- re-check at fire time
+  -- (evaluated against the restored buffers) so we don't spawn claude for a
+  -- session/dir outside a project.
+  if not vim.fs.root(0, '.git') then return end
+  -- Guard 1: a *claude* CLI already exists (user opened it during the wait, or
+  -- a restore surfaced one) -> don't double-spawn. Match the claude tool
+  -- specifically via sidekick's live terminal registry, NOT the
+  -- `sidekick_terminal` filetype -- other tools (codex/aider via <leader>as)
+  -- share that filetype and must not suppress the claude pre-warm.
+  for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
+    if t.tool and t.tool.name == 'claude' and t:buf_valid() then
       return
     end
   end
@@ -162,13 +169,14 @@ local function do_prewarm()
       prewarm_term.open_win = nil
       prewarm_term = nil
     end
-    -- Guard 2: if a *visible* claude CLI appeared during the show->hide
-    -- window (user hit <leader>aa), skip the hide so we don't yank it away.
-    -- Our own pre-warm float is opened with hide=true, so it's excluded here.
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      local wbuf = vim.api.nvim_win_get_buf(win)
-      if vim.bo[wbuf].filetype == 'sidekick_terminal'
-         and not vim.api.nvim_win_get_config(win).hide then
+    -- Guard 2: if a *visible* claude CLI appeared during the show->hide window
+    -- (user hit <leader>aa), skip the hide so we don't yank it away. Match the
+    -- claude tool specifically (registry, not filetype) so a visible *other*
+    -- tool doesn't suppress our hide. Our own pre-warm float stays hidden
+    -- (hide=true; promotion is skipped while pre-warming), so it's excluded.
+    for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
+      if t.tool and t.tool.name == 'claude' and t:win_valid()
+         and not vim.api.nvim_win_get_config(t.win).hide then
         return
       end
     end
