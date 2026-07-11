@@ -42,3 +42,4 @@ aerial outline, Neogit + diffview, nvim-dap debugging, neotest).
 # New List
 - [ ] Add a status bar for sidekick to tell me if an claude window needs my input/is done/things like that. idealy for all sidekick windows I have (lets assume they are all claude).
 - [ ] Easy way to have sidekick panels go from being a pane on the right side to opening as a floting window on the right side. Still respect the panel size.
+- [ ] Improve file explorer (nvim-tree) open-buffer highlight color — ColorColumn works but doesn't match the active theme's accent color.

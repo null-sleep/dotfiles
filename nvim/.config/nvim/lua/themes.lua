@@ -58,6 +58,15 @@ M.global_overrides = {
   -- Indent guide lines — default is too faint, NonText is visible but unobtrusive
   NvimTreeIndentMarker       = { link = 'NonText' },
 
+  -- nvim-tree open-buffer highlight: default (Special) recolors the filename,
+  -- clashing with git-status text colors. ColorColumn is bg-only, so it adds
+  -- a chip behind the icon+name without touching text color. CursorLine was
+  -- tried first but measured too close to NvimTreeNormal's own background in
+  -- catppuccin-latte to be visible. This is the *current* group name
+  -- (NvimTreeOpenedHL) — nvim-tree's legacy alias NvimTreeOpenedFile doesn't
+  -- affect rendering here.
+  NvimTreeOpenedHL           = { link = 'ColorColumn' },
+
   -- snacks.indent guide lines (see scratch.lua) — same reasoning as
   -- NvimTreeIndentMarker above: NonText is visible but unobtrusive for the
   -- steady-state indent columns. The current-scope guide (the indent column
