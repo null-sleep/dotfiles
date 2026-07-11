@@ -26,7 +26,7 @@ off or delete them as they land; add new ones freely.
   machine's saved sessions have quit at least once under the fix (self-healing
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
-  in COMMIT_PLACEHOLDER.
+  in `669b19e`.
 
 _Add plan work you want to prioritize here._
 
