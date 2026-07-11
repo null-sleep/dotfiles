@@ -109,6 +109,15 @@ bullet list instead (`- **item** — description`). See
 `nvim/.config/nvim/GUIDE.md`'s `Architecture` → `File responsibilities` list
 for the pattern this replaced a table with.
 
+**No emoji in table cells.** `render-markdown.nvim` renders emoji (✅/❌ and
+other status glyphs) at a variable width, which knocks the whole column off
+the monospace grid so cells stop lining up with their rows — this bit the
+`plans/telescope-vs-snacks-picker.md` comparison table. For status/boolean
+columns use plain text (`yes`/`no`), and put any footnote markers in the
+label column as `[1]`, `[2]`… — never in the status cells — so those cells
+stay uniform-width. Applies to every doc read through render-markdown
+(README, `plans/`, GUIDE.md), not just README.
+
 ### Notation
 
 If README ever needs to mention an nvim keymap, use `<leader>`, not
