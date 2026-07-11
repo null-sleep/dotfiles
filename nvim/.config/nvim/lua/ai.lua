@@ -114,10 +114,23 @@ vim.api.nvim_create_autocmd('User', {
         vim.log.levels.ERROR)
       _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
     end
-    local layout = require('sidekick.config').cli.win.layout
+    local cfg = require('sidekick.config').cli.win
+    local layout = cfg.layout
     local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
     if not side then return end -- float / top / bottom layouts don't need promoting
-    if term then utils.promote_to_full_height(term.win, side) end
+    if term and vim.api.nvim_win_is_valid(term.win) then
+      utils.promote_to_full_height(term.win, side)
+      -- promote's `wincmd L` re-lays-out the windows and, with equalalways on,
+      -- equalizes the CLI to ~50% — ignoring winfixwidth. Restore sidekick's
+      -- configured split width so the FIRST show (which promotes) matches every
+      -- later re-show (attach fires once, so re-shows skip promote and keep the
+      -- 80-col split). Without this the first <leader>aa / <leader>an opens wide
+      -- and only an aa hide/show cycle shrinks it back.
+      local w = cfg.split and cfg.split.width
+      if w and w > 0 then
+        vim.api.nvim_win_set_width(term.win, w <= 1 and math.floor(vim.o.columns * w) or w)
+      end
+    end
   end,
 })
 
