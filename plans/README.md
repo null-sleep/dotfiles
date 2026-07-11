@@ -20,6 +20,10 @@ off or delete them as they land; add new ones freely.
   migrated).
 - [ ] **Decide `changelog.md`'s fate** — flesh out the changelog format or drop
   the idea. See [changelog.md](changelog.md).
+- [ ] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
+  alongside kitty/iTerm2 that follows macOS light/dark on its own. Verify theme
+  names with `ghostty +list-themes` first (see the risk callout). See
+  [ghostty.md](ghostty.md).
 
 _Add plan work you want to prioritize here._
 
@@ -64,6 +68,9 @@ Grouped by state, not priority.
 - [terminal-fresh-splits.md](terminal-fresh-splits.md) — decouple fresh-spawn
   split terminals from the pre-warmed float (they currently share id=1 and stomp
   its `direction`).
+- [ghostty.md](ghostty.md) — add a `ghostty` stow package (native-macOS GPU
+  terminal) alongside kitty/iTerm2, with a native macOS-following Catppuccin
+  Latte / Dracula dual theme and iTerm2-parity keybindings.
 - [unified-sidebar-panel.md](unified-sidebar-panel.md) — edgy.nvim-style unified
   stacked edgebar (tree + git + outline + terminal); the narrower
   file-tree↔outline mutual-exclusion already shipped (see GUIDE.md).
