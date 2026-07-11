@@ -1103,6 +1103,8 @@ rg 'TODO' -ttest           # only test files, any language
 
 ripgrep type globs match the file *name* only, so directory conventions (Rust's `tests/`, Go's `testdata/`) and Rust's inline `#[cfg(test)]` unit tests aren't captured — see the comments in [`ripgrep/.config/ripgrep/ripgreprc`](ripgrep/.config/ripgrep/ripgreprc). List every type (built-in + custom) with `rg --type-list`.
 
+New to ripgrep, or want to use it well? See the example-heavy guide at [`docs/ripgrep.md`](docs/ripgrep.md) — search basics, regex, file types (and defining your own), glob anchoring, and a task cookbook.
+
 ## yknotify
 
 macOS daemon that watches the system log for YubiKey touch events and fires a

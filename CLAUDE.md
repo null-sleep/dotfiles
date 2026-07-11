@@ -4,8 +4,9 @@ Stow-managed dotfiles repo. Stow packages: nvim, zsh, kitty, macos, rcmd,
 zellij, claude, yknotify, ripgrep. NOT stow packages: `iterm2/` (color presets + a
 settings export, loaded via iTerm2's own import — never run `stow iterm2`),
 `plans/` (design/feature planning docs), `fixtures/` (per-language demo
-files for testing editor features). `README.md` is the maintained
-setup/reference doc for the whole repo.
+files for testing editor features), `docs/` (standalone learn-it reference
+guides, e.g. `docs/ripgrep.md` — distinct from `plans/`, which is design docs).
+`README.md` is the maintained setup/reference doc for the whole repo.
 
 Editing something under `nvim/.config/nvim/`? See the nested
 `nvim/.config/nvim/CLAUDE.md` for how this repo maintains `GUIDE.md` (the
