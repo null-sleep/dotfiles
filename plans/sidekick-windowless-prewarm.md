@@ -33,6 +33,49 @@ attaches to it. Toggleterm avoids a window entirely (`toggleterm/terminal.lua:47
 already window-optional: `buf`/`job`/autocmds key off `self.buf`, and every window touch goes
 through `win_valid()` guards.
 
+### What a windowless start actually requires — and why it's effortless for toggleterm
+
+(Verified against both installed sources, 2026-07-10.) The mechanism itself is trivial: the only
+hard requirement of `jobstart{term=true}`/`termopen` is that the terminal buffer be **current**
+when the call runs. A real window does that (sidekick's `nvim_win_call`), but so does
+`nvim_buf_call` (toggleterm's `spawn()`, `terminal.lua:475`), which makes the buffer current
+inside nvim's internal **autocmd window** — a hidden, fixed-small-size scratch window — with
+nothing user-visible created. So "start the job windowless" is a one-line swap. The real work is
+that a window quietly supplies **two services**, and sidekick depends on both while toggleterm
+needs neither:
+
+1. **PTY dimensions.** The terminal PTY inherits the current window's size at `jobstart`.
+   Windowless, that's the autocmd window's dimensions — wrong — and the correct size only
+   arrives as a resize (SIGWINCH → repaint) when the first real window opens onto the buffer.
+   *Toggleterm doesn't care:* its payload is a shell prompt, and a prompt reflowing to a new
+   width is invisible. *Sidekick's payload is claude, a full-screen TUI* that paints its entire
+   UI on boot at whatever size it sees — a wrong-size first frame must be cleanly repainted on
+   first show or the CLI looks garbled. This is exactly Phase A validation #1.
+2. **Readiness detection.** Sidekick programmatically sends prompt text to a just-booted CLI
+   (`cli.send`), so it must know when boot has finished. Its detector is window-shaped: the
+   ready-poll loop explicitly parks until a window exists
+   (`cli/terminal.lua` ~257: `if not self:win_valid() then return -- wait for the window to be
+   ready`) and then infers boot completion from `nvim_win_get_cursor(self.win)` movement plus
+   buffer line-count stabilization, with `READY_MAX_WAIT` as a timeout backstop. *Toggleterm has
+   no readiness concept at all* — it never sends text to a fresh shell; the human watching the
+   prompt is the readiness detector. Windowless, sidekick's cursor heuristic has nothing to
+   read: pre-warm itself doesn't need readiness, but the normal path must not regress, so the
+   PR needs the timeout fallback (or a buffer-based signal) to hold — Phase A validation #2.
+
+(A third window dependency — the TermEnter/TermLeave/WinEnter mode-restore autocmds installed in
+`start()` — is already windowless-safe: they guard on `is_focused()`/`win_valid()`, which is why
+the plan can say the rest of the lifecycle is window-optional.)
+
+The architectural difference underneath: **toggleterm models buffer-without-window as a
+first-class state** — `hidden = true` terminals live jobbed-but-unshown indefinitely, `open()`
+attaches a window to an existing buffer/job later, and `spawn()` is public API. **Sidekick has
+one entry point, `show()`**, which conflates create + open-window + start-job, because for its
+use case the window isn't incidental — it's the supplier of PTY size and the readiness signal.
+That's the honest content of the upstream PR: not "skip the window" (one line) but "replace the
+two services the window was providing" (accept a deferred reflow for size; make readiness
+window-independent). And it's why the pre-warm hack exists at all: our config needed the
+*toggleterm* shape — spawn now, show later — from a plugin designed around show-only.
+
 ### More hidden-float fragility (from the startup-perf Phase 1 review + source tracing)
 
 An adversarial review of the reschedule work (plus reading the sidekick source) surfaced two more
