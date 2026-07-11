@@ -15,6 +15,66 @@ both:
 - [symbol-picker-alternatives.md](symbol-picker-alternatives.md) — time-boxed
   eval of snacks/fzf-lua specifically for the `<leader>ss` symbols picker.
 
+## TODO — this is the main tracking doc
+
+This file is now the **single tracking doc** for the whole picker effort
+(telescope → live-grep-args/snacks). The other relevant docs and sections
+should be **consolidated into this one** (not yet done):
+- [ ] Fold in [filter-picker-rethink.md](filter-picker-rethink.md) (the
+  rebuild-it-better design for the filter layer).
+- [ ] Fold in [symbol-picker-alternatives.md](symbol-picker-alternatives.md)
+  (the `<leader>ss` symbols-picker eval).
+- [ ] Fold in the quickfix/filter notes in
+  [nvim-backlog.md](nvim-backlog.md) (§ "Gaps in the current config" — its
+  present-tense references to `pickers/filter.lua` are now stale).
+
+## Status: `pickers/filter.lua` removed
+
+`nvim/.config/nvim/lua/pickers/filter.lua` has been **deleted** to unencumber
+the picker design ahead of a live-grep-args/snacks decision. `<leader>sf` /
+`<leader>sg` now call plain `telescope.builtin.find_files` / `live_grep`
+(hidden-file inclusion + `.git/`/`node_modules/` exclusion still come from the
+global `require('telescope').setup` config in `plugins.lua`, so no default
+behavior was lost). `<leader>sF` is gone. Its behavior is captured below as a
+rebuild spec; the "rebuild it better" design lives in
+[filter-picker-rethink.md](filter-picker-rethink.md).
+
+### Removed: `filter.lua` functional spec (for a future rebuild)
+
+What the deleted 163-line module did, so it can be reconstructed from this doc
+alone:
+
+- **Presets** — a static ordered Lua table, each with a session-lifetime
+  `enabled` flag (default off, reset on nvim quit):
+  - `go_src = { '*.go', '!*_test.go', '!vendor/*' }`
+  - `frontend = { '*.ts', '*.tsx', '!*.test.*' }`
+  - `protos = { '*.proto' }`
+
+  (`!`-prefixed globs are ripgrep excludes.)
+- **`<leader>sF` toggle picker** — vertical layout, no previewer:
+  - `<Tab>` flips the highlighted preset's `enabled` in place — the finder is
+    rebuilt so the `[x]`/`[ ]` checkbox updates live, and the cursor row is
+    saved/restored so it doesn't jump to row 1.
+  - `<CR>` confirms and persists the current toggle state.
+  - `<Esc>` reverts every toggle to the snapshot taken when the picker opened,
+    via the `close_windows`-override + `need_restore`-flag pattern (still
+    documented in GUIDE.md → "Picker state with revert-on-cancel", shared with
+    `pickers/theme.lua`).
+- **Wrappers** that `<leader>sf` / `<leader>sg` routed through:
+  - `M.get()` collected the globs of all enabled presets (or `nil` if none).
+  - `live_grep` received them as `glob_pattern`.
+  - `find_files` built a custom command
+    `rg --files --hidden --glob '!.git/' --glob '!node_modules/' [--glob <g>…]`
+    — a custom `find_command` bypasses telescope's `file_ignore_patterns`, so
+    `.git/`/`node_modules/` had to be re-excluded explicitly.
+  - No preset active → both fell back to the plain builtins (identical to the
+    current post-removal behavior).
+- **Rebuild direction** — see [filter-picker-rethink.md](filter-picker-rethink.md):
+  externalize presets to a data file, reload dynamically, and add in-flight
+  (`<C-f>`) filter editing from inside `live_grep`. Or drop presets entirely in
+  favor of live-grep-args / snacks inline glob syntax (`foo -- -g '*.go'`), the
+  thrust of this doc.
+
 ## TL;DR
 
 - **Your instinct is right, and it's not a skill gap.** Stock telescope really

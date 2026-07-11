@@ -82,7 +82,6 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
-- **`pickers/filter.lua`** — Telescope picker for toggling file-type presets (`go_src`, `frontend`, `protos`) that scope `<leader>sf` (find files) and `<leader>sg` (live grep)
 - **`pickers/keybindings.lua`** — Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon
@@ -202,9 +201,9 @@ the same warning for anyone editing the file directly.
 
 ### Picker state with revert-on-cancel
 
-`pickers/theme.lua` and `pickers/filter.lua` share a pattern: the picker mutates
-session state live as the cursor moves (theme switches, preset toggles), but
-`<Esc>` reverts to the snapshot taken at open time. The trick is overriding
+`pickers/theme.lua` uses this pattern: the picker mutates session state live as
+the cursor moves (theme switches), but `<Esc>` reverts to the snapshot taken at
+open time. The trick is overriding
 `close_windows` on the picker so cancellation runs before windows tear down,
 plus a `need_restore` flag flipped to false in the confirm action. New
 pickers that need preview-style live state should follow the same shape.
@@ -978,7 +977,6 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim) |
-| `<leader>sF` | Toggle file-type filter presets (scopes `<leader>sf` and `<leader>sg`) |
 
 **Inside the telescope window:**
 
@@ -1007,13 +1005,11 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 - `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
 - `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
 - `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
-- `<leader>sF` (filter presets) — `<Tab>` toggles the highlighted preset on/off (also a custom override).
 
 **Tips:**
 - Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
 - In `<leader>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`.
 - `<leader>sr` reopens the last search with the same query — useful when you close telescope and want to get back.
-- `<leader>sF` opens a preset picker (Tab to toggle on/off). Active presets pre-filter the file set that `<leader>sf` and `<leader>sg` operate over — e.g. enable `go_src` to limit results to non-test, non-vendor Go files. Presets are defined in `pickers/filter.lua` and toggle state lasts until you quit nvim. Composes with the space-suffix trick above: presets narrow the files, the space-filter narrows the result list.
 
 ### Commands
 
