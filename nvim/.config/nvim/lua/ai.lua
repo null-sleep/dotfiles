@@ -276,6 +276,16 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, '<M-n>', function() require('ai').new_auto() end,
       { buffer = args.buf, desc = 'AI: New CLI session (auto-numbered)' })
 
+    -- <M-a> hides the panel in place (the <leader>aa toggle) without first
+    -- escaping terminal mode via jj/jk — the common "stash the chat" action.
+    -- toggle_active targets M.active, which the WinEnter stamp keeps equal to
+    -- the focused session, so this hides the one you're in. Kill stays on the
+    -- deliberate <leader>ad path (confirm-guarded) — no fast in-panel teardown.
+    -- (Buffer-local to this CLI terminal; doesn't clash with the sidekick-af-ac
+    -- plan's <M-a>, which is a telescope-picker mapping in a different buffer.)
+    vim.keymap.set({ 't', 'n' }, '<M-a>', function() require('ai').toggle_active() end,
+      { buffer = args.buf, desc = 'AI: Hide CLI panel (toggle)' })
+
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
       return function()
