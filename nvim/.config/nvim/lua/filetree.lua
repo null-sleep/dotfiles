@@ -88,6 +88,18 @@ require('nvim-tree').setup({
   view = { width = 35 },
 })
 
+-- Drop the global scrolloff=10 / sidescrolloff=8 (configs.lua) the tree
+-- inherits — they let you scroll well past the last file / longest name.
+-- FileType refires on reopen, so this persists.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'NvimTree',
+  desc = 'nvim-tree: drop inherited scrolloff/sidescrolloff padding',
+  callback = function()
+    vim.wo.scrolloff = 0
+    vim.wo.sidescrolloff = 0
+  end,
+})
+
 -- Auto-open newly created files immediately after `a` in the tree
 do
   local api = require('nvim-tree.api')
