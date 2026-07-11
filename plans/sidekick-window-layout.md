@@ -13,6 +13,14 @@ Goal of this doc: capture the research so we can **try both the existing split
 and a float overlay** and decide which to keep. **No implementation yet** — this
 is reference material.
 
+> **Related wishlist item** (folded in from the old `TODO.md` "New List" when
+> the plans were consolidated): *"an easy way to have sidekick panels go from
+> being a pane on the right side to opening as a floating window on the right
+> side — still respecting the panel size."* That's the runtime split↔float
+> toggle this doc's "try both" recommendation points at; if a toggle is built
+> rather than a one-or-the-other choice, it should preserve the remembered
+> width (see the multi-session work's width-persistence handling).
+
 ---
 
 ## Why the split shrinks the workspace (root cause)

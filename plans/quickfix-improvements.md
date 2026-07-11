@@ -120,9 +120,9 @@ quicker.nvim + bqf for a while.
   references (its own floating list, not the native quickfix window). Not a
   quickfix enhancement so much as a replacement surface; already tracked as
   a candidate for the diagnostics/references panel gap in
-  `plans/features-from-other-editors.md` (Zed "problems panel" section) —
-  don't duplicate that discussion here. Quicker.nvim's README confirms no
-  conflict if both end up installed later.
+  `plans/nvim-backlog.md` (Zed "problems panel" section) — don't duplicate
+  that discussion here. Quicker.nvim's README confirms no conflict if both
+  end up installed later.
 - `ashfinal/qfview.nvim`, `niuiic/quickfix.nvim` — smaller, less-maintained
   alternatives covering subsets of the above (path-shortening/folding;
   store/restore/remove list management). No feature either offers isn't

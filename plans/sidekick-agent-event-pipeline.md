@@ -22,6 +22,13 @@ pick a UI (see "UI surface options" below, which documents the choices
 without committing to one) — the user wants the event system designed and
 built first, with UI consumers layered on top once the pipeline exists.
 
+> **Motivating wishlist item** (folded in from the old `TODO.md` "New List"
+> when the plans were consolidated): *"a status bar for sidekick telling me if
+> a Claude window needs my input / is done / etc., ideally for all sidekick
+> windows."* That status bar is a UI consumer of exactly this pipeline —
+> per-session needs-input/done/idle state is what the event registry here is
+> designed to expose.
+
 ## Prior art: how cmux does this
 
 Recap from the cmux investigation (for reference, not something this repo
