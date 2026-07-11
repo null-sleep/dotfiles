@@ -78,7 +78,8 @@ Trade-off (per the two projects' own comparison): use **aerial** if you want the
 nav/miller-column view and tighter integrations; use **outline** if you want the
 narrower, simpler "outline window only" scope and the extra non-LSP sources.
 
-See also existing notes in `plans/symbol-picker-alternatives.md`.
+See also the symbols-picker eval in
+`plans/telescope-vs-snacks-picker.md` (§5).
 
 ---
 
