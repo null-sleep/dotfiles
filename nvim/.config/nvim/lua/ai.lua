@@ -6,6 +6,13 @@
 -- cli.tools).
 local M = { active = 'claude', _dynamic = {} }
 
+-- Change the active session and remember the one we left, so <C-]> can toggle
+-- back to it. Every user-driven switch routes through this.
+local function set_active(name)
+  if name and name ~= M.active then M._last = M.active end
+  M.active = name
+end
+
 -- Stub the public methods so a keypress during the first-launch packadd race
 -- notifies instead of throwing "attempt to call a nil value". The real
 -- definitions below overwrite these once sidekick has loaded.
@@ -15,8 +22,9 @@ local M = { active = 'claude', _dynamic = {} }
 local function not_ready(...)
   vim.notify('sidekick.nvim still loading — retry after restart', vim.log.levels.WARN)
 end
-M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send, M.cycle =
-  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
+M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
+  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
+M.cycle, M.new_auto, M.toggle_last = not_ready, not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -139,7 +147,7 @@ vim.api.nvim_create_autocmd('WinEnter', {
   desc = 'Sidekick: track active CLI session',
   callback = function()
     local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-    if tool and tool.name then M.active = tool.name end
+    if tool and tool.name then set_active(tool.name) end
   end,
 })
 
@@ -222,12 +230,18 @@ vim.api.nvim_create_autocmd('FileType', {
       vim.cmd(vim.v.count1 .. 'ToggleTerm')
     end, { buffer = args.buf, desc = 'Open toggleterm float' })
 
-    -- Cycle running CLI sessions in place, without leaving terminal mode (vs
-    -- jj/jk then <leader>al). <M-,> prev, <M-.> next (< / > mnemonic).
-    vim.keymap.set({ 't', 'n' }, '<M-.>', function() require('ai').cycle(1) end,
+    -- Session switching in place (single-window model), without leaving terminal
+    -- mode (vs jj/jk then <leader>al): <M-]>/<M-[> cycle next/prev (nvim's ]/[
+    -- next/prev idiom), <C-]> toggles the last-used session (a raw control byte,
+    -- reliable with no CSI-u dependency), <M-n> forks a new auto-numbered session.
+    vim.keymap.set({ 't', 'n' }, '<M-]>', function() require('ai').cycle(1) end,
       { buffer = args.buf, desc = 'AI: Next CLI session' })
-    vim.keymap.set({ 't', 'n' }, '<M-,>', function() require('ai').cycle(-1) end,
+    vim.keymap.set({ 't', 'n' }, '<M-[>', function() require('ai').cycle(-1) end,
       { buffer = args.buf, desc = 'AI: Previous CLI session' })
+    vim.keymap.set({ 't', 'n' }, '<C-]>', function() require('ai').toggle_last() end,
+      { buffer = args.buf, desc = 'AI: Toggle last-used CLI session' })
+    vim.keymap.set({ 't', 'n' }, '<M-n>', function() require('ai').new_auto() end,
+      { buffer = args.buf, desc = 'AI: New CLI session (auto-numbered)' })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
@@ -413,8 +427,15 @@ local function create_session(name)
     cfg.cli.tools[name] = vim.deepcopy(require('sidekick.cli.tool').get('claude').config)
     M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
   end
-  M.active = name  -- eager; WinEnter confirms once the window is entered
+  set_active(name)  -- eager; WinEnter confirms once the window is entered
   show_solo(name)
+end
+
+-- <M-n> inside the CLI: spawn a fresh auto-numbered session immediately, no
+-- label prompt (labels stay on <leader>an), so you can fork off a session
+-- without leaving terminal mode.
+function M.new_auto()
+  create_session(M._next_auto_name())
 end
 
 -- Drop a dynamically-registered name from cli.tools. Never touches built-ins
@@ -506,7 +527,7 @@ function M.switch()
         local entry = action_state.get_selected_entry()
         actions.close(bufnr)
         if entry then
-          M.active = entry.value.tool.name  -- eager; WinEnter confirms on focus
+          set_active(entry.value.tool.name)  -- eager; WinEnter confirms on focus
           show_solo(entry.value.tool.name)  -- replace the open window, don't stack
         end
       end)
@@ -537,7 +558,7 @@ function M.switch()
 end
 
 -- Cycle to the prev/next running session in place (dir -1/+1), wrapping around.
--- Bound to <M-,>/<M-.> inside the CLI (see the sidekick_terminal FileType
+-- Bound to <M-[>/<M-]> inside the CLI (see the sidekick_terminal FileType
 -- autocmd) so you can move between AIs without exiting terminal mode. Sorted by
 -- name for a stable order; no-op with fewer than two running sessions.
 function M.cycle(dir)
@@ -549,8 +570,19 @@ function M.cycle(dir)
     if s.tool.name == M.active then idx = i break end
   end
   local name = sessions[(idx - 1 + dir) % #sessions + 1].tool.name
-  M.active = name
+  set_active(name)
   show_solo(name)
+end
+
+-- <C-]> inside the CLI: bounce to the session you were last in (alt-tab style;
+-- set_active tracks it). No-op if there's no prior session or it has stopped.
+-- set_active makes the one we left the new _last, so a second <C-]> bounces back.
+function M.toggle_last()
+  local last = M._last
+  if not last or last == M.active then return end
+  if #require('sidekick.cli.state').get({ name = last, started = true }) == 0 then return end
+  set_active(last)
+  show_solo(last)
 end
 
 return M
