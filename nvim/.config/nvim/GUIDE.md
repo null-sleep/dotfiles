@@ -1636,8 +1636,10 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    (`claude: tests`) that re-attaches if you type the same label again.
    `<leader>al` opens a telescope picker over running sessions to **switch**
    (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
-   Inside the CLI, `<M-.>`/`<M-,>` cycle to the next/previous running session in
-   place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip).
+   Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
+   place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
+   `<C-]>` toggles back to the last-used session (alt-tab style) and `<M-n>`
+   forks a new auto-numbered session in place.
    `<leader>as` stays the **tool launcher** — start a different CLI tool
    (Copilot, Gemini, etc.) — distinct from `<leader>al`.
 
@@ -1661,7 +1663,9 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New Claude session — blank prompt = auto-numbered, label = named/reusable |
 | `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (telescope) |
-| `<M-.>` / `<M-,>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
+| `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
+| `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
+| `<M-n>` (in CLI) | New auto-numbered session in place (labels stay on `<leader>an`) |
 | `<leader>as` | Launch a CLI tool (copilot, gemini, …) |
 | `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
