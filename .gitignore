@@ -1,6 +1,8 @@
-# Claude Code local state: personal permission allowlist + transient agent worktrees.
-# Anchored to repo root so it does NOT match the `claude/.claude/` stow package.
-/.claude/
+# Claude Code local state that must NOT be committed. Scoped so it does NOT match
+# the `claude/.claude/` stow package. Note: /.claude/settings.json IS tracked — it's
+# the shared project permission allowlist for this repo, synced across machines.
+# settings.local.json (per-machine personal overrides) stays ignored via the rule below.
+/.claude/worktrees/
 
 # Per-machine Claude Code local settings, wherever they appear (e.g. nvim/.config/nvim/.claude/).
 # Kept explicit so it survives the root-anchoring above and on machines without a global gitignore.
