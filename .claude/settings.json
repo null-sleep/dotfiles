@@ -95,7 +95,16 @@
       "Bash(plutil -p *)",
       "Bash(plutil -lint *)",
       "Bash(plutil -extract *)",
-      "Bash(defaults read *)"
+      "Bash(defaults read *)",
+
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:gist.github.com)",
+      "Skill(deep-research)",
+      "Skill(update-config)",
+      "Skill(fewer-permission-prompts)",
+      "Artifact"
     ]
   }
 }
