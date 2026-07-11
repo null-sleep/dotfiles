@@ -13,6 +13,33 @@ local function set_active(name)
   M.active = name
 end
 
+-- Pick the session M.active should fall back to after a teardown, so a summon
+-- (<leader>aa / send / focus) reattaches to a surviving instance instead of
+-- spawning a fresh one. Prefer the alt-tab target (M._last) so you land back on
+-- the session you were just on; else the name-sorted first running session;
+-- else the built-in 'claude' when nothing is alive (toggle then spawns fresh).
+-- `exclude` drops the session being torn down: cli.close is async, so in
+-- kill_active the killed session is still started=true when we choose here.
+-- Note: the name-sort surfaces the primary 'claude' (possibly an unused
+-- pre-warm) ahead of numbered forks when M._last is gone — accepted as sane
+-- "home base" behaviour; it still reuses a live instance, never spawns new.
+-- Keyed by tool name (not session id), like the rest of this module — a
+-- same-name session in another cwd is excluded/picked by name, not disambiguated.
+local function fallback_active(exclude)
+  local State = require('sidekick.cli.state')
+  local running = function(name)
+    return name and name ~= exclude
+      and #State.get({ name = name, started = true }) > 0
+  end
+  if running(M._last) then return M._last end
+  local sessions = State.get({ started = true })
+  table.sort(sessions, function(a, b) return a.tool.name < b.tool.name end)
+  for _, s in ipairs(sessions) do
+    if s.tool.name ~= exclude then return s.tool.name end
+  end
+  return 'claude'
+end
+
 -- Stub the public methods so a keypress during the first-launch packadd race
 -- notifies instead of throwing "attempt to call a nil value". The real
 -- definitions below overwrite these once sidekick has loaded.
@@ -202,9 +229,15 @@ vim.api.nvim_create_autocmd('User', {
         M._forget(name)
       end
     end
-    -- Active session died (self-exit, <C-d>, <leader>ad) → fall back to #1.
-    if M.active ~= 'claude' and #State.get({ name = M.active, started = true }) == 0 then
-      M.active = 'claude'
+    -- Active session died (self-exit, <C-d>, <leader>ad) → repoint to a
+    -- survivor so a summon reattaches instead of spawning fresh. No
+    -- `~= 'claude'` guard: a dying built-in `claude` is a no-op in _forget
+    -- above (it only GCs dynamic names), so this branch is the *only* place a
+    -- dead built-in `claude` gets repointed to a survivor — the guard used to
+    -- suppress exactly that. When _forget already moved active to a live
+    -- survivor, the started==0 check below is false, so no redundant repoint.
+    if #State.get({ name = M.active, started = true }) == 0 then
+      M.active = fallback_active(M.active)
     end
   end,
 })
@@ -444,7 +477,11 @@ function M._forget(name)
   if not M._dynamic[name] then return end
   require('sidekick.config').cli.tools[name] = nil
   M._dynamic[name] = nil
-  if M.active == name then M.active = 'claude' end
+  -- If the name we're dropping was active, repoint to a survivor rather than
+  -- the hardcoded default, so a summon reattaches. Handles the *dynamic*
+  -- active-death path; a dying built-in `claude` (a no-op here) is repointed by
+  -- the detach-sweep branch instead — the two split that responsibility.
+  if M.active == name then M.active = fallback_active(name) end
 end
 
 function M.new_session()
@@ -472,7 +509,10 @@ end
 -- detach sweep still GCs the dynamic name after close's detach event fires.
 function M.kill_active()
   local name = M.active
-  M.active = 'claude'
+  -- Repoint to a survivor (excluding the one we're killing — cli.close is
+  -- async, so it's still started=true here) so <leader>aa reattaches instead
+  -- of spawning fresh. fallback_active returns 'claude' when none survive.
+  M.active = fallback_active(name)
   require('sidekick.cli').close({ name = name })
 end
 
@@ -547,7 +587,11 @@ function M.switch()
         -- → select({auto=true}) → a *fresh* session respawns under it (the
         -- exact surprise the sweep exists to prevent). _forget is a no-op on
         -- built-ins, so <C-d> on the default `claude` won't unregister it.
-        if M.active == name then M.active = 'claude' end
+        -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
+        -- <leader>aa reattaches; done before State.detach, excluding this name,
+        -- while it's still started=true. Sets active before _forget runs, so
+        -- _forget's own repoint below is a no-op on this path (active ≠ name).
+        if M.active == name then M.active = fallback_active(name) end
         State.detach(entry.value)
         M._forget(name)
         action_state.get_current_picker(pbuf):refresh(finder(), { reset_prompt = false })
