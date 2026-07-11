@@ -10,7 +10,7 @@ ignoredKeys: []
 searchPins: {}
 triggers:
   triggerKeys: [rcmd]
-  windowTriggerKeys: [ralt]
+  windowTriggerKeys: [rshift]
   assignKeyTriggerKeys: [rcmd, ralt]
   hideOnFocusTriggerKeys: [rcmd, lshift]
   enableAssignHotkey: true
@@ -104,3 +104,4 @@ general:
   showMenubarAppsInSearch: false
   enableStickySpaceSearch: true
   hidePerAppSettings: false
+overrideUserDefaults: false
