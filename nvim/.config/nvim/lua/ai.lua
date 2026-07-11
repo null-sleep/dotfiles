@@ -444,10 +444,21 @@ if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' 
     vim.log.levels.ERROR)
 end
 
+-- Auto-numbered session names climb monotonically ('claude 2', 'claude 3', …)
+-- and never refill a freed number: deleting 'claude 2' and forking again
+-- yields the next unused number, not the gap. _auto_seq is the high-water mark
+-- of numbers handed out this nvim run; we also floor it above any existing
+-- 'claude N' so a re-source (which resets M) or an externally-created name
+-- can't collide with a live session.
 function M._next_auto_name()
   local tools = require('sidekick.config').cli.tools
-  local n = 2
-  while tools['claude ' .. n] do n = n + 1 end
+  local n = M._auto_seq or 1
+  for name in pairs(tools) do
+    local k = tonumber(name:match('^claude (%d+)$'))
+    if k and k > n then n = k end
+  end
+  n = n + 1
+  M._auto_seq = n
   return 'claude ' .. n
 end
 

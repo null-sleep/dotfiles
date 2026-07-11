@@ -1708,7 +1708,9 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    sessions running, sends never stop to ask which one.
 
    `<leader>an` spawns a **new** session: a blank prompt auto-numbers it
-   (`claude 2`, `claude 3`, …), a typed label makes a reusable named session
+   (`claude 2`, `claude 3`, …) — the counter climbs monotonically and never
+   refills a freed number, so deleting `claude 2` and forking again gives
+   `claude 4`, not `claude 2`. A typed label makes a reusable named session
    (`claude: tests`) that re-attaches if you type the same label again.
    `<leader>al` opens a telescope picker over running sessions to **switch**
    (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
