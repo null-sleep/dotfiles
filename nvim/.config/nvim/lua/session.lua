@@ -37,6 +37,15 @@ vim.api.nvim_create_autocmd('User', {
   callback = function()
     require('aerial').close_all()
     require('nvim-tree.api').tree.close_in_all_tabs()
+    -- Also wipe stale `NvimTree_N` buffers by name. A session saved before this
+    -- hook restores one as a plain listed, empty-filetype buffer (not a live
+    -- tree), so the API close above misses it and mksession re-`badd`s it every
+    -- quit — a self-perpetuating phantom the tree later latches back onto.
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(b):match('NvimTree_%d+$') then
+        pcall(vim.api.nvim_buf_delete, b, { force = true })
+      end
+    end
   end,
 })
 

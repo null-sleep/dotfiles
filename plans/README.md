@@ -22,6 +22,11 @@ off or delete them as they land; add new ones freely.
   alongside kitty/iTerm2 that follows macOS light/dark on its own. Verify theme
   names with `ghostty +list-themes` first (see the risk callout). See
   [ghostty.md](ghostty.md).
+- [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
+  machine's saved sessions have quit at least once under the fix (self-healing
+  the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
+  `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
+  in COMMIT_PLACEHOLDER.
 
 _Add plan work you want to prioritize here._
 
