@@ -272,7 +272,13 @@ a fixed default:
 
 - **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
   Claude Code from sending non-essential telemetry (Statsig analytics,
-  Sentry error reports). Doesn't affect core inference traffic.
+  Sentry error reports). Doesn't affect core inference traffic. **Tradeoff:**
+  this same flag also disables [artifact
+  publishing](https://code.claude.com/docs/en/artifacts) with no override — set
+  it, and Claude writes a local HTML file instead of publishing to a
+  `claude.ai/code/artifact/…` URL. Leave it unset (the default) to keep
+  artifacts working; only set it on a machine where you'd rather suppress
+  telemetry than publish artifacts.
 - **`model`** — set to `"opusplan"` to use Opus while in plan mode and fall
   back to the default model otherwise.
 - **`effortLevel`** — set to `"high"` for more thorough reasoning on
