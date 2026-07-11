@@ -148,6 +148,28 @@ vim.api.nvim_create_autocmd('WinEnter', {
   end,
 })
 
+-- Remember a CLI window's width when it closes (hide via <leader>aa, or
+-- switch-away via show_solo/<leader>al), so reopening that session reuses the
+-- width the user dragged it to instead of snapping back to the configured
+-- default. Stored on the terminal's own opts.split.width, which open_win reads
+-- on every show — so it's per-session and lasts that session's lifetime. Fires
+-- only on close, never during the promote's wincmd L, so it can't capture the
+-- transient equalized width. On teardown (close/kill) terminal.get returns nil
+-- (M.terminals cleared before hide), so this is a no-op there.
+vim.api.nvim_create_autocmd('WinClosed', {
+  group = augroup,
+  desc = 'Sidekick: remember CLI window width across hide/show',
+  callback = function(args)
+    local win = tonumber(args.match)
+    if not (win and vim.api.nvim_win_is_valid(win)) then return end
+    local sid = vim.w[win].sidekick_session_id
+    local term = sid and require('sidekick.cli.terminal').get(sid)
+    if term and term.opts and term.opts.split then
+      term.opts.split.width = vim.api.nvim_win_get_width(win)
+    end
+  end,
+})
+
 -- Part d: the detach sweep. The SidekickCliDetach event is emitted
 -- post-removal via vim.schedule (session/init.lua:163), so State.get reads
 -- post-detach state here.
