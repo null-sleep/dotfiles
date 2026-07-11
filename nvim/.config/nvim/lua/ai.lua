@@ -15,8 +15,8 @@ local M = { active = 'claude', _dynamic = {} }
 local function not_ready(...)
   vim.notify('sidekick.nvim still loading — retry after restart', vim.log.levels.WARN)
 end
-M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
-  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
+M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send, M.cycle =
+  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -221,6 +221,13 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, [[<C-\>]], function()
       vim.cmd(vim.v.count1 .. 'ToggleTerm')
     end, { buffer = args.buf, desc = 'Open toggleterm float' })
+
+    -- Cycle running CLI sessions in place, without leaving terminal mode (vs
+    -- jj/jk then <leader>al). <M-,> prev, <M-.> next (< / > mnemonic).
+    vim.keymap.set({ 't', 'n' }, '<M-.>', function() require('ai').cycle(1) end,
+      { buffer = args.buf, desc = 'AI: Next CLI session' })
+    vim.keymap.set({ 't', 'n' }, '<M-,>', function() require('ai').cycle(-1) end,
+      { buffer = args.buf, desc = 'AI: Previous CLI session' })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
@@ -527,6 +534,23 @@ function M.switch()
       return true
     end,
   }):find()
+end
+
+-- Cycle to the prev/next running session in place (dir -1/+1), wrapping around.
+-- Bound to <M-,>/<M-.> inside the CLI (see the sidekick_terminal FileType
+-- autocmd) so you can move between AIs without exiting terminal mode. Sorted by
+-- name for a stable order; no-op with fewer than two running sessions.
+function M.cycle(dir)
+  local sessions = require('sidekick.cli.state').get({ started = true })
+  if #sessions < 2 then return end
+  table.sort(sessions, function(a, b) return a.tool.name < b.tool.name end)
+  local idx = 1
+  for i, s in ipairs(sessions) do
+    if s.tool.name == M.active then idx = i break end
+  end
+  local name = sessions[(idx - 1 + dir) % #sessions + 1].tool.name
+  M.active = name
+  show_solo(name)
 end
 
 return M
