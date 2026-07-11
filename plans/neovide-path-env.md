@@ -14,25 +14,78 @@ Goal: GUI-launched Neovide finds the same binaries as terminal-launched.
 
 ---
 
+## How zsh startup files load (background)
+
+You do **not** `source` `.zshenv` from `.zshrc`. Zsh sources its startup files
+automatically, in a fixed order, for every shell — the rc file never needs to
+"know about" the env file:
+
+| File | Runs for |
+|------|----------|
+| `~/.zshenv` | every zsh — login, interactive, scripts, subshells, and the shell a GUI app spawns to read its env |
+| `~/.zprofile` | login shells (macOS runs `/etc/zprofile` → `path_helper` here) |
+| `~/.zshrc` | interactive shells (→ this repo's `.zshrc_config.zsh`) |
+| `~/.zlogin` | login shells |
+
+`.zshenv` runs **before** `.zshrc`, unconditionally, so its exports are already
+in the environment by the time `.zshrc` runs. That is exactly why it fixes GUI
+Neovide: a Spotlight/Dock launch never sources `.zshrc`, but it does get
+`.zshenv`.
+
+### The macOS `path_helper` gotcha (verified)
+
+`/etc/zprofile` runs `path_helper` for every **login** shell, and it fires
+*between* `.zshenv` and `.zshrc`. `path_helper` rebuilds PATH with the system
+paths (`/etc/paths`) **first**, shoving any earlier-prepended entries to the
+back. Verified on this machine:
+
+```
+$ env -i PATH="/opt/homebrew/bin:/Users/dhruv/.cargo/bin:/usr/bin:/bin" /usr/libexec/path_helper -s
+PATH="/usr/local/bin:...:/usr/bin:/bin:...:/opt/homebrew/bin:/Users/dhruv/.cargo/bin"
+                                                              ^ homebrew + cargo pushed to the END
+```
+
+So a *naive* "move the PATH block to `.zshenv`" would **regress the terminal's
+ordering**: `~/.local/bin`, `~/.cargo/bin`, `/opt/homebrew/bin` would land
+behind `/usr/bin` for login shells. This is the whole reason the PATH block
+currently lives in `.zshrc_config.zsh` — that file runs *after* `path_helper`
+and re-asserts the right order.
+
+Consequence for the fix: `.zshenv` must be the single source of truth, and
+`.zshrc_config.zsh` must **re-assert** the order after `path_helper`.
+
 ## Options
 
-### Option A — Move PATH exports to `~/.zshenv` (recommended)
+### Option A — `.zshenv` as PATH single source of truth, re-asserted in rc (recommended)
 
-`.zshenv` runs for every zsh invocation (login, interactive, non-interactive), so the non-interactive shell Neovide spawns will source it. Recommended in Neovide's FAQ.
+Move the **entire** PATH block (not just cargo/local) to `zsh/.zshenv`, and
+have `.zshrc_config.zsh` re-source it once to re-assert order after
+`path_helper`. `typeset -U` makes the re-source idempotent and prevents PATH
+from growing across nested subshells.
 
 Steps:
-1. Create `zsh/.zshenv` in the stow package.
-2. Move PATH-only exports out of `.zshrc_config.zsh` into `.zshenv`. Specifically:
-   - `~/.cargo/bin`
-   - `~/go/bin` (if present)
-   - `~/.local/bin` (used for `nvim-editor`)
-3. Keep `.zshrc_config.zsh` for everything that needs an interactive shell (aliases, prompt, antigen, completions, direnv hook).
-4. `stow zsh` will symlink `~/.zshenv` (no manual steps).
-5. Verify: launch Neovide from Spotlight, run `:echo $PATH` and `:!which rust-analyzer`.
+1. Create `zsh/.zshenv` in the stow package containing:
+   - `typeset -U path PATH` (unique array: re-prepending an existing entry
+     moves it to the front instead of duplicating — makes re-sourcing safe).
+   - The full prepend block, in current order: `/opt/homebrew/bin` →
+     `python@3.12/libexec/bin` → `~/.cargo/bin` → `~/.local/bin`.
+   - `GOPATH` + `$GOPATH/bin` append (currently at `.zshrc_config.zsh:330-333`).
+   - Keep it cheap: no antigen, completions, or prompt.
+2. In `.zshrc_config.zsh`, replace the PATH block (lines ~146-157) and the GO
+   block (lines ~330-333) with a single `source ~/.zshenv`, commented to
+   explain it re-asserts order after `path_helper`.
+3. `stow zsh` symlinks `~/.zshenv` (no manual steps). Add nothing to
+   `.stow-local-ignore`.
+4. Note: `~/.zshrc` (a real home file, **not** stowed) also does
+   `export PATH="$PATH:$HOME/.local/bin"` — a redundant low-priority append now
+   neutralized by `typeset -U` (the earlier high-priority entry wins). Harmless;
+   optionally clean up by hand later.
 
-Edge cases:
-- If `.zshenv` runs *too* early (before Homebrew shellenv), order matters. Homebrew's `/opt/homebrew/bin` is already on launchd's default PATH on Apple Silicon, so this is usually fine — but verify.
-- `.zshenv` is sourced for *every* zsh, including subshells. Keep it cheap; no antigen, no completions.
+GUI order caveat: a GUI launch that spawns a *login-but-non-interactive* shell
+would hit `path_helper` and skip the `.zshrc` re-assert, so it could get
+system-first *ordering*. That is fine for the goal — the binaries are all
+**present** (no competing system rust-analyzer/goimports to shadow); precedence
+only matters in the interactive terminal, where the re-assert handles it.
 
 ### Option B — LaunchAgent calling `launchctl setenv PATH ...`
 
@@ -54,7 +107,10 @@ Cons: muscle memory; doesn't fix the underlying issue.
 
 ## Recommendation
 
-Option A. It's the upstream-recommended approach, scoped to zsh, and stows cleanly.
+Option A, with the `path_helper` re-assert baked in (see the refined steps
+above) — not the naive move the original draft described, which would regress
+terminal PATH order. It's the upstream-recommended approach, scoped to zsh, and
+stows cleanly.
 
 ---
 
