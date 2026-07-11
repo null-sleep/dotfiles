@@ -121,12 +121,14 @@ vim.api.nvim_create_autocmd('User', {
     if term and vim.api.nvim_win_is_valid(term.win) then
       utils.promote_to_full_height(term.win, side)
       -- promote's `wincmd L` re-lays-out the windows and, with equalalways on,
-      -- equalizes the CLI to ~50% — ignoring winfixwidth. Restore sidekick's
-      -- configured split width so the FIRST show (which promotes) matches every
-      -- later re-show (attach fires once, so re-shows skip promote and keep the
-      -- 80-col split). Without this the first <leader>aa / <leader>an opens wide
-      -- and only an aa hide/show cycle shrinks it back.
-      local w = cfg.split and cfg.split.width
+      -- equalizes the CLI to ~50% — ignoring winfixwidth. Restore the intended
+      -- split width so the FIRST show (which promotes) matches every later
+      -- re-show (attach fires once, so re-shows skip promote). Read the
+      -- terminal's OWN opts.split.width, which remember_width keeps in sync with
+      -- the global set width — so a promote can never stomp a user width back to
+      -- the config default. Falls back to config.
+      local split = (term.opts and term.opts.split) or cfg.split
+      local w = split and split.width
       if w and w > 0 then
         vim.api.nvim_win_set_width(term.win, w <= 1 and math.floor(vim.o.columns * w) or w)
       end
@@ -148,25 +150,39 @@ vim.api.nvim_create_autocmd('WinEnter', {
   end,
 })
 
--- Remember a CLI window's width when it closes (hide via <leader>aa, or
--- switch-away via show_solo/<leader>al), so reopening that session reuses the
--- width the user dragged it to instead of snapping back to the configured
--- default. Stored on the terminal's own opts.split.width, which open_win reads
--- on every show — so it's per-session and lasts that session's lifetime. Fires
--- only on close, never during the promote's wincmd L, so it can't capture the
--- transient equalized width. On teardown (close/kill) terminal.get returns nil
--- (M.terminals cleared before hide), so this is a no-op there.
+-- Remember the CLI width the user sets and apply it GLOBALLY, so every session
+-- opens at the same width — toggled (<leader>aa), created (<leader>an), or
+-- switched-to (<leader>al) — for one consistent width, not a per-session one.
+--
+-- open_win reads each terminal's own opts.split.width, and a new terminal
+-- deepcopies Config.cli.win at init, so remember_width writes BOTH: every live
+-- terminal (so existing sessions' re-shows/switches follow) and the config
+-- template (so future <leader>an sessions start at the set width).
+local function remember_width(w)
+  if not (w and w > 0) then return end
+  require('sidekick.config').cli.win.split.width = w
+  for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
+    if t.opts and t.opts.split then t.opts.split.width = w end
+  end
+end
+
+-- Capture on WinClosed (hide via <leader>aa, or switch-away via show_solo): it
+-- fires only on close, never during the promote's wincmd L, so it can't latch
+-- the transient equalized ~50% width. Skipped on teardown (terminal.get nil —
+-- M.terminals is cleared before hide, so killed sessions don't set the width)
+-- and when the CLI is the last window (it then spans the full screen, which is
+-- not a width the user chose).
 vim.api.nvim_create_autocmd('WinClosed', {
   group = augroup,
-  desc = 'Sidekick: remember CLI window width across hide/show',
+  desc = 'Sidekick: remember CLI width for a consistent width across sessions',
   callback = function(args)
     local win = tonumber(args.match)
     if not (win and vim.api.nvim_win_is_valid(win)) then return end
+    if #vim.api.nvim_list_wins() == 1 then return end
     local sid = vim.w[win].sidekick_session_id
     local term = sid and require('sidekick.cli.terminal').get(sid)
-    if term and term.opts and term.opts.split then
-      term.opts.split.width = vim.api.nvim_win_get_width(win)
-    end
+    if not term then return end
+    remember_width(vim.api.nvim_win_get_width(win))
   end,
 })
 
