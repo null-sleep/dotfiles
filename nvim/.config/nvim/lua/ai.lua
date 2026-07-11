@@ -352,17 +352,21 @@ end
 -- the same select-auto path (state.lua:159).
 -- Enforce a single visible CLI window. sidekick shows each session in its own
 -- window, so <leader>an / <leader>al would otherwise stack a second split next
--- to the one already open. Hide every OTHER shown session first, then show the
--- target in its place. hide (not close) keeps the hidden session's job alive —
--- switching back later re-shows the same conversation.
+-- to the one already open. Hide every OTHER shown session, then show the target.
+--
+-- Hide SYNCHRONOUSLY via the terminal objects (terminal:hide() acts inline and
+-- self-guards on is_open) rather than cli.hide: cli.hide defers its work two
+-- vim.schedule hops while cli.show defers one, so routing hides through cli.hide
+-- would actually run show-BEFORE-hide and leave the invariant riding on
+-- sidekick's internal hop ordering. Iterating terminal objects (not filtering
+-- by name through cli.hide) also dodges the same-name-in-two-cwds disambiguation
+-- picker. hide (not close) keeps each hidden session's job alive — switching
+-- back re-shows the same conversation.
 local function show_solo(name)
-  local cli = require('sidekick.cli')
-  for _, s in ipairs(require('sidekick.cli.state').get({ started = true })) do
-    if s.tool.name ~= name then
-      cli.hide({ name = s.tool.name })   -- no-op if that session isn't shown
-    end
+  for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
+    if t.tool and t.tool.name ~= name then t:hide() end   -- no-op if not shown
   end
-  cli.show({ name = name, focus = true })
+  require('sidekick.cli').show({ name = name, focus = true })
 end
 
 local function create_session(name)
@@ -455,10 +459,11 @@ function M.switch()
     prompt_title = 'Sidekick sessions',
     finder = finder(),
     sorter = conf.generic_sorter({}),
-    -- Compact, previewless picker — it's a short session list, not a file
-    -- search. Matches the sizing convention in pickers/theme.lua.
+    -- Compact, previewless picker — it's a short "name  cwd" list, not a file
+    -- search (same vertical strategy pickers/theme.lua uses for its short list).
+    -- Wide enough that ':~'-shortened cwds aren't truncated on a narrow term.
     layout_strategy = 'vertical',
-    layout_config = { width = 0.5, height = 0.4 },
+    layout_config = { width = 0.6, height = 0.4 },
     previewer = false,
     attach_mappings = function(bufnr, map)
       actions.select_default:replace(function()
