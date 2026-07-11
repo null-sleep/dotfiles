@@ -150,7 +150,10 @@ branch if we ever go that route. When available, replace the hack with the real 
   added (the event-driven cleanup / fallback timer) — with no pre-warm window, none of it applies.
 - **Keep** Guard 1 (skip if a claude CLI already exists — now matched via
   `terminal.sessions()` → `t.tool.name == 'claude'` after `c8f7cf5`, not the filetype), the `.git`
-  + `has_ui` gates in `do_prewarm`, the re-schedulable 3s one-shot timer, and the
+  + `has_ui` gates in `do_prewarm`, the re-schedulable 3s one-shot timer **including its
+  stale-callback identity guard** (`_G._sidekick_prewarm_timer ~= timer → return`, added
+  2026-07-10 — it fixes a scheduling-level race, not a hidden-float one, so it survives this
+  rework; see the startup-perf plan's post-landing section), and the
   `PersistenceLoadPre/Post` wiring — all orthogonal to windowing and still wanted. `do_prewarm()`
   collapses to roughly: has_ui/`.git`/guard-1 checks → `spawn the claude CLI`.
 - **Resolves #3 and #4 for free.** With no window during pre-warm, the cleanup timing race (#3) and
@@ -172,6 +175,19 @@ branch if we ever go that route. When available, replace the hack with the real 
 Keep the hardened monkey-patch (`a989656` + `c8f7cf5` guards in place). It works and costs zero fork
 maintenance. If it re-breaks against a sidekick update before Phase C lands, patch the specific
 autocmd (as we did for `wincmd L`) — or do Phase B — rather than escalating to a fork prematurely.
+
+Two interim facts settled by the 2026-07-10 post-landing design review (details in
+`plans/nvim-startup-performance.md` → "Post-landing status + design review"):
+
+- **The pre-warm timer gained a stale-callback identity guard** in `schedule_prewarm` — a
+  scheduling-level race fix (a LoadPre/LoadPost pair landing in the uv-fire → scheduled-callback
+  gap let the stale callback close the re-armed timer and spawn claude right at restore-end).
+  It's independent of the hidden-float hack: **Phase D keeps it** (see the Phase D keep list).
+- **No shared scheduler module will absorb the timer/persistence wiring before Phase D.** A
+  `startup.lua` scheduler abstraction was proposed and rejected (single restore-aware consumer;
+  pre-D churn in this file). Phase D's keep/delete lists therefore remain accurate as written —
+  don't expect the scheduling shell to have moved. Extraction is re-evaluated only after Phase D
+  lands *and* a second restore-aware task exists.
 
 ## Fallback if upstream declines
 
