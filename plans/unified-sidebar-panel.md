@@ -18,8 +18,7 @@ switches content, or as one docked edgebar with stacked, collapsible sections.
   (`git.lua`). This is inline, *not* a panel.
 - **Symbols / outline** → only a Telescope *picker* (`pickers/symbols.lua`).
   Transient popup, not a persistent docked pane.
-- **Bottom panel** → recently added terminal panel (`terminal.lua`,
-  see `plans/terminal-side-panel.md`).
+- **Bottom panel** → recently added terminal panel (`terminal.lua`).
 
 So individual sidebars exist, but there is no **manager** that treats them as one
 editor-style panel. That manager is the missing piece — and Neovim supports it.

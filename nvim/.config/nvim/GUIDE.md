@@ -237,9 +237,8 @@ view — it never collapses anything else already open. This matches VS Code's
 siblings either (confirmed against both editors' source/issue trackers). An
 earlier design assumed Zed did auto-collapse and explored a "solo mode" to
 match — that premise was wrong, so it wasn't pursued; nvim-tree's default
-`update_focused_file` already matched the real target behavior. See
-`plans/nvim-tree-solo-reveal.md` for the full exploration, including why
-nvim-tree has no public API for "collapse only the siblings."
+`update_focused_file` already matched the real target behavior, and
+nvim-tree has no public API for "collapse only the siblings" anyway.
 
 `renderer.highlight_opened_files = 'all'` is a separate, unrelated addition:
 it highlights every file with an open buffer (not just the focused one) via

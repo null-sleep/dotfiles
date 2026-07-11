@@ -12,9 +12,9 @@ auto-install LSP manager) exist to serve a distributed, lazy.nvim-based
 product — none apply to this eager `vim.pack` config (see "Rejected").
 
 File references are into the LunarVim repo unless prefixed otherwise.
-Companion plan: `plans/astronvim-borrowed-polish.md` (same exercise,
-2026-07) — a few verdicts there are cross-referenced rather than
-re-litigated.
+Companion exercise: an AstroNvim comparison pass (same 2026-07 batch,
+plan since landed and removed from `plans/`) — a few verdicts from it are
+cross-referenced below rather than re-litigated.
 
 ## Adopt (high value, small code — verified gaps)
 
@@ -111,8 +111,8 @@ scoped to non-CLI terminals only, or skipped. Source:
 
 ### 9. Big-file protection
 
-LunarVim ships `lunarvim/bigfile.nvim`. **Previously adjudicated** in
-`plans/astronvim-borrowed-polish.md` (Rejected): treesitter is already
+LunarVim ships `lunarvim/bigfile.nvim`. **Previously adjudicated** in the
+AstroNvim comparison pass (Rejected): treesitter is already
 guarded here (>50k lines / >1.5MB in `plugins.lua`); revisit only if big
 files still lag from blink or indent guides. If it ever lands, the move
 is enabling `snacks.bigfile` in the existing snacks.nvim setup — zero new

@@ -89,8 +89,8 @@ can be bound to a specific hotkey, menu item, or `iterm2 -p` invocation).
   with `⌘⇧R`, or set **Preferences → General → Startup → "Open saved window
   arrangement"** to auto-restore on launch. Good for a fixed daily layout
   (e.g. one window split into a shell pane + a log-tail pane), the same idea
-  as the `terminal-side-panel`/toggleterm plans already do inside nvim, but
-  at the OS-terminal-window level instead.
+  as the toggleterm-based bottom terminal panel already does inside nvim
+  (`terminal.lua`), but at the OS-terminal-window level instead.
 - **tmux Integration mode** (`tmux -CC`) — iTerm2 attaches to a real tmux
   session but renders its windows/panes as *native* iTerm2 tabs/splits
   (mouse drag-to-resize, real scrollback, etc.) while tmux still owns

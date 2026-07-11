@@ -7,11 +7,11 @@ description: Audit this dotfiles repo's nvim keymap conventions on demand (desc 
 
 A lint for the nvim config's own keymap conventions — the ones documented in
 `nvim/.config/nvim/CLAUDE.md` and enforced only by human discipline today.
-`plans/keymap-optimization.md` found real drift (a stale `jj`/`jk` doc
-mismatch, a hand-maintained tags table that tagged a nonexistent key and
-missed seven real ones, six maps using the wrong visual mode) that nothing
-caught until an explicit audit. This skill is that audit, runnable anytime,
-not just after a big refactor.
+A 2026-07 keymap audit (plan since landed and removed from `plans/`) found
+real drift (a stale `jj`/`jk` doc mismatch, a hand-maintained tags table
+that tagged a nonexistent key and missed seven real ones, six maps using
+the wrong visual mode) that nothing caught until an explicit audit. This
+skill is that audit, runnable anytime, not just after a big refactor.
 
 **This skill only reports. It never edits code or GUIDE.md** — if findings
 warrant a fix, that's a separate, explicit follow-up task.
@@ -75,8 +75,8 @@ just forgot the prefix.
 
 No `vim.keymap.set` call may use mode `'v'` or include `'v'` in a mode list
 (e.g. `{'n','v'}`, `{'n','i','v'}`). Visual-only maps must use `'x'`. This
-guards against exactly the regression `plans/keymap-optimization.md` F1
-describes: `'v'` also matches **select** mode, and blink.cmp drops LSP
+guards against exactly the regression the 2026-07 keymap audit found:
+`'v'` also matches **select** mode, and blink.cmp drops LSP
 snippet placeholders into select mode — a `'v'` map there hijacks the
 keystroke meant to type over the placeholder (e.g. a `p` map fires a paste
 instead of literal `p`). Report every offending `file:line`; this a hard
@@ -109,8 +109,8 @@ list is a real finding.
 
 Flag any which-key group (`wk.add()` entry with `group = ...`) that resolves
 to **exactly one** leaf binding — a single key doesn't need a whole
-top-level group slot (this is what `plans/keymap-optimization.md` F7 called
-out for the old `<leader>r` "Refactor" group, since dissolved).
+top-level group slot (this is what the 2026-07 keymap audit called out for
+the old `<leader>r` "Refactor" group, since dissolved).
 
 ### 7. Doc sync (both directions)
 

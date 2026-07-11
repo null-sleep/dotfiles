@@ -1,10 +1,11 @@
 # Migration steps: pulling the review-remediation changes on another machine
 
 One-time steps after `git pull` on a machine that was set up before the
-`dotfiles-review-remediation` series (24 commits, see
-`plans/dotfiles-review-remediation.md`). Files moved/added/deleted in that
-series need restowing and agent reloads; everything else flows through the
-existing symlinks with no action.
+`dotfiles-review-remediation` series (24 commits; the plan doc has since
+landed and been removed from `plans/` — see `git log --grep=review-remediation`
+for the commit sequence). Files moved/added/deleted in that series need
+restowing and agent reloads; everything else flows through the existing
+symlinks with no action.
 
 ## Every machine
 

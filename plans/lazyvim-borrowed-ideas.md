@@ -6,9 +6,10 @@
 ## Context
 
 Investigated `/Users/dhruv/src/LazyVim` (LazyVim core v16, 2026-07) for ideas
-worth porting into this config — same exercise as
-`plans/astronvim-borrowed-polish.md` (AstroNvim), with a LunarVim pass
-happening in parallel (separate plan when done). Every candidate below was
+worth porting into this config — same exercise as an AstroNvim comparison
+pass (same 2026-07 batch, plan since landed and removed from `plans/`), with
+a LunarVim pass happening in parallel (separate plan when done). Every
+candidate below was
 cross-checked against the live config so this lists only real gaps; items the
 AstroNvim plan already covers (and the ones that landed from it: mkdir-on-save,
 cursor restore, yank highlight, `diffopt` linematch/histogram, polite
