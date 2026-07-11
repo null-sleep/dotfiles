@@ -20,6 +20,13 @@ actually ran standalone (e.g. check an expected output file exists) before
 trusting its result. A project hook in `.claude/settings.json` blocks bare
 `nvim` calls missing this prefix as a backstop.
 
+## Ignore `Undefined global vim` diagnostics
+
+The `⚠ Undefined global vim [undefined-global]` warnings that show up across
+every `.lua` file in this config are pre-existing LSP noise — lua-ls in this
+context isn't configured with the `vim` global. They are never caused by your
+edit; don't try to "fix" them or factor them into a change.
+
 ## Update GUIDE.md in the same change
 
 **Whenever you add a new lua module (a `require()` in `init.lua`) or a new
