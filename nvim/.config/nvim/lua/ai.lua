@@ -350,6 +350,21 @@ end
 -- show (not toggle): re-entering the label of a *visible* session must
 -- focus it, not hide it. show auto-starts unstarted registered names via
 -- the same select-auto path (state.lua:159).
+-- Enforce a single visible CLI window. sidekick shows each session in its own
+-- window, so <leader>an / <leader>al would otherwise stack a second split next
+-- to the one already open. Hide every OTHER shown session first, then show the
+-- target in its place. hide (not close) keeps the hidden session's job alive —
+-- switching back later re-shows the same conversation.
+local function show_solo(name)
+  local cli = require('sidekick.cli')
+  for _, s in ipairs(require('sidekick.cli.state').get({ started = true })) do
+    if s.tool.name ~= name then
+      cli.hide({ name = s.tool.name })   -- no-op if that session isn't shown
+    end
+  end
+  cli.show({ name = name, focus = true })
+end
+
 local function create_session(name)
   local cfg = require('sidekick.config')
   if not cfg.cli.tools[name] then
@@ -359,7 +374,7 @@ local function create_session(name)
     M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
   end
   M.active = name  -- eager; WinEnter confirms once the window is entered
-  require('sidekick.cli').show({ name = name, focus = true })
+  show_solo(name)
 end
 
 -- Drop a dynamically-registered name from cli.tools. Never touches built-ins
@@ -416,7 +431,6 @@ end
 -- <leader>al: custom telescope picker over running sidekick sessions.
 -- <CR> shows/focuses (making it active); <C-d> tears down the highlighted one.
 function M.switch()
-  local cli            = require('sidekick.cli')
   local State          = require('sidekick.cli.state')
   local pickers        = require('telescope.pickers')
   local finders        = require('telescope.finders')
@@ -441,13 +455,18 @@ function M.switch()
     prompt_title = 'Sidekick sessions',
     finder = finder(),
     sorter = conf.generic_sorter({}),
+    -- Compact, previewless picker — it's a short session list, not a file
+    -- search. Matches the sizing convention in pickers/theme.lua.
+    layout_strategy = 'vertical',
+    layout_config = { width = 0.5, height = 0.4 },
+    previewer = false,
     attach_mappings = function(bufnr, map)
       actions.select_default:replace(function()
         local entry = action_state.get_selected_entry()
         actions.close(bufnr)
         if entry then
           M.active = entry.value.tool.name  -- eager; WinEnter confirms on focus
-          cli.show({ name = entry.value.tool.name, focus = true })
+          show_solo(entry.value.tool.name)  -- replace the open window, don't stack
         end
       end)
       map({ 'i', 'n' }, '<C-d>', function(pbuf)
