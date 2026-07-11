@@ -18,8 +18,6 @@ off or delete them as they land; add new ones freely.
   [review-remediation-migration.md](review-remediation-migration.md) (it's a
   one-time checklist that says to delete itself once every machine has pulled +
   migrated).
-- [ ] **Decide `changelog.md`'s fate** — flesh out the changelog format or drop
-  the idea. See [changelog.md](changelog.md).
 - [ ] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
   alongside kitty/iTerm2 that follows macOS light/dark on its own. Verify theme
   names with `ghostty +list-themes` first (see the risk callout). See
@@ -97,5 +95,3 @@ Grouped by state, not priority.
 - [review-remediation-migration.md](review-remediation-migration.md) — one-time
   cross-machine post-pull migration checklist; deletes itself once every machine
   has migrated.
-- [changelog.md](changelog.md) — stalled idea to define a changelog format for
-  tracking this bespoke editor setup's evolution.
