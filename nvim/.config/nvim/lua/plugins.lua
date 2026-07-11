@@ -409,7 +409,7 @@ require('telescope').setup({
         end
         actions.close(prompt_bufnr)
         if not vim.tbl_isempty(refs) then
-          require('sidekick.cli').send({ msg = table.concat(refs, ' ') })
+          require('ai').send({ msg = table.concat(refs, ' ') })
         end
       end
 

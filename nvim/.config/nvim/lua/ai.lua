@@ -1,8 +1,28 @@
+-- Exported module. Defined ABOVE the packadd pcall so the method stubs below
+-- survive the first-launch race (where the plugin is still downloading and the
+-- real definitions at the bottom never run). `active` defaults to 'claude' so
+-- everything works before any session is entered; `_dynamic` maps names we
+-- registered → 'registered' | 'started' (only these are ever removed from
+-- cli.tools).
+local M = { active = 'claude', _dynamic = {} }
+
+-- Stub the public methods so a keypress during the first-launch packadd race
+-- notifies instead of throwing "attempt to call a nil value". The real
+-- definitions below overwrite these once sidekick has loaded.
+-- Vararg signature (not `()`) so LuaLS doesn't infer a 0-arg type for the
+-- routed methods below and flag every `ai.send({...})` call site as passing a
+-- redundant parameter. The real definitions further down carry the true types.
+local function not_ready(...)
+  vim.notify('sidekick.nvim still loading — retry after restart', vim.log.levels.WARN)
+end
+M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
+  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
+
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
 -- picks it up once the clone finishes.
 local ok = pcall(vim.cmd.packadd, 'sidekick.nvim')
-if not ok then return end
+if not ok then return M end
 
 local utils = require('utils')
 
@@ -57,9 +77,11 @@ require('sidekick').setup({
 -- window) has focus splits *that* window — the CLI ends up as a short column
 -- inside the panel row instead of spanning the editor's full height. `wincmd
 -- L` mirrors nvim-tree's reposition trick and lets Neovim reflow everything
--- else around the new column. SidekickCliAttach fires on every show path
--- (cli.show / cli.toggle / cli.focus), so this covers both user triggers and
--- internal re-shows (e.g. cli.send to a hidden CLI).
+-- else around the new column. SidekickCliAttach fires ONCE per session
+-- lifetime — at first attach (emit at session/init.lua:194, behind the
+-- already-attached early return at :171); it does NOT fire on re-shows
+-- (terminal hide() never detaches). Promoting the first show is all this has
+-- ever done; re-shows land full-height on their own (verification step 10).
 -- clear = true so a re-source doesn't register duplicate handlers (the
 -- config's standard re-source guard, see configs.lua).
 local augroup = vim.api.nvim_create_augroup('UserSidekick', { clear = true })
@@ -75,11 +97,71 @@ vim.api.nvim_create_autocmd('User', {
     -- screen instead of hiding. The hidden float needs no promotion, so skip
     -- it while pre-warming.
     if _G.__sidekick_prewarm then return end
+    local term = require('sidekick.cli.terminal').get(args.data.id)
+    -- First attach completed → let the detach sweep know this spawn is live.
+    if term and term.tool and M._dynamic[term.tool.name] == 'registered' then
+      M._dynamic[term.tool.name] = 'started'
+    end
+    -- Silent-surface tripwire: WinEnter active-tracking reads the sidekick_cli
+    -- window stamp (terminal.lua:385) — the one internal whose loss fails
+    -- SILENTLY (sends mis-route to a stale M.active with no error). A first
+    -- attach means a CLI window just opened, so the stamp should be present;
+    -- if it isn't, warn loud once per nvim run.
+    if not _G.__sidekick_stamp_ok and term and term.win
+       and vim.api.nvim_win_is_valid(term.win)
+       and vim.w[term.win].sidekick_cli == nil then
+      vim.notify('sidekick: CLI window stamp (sidekick_cli) missing — active-session tracking is broken, sends may mis-route',
+        vim.log.levels.ERROR)
+      _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
+    end
     local layout = require('sidekick.config').cli.win.layout
     local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
     if not side then return end -- float / top / bottom layouts don't need promoting
-    local term = require('sidekick.cli.terminal').get(args.data.id)
     if term then utils.promote_to_full_height(term.win, side) end
+  end,
+})
+
+-- Part b: track the active session on WinEnter. Sidekick stamps CLI windows at
+-- open (terminal.lua:385); the pre-warm float is focusable=false and never
+-- entered, so no pre-warm guard is needed. This is the ONLY reliable
+-- active-session signal (SidekickCliAttach fires once per lifetime, not on
+-- switches — see the promote handler above).
+vim.api.nvim_create_autocmd('WinEnter', {
+  group = augroup,
+  desc = 'Sidekick: track active CLI session',
+  callback = function()
+    local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+    if tool and tool.name then M.active = tool.name end
+  end,
+})
+
+-- Part d: the detach sweep. The SidekickCliDetach event is emitted
+-- post-removal via vim.schedule (session/init.lua:163), so State.get reads
+-- post-detach state here.
+vim.api.nvim_create_autocmd('User', {
+  group = augroup,
+  pattern = 'SidekickCliDetach',
+  desc = 'Sidekick: GC dynamic tool names, reset active session',
+  callback = function()
+    local State = require('sidekick.cli.state')
+    -- Sweep names with no running session. 'started' names GC once their
+    -- session is gone. A 'registered' name normally stays (its first attach
+    -- may be in flight — a few scheduled hops), BUT a spawn that never
+    -- attaches (missing binary, jobstart failure) would otherwise leak the
+    -- name forever and M.active would keep auto-respawning a failing terminal
+    -- under it. So also forget a 'registered' name once it has neither a
+    -- started session nor a terminal — the terminal check preserves genuinely
+    -- in-flight spawns.
+    for name, phase in pairs(M._dynamic) do
+      if #State.get({ name = name, started = true }) == 0
+         and (phase == 'started' or #State.get({ name = name, terminal = true }) == 0) then
+        M._forget(name)
+      end
+    end
+    -- Active session died (self-exit, <C-d>, <leader>ad) → fall back to #1.
+    if M.active ~= 'claude' and #State.get({ name = M.active, started = true }) == 0 then
+      M.active = 'claude'
+    end
   end,
 })
 
@@ -237,3 +319,161 @@ vim.api.nvim_create_autocmd('User', {
 if vim.fs.root(0, '.git') and utils.has_ui() then -- skip pre-warm when headless (see above)
   schedule_prewarm()
 end
+
+-- ---------------------------------------------------------------------------
+-- Multi-session helpers (part e). These overwrite the race-safe stubs from the
+-- top of the file now that sidekick has loaded.
+-- ---------------------------------------------------------------------------
+
+-- Warn loud at load if upstream reshapes the claude preset: the clone in
+-- create_session silently drops format/resume/continue otherwise (see "clone
+-- the preset"), so context sends to sessions 2+ would quietly degrade to raw
+-- text with no error. A red ERROR notify surfaces that at startup — but does
+-- NOT hard-error: an assert here would throw before this file's `return M`,
+-- so require('ai') would fail and take *every* AI keymap down over what is
+-- only a formatting regression on extra sessions. Notify-and-continue keeps
+-- the keymaps live; the fault stays contained.
+if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' then
+  vim.notify('sidekick: claude preset reshaped — dynamic-session clone will drop format; sends to sessions 2+ may lose context formatting',
+    vim.log.levels.ERROR)
+end
+
+function M._next_auto_name()
+  local tools = require('sidekick.config').cli.tools
+  local n = 2
+  while tools['claude ' .. n] do n = n + 1 end
+  return 'claude ' .. n
+end
+
+-- Register a dynamic claude tool (if new) and show it. Re-registering an
+-- existing name is a no-op → labels re-attach (see "Labels are reusable").
+-- show (not toggle): re-entering the label of a *visible* session must
+-- focus it, not hide it. show auto-starts unstarted registered names via
+-- the same select-auto path (state.lua:159).
+local function create_session(name)
+  local cfg = require('sidekick.config')
+  if not cfg.cli.tools[name] then
+    -- Clone claude's resolved preset (cmd + format + resume/continue), not a
+    -- bare { cmd = {'claude'} } — see plan "clone the preset".
+    cfg.cli.tools[name] = vim.deepcopy(require('sidekick.cli.tool').get('claude').config)
+    M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
+  end
+  M.active = name  -- eager; WinEnter confirms once the window is entered
+  require('sidekick.cli').show({ name = name, focus = true })
+end
+
+-- Drop a dynamically-registered name from cli.tools. Never touches built-ins
+-- (claude/copilot/…) — only names we added via create_session.
+function M._forget(name)
+  if not M._dynamic[name] then return end
+  require('sidekick.config').cli.tools[name] = nil
+  M._dynamic[name] = nil
+  if M.active == name then M.active = 'claude' end
+end
+
+function M.new_session()
+  vim.ui.input({ prompt = 'New Claude session (blank = auto): ' }, function(input)
+    if input == nil then return end                       -- <Esc> cancels
+    local name = input ~= '' and ('claude: ' .. input) or M._next_auto_name()
+    if #name >= 16 then
+      -- sid's cwd-hash slice is empty at >=16 chars (session/init.lua:107):
+      -- reusing this label from another project dir in this nvim run would
+      -- silently reattach to this session. Warn, don't reject.
+      vim.notify(('Long label (%d chars): reusing "%s" from another project dir will reattach to this session'):format(#name, name),
+        vim.log.levels.WARN)
+    end
+    create_session(name)
+  end)
+end
+
+function M.toggle_active()
+  require('sidekick.cli').toggle({ name = M.active, focus = true })
+end
+
+-- <leader>ad target: tear down the active session specifically (avoids the
+-- unfiltered cli.close() → disambiguation-picker behaviour with 2+ sessions).
+-- Reset M.active synchronously (cli.close is async — two scheduled hops); the
+-- detach sweep still GCs the dynamic name after close's detach event fires.
+function M.kill_active()
+  local name = M.active
+  M.active = 'claude'
+  require('sidekick.cli').close({ name = name })
+end
+
+-- Routing wrappers: every send/focus targets the active session, so a second
+-- running session never turns sends into a pick-a-target flow (state.lua:165).
+-- Normalize a bare string like cli.send does, so a stray send('{selection}')
+-- can't blow up tbl_extend.
+function M.send(opts)
+  opts = type(opts) == 'string' and { msg = opts } or opts or {}
+  require('sidekick.cli').send(vim.tbl_extend('force', opts, { name = M.active }))
+end
+
+function M.focus()
+  require('sidekick.cli').focus({ name = M.active })
+end
+
+-- <leader>al: custom telescope picker over running sidekick sessions.
+-- <CR> shows/focuses (making it active); <C-d> tears down the highlighted one.
+function M.switch()
+  local cli            = require('sidekick.cli')
+  local State          = require('sidekick.cli.state')
+  local pickers        = require('telescope.pickers')
+  local finders        = require('telescope.finders')
+  local conf           = require('telescope.config').values
+  local actions        = require('telescope.actions')
+  local action_state   = require('telescope.actions.state')
+
+  local function finder()
+    return finders.new_table({
+      results = State.get({ started = true }),      -- running sessions only
+      entry_maker = function(s)
+        local name = s.tool.name
+        -- cwd in the display: same-named sessions in two cwds are otherwise
+        -- indistinguishable (see Known edges).
+        local cwd = s.session and vim.fn.fnamemodify(s.session.cwd, ':~') or ''
+        return { value = s, display = name .. '  ' .. cwd, ordinal = name .. ' ' .. cwd }
+      end,
+    })
+  end
+
+  pickers.new({}, {
+    prompt_title = 'Sidekick sessions',
+    finder = finder(),
+    sorter = conf.generic_sorter({}),
+    attach_mappings = function(bufnr, map)
+      actions.select_default:replace(function()
+        local entry = action_state.get_selected_entry()
+        actions.close(bufnr)
+        if entry then
+          M.active = entry.value.tool.name  -- eager; WinEnter confirms on focus
+          cli.show({ name = entry.value.tool.name, focus = true })
+        end
+      end)
+      map({ 'i', 'n' }, '<C-d>', function(pbuf)
+        local entry = action_state.get_selected_entry()
+        if not entry then return end
+        local name = entry.value.tool.name
+        -- Synchronous teardown: State.detach → terminal:close() removes the
+        -- session inline (only the Detach *event* is scheduled), so the
+        -- refresh below reads post-kill state. cli.close() would be two
+        -- vim.schedule hops too late (state.lua:145,148) and refresh would
+        -- show the killed entry.
+        --
+        -- Reset active + GC the name synchronously here too, not only in the
+        -- detach sweep: the sweep is scheduled, and a send landing in the gap
+        -- before it runs would re-route to this dead-but-still-registered name
+        -- → select({auto=true}) → a *fresh* session respawns under it (the
+        -- exact surprise the sweep exists to prevent). _forget is a no-op on
+        -- built-ins, so <C-d> on the default `claude` won't unregister it.
+        if M.active == name then M.active = 'claude' end
+        State.detach(entry.value)
+        M._forget(name)
+        action_state.get_current_picker(pbuf):refresh(finder(), { reset_prompt = false })
+      end)
+      return true
+    end,
+  }):find()
+end
+
+return M

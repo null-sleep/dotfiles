@@ -301,13 +301,19 @@ end, { expr = true, desc = 'AI: NES jump or apply' })
 -- with CSI u, WezTerm, Ghostty). macOS Terminal.app and some others do not
 -- transmit <C-.> — <leader>ai is the cross-terminal fallback.
 vim.keymap.set({ 'n', 't', 'i', 'x' }, '<C-.>',
-  function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI' })
+  function() require('ai').focus() end, { desc = 'AI: Focus active CLI' })
 vim.keymap.set('n', '<leader>ai',
-  function() require('sidekick.cli').focus() end, { desc = 'AI: Focus CLI (fallback for <C-.>)' })
+  function() require('ai').focus() end, { desc = 'AI: Focus active CLI (fallback for <C-.>)' })
 
 vim.keymap.set('n', '<leader>aa',
-  function() require('sidekick.cli').toggle({ name = 'claude', focus = true }) end,
-  { desc = 'AI: Toggle Claude CLI' })
+  function() require('ai').toggle_active() end,
+  { desc = 'AI: Toggle active CLI session' })
+vim.keymap.set('n', '<leader>an',
+  function() require('ai').new_session() end,
+  { desc = 'AI: New Claude session' })
+vim.keymap.set('n', '<leader>al',
+  function() require('ai').switch() end,
+  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
 vim.keymap.set('n', '<leader>as',
   function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
 -- close() kills the terminal process, deletes the buffer, and detaches the
@@ -317,11 +323,14 @@ vim.keymap.set('n', '<leader>as',
 -- from <leader>aa/<leader>as, so a typo shouldn't be able to silently discard
 -- a running Claude conversation.
 vim.keymap.set('n', '<leader>ad', function()
-  require('utils').confirm('Kill CLI session? (This tears down the terminal and session state)',
-    function() require('sidekick.cli').close() end)
-end, { desc = 'AI: Kill CLI session' })
-vim.keymap.set('n', '<leader>ao',
-  function() require('sidekick.cli').prompt() end, { desc = 'AI: Select prompt' })
+  require('utils').confirm('Kill active CLI session? (Tears down the terminal and session state)',
+    function() require('ai').kill_active() end)
+end, { desc = 'AI: Kill active CLI session' })
+vim.keymap.set('n', '<leader>ao', function()
+  require('sidekick.cli').prompt({ cb = function(_, text)
+    if text then require('ai').send({ text = text }) end
+  end })
+end, { desc = 'AI: Select prompt' })
 
 -- Send-context bindings. Each forwards a sidekick template variable to the
 -- active CLI (see sidekick's cli/context/init.lua for the full var list).
@@ -329,30 +338,30 @@ vim.keymap.set('n', '<leader>ao',
 --   normal mode → {position}; visual mode → {selection}
 -- so a separate {selection} binding isn't needed.
 vim.keymap.set({ 'n', 'x' }, '<leader>at',
-  function() require('sidekick.cli').send({ msg = '{this}' }) end,
+  function() require('ai').send({ msg = '{this}' }) end,
   { desc = 'AI: Send this (position or selection)' })
 -- {file} on <leader>ap — p = path, matching the `yp`/`yP` yank convention.
 vim.keymap.set('n', '<leader>ap',
-  function() require('sidekick.cli').send({ msg = '{file}' }) end,
+  function() require('ai').send({ msg = '{file}' }) end,
   { desc = 'AI: Send file (path)' })
 -- {function}/{class} need nvim-treesitter-textobjects (packadd'd in plugins.lua).
 -- They send a position reference (type + name + file:line) for the textobject
 -- at the cursor; outside any function/class the send is a benign no-op.
 vim.keymap.set('n', '<leader>af',
-  function() require('sidekick.cli').send({ msg = '{function}' }) end,
+  function() require('ai').send({ msg = '{function}' }) end,
   { desc = 'AI: Send enclosing function' })
 vim.keymap.set('n', '<leader>ac',
-  function() require('sidekick.cli').send({ msg = '{class}' }) end,
+  function() require('ai').send({ msg = '{class}' }) end,
   { desc = 'AI: Send enclosing class' })
 -- {diagnostics} on <leader>ae — e = diagnostic, mirroring <leader>ce.
 vim.keymap.set('n', '<leader>ae',
-  function() require('sidekick.cli').send({ msg = '{diagnostics}' }) end,
+  function() require('ai').send({ msg = '{diagnostics}' }) end,
   { desc = 'AI: Send buffer diagnostics' })
 vim.keymap.set('n', '<leader>ab',
-  function() require('sidekick.cli').send({ msg = '{buffers}' }) end,
+  function() require('ai').send({ msg = '{buffers}' }) end,
   { desc = 'AI: Send open buffers' })
 vim.keymap.set('n', '<leader>aq',
-  function() require('sidekick.cli').send({ msg = '{quickfix}' }) end,
+  function() require('ai').send({ msg = '{quickfix}' }) end,
   { desc = 'AI: Send quickfix list' })
 
 -- Editing utilities (<leader>u)

@@ -1624,21 +1624,43 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    always work: mouse forward button (`<X2Mouse>`) and Neovide's
    `<D-M-Right>`.
 
-2. **CLI integration** — opens Claude in a terminal split.
-   `<leader>aa` toggles Claude (defaults to Claude, session stays alive
-   when hidden). `<leader>as` switches to a different CLI tool.
-   `<leader>ad` tears down the session entirely (behind a floating confirm popup).
+2. **CLI integration** — runs one or more Claude (and other CLI) sessions in
+   terminal splits, organized around the **active session**: the CLI session
+   whose window you last entered (default: the pre-warmed `claude`).
+   `<leader>aa` toggles it, `<leader>ad` kills it, and **all send keys,
+   `<leader>ao`, `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several
+   sessions running, sends never stop to ask which one.
+
+   `<leader>an` spawns a **new** session: a blank prompt auto-numbers it
+   (`claude 2`, `claude 3`, …), a typed label makes a reusable named session
+   (`claude: tests`) that re-attaches if you type the same label again.
+   `<leader>al` opens a telescope picker over running sessions to **switch**
+   (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
+   `<leader>as` stays the **tool launcher** — start a different CLI tool
+   (Copilot, Gemini, etc.) — distinct from `<leader>al`.
+
+   Sessions are keyed by `(tool name, cwd)`; each extra session is a
+   dynamically-registered tool name cloned from the `claude` preset (so
+   context sends stay claude-formatted). Only `claude` #1 is pre-warmed —
+   sessions 2+ cold-start (~1–2s) on first open. Killing a session
+   auto-unregisters its dynamic name (a detach sweep), and re-creating that
+   name starts a **fresh** conversation (no resume). A very long label
+   (≥16 chars) warns that reusing it from a different project dir collapses to
+   the same session. Nothing persists across an nvim restart without the mux
+   backend.
 
 | Keymap | Action |
 |---|---|
 | `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
 | `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
 | `<leader>ta` | Toggle all AI completions globally (inline ghost text + NES) |
-| `<C-.>` | Focus CLI split (any mode; CSI u terminals only) |
-| `<leader>ai` | Focus CLI split (cross-terminal fallback for `<C-.>`) |
-| `<leader>aa` | Toggle Claude CLI (defaults to Claude, session stays alive when hidden) |
-| `<leader>as` | Select a different CLI tool (copilot, gemini, etc.) |
-| `<leader>ad` | Kill CLI session (tears down process + buffer; floating confirm popup) |
+| `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
+| `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
+| `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
+| `<leader>an` | New Claude session — blank prompt = auto-numbered, label = named/reusable |
+| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (telescope) |
+| `<leader>as` | Launch a CLI tool (copilot, gemini, …) |
+| `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
 | `<leader>at` | Send position (normal) or selection (visual) to CLI |
 | `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |
