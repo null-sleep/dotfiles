@@ -94,7 +94,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
-- **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, window-edge padding (8px sides / 4px bottom, matching iTerm2's pane margins), plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
+- **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, window-edge padding (4px sides / 4px bottom, matching iTerm2's pane margins), plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
 
 ### Plugin loading pattern
 
@@ -2035,6 +2035,12 @@ Runtime config and keymaps live in `neovide.lua`, gated by
 entirely. Startup-time settings (fork, frame, font) live in `neovide.toml`
 instead, since Neovide reads them before nvim launches. Install/symlink steps
 are in the repo README → "Neovide".
+
+**Launch it as bare `neovide`, not `neovide .`** — Neovide inherits the shell's
+cwd, so the `.` is redundant, and it reaches nvim as a directory buffer that
+nvim-tree hijacks (netrw is off, `hijack_directories` is on by default): you
+land in the file explorer instead of the startup screen. Same as `nvim .` vs
+`nvim`. Open the tree on demand with `<leader>e`.
 
 **macOS-style keymaps** (terminal nvim can't receive `<D-...>`):
 
