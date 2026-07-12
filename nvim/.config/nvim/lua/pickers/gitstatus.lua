@@ -4,15 +4,14 @@
 --   require('pickers.gitstatus').open()        (bound to <leader>sm)
 --
 -- WHY A CUSTOM WRAPPER
---   snacks' builtin git_status covers the hard parts the old telescope
---   version hand-rolled (staging toggle on <Tab> with auto-refresh, diff
---   preview). This wrapper adds the two local conventions on top:
---   a row-index first column so <M-1>..<M-9> jumps to row N (matching
---   pickers/buffer.lua), and resolving the repo from the current buffer's
---   directory instead of nvim's cwd.
+--   snacks' builtin git_status covers the hard parts (staging toggle on
+--   <Tab> with auto-refresh, diff preview). This wrapper adds the local
+--   conventions: a row-index first column so <M-1>..<M-9> jumps to row N
+--   (matching pickers/buffer.lua), repo resolution from the current
+--   buffer's directory instead of nvim's cwd, and a decluttered preview.
 --
---   Row indices are item.idx (finder order); after a staging toggle the
---   finder re-runs and indices reset, same as the old picker.
+--   Row indices are item.idx (finder order); a staging toggle re-runs the
+--   finder and indices reset.
 
 local common = require('pickers.common')
 
@@ -42,9 +41,8 @@ function M.open()
 
   local qp_actions, qp_keys = common.quick_pick_actions()
 
-  -- Git XY status → icon + highlight, keeping the old telescope picker's
-  -- glyph vocabulary (+ ~ - → ! ?) instead of snacks' letter rendering.
-  -- X = staged column, Y = unstaged column, straight from porcelain v1.
+  -- Git XY status → icon + highlight (+ ~ - → ! ? glyphs instead of
+  -- snacks' letter rendering). X = staged, Y = unstaged, per porcelain v1.
   local GIT_ABBREV = {
     A = { icon = '+', hl = 'SnacksPickerGitStatusAdded' },
     U = { icon = '‡', hl = 'SnacksPickerGitStatusAdded' },
@@ -58,16 +56,13 @@ function M.open()
   return Snacks.picker.git_status({
     cwd = git_root,
     actions = qp_actions,
-    -- Custom diff preview instead of the builtin git_status one, for two
-    -- look reasons: classic full-width diff coloring (the default 'fancy'
-    -- style draws per-file chip boxes that look broken in a short pane),
-    -- and no per-file header noise — the preview is already scoped to the
-    -- highlighted file, so the `diff --git`/`index`/`---`/`+++` block is
-    -- dead weight. Everything before the first `@@` hunk is dropped
-    -- *positionally* (a body line may legitimately start with `---` — e.g.
-    -- a deleted lua comment — so pattern-filtering would corrupt it).
-    -- Untracked/added files have no diff and show the file itself, same as
-    -- the builtin.
+    -- Custom diff preview: classic full-width diff coloring (the 'fancy'
+    -- default draws per-file chip boxes that break in a short pane) and no
+    -- per-file header — the preview is already scoped to one file, so
+    -- everything before the first `@@` hunk is dropped *positionally* (a
+    -- body line may legitimately start with `---`, e.g. a deleted lua
+    -- comment, so pattern-filtering would corrupt it). Untracked/added
+    -- files show the file itself.
     preview = function(ctx)
       if (ctx.item.status or ''):find('^[A?]') then
         return Snacks.picker.preview.file(ctx)
@@ -110,8 +105,7 @@ function M.open()
     end,
     -- Only the <M-N> keys are added here; the source's own <Tab> (stage
     -- toggle) and <c-r> (restore) bindings survive the deep-merge.
-    -- nowrap: long diff lines truncate instead of wrapping into unreadable
-    -- fragments (matches the old telescope preview's behavior).
+    -- nowrap: long diff lines truncate instead of wrapping into fragments.
     win = {
       input = { keys = qp_keys },
       list = { keys = qp_keys },

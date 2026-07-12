@@ -177,5 +177,4 @@ vim.keymap.set('n', '<leader>O', function()
 end, { desc = 'Toggle: Outline nav popup (aerial)' })
 -- No dedicated picker key for aerial's symbols — it would overlap <leader>sd
 -- (document symbols picker, which also covers fields/variables) and the
--- sidebar/popup above. (The aerial telescope extension was dropped with the
--- snacks.picker migration; aerial has no snacks source and wasn't missed.)
+-- sidebar/popup above.

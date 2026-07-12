@@ -10,7 +10,7 @@ local M = {}
 --- Row N is the Nth *display* row — matches the visible index column while
 --- the prompt is empty (finder order); after filtering the indices stay
 --- stuck to their items, so quick-pick is for the "open and pounce" path.
---- Note: picker.list:view() is 1-indexed (telescope's set_selection was 0-indexed).
+--- Note: picker.list:view() is 1-indexed.
 function M.quick_pick_actions()
   local actions, keys = {}, {}
   for i = 1, 9 do

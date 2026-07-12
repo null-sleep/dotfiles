@@ -13,9 +13,9 @@
 --   keeps indices stuck to items — fine, because <M-N> is for the unfiltered
 --   "open and pounce" path.
 --
---   sort_lastused is disabled to keep the old picker's stable bufnr ordering
---   (snacks defaults to most-recently-used, which would reshuffle the row
---   numbers on every open and defeat the muscle-memory point of <M-N>).
+--   sort_lastused is disabled for stable bufnr row ordering (the MRU
+--   default would reshuffle row numbers on every open and defeat the
+--   muscle-memory point of <M-N>).
 
 local common = require('pickers.common')
 
@@ -44,8 +44,7 @@ function M.open()
       -- Jump to the buffer's live cursor line (info.lnum), not the `"` mark
       -- snacks defaults to: the mark is only written on unload and can point
       -- past EOF after a file shrank, which crashes the jump's
-      -- nvim_win_set_cursor. info.lnum tracks the current cursor and is the
-      -- old telescope picker's behavior.
+      -- nvim_win_set_cursor.
       local lnum = item.info and item.info.lnum or 0
       item.pos = lnum > 0 and { lnum, 0 } or nil
       return item
