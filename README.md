@@ -632,7 +632,7 @@ gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
 
 GUI frontend for Neovim. Two config files split by mechanism:
 
-- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `fork = true` (detach from launching terminal), `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`.
+- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`. It also sets `fork = true`, but that key is **not honored for terminal launches** — pass `--fork` on the command line instead (the zsh function below does).
 - **`nvim/.config/nvim/lua/neovide.lua`** — runtime `vim.g.neovide_*` vars and keymaps. Gated by `if not vim.g.neovide then return end`, so terminal nvim skips it. Contains animation tuning (cursor/scroll/position lengths, cursor trail), `option_key_is_meta = 'both'` (so `<M-1>`..`<M-9>` keymaps work), proxy icon, hide-mouse-when-typing, floating corner radius, and the keymaps below.
 
 ```bash
@@ -654,11 +654,13 @@ The [`zsh`](#zsh) package wraps `neovide` in a function that runs the app bundle
 ```zsh
 neovide() {
   local bin=$(whence -p neovide)
-  command "${bin:A}" "$@"
+  command "${bin:A}" --fork "$@"
 }
 ```
 
-Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher. `fork = true` detaches the GUI, so it outlives the closed tab.
+`--fork` detaches the GUI so the shell returns immediately; without it Neovide runs in the foreground and blocks the terminal.
+
+Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher. It redirects stdio to `/dev/null` so the forked child doesn't hold the tty open, which would otherwise keep the tab alive until Neovide quit.
 
 Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
 

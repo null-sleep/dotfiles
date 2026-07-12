@@ -165,17 +165,17 @@ alias vim=nvim
 alias vi=nvim
 # Run the bundle's real executable, not the Homebrew shim that symlinks into it: a
 # symlinked exec never registers with LaunchServices, so rcmd can't see the window.
-# whence -p skips this function; :A resolves the symlink. Detach is neovide.toml's fork.
+# whence -p skips this function; :A resolves the symlink.
+# --fork is NOT redundant with neovide.toml's `fork = true`: that key isn't honored
+# on this path (verified — without the flag the process stays foreground on the tty
+# and blocks the shell).
 neovide() {
   local bin=$(whence -p neovide)
-  command "${bin:A}" "$@"
+  command "${bin:A}" --fork "$@"
 }
 alias neo=neovide
-# Same, but close the calling terminal session. The stdio redirect is load-bearing:
-# `fork = true` leaks a child that inherits the tty, and iTerm2 keeps the window
-# alive until every process holding it exits — so without this, the tab lingers
-# until Neovide quits. On a failed launch the `&&` keeps the shell (rerun `neo` to
-# see the error, which /dev/null swallowed here).
+# Same, but close the calling terminal session. The stdio redirect keeps the leaked
+# fork child off the tty, so iTerm2 can close the tab instead of waiting on it.
 neok() {
   neovide "$@" </dev/null >/dev/null 2>&1 && exit
 }
