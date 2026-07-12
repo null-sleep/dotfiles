@@ -28,8 +28,17 @@ off or delete them as they land; add new ones freely.
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
   in `669b19e`.
   - [ ] **Saved picker searches** - when you search something save that somewhere so you can easily re-run it later. This is a feature that I want to add to the picker plugin.
-
-_Add plan work you want to prioritize here._
+- [ ] **Evaluate [avante.nvim](https://github.com/yetone/avante.nvim)** — a
+  Cursor-style AI plugin (inline suggest + one-click apply, "Zen Mode" agent,
+  multi-provider, project `avante.md` instructions). Overlaps what we already
+  run — sidekick.nvim (CLI agents) + Copilot ghost text — so the question is
+  whether it *replaces* either or just adds a third AI surface. Note the costs:
+  needs a build step (Rust/Cargo or a prebuilt binary fetch) and its own API
+  keys, plus plenary + nui.
+- [ ] **Evaluate [atone.nvim](https://github.com/XXiaoA/atone.nvim)** — a modern
+  undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
+  bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
+  not a swap — worth a look purely on "can I see and navigate my edit history".
 
 ---
 
@@ -40,7 +49,9 @@ Grouped by state, not priority.
 - [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md) — the single
   tracking doc for the picker effort, now **migrated** (telescope removed,
   snacks.picker everywhere, 2026-07): research + swap assessment, the removed
-  `filter.lua` spec, the symbols-picker eval, and the post-migration TODOs.
+  `filter.lua` spec, the symbols-picker eval, the nvim-tree vs snacks-explorer
+  eval (§6 — verdict: keep nvim-tree, but reconsider), and the post-migration
+  TODOs.
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
   done / is idle (pipeline first, UI later).

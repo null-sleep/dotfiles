@@ -6,9 +6,12 @@
 > telescope-fzf-native + telescope-ui-select were removed (no more compiled
 > `make` dep). Global picker setup lives in `nvim/.config/nvim/lua/picker.lua`;
 > the commit series carries `Part-of: telescope -> snacks.picker migration`
-> trailers. Frecency is on; the `smart` picker and the explorer were
-> deliberately deferred — see [Post-migration TODO](#post-migration-todo).
-> The research below is kept as the decision record.
+> trailers. Frecency is on; the `smart` picker was deliberately deferred — see
+> [Post-migration TODO](#post-migration-todo). The snacks **explorer** has since
+> been evaluated separately ([§6](#explorer-eval)): verdict is **keep
+> nvim-tree**, held back by window ergonomics rather than migration cost, and
+> it stays open for reconsideration. The research below is kept as the decision
+> record.
 
 Research doc comparing our current **telescope** stack against **folke's
 snacks.nvim picker**, with a focus on (1) the search-syntax / file-filter gap
@@ -873,16 +876,189 @@ quirks stay cleanly solved.
 
 ---
 
+<a id="explorer-eval"></a>
+## 6. Explorer — nvim-tree vs snacks explorer
+
+Resolves TODO item #1 below. Evaluation only — no migration steps. Verified
+against the installed snacks source (`~/.local/share/nvim/site/pack/core/opt/
+snacks.nvim`), not just the docs.
+
+**Verdict up front: keep nvim-tree — but it's closer than expected, and the
+cost was never the reason.** The migration is genuinely *cheap*; what holds the
+line is window ergonomics. Details below.
+
+### 6.1 Import-rewriting on rename — a non-issue, and lsp-file-operations loses
+
+The obvious worry ("we'd lose import rewriting") inverts on inspection:
+
+- **nvim-lsp-file-operations cannot work with snacks.** Its README says it
+  subscribes to events emitted by **nvim-tree, neo-tree, and triptych**. Snacks
+  explorer emits no events at all (`snacks/explorer/actions.lua` only calls
+  `Tree:refresh()`). That's structural, not a config gap — an integration would
+  mean wrapping snacks' `explorer_*` actions, not subscribing to anything.
+- **Snacks does it natively.** `explorer_rename` / `explorer_move` route through
+  `Snacks.rename.rename_file()`, and `snacks/rename.lua` sends
+  `workspace/willRenameFiles`, applies the returned workspace edit, then
+  notifies `didRenameFiles`. So a migration **deletes**
+  nvim-lsp-file-operations rather than porting it — which also retires the
+  two-halves, silently-desyncable invariant between `lsp.lua` (capability half)
+  and `filetree.lua` (event half) that our own comments flag as a footgun.
+- **The regression is one thing, not a capability class.** Snacks does *not*
+  send will/did **Create** or **Delete** (`explorer_add` / `explorer_del` make
+  no LSP calls); nvim-lsp-file-operations does. But checking every server we
+  actually run against its own capability source: ts_ls and rust-analyzer
+  advertise `willRename` only; lua_ls `didRename` only (snacks sends that too);
+  pyright, elixirls, kotlin_ls, eslint advertise nothing. **No server we run
+  implements `willCreateFiles` or `willDeleteFiles`** — that coverage is dead
+  code here. The single real loss is **gopls' `didCreate`** (auto package clause
+  on a new `.go` file). Note gopls advertises *no* `willRename` at all
+  (golang/go#51037, open since 2022), so neither tool gives Go import rewriting.
+- Snacks' `rename.lua` still uses the deprecated dot-notation
+  `client.supports_method` / `client.request_sync` (snacks #2839), which breaks
+  on Neovim 0.13 — but 0.13 is unreleased, the fix is four call sites, and a PR
+  (#2862) already exists. **Not a serious argument.** If plugin staleness
+  matters it points the other way: nvim-lsp-file-operations was last touched
+  2026-01.
+
+<a id="explorer-cost"></a>
+### 6.2 The migration is *cheaper* than it looks
+
+Our sidebar machinery keys on the `NvimTree` filetype across nine files, so the
+instinct is that all of it must be re-plumbed onto snacks. It mostly must not.
+Snacks' picker windows are a virtual list in floats over unnamed scratch
+buffers, so the bug classes those fixes exist to dodge **cannot recur** — they
+get deleted, not ported:
+
+- `filetree.lua`'s `TreeOpen`-by-winid scrolloff fix (written to dodge
+  `aucmd_win`) — **deleted.** Snacks already does it by winid:
+  `picker/core/list.lua` calls `Snacks.util.wo(win, { scrolloff = 0 })`, and
+  `win.lua` defaults `sidescrolloff = 0`.
+- `autocmds.lua`'s `clamped_panels` WinScrolled topline/leftcol clamp — **entry
+  removed, nothing added.** The list is virtual: it rebuilds the buffer to
+  exactly `state.height` lines and pins `winrestview{topline=1,leftcol=0}` on
+  every render. There is no content past the bottom to scroll into.
+- `session.lua`'s `NvimTree_%d+` buffer-name wipe — **the hack half
+  disappears.** It exists because nvim-tree buffers carry filenames that
+  `mksession` `badd`s. Snacks uses `nvim_create_buf(false, true)` (unnamed,
+  unlisted) plus floats, which `mksession` skips. A one-call close-before-save
+  is still needed for the layout's root split box, but the loop goes.
+- `themes.lua`'s eight `NvimTreeGit*HL` overrides — **deleted.** Snacks ships
+  `SnacksPickerGitStatus*` defaults.
+- stickybuf (`plugins.lua`) — **probably nothing to do.** It pins real windows
+  against `:e` hijack; the only real window in a snacks layout is
+  `focusable = false`.
+- `buffers.lua`, `outline.lua`, `keymaps.lua`, `builtins.lua`, `whichkey.lua` —
+  **genuinely just filetype string swaps**, plus a two-line API swap
+  (`nvim_tree_api.tree.is_visible()` → `Snacks.picker.get({ source =
+  'explorer' })`). Roughly ten mechanical lines.
+
+Honest ledger: three files gain a string, three lose code, one keeps a simpler
+hook. **Net, the config gets smaller.** Likewise the global
+`confirm = confirm_and_scroll` override in `picker.lua` is not a landmine:
+snacks merges `defaults < user < source < opts` last-wins and the explorer
+source sets its own `confirm`, so it simply wins. The only effect is losing the
+20%-from-top scroll on explorer opens.
+
+### 6.3 Feature comparison
+
+| Feature | nvim-tree (today) | snacks explorer |
+|---|---|---|
+| Model | classic split sidebar | a picker in disguise (floating list over a non-focusable split box) |
+| Git status | yes (right-aligned `M`/`S`/`U` letters) | yes (plus aggregate status on dirs, `]g`/`[g` jump) |
+| LSP diagnostics | off in our config | yes (`]d`/`[d`, `]e`/`[e`) |
+| Modified-buffer marker | yes | no |
+| Open-buffer highlight | yes (`NvimTreeOpenedHL`) | no |
+| Fuzzy filter in the tree | weak (`live_filter`) | strong — it *is* the picker input; `<leader>/` greps the dir |
+| Multi-select bulk ops | no | yes (`<Tab>` select, then `m`/`c`/`d`) |
+| Send files to sidekick | no | yes — `<M-a>` inherited free, on a multi-selection |
+| Trash on delete | yes | yes, but silent hard-delete fallback if no trash cmd resolves [1] |
+| File watching | no | yes |
+| Preview pane | no | yes (`P`) |
+| Import-rewrite on rename | via a second plugin | native |
+| Import-rewrite on create/delete | yes, but no server uses it | no |
+| File nesting | no | no |
+| `<C-h>`/`<C-l>` split-nav reaches it | yes | no [2] |
+| Plugins required | 2 | 0 (snacks already loaded) |
+
+[1] macOS resolves `/usr/bin/trash`, so we're fine — but `explorer/actions.lua`
+degrades to `vim.fn.delete(path, 'rf')` silently, not loudly.
+
+[2] The load-bearing con — see §6.4.
+
+### 6.4 The real blocker: window ergonomics
+
+`keymaps.lua` maps `<C-h>`/`<C-l>` to `<C-w>h`/`<C-w>l`. nvim-tree is a normal
+split, so hopping into the tree and back just works. A snacks sidebar is **not**
+a normal split: in the installed source, the layout's root box is a split with
+`focusable = false` (`snacks/layout.lua`) and the input and list are
+`relative = "win"` floats. `<C-w>h` does not enter floating windows. **The
+everyday "hop into the tree, hop back" motion dies** and would need a dedicated
+focus key.
+
+It also turns a one-window sidebar into a three-window layout (box + input +
+list), which the "quit when only sidebars remain" arithmetic in `autocmds.lua`
+has to absorb.
+
+Together with the two config-unfixable display losses — no open-buffer
+highlight, no modified marker, both deliberately configured here (the latter
+with a colour-measured `ColorColumn` chip in `themes.lua`) — this is the case
+against.
+
+### 6.5 nvim-tree is not rotting
+
+There's no decay argument to lean on. Its README says "stable, no new major
+features," but it shipped v1.15 (Jan), v1.16 (Mar), v1.17 (Apr) and v1.18 (Jul
+2026), ~50 commits in 2026. Its newest work is an experimental
+`session_restore_nvim` (nvim-tree #3343) which, if it lands, obsoletes our
+`session.lua` hack upstream.
+
+<a id="explorer-verdict"></a>
+### 6.6 Verdict
+
+**Keep nvim-tree — but it's closer than expected, and the cost was never the
+reason.**
+
+The migration is cheap: it deletes two plugins, eight highlight overrides, a
+scroll clamp, an `aucmd_win` workaround and a cross-file LSP invariant, in
+exchange for ~10 lines of filetype string swaps. The create/delete LSP
+"regression" is one gopls nicety. The 0.13 deprecation is noise.
+
+What actually holds the line is **ergonomics**: `<C-h>`/`<C-l>` can't reach a
+floating sidebar, and the open-buffer / modified-file highlighting we
+deliberately tuned has no snacks equivalent at any amount of config. Those are
+daily-driver regressions, traded for daily-driver gains
+(fuzzy-filter-in-tree, multi-select bulk ops plus `<M-a>`
+send-selection-to-sidekick, diagnostics, file watching). That's a matter of
+taste, not capability — the same standard the picker migration was held to, and
+this one clears it less convincingly.
+
+**Two things would flip it:** a focus key for the floating sidebar that doesn't
+feel worse than `<C-h>`, or snacks gaining open-buffer / modified highlighting.
+Both are plausible, so this stays open (TODO #1).
+
+**The cheap experiment that would settle it:** snacks is already loaded, so
+`Snacks.explorer()` on a spare key runs side by side with nvim-tree, zero
+plumbing touched. Live with both for a week and let the `<C-h>` reflex decide.
+
+---
+
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
 
 Deferred follow-ups from the migration (decided during implementation review,
 2026-07):
 
-1. **Evaluate the snacks `explorer`** as an nvim-tree complement/replacement —
-   deliberately skipped during the migration to keep it picker-focused.
-   nvim-tree config (including the recent `<C-d>` close-buffer and scrolloff
-   tweaks) is untouched.
+1. **Reconsider switching to the snacks `explorer`** — the evaluation is
+   *done* (see [§6](#explorer-eval)), but the question stays open. Verdict:
+   **keep nvim-tree for now.** Not because the migration is expensive — it's
+   the opposite, it deletes two plugins and shrinks the config
+   ([§6.2](#explorer-cost)) — but because a snacks sidebar is floating windows
+   that `<C-h>`/`<C-l>` can't reach, and it has no open-buffer / modified-file
+   highlighting. Two things would flip it: a focus key that doesn't feel worse
+   than `<C-h>`, or snacks gaining those highlights. To settle it cheaply, bind
+   `Snacks.explorer()` to a spare key (snacks is already loaded, zero plumbing
+   touched) and run both side by side for a week. nvim-tree config is untouched
+   meanwhile.
 2. **Review snacks' default picker keymaps for inspiration** — the migration
    preserved our keymap vocabulary; snacks ships bindings we don't surface
    (`<a-f>` follow, `<c-r>`-register inserts, `<s-cr>` pick-window, layout
@@ -909,6 +1085,23 @@ Deferred follow-ups from the migration (decided during implementation review,
    layout live inside an open picker for experimenting. Current state:
    global flips default/vertical at 160 columns; symbols pin vertical;
    theme/keybindings/sidekick use `select`.
+6. **Set up `<C-g>` (live mode) on more pickers** — we only ever think of
+   `<c-g>` as the grep live/fuzzy toggle, but it's a *generic* picker action:
+   snacks binds it to `toggle_live` in the picker input
+   (`picker/config/defaults.lua`), and any source can opt in by setting
+   `supports_live`. Ten built-ins already do: `explorer`, `files`, `gh_issue`,
+   `gh_pr`, `git_grep`, `git_log`, `grep`, `grep_buffers`, `grep_word`,
+   `lsp_symbols` (`picker/config/sources.lua`). Worth auditing where else it
+   pays — notably **`files`** (`<leader>sf`, so `<c-g>` flips between fuzzy
+   matching the file list and driving `fd` live) and **`lsp_symbols`**
+   (`<leader>ss`) — and whether our custom `pickers/*.lua` finders could set
+   `supports_live` themselves.
+7. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
+   Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
+   Sources below but was only skimmed for the *decision*; it was never mined for
+   **setup ideas**. Worth a proper read now that we're fully on snacks, to lift
+   any config/keymap/layout tricks we missed. Overlaps items 2 and 5 — fold
+   whatever it turns up into those.
 
 ## Sources
 
@@ -928,5 +1121,30 @@ Deferred follow-ups from the migration (decided during implementation review,
 - fzf-lua: <https://github.com/ibhagwan/fzf-lua> (LSP source:
   `lua/fzf-lua/providers/lsp.lua`)
 - snacks.picker LSP source: `lua/snacks/picker/source/lsp.lua`
+
+Explorer eval ([§6](#explorer-eval)):
+
+- snacks explorer docs: <https://github.com/folke/snacks.nvim/blob/main/docs/explorer.md>
+  (+ read firsthand at the installed commit: `explorer/actions.lua`,
+  `explorer/tree.lua`, `rename.lua`, `layout.lua`, `win.lua`,
+  `picker/core/list.lua`, `picker/source/explorer.lua`, `picker/format.lua`,
+  `picker/config/{defaults,sources,init}.lua`)
+- nvim-lsp-file-operations (supported explorers = nvim-tree, neo-tree,
+  triptych): <https://github.com/antosha417/nvim-lsp-file-operations>
+- snacks rename + explorer issues:
+  [#2709](https://github.com/folke/snacks.nvim/issues/2709) (rename with an
+  explorer + vtsls, closed not-planned),
+  [#2839](https://github.com/folke/snacks.nvim/issues/2839) (deprecated
+  `client.request_sync`, breaks on nvim 0.13) +
+  [#2862](https://github.com/folke/snacks.nvim/pull/2862) (fix),
+  [#1965](https://github.com/folke/snacks.nvim/issues/1965) (thin docs for
+  action/keymap overrides), [#793](https://github.com/folke/snacks.nvim/issues/793)
+  (original explorer feature issue)
+- LSP fileOperations capability sources: ts_ls `src/lsp-server.ts`,
+  rust-analyzer `crates/rust-analyzer/src/lsp/capabilities.rs`, lua_ls
+  `script/provider/provider.lua`, gopls `gopls/internal/server/general.go` +
+  <https://github.com/golang/go/issues/51037> (gopls has no `willRename`)
+- nvim-tree activity + upstream session restore:
+  <https://github.com/nvim-tree/nvim-tree.lua/issues/3343>
 </content>
 </invoke>
