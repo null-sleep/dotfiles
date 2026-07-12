@@ -30,6 +30,13 @@ require('aerial').setup({
     -- (nvim-tree), right for sidekick (ai.lua's own edge-promotion trick).
     placement = 'edge',
     min_width = 25,
+    -- Drop the global scrolloff=10 / sidescrolloff=8 (configs.lua) the outline
+    -- inherits: they leave phantom columns right of the longest symbol and pull
+    -- the list out from under the cursor near the panel edges. aerial applies
+    -- win_opts by window id on every open, so this survives reopen and new tabs
+    -- — unlike a FileType autocmd, see filetree.lua's TreeOpen hook for why.
+    -- Scrolling past the last symbol is clamped separately (autocmds.lua).
+    win_opts = { scrolloff = 0, sidescrolloff = 0 },
   },
   -- 'global' (not 'window'): the single sidebar always mirrors whichever
   -- window currently has focus anywhere in the tabpage — VS Code/Zed-style

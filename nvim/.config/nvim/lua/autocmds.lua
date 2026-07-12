@@ -136,3 +136,41 @@ vim.api.nvim_create_autocmd('QuitPre', {
     end
   end,
 })
+
+-- Don't let the list panels scroll past their last entry — a file tree showing
+-- three files and twenty blank rows is just dead space. This is the fix for that
+-- symptom; `scrolloff` is NOT (a common misreading, and one this config already
+-- shipped once as a no-op): scrolloff has no effect at EOF, so nothing but
+-- clamping the view actually stops the scroll.
+--
+-- Its own list, deliberately not buffers.lua's `sidebar_filetypes` — which today
+-- holds these same two entries but answers "is this a docked sidebar" (for the
+-- quit-when-only-sidebars handler above). Registering a future panel there
+-- shouldn't silently opt it into scroll clamping. Same reasoning the module
+-- header gives for keeping autosave/statusline lists separate.
+--
+-- Both panels are nowrap, so screen rows map 1:1 to lines and the last legal
+-- topline is a simple subtraction.
+local clamped_panels = { NvimTree = true, aerial = true }
+
+vim.api.nvim_create_autocmd('WinScrolled', {
+  group = augroup,
+  desc = 'Panels: clamp scroll so the last entry stays at the bottom',
+  callback = function(args)
+    -- WinScrolled sets <amatch> to the id of the window that scrolled, which is
+    -- not necessarily the current one (any window in the tabpage can fire it).
+    local win = tonumber(args.match)
+    if not win or not vim.api.nvim_win_is_valid(win) then return end
+    local buf = vim.api.nvim_win_get_buf(win)
+    if not clamped_panels[vim.bo[buf].filetype] then return end
+    vim.api.nvim_win_call(win, function()
+      local maxtop = math.max(1, vim.api.nvim_buf_line_count(buf)
+        - vim.api.nvim_win_get_height(win) + 1)
+      local view = vim.fn.winsaveview()
+      if view.topline > maxtop then
+        view.topline = maxtop
+        vim.fn.winrestview(view)
+      end
+    end)
+  end,
+})
