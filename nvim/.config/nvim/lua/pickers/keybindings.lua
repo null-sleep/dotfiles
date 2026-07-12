@@ -47,10 +47,17 @@ end
 -- Display-only: drop a desc's "Group: " prefix when the group column already
 -- shows it ("Neovide ›  Neovide: Copy" → "Neovide ›  Copy"). The full desc stays
 -- in the search text, so typing "neovide copy" still matches.
+--
+-- Matched against each segment of the group, not the whole string, so composite
+-- and nested groups strip too: "Session/Quit ›  Session: Stop saving" and
+-- "Git > Rebase ›  Git: Continue". Case-insensitive ("LSP" vs "Lsp").
 local function strip_group(desc, bc)
-  if bc == '' then return desc end
-  local rest = desc:match('^' .. vim.pesc(bc) .. ':%s*(.+)$')
-  return rest or desc
+  local prefix, rest = desc:match('^([^:]+):%s*(.+)$')
+  if not prefix then return desc end
+  for segment in (bc .. '/'):gmatch('%s*(.-)%s*[/>]') do
+    if segment:lower() == prefix:lower() then return rest end
+  end
+  return desc
 end
 
 -- Mode letters → dim label. Normal-only rows render blank (they're most rows, so
