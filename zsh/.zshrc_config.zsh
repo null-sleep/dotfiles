@@ -166,18 +166,22 @@ alias vi=nvim
 # Run the bundle's real executable, not the Homebrew shim that symlinks into it: a
 # symlinked exec never registers with LaunchServices, so rcmd can't see the window.
 # whence -p skips this function; :A resolves the symlink.
-# --fork is NOT redundant with neovide.toml's `fork = true`: that key isn't honored
-# on this path (verified — without the flag the process stays foreground on the tty
-# and blocks the shell).
+#
+# Detach it ourselves — Neovide's own backgrounding does not work here: verified
+# that with `--fork` (and with neovide.toml's `fork = true`) the process still sits
+# in the foreground group on the tty with the shell as its parent. So: nohup to
+# survive the terminal closing, `&!` to background + disown, and the stdio redirect
+# so it holds no tty and the tab can actually close.
 neovide() {
   local bin=$(whence -p neovide)
-  command "${bin:A}" --fork "$@"
+  nohup "${bin:A}" "$@" </dev/null >/dev/null 2>&1 &!
 }
 alias neo=neovide
-# Same, but close the calling terminal session. The stdio redirect keeps the leaked
-# fork child off the tty, so iTerm2 can close the tab instead of waiting on it.
+# Same, but close the calling terminal session afterwards. The cwd is passed to nvim
+# explicitly (--cmd runs before init.lua, so plugins see the right dir): inheriting it
+# is unreliable once the parent shell exits, which landed you in ~ instead.
 neok() {
-  neovide "$@" </dev/null >/dev/null 2>&1 && exit
+  neovide "$@" -- --cmd "cd ${PWD// /\\ }" && exit
 }
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"
