@@ -892,16 +892,15 @@ Deferred follow-ups from the migration (decided during implementation review,
    in one list) — tentative `<leader><leader>`, key TBD. Note the conflict:
    `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
    Keymap index), so either pick another key or decide `smart` supersedes it.
-4. **Compare `<leader>sm` (git-status picker) against the old telescope
-   look** — the port restores the two-icon-column layout, and two review
-   rounds already landed: telescope-style status glyphs + `syntax` diff
-   style, then a header-stripped diff preview (starts at the first `@@`
-   hunk) with `nowrap` (long lines truncate instead of wrapping — likely
-   the main "telescope looked nicer" gap). If it still reads worse than
-   telescope, grab a screenshot of the old look (any pre-migration commit:
-   `git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
-   `git checkout migrate-to-snacks-picker && git stash pop`) and paste both
-   into a Claude session to diff the remaining details.
+4. **Visual side-by-side of `<leader>sm` against the old telescope look** —
+   three review rounds already landed (status glyph columns + `syntax` diff
+   style; header-stripped `nowrap` preview; real file line numbers in the
+   preview gutter, derived from hunk headers — something telescope never
+   had) and it now reads "much better", but the direct comparison is still
+   owed. Recipe: screenshot the old look from a pre-migration commit
+   (`git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
+   `git checkout main && git stash pop`), then paste both screenshots into
+   a Claude session to diff the remaining details.
 5. **Look into re-orienting some pickers** — review each picker's layout
    orientation (preview right vs below, compact vs full-height) against how
    it's actually used. Snacks makes this cheap: per-source `layout = {
