@@ -20,8 +20,8 @@ vim.g.neovide_floating_corner_radius = 0.2
 -- 0, which puts sidebar/gutter content flush against the edge; iTerm2 pads
 -- its panes by roughly this much. Top is left at 0: the titlebar already
 -- separates content vertically.
-vim.g.neovide_padding_left = 8
-vim.g.neovide_padding_right = 8
+vim.g.neovide_padding_left = 4
+vim.g.neovide_padding_right = 4
 vim.g.neovide_padding_bottom = 4
 vim.g.neovide_padding_top = 0
 
