@@ -646,8 +646,11 @@ the quickfix list.
 | `K` | Hover — docs/type/signature float (not the source; use peek for that) |
 | `<C-s>` (normal + insert) | Signature help |
 | `<leader>th` | Toggle auto-hover on CursorHold |
-| `<leader>ca` | Code action |
-| `grn` (nvim core default, not remapped) | Rename symbol |
+| `<leader>ca` / `gra` | Code action |
+| `grn` | Rename symbol |
+| `grt` | Go to type definition (same as `gy`, without the picker) |
+| `grx` | Run codelens under cursor |
+| `gO` | Document symbols |
 | `<leader>ce` | Show diagnostic float under cursor |
 | `<leader>cd` | Diagnostic list (loclist) |
 | `[d` / `]d` | Previous / next diagnostic (nvim default; supports a count) — auto-opens a cursor-scoped float on the diagnostic it lands on, since virtual text/signs are off |
@@ -734,8 +737,11 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   formatter binaries are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
-  `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
-  not mapped in this config. `grr`/`gri` are overridden to use snacks pickers.
+  `grn` (rename), `gra` (code action), `grt` (type definition), `grx` (codelens)
+  and `gO` (document symbols) are nvim defaults. `grr`/`gri` are overridden to
+  use snacks pickers; the rest are re-bound to the same functions purely to give
+  them a `desc` — nvim sets them without one, so which-key and `<leader>sk` label
+  them with their raw callee (`vim.lsp.buf.rename()`) and file them under no group.
 
 - **Peek floats (`<leader>p*`)** — VS Code / GoLand-style peek via
   goto-preview; see the LSP *Keymaps* table for the jump/peek pairs. Tuned in

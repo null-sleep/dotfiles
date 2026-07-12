@@ -252,6 +252,16 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- grn (rename) alongside gra/grr/gri/grt/grx, so a <leader>rn alias would
     -- just duplicate a built-in for the cost of an entire top-level leader group.
     map({'n','x'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
+
+    -- Re-bind the core defaults we keep (same functions, unchanged behavior) purely
+    -- to give them a desc: nvim sets them without one, so which-key and <leader>sk
+    -- label them with their raw callee ("vim.lsp.buf.rename()") and file them under
+    -- no group — worst for exactly the keys this config tells you to reach for.
+    map('n', 'grn',        vim.lsp.buf.rename,          'LSP: Rename symbol')
+    map({'n','x'}, 'gra',  vim.lsp.buf.code_action,     'LSP: Code action')
+    map('n', 'grt',        vim.lsp.buf.type_definition, 'LSP: Go to type definition')
+    map('n', 'grx',        vim.lsp.codelens.run,        'LSP: Run codelens')
+    map('n', 'gO',         vim.lsp.buf.document_symbol, 'LSP: Document symbols')
     -- Show the diagnostic under the cursor in a float, without moving (moving
     -- to next/prev is [d/]d's job). scope = 'cursor' limits it to the cursor's
     -- diagnostic rather than every one on the line (open_float's default).
