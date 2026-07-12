@@ -42,14 +42,37 @@ function M.open()
 
   local qp_actions, qp_keys = common.quick_pick_actions()
 
+  -- Git XY status → icon + highlight, keeping the old telescope picker's
+  -- glyph vocabulary (+ ~ - → ! ?) instead of snacks' letter rendering.
+  -- X = staged column, Y = unstaged column, straight from porcelain v1.
+  local GIT_ABBREV = {
+    A = { icon = '+', hl = 'SnacksPickerGitStatusAdded' },
+    U = { icon = '‡', hl = 'SnacksPickerGitStatusAdded' },
+    M = { icon = '~', hl = 'SnacksPickerGitStatusModified' },
+    C = { icon = '>', hl = 'SnacksPickerGitStatusCopied' },
+    R = { icon = '→', hl = 'SnacksPickerGitStatusRenamed' },
+    D = { icon = '-', hl = 'SnacksPickerGitStatusDeleted' },
+    ['?'] = { icon = '?', hl = 'SnacksPickerGitStatusUntracked' },
+  }
+
   return Snacks.picker.git_status({
     cwd = git_root,
     actions = qp_actions,
+    -- Classic full-width diff coloring in the preview; the default 'fancy'
+    -- style draws per-file chip boxes that look broken in a short pane.
+    previewers = { diff = { style = 'syntax' } },
+    -- Plain filename colors — the two status-icon columns already carry the
+    -- state, and the old picker didn't recolor paths either.
+    formatters = { file = { git_status_hl = false } },
     format = function(item, picker)
       local ret = {}  ---@type snacks.picker.Highlight[]
       ret[#ret + 1] = { Snacks.picker.util.align(tostring(item.idx), 2), 'SnacksPickerBufNr' }
       ret[#ret + 1] = { ' ' }
-      vim.list_extend(ret, Snacks.picker.format.git_status(item, picker))
+      local status = item.status or '  '
+      local x, y = GIT_ABBREV[status:sub(1, 1)], GIT_ABBREV[status:sub(2, 2)]
+      ret[#ret + 1] = { Snacks.picker.util.align(x and x.icon or ' ', 2), x and x.hl }
+      ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
+      vim.list_extend(ret, Snacks.picker.format.filename(item, picker))
       return ret
     end,
     -- Only the <M-N> keys are added here; the source's own <Tab> (stage
