@@ -246,6 +246,8 @@ git_base_branch() {
 # Safe by default: skips trunk branches, the current branch, and any branch
 # checked out in another worktree (git branch -d would error on those anyway).
 # Uses -d (not -D) so unmerged branches are always refused.
+# Remove alias from `antigen bundle git` if it exists to allow function definition
+unalias gclean 2>/dev/null
 gclean() {
   # Branches checked out in any worktree — deleting these would error.
   local worktree_branches
