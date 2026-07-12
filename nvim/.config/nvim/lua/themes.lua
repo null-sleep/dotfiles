@@ -67,7 +67,7 @@ M.global_overrides = {
   -- affect rendering here.
   NvimTreeOpenedHL           = { link = 'ColorColumn' },
 
-  -- snacks.indent guide lines (see scratch.lua) — same reasoning as
+  -- snacks.indent guide lines (see picker.lua) — same reasoning as
   -- NvimTreeIndentMarker above: NonText is visible but unobtrusive for the
   -- steady-state indent columns. The current-scope guide (the indent column
   -- of whatever block the cursor is in) links to CursorLineNr instead —
