@@ -171,10 +171,13 @@ neovide() {
   command "${bin:A}" "$@"
 }
 alias neo=neovide
-# Same, but close the calling terminal session. `fork = true` detaches the GUI, so
-# it outlives the shell; the `&&` keeps a failed launch on screen.
+# Same, but close the calling terminal session. The stdio redirect is load-bearing:
+# `fork = true` leaks a child that inherits the tty, and iTerm2 keeps the window
+# alive until every process holding it exits — so without this, the tab lingers
+# until Neovide quits. On a failed launch the `&&` keeps the shell (rerun `neo` to
+# see the error, which /dev/null swallowed here).
 neok() {
-  neovide "$@" && exit
+  neovide "$@" </dev/null >/dev/null 2>&1 && exit
 }
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"
