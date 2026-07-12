@@ -64,19 +64,22 @@ local function split_desc(desc)
   return prefix, rest
 end
 
+-- Does a group name this label in any of its segments? Segments, not the whole
+-- string, so composite and nested groups match: "Session/Quit" names "Session",
+-- "Git > Rebase" names "Git". Case-insensitive ("LSP" vs "Lsp").
+local function has_segment(bc, label)
+  for segment in (bc .. '/'):gmatch('%s*(.-)%s*[/>]') do
+    if segment:lower() == label:lower() then return true end
+  end
+  return false
+end
+
 -- Display-only: drop the "Group: " prefix when the group column already shows it
 -- ("Neovide ›  Neovide: Copy" → "Neovide ›  Copy"). The full desc stays in the
 -- search text, so typing "neovide copy" still matches.
---
--- Matched against each segment of the group, not the whole string, so composite
--- and nested groups strip too: "Session/Quit ›  Session: Stop saving" and
--- "Git > Rebase ›  Git: Continue". Case-insensitive ("LSP" vs "Lsp").
 local function strip_group(desc, bc)
   local prefix, rest = split_desc(desc)
-  if not prefix then return desc end
-  for segment in (bc .. '/'):gmatch('%s*(.-)%s*[/>]') do
-    if segment:lower() == prefix:lower() then return rest end
-  end
+  if prefix and has_segment(bc, prefix) then return rest end
   return desc
 end
 
@@ -194,9 +197,6 @@ end
 -- Doubling as the derived tag means pill_tags() then drops the now-redundant
 -- pill, leaving pills to mean "cross-reference" (+lsp on K, +diff on Diffview).
 local function breadcrumb(node, desc)
-  local from_desc = split_desc(desc)
-  if from_desc then return from_desc end
-
   local parts = {}
   local n = node.parent
   while n and n.keys ~= '' do
@@ -205,7 +205,16 @@ local function breadcrumb(node, desc)
     end
     n = n.parent
   end
-  return table.concat(parts, ' > ')
+  local ancestor = table.concat(parts, ' > ')
+
+  local from_desc = split_desc(desc)
+  if not from_desc then return ancestor end
+  -- ...unless the ancestor already names the prefix, in which case it's the
+  -- richer label and wins: keep "Session/Quit" over the bare "Session" that
+  -- `Session: Stop saving` would otherwise impose. strip_group() matches segments
+  -- too, so the desc still loses its now-redundant prefix either way.
+  if has_segment(ancestor, from_desc) then return ancestor end
+  return from_desc
 end
 
 local function build_results()
