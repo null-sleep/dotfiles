@@ -2,6 +2,7 @@ vim.g.mapleader = ' '
 require('configs')
 require('autocmds')  -- general editor autocmds (mkdir-on-save, cursor restore, yank hl, ...)
 require('plugins')
+require('picker')              -- snacks.nvim setup: picker (fuzzy finder) + scratch + indent modules
 require('treesitter_context')  -- sticky scope header (VS Code-style sticky scroll)
 require('outline')             -- outline sidebar + telescope picker (aerial.nvim)
 require('structural_select')   -- Helix-style <M-o>/<M-i> expand/shrink selection
@@ -19,7 +20,7 @@ require('session')
 require('git')
 require('gitui')  -- neogit.nvim (Magit-style dashboard) + diffview.nvim
 require('terminal')
-require('scratch')  -- snacks.nvim scratch buffers
+require('scratch')  -- snacks.nvim scratch buffer keymaps (setup lives in picker.lua)
 require('titling')
 require('whichkey')
 require('autosave')

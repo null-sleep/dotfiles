@@ -87,7 +87,12 @@ require('satellite').setup({
   current_only = true,    -- show scrollbar only on the focused window
   winblend     = 50,      -- scrollbar transparency (0 = opaque, 100 = invisible)
   width        = 2,
-  excluded_filetypes = { 'TelescopePrompt', 'mason' },
+  excluded_filetypes = {
+    'TelescopePrompt', 'mason',
+    -- snacks picker floats — without these the list window grows a stray
+    -- satellite scrollbar
+    'snacks_picker_input', 'snacks_picker_list', 'snacks_picker_preview',
+  },
   handlers = {
     cursor     = { enable = true },
     search     = { enable = true },

@@ -79,7 +79,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
-- **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
+- **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
+- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
@@ -108,10 +109,10 @@ this file after updating plugins to keep versions consistent across machines.
 
 ### Load order
 
-From `init.lua`: configs -> autocmds -> plugins -> treesitter_context -> outline ->
-structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
+From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
+outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 testing -> ai -> format -> linting -> statusline -> session ->
-git -> gitui -> terminal -> titling -> whichkey -> autosave -> filetree -> neovide.
+git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath).
@@ -505,7 +506,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
-| `<leader>tg` | Toggle indent guides + current-scope highlight | scratch.lua | [Indent guides (snacks.nvim)](#indent-guides) |
+| `<leader>tg` | Toggle indent guides + current-scope highlight | keymaps.lua (options in picker.lua) | [Indent guides (snacks.nvim)](#indent-guides) |
 | `<leader>q*` | Session save/restore | session.lua | [Session (persistence.nvim)](#session) |
 | `<Tab>`/`<S-Tab>`/`<CR>`/`<C-u>`/`<C-d>`/`<C-space>`/`<C-e>` (completion menu) | Autocompletion | completion.lua | [Autocompletion (blink.cmp)](#autocompletion) |
 | `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
@@ -1337,11 +1338,12 @@ that persists state across hides, plus a VS Code-style bottom panel.
 <a id="scratch-buffers"></a>
 ## Scratch buffers (snacks.nvim)
 
-Setup lives in `scratch.lua`. A floating, persistent scratchpad for
-throwaway notes or quick code — no need to create a real file. Only the
-`scratch` module of snacks.nvim is enabled; every other module (dashboard,
-notifier, picker, etc.) stays off since this config already has its own
-equivalents (mini.notify, telescope, ...).
+Keymaps live in `scratch.lua`; the module's options live in `picker.lua`'s
+shared `require('snacks').setup()` call. A floating, persistent scratchpad
+for throwaway notes or quick code — no need to create a real file. Only the
+`picker`, `scratch`, and `indent` modules of snacks.nvim are enabled; the
+rest (dashboard, notifier, etc.) stay off since this config already has its
+own equivalents (mini.notify, ...).
 
 ### Keymaps
 
@@ -1381,9 +1383,9 @@ now tells the whole buffer story: `<leader>bb` picker, `<leader>bd` close,
 <a id="indent-guides"></a>
 ## Indent guides (snacks.nvim)
 
-Setup lives in `scratch.lua`, in the same `require('snacks').setup({...})`
-call as the `scratch` module above — both modules share one setup call since
-that's how snacks.nvim is configured. The `indent` module draws a vertical
+Setup lives in `picker.lua`, in the same `require('snacks').setup({...})`
+call as the `scratch` module above — all snacks modules share one setup call
+since that's how snacks.nvim is configured. The `indent` module draws a vertical
 guide line at every indent level, plus a distinct highlight on the guide for
 the block the cursor is currently inside (its "scope").
 
