@@ -230,6 +230,10 @@ looking up (visual `Cmd+C`, insert `jk`). It now walks all six modes.
 mode, so feeding a visual lhs would silently run whatever those keys mean in
 normal mode. Other modes report where to press them instead.
 
+Ranking is on typed input alone: it opts out of `picker.lua`'s global frecency
+boost (a keymap you keep picking is one you already know), and mode names stay
+out of the search text, where they'd dilute short fuzzy patterns.
+
 ### Capability gating
 
 All optional LSP features are gated on
@@ -1037,7 +1041,7 @@ record in `plans/telescope-vs-snacks-picker.md`.
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
-| `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes; search "visual"/"insert" to filter by mode |
+| `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 
 **Live vs fuzzy (`<leader>sg` and `<leader>ss`):** these two are *live*
 pickers — every keystroke re-runs the search (ripgrep regex for grep, an LSP

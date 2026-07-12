@@ -26,9 +26,10 @@ local group_icons = {}
 -- them would list it twice.
 local MODES = { 'n', 'x', 'o', 'i', 'c', 't' }
 
--- Long names go in the search text, so "visual"/"insert" filters by mode.
+-- Only for confirm()'s "press it in X mode" notice. Kept OUT of the search text:
+-- a mode word in every row dilutes short fuzzy patterns.
 local MODE_NAMES = {
-  n = 'normal', x = 'visual', o = 'operator-pending',
+  x = 'visual', o = 'operator-pending',
   i = 'insert', c = 'cmdline', t = 'terminal',
 }
 
@@ -241,11 +242,16 @@ local function build_results()
     end
   end
 
-  -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
+  -- Keys first so the fuzzy matcher prioritizes the keybinding itself. which-key
+  -- names the leader key <Space>, so also search the <leader> spelling this
+  -- config documents — otherwise "<leader>gg" finds nothing. Display stays
+  -- <Space>: confirm() feeds item.keys to nvim_replace_termcodes, which doesn't
+  -- expand <leader>.
   for _, r in ipairs(results) do
-    local mode_words = vim.tbl_map(function(m) return MODE_NAMES[m] end, r.modes)
+    local leader_alias = r.keys:gsub('^<Space>', '<leader>', 1)
+    if leader_alias == r.keys then leader_alias = '' end
     r.ordinal = table.concat({
-      r.keys, r.bc, r.desc, r.kw, r.tags_str, table.concat(mode_words, ' '),
+      r.keys, leader_alias, r.bc, r.desc, r.kw, r.tags_str,
     }, ' ')
   end
 
@@ -281,6 +287,9 @@ function M.open()
     items = items,
     format = make_format(widths),
     layout = { preset = 'select' },
+    -- Opt out of picker.lua's global frecency boost: a keymap you keep picking is
+    -- one you already know, not one you need to look up. Rank on typed input only.
+    matcher = { frecency = false },
     confirm = function(picker, item)
       picker:close()
       if not item then return end
