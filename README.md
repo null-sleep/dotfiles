@@ -632,7 +632,7 @@ gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
 
 GUI frontend for Neovim. Two config files split by mechanism:
 
-- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`. It also sets `fork = true`, but that key is **not honored for terminal launches** — pass `--fork` on the command line instead (the zsh function below does).
+- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`. It also sets `fork = true`, but the zsh function below passes `--fork` explicitly rather than relying on it.
 - **`nvim/.config/nvim/lua/neovide.lua`** — runtime `vim.g.neovide_*` vars and keymaps. Gated by `if not vim.g.neovide then return end`, so terminal nvim skips it. Contains animation tuning (cursor/scroll/position lengths, cursor trail), `option_key_is_meta = 'both'` (so `<M-1>`..`<M-9>` keymaps work), proxy icon, hide-mouse-when-typing, floating corner radius, and the keymaps below.
 
 ```bash
@@ -658,9 +658,14 @@ neovide() {
 }
 ```
 
-`--fork` detaches the GUI so the shell returns immediately; without it Neovide runs in the foreground and blocks the terminal.
+`--fork` detaches the GUI (double-forking, so it survives the terminal closing) and the shell returns immediately; without it Neovide blocks the terminal.
 
-Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher. It redirects stdio to `/dev/null` so the forked child doesn't hold the tty open, which would otherwise keep the tab alive until Neovide quit.
+Two traps, both learned the hard way:
+
+- **Don't redirect its stdout.** Neovide only forks when stdout is a tty, so `neovide --fork >/dev/null` silently becomes a blocking launch.
+- **Don't background it yourself** (`nohup … &`, `&!`). That orphans the process to PPID 1, which Neovide's macOS heuristic reads as a Finder/`open` launch — it then routes nvim through `/usr/bin/login`, which chdirs to `$HOME`, so you lose your working directory. Let `--fork` do the detaching; it sets `NEOVIDE_FORKED_FROM_TTY` to avoid exactly this misdetection.
+
+Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher.
 
 Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
 
