@@ -44,15 +44,35 @@ local function is_noise(desc)
   return false
 end
 
--- Display-only: drop a desc's "Group: " prefix when the group column already
--- shows it ("Neovide ›  Neovide: Copy" → "Neovide ›  Copy"). The full desc stays
--- in the search text, so typing "neovide copy" still matches.
+-- Split a desc into its "Group: Action" halves — the config's house convention
+-- ("LSP: Rename symbol"). Returns nil for a desc that merely happens to contain a
+-- colon, which most third-party and builtin descs do: the prefix must not end in
+-- whitespace ("Repeat last :s substitution"), carry brackets ("Scroll down N
+-- lines (default: half screen)"), or run longer than a group label plausibly
+-- would. Without those guards the sentence fragment before the colon gets
+-- promoted to a group heading.
+local function split_desc(desc)
+  local prefix, rest = desc:match('^([^:]+):%s+(.+)$')
+  if not prefix
+    or prefix:match('%s$')
+    or prefix:match('[%(%)%[%]<>]')
+    or #prefix > 20
+    or select(2, prefix:gsub('%S+', '')) > 3
+  then
+    return nil
+  end
+  return prefix, rest
+end
+
+-- Display-only: drop the "Group: " prefix when the group column already shows it
+-- ("Neovide ›  Neovide: Copy" → "Neovide ›  Copy"). The full desc stays in the
+-- search text, so typing "neovide copy" still matches.
 --
 -- Matched against each segment of the group, not the whole string, so composite
 -- and nested groups strip too: "Session/Quit ›  Session: Stop saving" and
 -- "Git > Rebase ›  Git: Continue". Case-insensitive ("LSP" vs "Lsp").
 local function strip_group(desc, bc)
-  local prefix, rest = desc:match('^([^:]+):%s*(.+)$')
+  local prefix, rest = split_desc(desc)
   if not prefix then return desc end
   for segment in (bc .. '/'):gmatch('%s*(.-)%s*[/>]') do
     if segment:lower() == prefix:lower() then return rest end
@@ -90,9 +110,9 @@ end
 -- D1: derive a keymap's primary tag mechanically from its desc, instead of a
 -- hand-maintained per-lhs table that inevitably drifts (see whichkey.lua's
 -- `tags` doc comment). "Git hunk: Stage" -> "git hunk"; a desc with no
--- "Group: Action" colon (most builtins.lua entries) yields no derived tag.
+-- "Group: Action" prefix (most builtins.lua entries) yields no derived tag.
 local function derive_tag(desc)
-  local prefix = desc:match('^([^:]+):')
+  local prefix = split_desc(desc)
   return prefix and prefix:lower() or nil
 end
 
@@ -165,11 +185,18 @@ end
 -- Build group breadcrumb by walking parent chain.
 -- Returns e.g. "Search" for <leader>sg, "Session/Quit" for <leader>qs.
 --
--- Keys outside a which-key prefix group (<D-…>, K, jj) have no ancestor to walk,
--- so fall back to the desc's own "Group: Action" prefix — that's the grouping
--- <leader>sk should show ("Neovide ›" for `Neovide: Copy`). It doubles as the
--- derived tag, so pill_tags() then drops the now-redundant +neovide pill.
+-- The desc's own "Group: Action" prefix wins over the which-key ancestor group
+-- when it has one. The ancestor says where a key physically LIVES; the desc says
+-- what it's FOR, and that's what you scan the column for — `grn` sits under the
+-- `g` prefix, so which-key calls it "Go to", but you look it up as LSP. It also
+-- covers keys with no ancestor at all (<D-…>, jj), whose column was empty.
+--
+-- Doubling as the derived tag means pill_tags() then drops the now-redundant
+-- pill, leaving pills to mean "cross-reference" (+lsp on K, +diff on Diffview).
 local function breadcrumb(node, desc)
+  local from_desc = split_desc(desc)
+  if from_desc then return from_desc end
+
   local parts = {}
   local n = node.parent
   while n and n.keys ~= '' do
@@ -178,7 +205,6 @@ local function breadcrumb(node, desc)
     end
     n = n.parent
   end
-  if #parts == 0 then return desc:match('^([^:]+):') or '' end
   return table.concat(parts, ' > ')
 end
 
