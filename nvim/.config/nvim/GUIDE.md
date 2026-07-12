@@ -204,10 +204,13 @@ the same warning for anyone editing the file directly.
 
 `pickers/theme.lua` uses this pattern: the picker mutates session state live as
 the cursor moves (theme switches), but `<Esc>` reverts to the snapshot taken at
-open time. The trick is overriding
-`close_windows` on the picker so cancellation runs before windows tear down,
-plus a `need_restore` flag flipped to false in the confirm action. New
-pickers that need preview-style live state should follow the same shape.
+open time. On snacks this is all public API: `on_change` applies the
+highlighted item live (it also fires for the initial selection, and with a
+nil item when the list filters to empty — guard it), a `need_restore`
+upvalue is flipped to false in `confirm` *before* `picker:close()`, and
+`on_close` — which fires on every close path — restores the snapshot when
+the flag is still set. New pickers that need preview-style live state
+should follow the same shape.
 
 ### Why `builtins.lua` exists
 
