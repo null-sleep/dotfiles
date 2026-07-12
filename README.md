@@ -649,7 +649,7 @@ This works for both terminal and GUI launches (Spotlight, dock) — unlike the `
 
 ### Launching from the terminal
 
-The [`zsh`](#zsh) package wraps `neovide` in a function that runs the app bundle's executable **by its real path**:
+The [`zsh`](#zsh) package wraps `neovide` in a function that runs the app bundle's real executable, resolved dynamically (`whence -p` for a `PATH`-only lookup, `:A` to follow the symlink):
 
 ```zsh
 neovide() {
@@ -658,9 +658,9 @@ neovide() {
 }
 ```
 
-The path matters. Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it leaves the process unregistered with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. Running the real path registers the app properly while still inheriting the shell's working directory and `PATH`. Nothing is hardcoded: `whence -p` does a `PATH`-only lookup (ignoring the function itself) and zsh's `:A` modifier resolves the symlink to wherever the bundle actually lives.
+Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
 
-`open -a Neovide` also registers, but launches under launchd, so it inherits neither: it lands in `~` rather than your current directory, and LSP servers/formatters installed outside Homebrew (rust-analyzer, goimports) fall off `PATH`. Don't work around the directory part with `open -a Neovide .` — a directory argument reaches nvim as a directory buffer, which nvim-tree hijacks, dropping you in the file explorer instead of the startup screen (same as `nvim .` vs `nvim`).
+`open -a Neovide` registers too, but runs under launchd and inherits neither: it lands in `~`, and non-Homebrew LSPs/formatters (rust-analyzer, goimports) fall off `PATH`. `open -a Neovide .` fixes the directory at the cost of a directory buffer, which nvim-tree hijacks — see `GUIDE.md` → "Neovide".
 
 Keymaps and runtime behavior (Cmd+C/V/S, zoom, jumplist keys, Force Click)
 are documented in the nvim config's own reference:
