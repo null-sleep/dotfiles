@@ -8,6 +8,9 @@
 -- whichkey.lua) are included in the search text but not the display.
 -- Tags (from whichkey.lua) are rendered as dim +tag pills and also searched.
 --
+-- All modes are walked (MODES below), keyed by lhs+desc so a key mapped the same
+-- way in several modes collapses into one row.
+--
 -- Results are rebuilt on every open (cheap: one tree walk + two keymap
 -- syscalls). Not cached for the session — which-key's tree is per-buffer, so a
 -- session cache froze out buffer-local / LspAttach maps and leaked the
@@ -18,6 +21,34 @@ local M = {}
 
 -- Icon lookup intentionally empty: breadcrumbs show as plain text only.
 local group_icons = {}
+
+-- No 'v'/'s': a `mode = 'v'` keymap registers under both 'x' and 's', so walking
+-- them would list it twice.
+local MODES = { 'n', 'x', 'o', 'i', 'c', 't' }
+
+-- Long names go in the search text, so "visual"/"insert" filters by mode.
+local MODE_NAMES = {
+  n = 'normal', x = 'visual', o = 'operator-pending',
+  i = 'insert', c = 'cmdline', t = 'terminal',
+}
+
+-- Plugin plumbing, not keys anyone looks up: nvim-autopairs maps `(`, `{`, `"`…
+-- in insert mode, all desc'd "autopairs map key".
+local SKIP_DESC = { '^autopairs ' }
+
+local function is_noise(desc)
+  for _, pat in ipairs(SKIP_DESC) do
+    if desc:match(pat) then return true end
+  end
+  return false
+end
+
+-- Mode letters → dim label. Normal-only rows render blank (they're most rows, so
+-- a column of "n"s is noise) — same hide-the-redundant idea as pill_tags() below.
+local function modes_label(modes)
+  if #modes == 1 and modes[1] == 'n' then return '' end
+  return table.concat(modes, ' ')
+end
 
 -- Breadcrumb string → decorated column text with optional icon.
 -- bc_label('Git > Rebase') → "󰊢 Git › Rebase ›"
@@ -79,33 +110,37 @@ end
 -- Measure display column widths from the full result set.
 -- Uses strdisplaywidth (not #) so multi-byte Nerd Font glyphs size correctly.
 local function compute_widths(results)
-  local key, bc, tags = 0, 0, 0
+  local key, modes, bc, tags = 0, 0, 0, 0
   for _, r in ipairs(results) do
-    key  = math.max(key,  vim.fn.strdisplaywidth(r.keys))
-    bc   = math.max(bc,   vim.fn.strdisplaywidth(bc_label(r.bc)))
-    tags = math.max(tags, vim.fn.strdisplaywidth(tags_label(r.pills)))
+    key   = math.max(key,   vim.fn.strdisplaywidth(r.keys))
+    modes = math.max(modes, vim.fn.strdisplaywidth(modes_label(r.modes)))
+    bc    = math.max(bc,    vim.fn.strdisplaywidth(bc_label(r.bc)))
+    tags  = math.max(tags,  vim.fn.strdisplaywidth(tags_label(r.pills)))
   end
   return {
-    key  = math.min(key + 1, 18),
-    bc   = math.min(bc, 24),
-    tags = tags,   -- 0 when no tags defined → column vanishes
+    key   = math.min(key + 1, 18),
+    modes = modes,  -- 0 when every map is normal-only → column vanishes
+    bc    = math.min(bc, 24),
+    tags  = tags,   -- 0 when no tags defined → column vanishes
   }
 end
 
--- Builds the 4-column snacks format function for one picker open (widths are
+-- Builds the 5-column snacks format function for one picker open (widths are
 -- measured from the full result set, so the closure is per-open, not per-row).
--- Columns: key | icon+group breadcrumb (dim) | desc | tag pills (dim).
+-- Columns: key | modes (dim) | icon+group breadcrumb (dim) | desc | tag pills (dim).
 local function make_format(widths)
   local align = function(text, width) return Snacks.picker.util.align(text, width, { truncate = true }) end
   return function(item)
     return {
-      { align(item.keys, widths.key),         'SnacksPickerKeymapLhs' },
+      { align(item.keys, widths.key),               'SnacksPickerKeymapLhs' },
       { ' ' },
-      { align(bc_label(item.bc), widths.bc),  'Comment' },
+      { align(modes_label(item.modes), widths.modes), 'SnacksPickerKeymapMode' },
+      { ' ' },
+      { align(bc_label(item.bc), widths.bc),        'Comment' },
       { ' ' },
       { item.desc },
       { ' ' },
-      { tags_label(item.pills),               'Comment' },
+      { tags_label(item.pills),                     'Comment' },
     }
   end
 end
@@ -125,76 +160,100 @@ local function breadcrumb(node)
 end
 
 local function build_results()
-  -- update = true forces a fresh rebuild of the current buffer's tree (matches
-  -- what <leader>? does internally), so we pick up buffer-local / LspAttach maps
-  -- live on each open rather than a stale snapshot.
-  local mode = require('which-key.buf').get({ mode = 'n', update = true })
-  if not mode then return nil end
-
   local wk_exports = require('whichkey')
   local keywords   = wk_exports.keywords or {}
   local tags_map   = wk_exports.tags or {}
-  local results    = {}
 
-  local seen = {}  -- track lhs to deduplicate across sources (case-sensitive)
+  local results = {}
+  local by_row  = {}  -- "lhs\0desc" → result, so one key mapped the same way in
+                      -- several modes becomes one row instead of N near-duplicates
+  local found_tree = false
 
-  -- `return false` prunes the subtree; bare `return` skips just this node
-  -- but continues into children.
-  mode.tree:walk(function(node)
-    if node.hidden then return false end
-    local desc = node.desc or ''
-    if not node.keymap and desc == '' then return end
-    if node.mapping and node.mapping.group and not node.keymap then return end
+  for _, mode in ipairs(MODES) do
+    -- update = true forces a fresh rebuild of the current buffer's tree (matches
+    -- what <leader>? does internally), so we pick up buffer-local / LspAttach maps
+    -- live on each open rather than a stale snapshot.
+    local tree = require('which-key.buf').get({ mode = mode, update = true })
+    if tree then
+      found_tree = true
+      -- `return false` prunes the subtree; bare `return` skips just this node
+      -- but continues into children.
+      tree.tree:walk(function(node)
+        if node.hidden then return false end
+        local desc = node.desc or ''
+        if not node.keymap and desc == '' then return end
+        if node.mapping and node.mapping.group and not node.keymap then return end
 
-    local keys = node.keys or ''
-    if desc == '' then return end
+        local keys = node.keys or ''
+        if desc == '' or is_noise(desc) then return end
 
-    -- Normalize which-key's internal key representations for display:
-    -- • <NL> → <C-j>  (Neovim's internal name for Ctrl-J)
-    -- • <C-X> → <C-x>  (keytrans uppercases after <C-, but Ctrl flattens
-    --   case at the terminal level — <C-h> and <C-H> are the same keypress,
-    --   so lowercase is the canonical display form)
-    local display_keys = keys:gsub('<NL>', '<C-j>'):gsub('<C%-(%u)>', function(letter)
-      return '<C-' .. letter:lower() .. '>'
-    end)
+        local row = by_row[keys .. '\0' .. desc]
+        if row then
+          row.modes[#row.modes + 1] = mode
+          return
+        end
 
-    local bc   = breadcrumb(node)
-    local kw   = keywords[keys] or ''
-    local tags, derived = resolve_tags(keys, desc, tags_map)
-    local tags_str = table.concat(tags, ' ')
-    -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
-    local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. tags_str
+        -- Normalize which-key's internal key representations for display:
+        -- • <NL> → <C-j>  (Neovim's internal name for Ctrl-J)
+        -- • <C-X> → <C-x>  (keytrans uppercases after <C-, but Ctrl flattens
+        --   case at the terminal level — <C-h> and <C-H> are the same keypress,
+        --   so lowercase is the canonical display form)
+        local display_keys = keys:gsub('<NL>', '<C-j>'):gsub('<C%-(%u)>', function(letter)
+          return '<C-' .. letter:lower() .. '>'
+        end)
 
-    seen[keys] = true
-    table.insert(results, {
-      keys = display_keys, bc = bc, desc = desc,
-      pills = pill_tags(tags, derived, bc), ordinal = ordinal,
-    })
-  end)
+        local bc = breadcrumb(node)
+        local tags, derived = resolve_tags(keys, desc, tags_map)
+        row = {
+          keys = display_keys, bc = bc, desc = desc, modes = { mode },
+          pills = pill_tags(tags, derived, bc),
+          kw = keywords[keys] or '', tags_str = table.concat(tags, ' '),
+        }
+        by_row[keys .. '\0' .. desc] = row
+        results[#results + 1] = row
+      end)
+    end
+  end
+
+  if not found_tree then return nil end
 
   -- Merge built-in commands not covered by which-key presets (builtins.lua).
+  -- All normal-mode; skip any whose lhs a real mapping already claimed.
   local ok, builtins = pcall(require, 'builtins')
   if ok and builtins then
+    local mapped = {}
+    for _, r in ipairs(results) do
+      if vim.tbl_contains(r.modes, 'n') then mapped[r.keys] = true end
+    end
     for _, entry in ipairs(builtins) do
       -- Normalize to match which-key's internal format (e.g. <C-l> → <C-L>)
       local norm = vim.fn.keytrans(vim.api.nvim_replace_termcodes(entry.lhs, true, true, true))
-      if not seen[norm] then
-        seen[norm] = true
-        local kw   = keywords[entry.lhs] or ''
+      if not mapped[norm] and not mapped[entry.lhs] then
+        mapped[entry.lhs] = true
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
-        local grp  = entry.group or ''
-        local tags_str = table.concat(tags, ' ')
-        -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
-        local ordinal = entry.lhs .. ' ' .. grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. tags_str
-        table.insert(results, {
-          keys = entry.lhs, bc = grp, desc = entry.desc,
-          pills = pill_tags(tags, derived, grp), ordinal = ordinal,
-        })
+        local grp = entry.group or ''
+        results[#results + 1] = {
+          keys = entry.lhs, bc = grp, desc = entry.desc, modes = { 'n' },
+          pills = pill_tags(tags, derived, grp),
+          kw = keywords[entry.lhs] or '', tags_str = table.concat(tags, ' '),
+        }
       end
     end
   end
 
-  table.sort(results, function(a, b) return a.keys < b.keys end)
+  -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
+  for _, r in ipairs(results) do
+    local mode_words = vim.tbl_map(function(m) return MODE_NAMES[m] end, r.modes)
+    r.ordinal = table.concat({
+      r.keys, r.bc, r.desc, r.kw, r.tags_str, table.concat(mode_words, ' '),
+    }, ' ')
+  end
+
+  -- Normal-mode rows first within a key, so <D-v> (n) sorts above <D-v> (t).
+  table.sort(results, function(a, b)
+    if a.keys ~= b.keys then return a.keys < b.keys end
+    return modes_label(a.modes) < modes_label(b.modes)
+  end)
   return results
 end
 
@@ -224,13 +283,22 @@ function M.open()
     layout = { preset = 'select' },
     confirm = function(picker, item)
       picker:close()
-      if item then
-        vim.schedule(function()
-          local k = vim.api.nvim_replace_termcodes(item.keys, true, true, true)
-          -- 'm' = remap keys, 't' = handle as if typed (triggers mappings)
-          vim.api.nvim_feedkeys(k, 'mt', false)
-        end)
+      if not item then return end
+      -- The picker closes back into normal mode, so feeding a visual/insert lhs
+      -- would run whatever those keys mean in normal mode. Report, don't misfire.
+      if not vim.tbl_contains(item.modes, 'n') then
+        local names = vim.tbl_map(function(m) return MODE_NAMES[m] end, item.modes)
+        vim.notify(
+          ('%s is %s-mode only — press it in %s mode'):format(
+            item.keys, table.concat(names, '/'), table.concat(names, ' or ')),
+          vim.log.levels.WARN)
+        return
       end
+      vim.schedule(function()
+        local k = vim.api.nvim_replace_termcodes(item.keys, true, true, true)
+        -- 'm' = remap keys, 't' = handle as if typed (triggers mappings)
+        vim.api.nvim_feedkeys(k, 'mt', false)
+      end)
     end,
   })
 end

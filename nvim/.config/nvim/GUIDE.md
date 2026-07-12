@@ -83,7 +83,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
-- **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
+- **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 5 columns: key (dynamic width), modes (dim), icon+group breadcrumb (dim), desc, tag pills (dim). All six modes are walked, and a key mapped the same way across modes collapses into one row (`<D-s>` → `n x i`). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
@@ -220,6 +220,15 @@ text objects, z/g/window/nav) but misses fundamental built-ins like `Ctrl+d`
 or `gg` that are hardcoded in C and have no Lua representation. `builtins.lua`
 is a manually curated list cross-referenced against `:help normal-index`,
 fed into the picker so the same fuzzy search surfaces both layers.
+
+### The keymap picker walks every mode, but only runs normal-mode maps
+
+`<leader>sk` walking normal mode only used to hide exactly the keys worth
+looking up (visual `Cmd+C`, insert `jk`). It now walks all six modes.
+
+`<CR>` still executes normal-mode maps only: the picker closes back into normal
+mode, so feeding a visual lhs would silently run whatever those keys mean in
+normal mode. Other modes report where to press them instead.
 
 ### Capability gating
 
@@ -516,7 +525,7 @@ a boolean.)
 All keymaps have `desc` strings. To discover them:
 - `<leader>?` shows all global mappings via which-key
 - which-key popup appears after 300ms on `<leader>`, `g`, `[`, `]`
-- `<leader>sk` fuzzy-searches every keymap (including built-ins)
+- `<leader>sk` fuzzy-searches every keymap in every mode (including built-ins)
 - `:map` / `:nmap <leader>` for the full raw list
 
 Which-key uses an explicit trigger list (see `whichkey.lua`). If you add a
@@ -1028,7 +1037,7 @@ record in `plans/telescope-vs-snacks-picker.md`.
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
-| `<leader>sk` | Keymap picker — columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim) |
+| `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes; search "visual"/"insert" to filter by mode |
 
 **Live vs fuzzy (`<leader>sg` and `<leader>ss`):** these two are *live*
 pickers — every keystroke re-runs the search (ripgrep regex for grep, an LSP
