@@ -44,8 +44,11 @@
 --   snacks' fuzzy matcher does not score, so the finder itself ranks
 --   items by name_query via vim.fn.matchfuzzy and `sort = {fields =
 --   {'idx'}}` preserves that order. <c-g> (toggle_live) buffers results
---   into the fuzzy matcher, which then scores item.text (= the bare
---   symbol name) — the successor to the old <c-space> to_fuzzy_refine.
+--   into the fuzzy matcher, which scores item.text = everything the row
+--   displays (name, kind, client, path — name first so it dominates), so
+--   the frozen set can be refined by any visible info; field-scoped
+--   queries (kind:class, client_name:gopls, relpath:go$) work there too.
+--   The successor to the old <c-space> to_fuzzy_refine.
 --
 --   Both modes also share:
 --     1. cwd filter when lua_ls is attached anywhere in the session: drop
@@ -353,6 +356,11 @@ end
 function M.workspace()
   local show_client = not buffer_only
   local scope = buffer_only and 'buffer' or 'all'
+  -- Captured now, while the user's buffer is still current: inside the
+  -- finder the current buffer is the picker's own prompt buffer, so a
+  -- get_clients({ bufnr = 0 }) there would find no clients and buffer-only
+  -- mode would always return nothing.
+  local origin_buf = vim.api.nvim_get_current_buf()
   local has_lua_ls = #vim.lsp.get_clients({ name = 'lua_ls' }) > 0
   local cwd = vim.uv.cwd()
   local source_line = make_source_line()
@@ -381,7 +389,7 @@ function M.workspace()
         return {}
       end
 
-      local pool = scope == 'buffer' and vim.lsp.get_clients({ bufnr = 0 }) or vim.lsp.get_clients()
+      local pool = scope == 'buffer' and vim.lsp.get_clients({ bufnr = origin_buf }) or vim.lsp.get_clients()
       local clients = vim.tbl_filter(function(c)
         local caps = c.server_capabilities
         return caps and caps.workspaceSymbolProvider
@@ -445,7 +453,13 @@ function M.workspace()
 
         for _, item in ipairs(items or {}) do
           cb({
-            text = item.name, -- what the fuzzy matcher scores after <c-g>
+            -- What the fuzzy matcher scores after <c-g>: everything the row
+            -- displays, so "class" or "gopls" or a path fragment filters
+            -- too. Name first so it dominates ranking; field-scoped queries
+            -- (kind:class, client_name:gopls, relpath:go$) also work since
+            -- these are all item fields.
+            text = item.name .. ' ' .. item.kind:lower() .. ' '
+              .. (item.client_name or '') .. ' ' .. item.relpath,
             name = item.name,
             kind = item.kind,
             client_name = item.client_name,
