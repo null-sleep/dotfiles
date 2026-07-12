@@ -126,13 +126,6 @@ require('aerial').setup({
   end,
 })
 
--- Telescope fuzzy picker over aerial's symbols (works without LSP via treesitter).
--- telescope is packadd'd + setup() in plugins.lua (init.lua requires 'plugins'
--- before 'outline'), so the extension is safe to load here. pcall-guarded to
--- match the existing extension loads in plugins.lua: an unguarded failure here
--- would abort the rest of init.lua (keymaps, lsp, everything after).
-pcall(require('telescope').load_extension, 'aerial')
-
 -- Keymaps (global — toggles/search should work from any buffer, not just ones
 -- aerial has attached to; see on_attach above for the buffer-local ]a/[a).
 --
@@ -175,6 +168,7 @@ vim.keymap.set('n', '<leader>O', function()
   end
   vim.cmd('AerialNavToggle')
 end, { desc = 'Toggle: Outline nav popup (aerial)' })
--- No dedicated key for :Telescope aerial — it overlapped <leader>sd (document
--- symbols picker, which also covers fields/variables) and the sidebar/popup
--- above. The command remains available by name.
+-- No dedicated picker key for aerial's symbols — it would overlap <leader>sd
+-- (document symbols picker, which also covers fields/variables) and the
+-- sidebar/popup above. (The aerial telescope extension was dropped with the
+-- snacks.picker migration; aerial has no snacks source and wasn't missed.)
