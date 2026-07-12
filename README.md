@@ -647,6 +647,21 @@ ln -s ~/.config/nvim/neovide.toml "$HOME/Library/Application Support/neovide/con
 
 This works for both terminal and GUI launches (Spotlight, dock) — unlike the `$NEOVIDE_CONFIG` env var, which only propagates to terminal-launched processes.
 
+### Launching from the terminal
+
+The [`zsh`](#zsh) package wraps `neovide` in a function that runs the app bundle's executable **by its real path**:
+
+```zsh
+neovide() {
+  local bin=$(whence -p neovide)
+  command "${bin:A}" --fork "$@"
+}
+```
+
+The path matters. Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it leaves the process unregistered with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. Running the real path registers the app properly while still inheriting the shell's working directory and `PATH`. Nothing is hardcoded: `whence -p` does a `PATH`-only lookup (ignoring the function itself) and zsh's `:A` modifier resolves the symlink to wherever the bundle actually lives.
+
+`open -a Neovide` also registers, but launches under launchd, so it inherits neither: it lands in `~` rather than your current directory, and LSP servers/formatters installed outside Homebrew (rust-analyzer, goimports) fall off `PATH`. Don't work around the directory part with `open -a Neovide .` — a directory argument reaches nvim as a directory buffer, which nvim-tree hijacks, dropping you in the file explorer instead of the startup screen (same as `nvim .` vs `nvim`).
+
 Keymaps and runtime behavior (Cmd+C/V/S, zoom, jumplist keys, Force Click)
 are documented in the nvim config's own reference:
 `nvim/.config/nvim/GUIDE.md` → "Neovide".

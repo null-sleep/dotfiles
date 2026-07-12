@@ -163,7 +163,18 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 # Editor
 alias vim=nvim
 alias vi=nvim
-alias neovide='neovide --fork'
+# Launch the app bundle's executable by its REAL path, not the Homebrew shim
+# (/opt/homebrew/bin/neovide) that symlinks into it. Exec'ing through the symlink
+# leaves the process unregistered with LaunchServices, so app switchers (rcmd)
+# can't see or focus the window. The real path registers it properly while still
+# inheriting the shell's cwd and PATH — `open -a Neovide` registers too, but runs
+# under launchd, so it loses both (lands in ~, and non-Homebrew LSPs/formatters
+# fall off PATH). `whence -p` does a PATH-only lookup (ignoring this function) and
+# `:A` resolves the symlink, so the bundle path is never hardcoded.
+neovide() {
+  local bin=$(whence -p neovide)
+  command "${bin:A}" --fork "$@"
+}
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"
 # Set editor based on terminal context
