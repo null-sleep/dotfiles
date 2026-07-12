@@ -569,18 +569,18 @@ Peek is additive; jumps are unchanged.
 | `gd` | `<leader>pd` | Definition |
 | `gy` | `<leader>pt` | Type definition |
 | `gri` | `<leader>pi` | Implementation |
-| `grr` | `<leader>pr` | References (opens a Telescope picker, then peeks) |
+| `grr` | `<leader>pr` | References (opens a picker, then peeks) |
 | `gD` | — | Declaration |
 | — | `<leader>pq` | Close all open peek floats |
 
 `gy`/`gri` (and their `pt`/`pi` peeks) and `gD` are capability-gated — they only
-map when the server supports the method. `gd`/`gy`/`gri`/`grr` all use Telescope
-pickers (falling back to the plain LSP handler if Telescope fails to load) —
-a single result still jumps straight there, but a server resolving to several
-targets (e.g. a trait method with multiple impls, or a type with several
-bounds) shows a picker instead of dumping into the quickfix list. `gD` has no
-Telescope equivalent (`telescope.builtin` has no `lsp_declarations`), so it
-stays on the plain handler.
+map when the server supports the method. `gd`/`gD`/`gy`/`gri`/`grr` all use
+snacks pickers (falling back to the plain LSP handler if snacks fails to
+load) — a single result still jumps straight there (via the pickers'
+`auto_confirm`, so it lands ~20% from the top like every picker jump), but a
+server resolving to several targets (e.g. a trait method with multiple
+impls, or a type with several bounds) shows a picker instead of dumping into
+the quickfix list.
 
 **Hover, actions & diagnostics:**
 
@@ -678,7 +678,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
-  not mapped in this config. `grr`/`gri` are overridden to use Telescope.
+  not mapped in this config. `grr`/`gri` are overridden to use snacks pickers.
 
 - **Peek floats (`<leader>p*`)** — VS Code / GoLand-style peek via
   goto-preview; see the LSP *Keymaps* table for the jump/peek pairs. Tuned in
