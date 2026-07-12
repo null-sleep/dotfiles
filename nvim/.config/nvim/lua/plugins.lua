@@ -12,11 +12,10 @@ vim.pack.add(vim.list_extend({
   -- nvim-treesitter rewrite.
   { src = gh('nvim-treesitter/nvim-treesitter-textobjects'), version = 'main' },
 
-  -- Telescope (fuzzy finder)
+  -- Lua utility library — required by nvim-lsp-file-operations and Neogit.
+  -- (The fuzzy finder is snacks.picker, configured in picker.lua; snacks
+  -- itself is declared under Workflow below.)
   { src = gh('nvim-lua/plenary.nvim') },
-  { src = gh('nvim-telescope/telescope.nvim') },
-  { src = gh('nvim-telescope/telescope-fzf-native.nvim') },
-  { src = gh('nvim-telescope/telescope-ui-select.nvim') },
 
   -- LSP
   { src = gh('mason-org/mason.nvim') },
@@ -331,140 +330,10 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 
 -------------------------------------------------------------------------------
--- Telescope
+-- Plenary (Lua utility library: nvim-lsp-file-operations, Neogit)
 -------------------------------------------------------------------------------
 
--- Compile fzf-native after install or update
-vim.api.nvim_create_autocmd('PackChanged', {
-  group = pack_group,
-  desc = 'Compile fzf-native after install or update',
-  callback = function(ev)
-    if ev.data.spec.name == 'telescope-fzf-native.nvim' and ev.data.kind == 'update' then
-      local plugin_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
-      vim.fn.system({ 'make', '-C', plugin_path })
-    end
-  end,
-})
-
--- Compile fzf-native on first install if not already built
-pcall(function()
-  local fzf_path = vim.fn.stdpath('data') .. '/site/pack/core/opt/telescope-fzf-native.nvim'
-  local so_path = fzf_path .. '/build/libfzf.so'
-  local dylib_path = fzf_path .. '/build/libfzf.dylib'
-  if not vim.uv.fs_stat(so_path) and not vim.uv.fs_stat(dylib_path) then
-    vim.fn.system({ 'make', '-C', fzf_path })
-  end
-end)
-
 vim.cmd.packadd('plenary.nvim')
-vim.cmd.packadd('telescope.nvim')
-vim.cmd.packadd('telescope-fzf-native.nvim')
-vim.cmd.packadd('telescope-ui-select.nvim')
-
-require('telescope').setup({
-  defaults = {
-    sorting_strategy = 'ascending',
-    -- Show the matched filename in the preview window title bar instead of
-    -- the static "Preview" label. Makes it easier to see which file is open.
-    dynamic_preview_title = true,
-    -- wrap_results = true,  -- wrap long result lines instead of truncating
-    layout_strategy  = 'flex',
-    layout_config = {
-      -- flex switches between horizontal (preview right) and vertical
-      -- (preview below) based on available width.
-      flex        = { flip_columns = 160 },
-      horizontal  = { width = 0.9, prompt_position = 'top', preview_cutoff = 0 },
-      vertical    = { width = 0.9, prompt_position = 'top', preview_cutoff = 0, preview_height = 0.5 },
-    },
-    mappings = (function()
-      -- After selecting a result, scroll so the cursor lands ~20% from the top.
-      -- CURSOR_TOP_RATIO: 0.0 = top of window, 0.5 = center (zz), 1.0 = bottom
-      local CURSOR_TOP_RATIO = 0.20
-      local actions = require('telescope.actions')
-      local action_state = require('telescope.actions.state')
-
-      local function select_and_scroll(prompt_bufnr)
-        actions.select_default(prompt_bufnr)
-        local offset = math.floor(vim.api.nvim_win_get_height(0) * CURSOR_TOP_RATIO)
-        vim.fn.winrestview({ topline = math.max(1, vim.fn.line('.') - offset) })
-      end
-
-      -- Send the picker's current entry (or multi-selection) to the active sidekick CLI
-      -- session as space-separated path:line refs. Replicates the snacks-only <a-a>
-      -- integration from the sidekick README so we keep telescope as the primary picker.
-      local function send_to_sidekick(prompt_bufnr)
-        local picker = action_state.get_current_picker(prompt_bufnr)
-        local picks = picker:get_multi_selection()
-        if vim.tbl_isempty(picks) then
-          picks = { action_state.get_selected_entry() }
-        end
-        local refs = {}
-        for _, e in ipairs(picks) do
-          if e then
-            local path = e.path or e.filename or e.value
-            if path then
-              table.insert(refs, e.lnum and (path .. ':' .. e.lnum) or path)
-            end
-          end
-        end
-        actions.close(prompt_bufnr)
-        if not vim.tbl_isempty(refs) then
-          require('ai').send({ msg = table.concat(refs, ' ') })
-        end
-      end
-
-      -- <C-h> aliases the default <C-/>/? which_key popup (shows this picker's
-      -- live keymaps); shadows the global "move to left split" <C-h> only while
-      -- a picker's prompt buffer is focused.
-      return {
-        i = {
-          ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal,
-          ['<C-h>'] = actions.which_key,
-        },
-        n = {
-          ['<CR>'] = select_and_scroll, ['<M-a>'] = send_to_sidekick, ['<C-s>'] = actions.select_horizontal,
-          ['<C-h>'] = actions.which_key,
-        },
-      }
-    end)(),
-    file_ignore_patterns = { '%.git/', 'node_modules/' },
-    -- path_display options:
-    --   'truncate'       — clip from the left, filename always visible
-    --   'filename_first' — show filename before path: "file.go  path/to/"
-    --   'smart'          — show only enough path to make each result unique
-    --   'shorten'        — abbreviate dirs: "p/c/a/file.go"
-    --   'tail'           — filename only
-    path_display = { 'truncate' },
-    git_icons = {
-      added     = '+',
-      changed   = '~',
-      deleted   = '-',
-      renamed   = '→',
-      unmerged  = '!',
-      untracked = '?',
-    },
-  },
-  -- Include hidden files/dirs (e.g. .github/) in search results.
-  -- .git/ and node_modules/ are still excluded via file_ignore_patterns above.
-  pickers = {
-    find_files = {
-      hidden = true,
-    },
-    live_grep = {
-      additional_args = { '--hidden' },
-    },
-  },
-  extensions = {
-    ['ui-select'] = {
-      require('telescope.themes').get_dropdown({}),
-    },
-  },
-})
-
-pcall(require('telescope').load_extension, 'fzf')
--- Replace vim.ui.select with telescope so pickers like sidekick's prompt
--- library use telescope instead of the plain numbered inputlist fallback.
-pcall(require('telescope').load_extension, 'ui-select')
 
 -------------------------------------------------------------------------------
 -- Render Markdown

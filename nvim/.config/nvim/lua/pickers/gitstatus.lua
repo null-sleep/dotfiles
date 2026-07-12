@@ -1,32 +1,19 @@
--- pickers/gitstatus.lua — Telescope git-status picker with number-jump quick-pick.
+-- pickers/gitstatus.lua — snacks git-status picker with number-jump quick-pick.
 --
 -- USAGE
 --   require('pickers.gitstatus').open()        (bound to <leader>sm)
 --
--- WHY A CUSTOM PICKER
---   Telescope's builtin.git_status shows only the XY status and path. We want
---   a row index in the first column so <M-1>..<M-9> can jump to row N, matching
---   the pattern established by pickers/buffer.lua (<leader>m).
+-- WHY A CUSTOM WRAPPER
+--   snacks' builtin git_status covers the hard parts (staging toggle on
+--   <Tab> with auto-refresh, diff preview). This wrapper adds the local
+--   conventions: a row-index first column so <M-1>..<M-9> jumps to row N
+--   (matching pickers/buffer.lua), repo resolution from the current
+--   buffer's directory instead of nvim's cwd, and a decluttered preview.
 --
--- HOW IT WORKS
---   Builds a custom picker modeled on Telescope's stock git.status
---   (telescope.nvim/lua/telescope/builtin/__git.lua, git.status function) and
---   its entry maker gen_from_git_status (telescope.nvim/lua/telescope/make_entry.lua).
---   The entry_maker prepends a row index column while keeping the rest of the
---   display (XY status icons, path) identical to stock. attach_mappings merges
---   the staging-toggle (<tab>) from the original picker with <M-1>..<M-9>
---   quick-pick bindings via common.bind_quick_pick.
+--   Row indices are item.idx (finder order); a staging toggle re-runs the
+--   finder and indices reset.
 
-local pickers       = require('telescope.pickers')
-local finders       = require('telescope.finders')
-local conf          = require('telescope.config').values
-local entry_display = require('telescope.pickers.entry_display')
-local utils         = require('telescope.utils')
-local actions       = require('telescope.actions')
-local action_state  = require('telescope.actions.state')
-local previewers    = require('telescope.previewers')
-local Path          = require('plenary.path')
-local common        = require('pickers.common')
+local common = require('pickers.common')
 
 local M = {}
 
@@ -43,134 +30,137 @@ function M.open()
     return
   end
 
-  local opts = { cwd = git_root }
+  -- Clean repo → notify instead of opening an empty picker. Checked
+  -- synchronously up front (git status is fast at this repo's scale) rather
+  -- than racing the picker's async finder for an emptiness check.
+  local changes = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
+  if vim.v.shell_error == 0 and #changes == 0 then
+    vim.notify('No changes found', vim.log.levels.INFO)
+    return
+  end
 
-  -- Build the git command
-  local git_cmd = { 'git', '-C', git_root, 'status', '-z', '-uall', '--', '.' }
+  local qp_actions, qp_keys = common.quick_pick_actions()
 
-  -- Git XY status → icon + highlight. Mirrors the git_abbrev table in
-  -- telescope.nvim/lua/telescope/make_entry.lua (gen_from_git_status).
-  -- If upstream icons/highlights change, update this table to match.
-  local git_abbrev = {
-    ['A'] = { icon = '+', hl = 'TelescopeResultsDiffAdd' },
-    ['U'] = { icon = '‡', hl = 'TelescopeResultsDiffAdd' },
-    ['M'] = { icon = '~', hl = 'TelescopeResultsDiffChange' },
-    ['C'] = { icon = '>', hl = 'TelescopeResultsDiffChange' },
-    ['R'] = { icon = '➡', hl = 'TelescopeResultsDiffChange' },
-    ['D'] = { icon = '-', hl = 'TelescopeResultsDiffDelete' },
-    ['?'] = { icon = '?', hl = 'TelescopeResultsDiffUntracked' },
+  -- Git XY status → icon + highlight (+ ~ - → ! ? glyphs instead of
+  -- snacks' letter rendering). X = staged, Y = unstaged, per porcelain v1.
+  local GIT_ABBREV = {
+    A = { icon = '+', hl = 'SnacksPickerGitStatusAdded' },
+    U = { icon = '‡', hl = 'SnacksPickerGitStatusAdded' },
+    M = { icon = '~', hl = 'SnacksPickerGitStatusModified' },
+    C = { icon = '>', hl = 'SnacksPickerGitStatusCopied' },
+    R = { icon = '→', hl = 'SnacksPickerGitStatusRenamed' },
+    D = { icon = '-', hl = 'SnacksPickerGitStatusDeleted' },
+    ['?'] = { icon = '?', hl = 'SnacksPickerGitStatusUntracked' },
   }
 
-  local col_width = 2  -- single-char icon + padding
-
-  -- Returns an entry_maker that parses raw `git status -z` lines and prepends
-  -- a row index. Each call returns a fresh maker with its own counter, so the
-  -- index resets when the finder is rebuilt (e.g. after staging toggle).
-  local function make_indexed_entry_maker()
-    local idx = 0
-
-    local displayer = entry_display.create {
-      separator = ' ',
-      items = {
-        { width = 2 },          -- row index
-        { width = col_width },   -- staged status icon
-        { width = col_width },   -- unstaged status icon
-        { remaining = true },    -- path
-      },
-    }
-
-    return function(entry)
-      if entry == '' then return nil end
-
-      local mod, file = entry:match('^(..) (.+)$')
-      if not mod then return nil end
-
-      idx = idx + 1
-      local n = idx
-
-      return {
-        value   = file,
-        status  = mod,
-        ordinal = entry,
-        path    = Path:new({ git_root, file }):absolute(),
-        display = function(e)
-          local x = string.sub(e.status, 1, 1)
-          local y = string.sub(e.status, -1)
-          local status_x = git_abbrev[x] or {}
-          local status_y = git_abbrev[y] or {}
-
-          local display_path, path_style = utils.transform_path(opts, e.path)
-
-          local empty = ' '
-          return displayer {
-            { tostring(n), 'TelescopeResultsNumber' },
-            { status_x.icon or empty, status_x.hl },
-            { status_y.icon or empty, status_y.hl },
-            { display_path, function() return path_style end },
-          }
-        end,
+  return Snacks.picker.git_status({
+    cwd = git_root,
+    actions = qp_actions,
+    -- Custom diff preview: classic full-width diff coloring (the 'fancy'
+    -- default draws per-file chip boxes that break in a short pane) and no
+    -- per-file header — the preview is already scoped to one file, so
+    -- everything before the first `@@` hunk is dropped *positionally* (a
+    -- body line may legitimately start with `---`, e.g. a deleted lua
+    -- comment, so pattern-filtering would corrupt it). Untracked/added
+    -- files show the file itself.
+    preview = function(ctx)
+      if (ctx.item.status or ''):find('^[A?]') then
+        local ret = Snacks.picker.preview.file(ctx)
+        if ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
+          vim.b[ctx.buf].diff_lnums = nil  -- scratch buffers are reused
+        end
+        return ret
+      end
+      local args = { 'git', '-C', git_root, '--no-pager', 'diff' }
+      if ctx.item.status:find('[UAD][UAD]') then
+        args[#args + 1] = '--cc'      -- combined diff for conflicts
+      elseif ctx.item.status:sub(1, 1) ~= ' ' then
+        args[#args + 1] = '--cached'  -- staged changes
+      end
+      vim.list_extend(args, { '--', ctx.item.file })
+      local lines = vim.fn.systemlist(args)
+      local start = 1
+      for i, l in ipairs(lines) do
+        if l:find('^@@') then
+          start = i
+          break
+        end
+      end
+      -- Real file line numbers for the gutter (see M.statuscol): walk the
+      -- hunk headers, numbering context/added lines with their new-file
+      -- line; deletions, headers, and `\ No newline` markers get a blank.
+      local nums, new_lnum, width = {}, nil, 0
+      for i = start, #lines do
+        local l = lines[i]
+        local hunk_start = l:match('^@@ %-%d+[^+]*%+(%d+)')
+        local n = ''
+        if hunk_start then
+          new_lnum = tonumber(hunk_start)
+        elseif new_lnum and l:sub(1, 1) ~= '-' and l:sub(1, 1) ~= '\\' then
+          n = tostring(new_lnum)
+          new_lnum = new_lnum + 1
+        end
+        nums[#nums + 1] = n
+        width = math.max(width, #n)
+      end
+      for i, n in ipairs(nums) do
+        nums[i] = (' '):rep(width - #n) .. n
+      end
+      ctx.item.preview = {
+        text = table.concat(lines, '\n', start),
+        ft = 'diff',
+        loc = false,
       }
-    end
-  end
-
-  -- Creates a oneshot finder that runs `git status` and feeds results through
-  -- the indexed entry maker. Called on initial open and again after each
-  -- staging toggle to refresh the list.
-  local function gen_new_finder()
-    return finders.new_oneshot_job(git_cmd, {
-      entry_maker = make_indexed_entry_maker(),
-      cwd         = git_root,
-      split_char  = '\0',
-    })
-  end
-
-  local initial_finder = gen_new_finder()
-  if not initial_finder then return end
-
-  pickers
-    .new(opts, {
-      prompt_title  = 'Git Status',
-      finder        = initial_finder,
-      previewer     = previewers.git_file_diff.new(opts),
-      sorter        = conf.file_sorter(opts),
-      on_complete   = {
-        function(self)
-          local prompt = action_state.get_current_line()
-          local count = 0
-          for _, entry in pairs(self.finder.results) do
-            if entry and entry.valid ~= false then
-              count = count + 1
-            end
-          end
-          if count == 0 and prompt == '' then
-            vim.notify('No changes found', vim.log.levels.INFO)
-          end
-        end,
+      local ret = Snacks.picker.preview.preview(ctx)
+      vim.b[ctx.buf].diff_lnums = nums
+      return ret
+    end,
+    -- Plain filename colors — the two status-icon columns already carry the
+    -- state, and the old picker didn't recolor paths either.
+    formatters = { file = { git_status_hl = false } },
+    format = function(item, picker)
+      local ret = {}  ---@type snacks.picker.Highlight[]
+      ret[#ret + 1] = { Snacks.picker.util.align(tostring(item.idx), 2), 'SnacksPickerBufNr' }
+      ret[#ret + 1] = { ' ' }
+      local status = item.status or '  '
+      local x, y = GIT_ABBREV[status:sub(1, 1)], GIT_ABBREV[status:sub(2, 2)]
+      ret[#ret + 1] = { Snacks.picker.util.align(x and x.icon or ' ', 2), x and x.hl }
+      ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
+      vim.list_extend(ret, Snacks.picker.format.filename(item, picker))
+      return ret
+    end,
+    -- Only the <M-N> keys are added here; the source's own <Tab> (stage
+    -- toggle) and <c-r> (restore) bindings survive the deep-merge.
+    -- Preview window: nowrap (long diff lines truncate instead of wrapping
+    -- into fragments) and a statuscolumn showing real file line numbers
+    -- instead of the diff buffer's meaningless 1..N (see M.statuscol).
+    win = {
+      input = { keys = qp_keys },
+      list = { keys = qp_keys },
+      preview = {
+        wo = {
+          wrap = false,
+          number = false,
+          relativenumber = false,
+          statuscolumn = "%!v:lua.require'pickers.gitstatus'.statuscol()",
+        },
       },
-      attach_mappings = function(prompt_bufnr, map)
-        -- Staging toggle: stages/unstages the selected file, then rebuilds
-        -- the finder to reflect the new status while preserving cursor position.
-        actions.git_staging_toggle:enhance {
-          post = function()
-            local picker = action_state.get_current_picker(prompt_bufnr)
-            local selection = picker:get_selection_row()
-            local callbacks = { unpack(picker._completion_callbacks) }
-            picker:register_completion_callback(function(self)
-              self:set_selection(selection)
-              self._completion_callbacks = callbacks
-            end)
-            picker:refresh(gen_new_finder(), { reset_prompt = false })
-          end,
-        }
-        map({ 'i', 'n' }, '<tab>', actions.git_staging_toggle)
+    },
+  })
+end
 
-        -- Number quick-pick: <M-N> jumps to row N and opens the file.
-        common.bind_quick_pick(map)
-
-        return true
-      end,
-    })
-    :find()
+-- statuscolumn callback for the diff preview window: renders the real
+-- file line number computed by the preview above (b:diff_lnums, indexed by
+-- v:lnum). Falls back to normal numbering for buffers without it (the
+-- untracked-file preview).
+function M.statuscol()
+  local win = vim.g.statusline_winid
+  local buf = win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win)
+  local nums = buf and vim.b[buf].diff_lnums
+  if not nums then
+    return '%=%l '
+  end
+  return '%=%#LineNr#' .. (nums[vim.v.lnum] or '') .. ' '
 end
 
 return M

@@ -136,3 +136,66 @@ vim.api.nvim_create_autocmd('QuitPre', {
     end
   end,
 })
+
+-- Don't let the list panels scroll off their own content — a file tree showing
+-- three files and twenty blank rows (or scrolled right until the names are gone
+-- entirely) is just dead space. This is the fix for that symptom; scrolloff/
+-- sidescrolloff are NOT (a common misreading, and one this config already shipped
+-- once as a no-op). Those two only pad the view around the CURSOR: they have no
+-- effect at EOF, and they don't constrain the view at all when it's scrolled
+-- directly — a trackpad <ScrollWheelDown>/<ScrollWheelRight> moves topline/leftcol
+-- without moving the cursor. Nothing but clamping the view stops that, on either
+-- axis.
+--
+-- Its own list, deliberately not buffers.lua's `sidebar_filetypes` — which today
+-- holds these same two entries but answers "is this a docked sidebar" (for the
+-- quit-when-only-sidebars handler above). Registering a future panel there
+-- shouldn't silently opt it into scroll clamping. Same reasoning the module
+-- header gives for keeping autosave/statusline lists separate.
+--
+-- Both panels are nowrap, so screen rows map 1:1 to lines and the last legal
+-- topline is a simple subtraction. Horizontally, the widest line is measured in
+-- display cells (strdisplaywidth — the tree is full of multi-cell devicons) and
+-- compared against the window's text area, which is the window width minus
+-- `textoff` (sign/fold/number columns).
+local clamped_panels = { NvimTree = true, aerial = true }
+
+vim.api.nvim_create_autocmd('WinScrolled', {
+  group = augroup,
+  desc = 'Panels: clamp scroll to the panel content, both axes',
+  callback = function(args)
+    -- WinScrolled sets <amatch> to the id of the window that scrolled, which is
+    -- not necessarily the current one (any window in the tabpage can fire it).
+    local win = tonumber(args.match)
+    if not win or not vim.api.nvim_win_is_valid(win) then return end
+    local buf = vim.api.nvim_win_get_buf(win)
+    if not clamped_panels[vim.bo[buf].filetype] then return end
+    vim.api.nvim_win_call(win, function()
+      local view = vim.fn.winsaveview()
+      local restore = false
+
+      local maxtop = math.max(1, vim.api.nvim_buf_line_count(buf)
+        - vim.api.nvim_win_get_height(win) + 1)
+      if view.topline > maxtop then
+        view.topline = maxtop
+        restore = true
+      end
+
+      if view.leftcol > 0 then
+        local widest = 0
+        for _, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+          widest = math.max(widest, vim.fn.strdisplaywidth(line))
+        end
+        local textwidth = vim.api.nvim_win_get_width(win)
+          - (vim.fn.getwininfo(win)[1].textoff or 0)
+        local maxleft = math.max(0, widest - textwidth)
+        if view.leftcol > maxleft then
+          view.leftcol = maxleft
+          restore = true
+        end
+      end
+
+      if restore then vim.fn.winrestview(view) end
+    end)
+  end,
+})

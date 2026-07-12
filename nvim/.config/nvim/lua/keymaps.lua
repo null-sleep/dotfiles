@@ -1,21 +1,23 @@
 -- Note: which-key uses an explicit trigger list (see whichkey.lua). If you add
 -- a new single-char group in whichkey.lua's wk.add(), add it to triggers too.
 
--- Telescope
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = 'Search: Files' })
-vim.keymap.set('n', '<leader>sg', builtin.live_grep,  { desc = 'Search: Grep' })
-vim.keymap.set('n', '<leader>sh', builtin.help_tags,   { desc = 'Search: Help tags' })
-vim.keymap.set('n', '<leader>sr', builtin.resume,                      { desc = 'Search: Resume last' })
-vim.keymap.set('n', '<leader>s/', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
-vim.keymap.set('n', '<leader>sb', builtin.current_buffer_fuzzy_find,   { desc = 'Search: Current buffer' })
+-- Pickers (snacks.picker; setup in picker.lua)
+-- <leader>sg is live grep: every keystroke is a ripgrep regex, and raw rg
+-- flags pass through after ` -- ` (e.g. `handleRequest -- -tgo`). <c-g> in
+-- the prompt buffers results into the fuzzy matcher (fzf-style operators).
+vim.keymap.set('n', '<leader>sf', function() Snacks.picker.files() end, { desc = 'Search: Files' })
+vim.keymap.set('n', '<leader>sg', function() Snacks.picker.grep() end,  { desc = 'Search: Grep' })
+vim.keymap.set('n', '<leader>sh', function() Snacks.picker.help() end,  { desc = 'Search: Help tags' })
+vim.keymap.set('n', '<leader>sr', function() Snacks.picker.resume() end, { desc = 'Search: Resume last' })
+vim.keymap.set('n', '<leader>s/', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })
+vim.keymap.set('n', '<leader>sb', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sm', function() require('pickers.gitstatus').open() end,
   { desc = 'Search: Modified files' })
 vim.keymap.set('n', '<leader>ss', function() require('pickers.symbols').workspace() end,
   { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sd', function() require('pickers.symbols').document() end,
   { desc = 'Search: Symbols (document)' })
-vim.keymap.set('n', '<leader>so', builtin.oldfiles,                      { desc = 'Search: Recent files' })
+vim.keymap.set('n', '<leader>so', function() Snacks.picker.recent() end, { desc = 'Search: Recent files' })
 vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
   { desc = 'Search: Themes' })
 
@@ -283,7 +285,7 @@ vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitH
 -- go in the cli.win.keys table in ai.lua, not here.
 -- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
 -- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
--- mode only, so there's no conflict. Telescope's <Tab> (multi-select) is
+-- mode only, so there's no conflict. The picker's <Tab> (multi-select) is
 -- buffer-local to the picker prompt, so it shadows this global binding inside
 -- pickers — no conflict there either.
 vim.keymap.set('n', '<Tab>', function()

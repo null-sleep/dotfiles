@@ -1,4 +1,4 @@
--- pickers/keybindings.lua — Telescope picker for fuzzy-searching all keybindings.
+-- pickers/keybindings.lua — snacks picker for fuzzy-searching all keybindings.
 --
 -- USAGE
 --   require('pickers.keybindings').open()        (bound to <leader>sk)
@@ -13,12 +13,6 @@
 -- session cache froze out buffer-local / LspAttach maps and leaked the
 -- first-open buffer's local maps everywhere. which-key already invalidates its
 -- own tree on LspAttach/BufEnter, so an external cache only fights that.
-
-local pickers      = require('telescope.pickers')
-local finders      = require('telescope.finders')
-local conf         = require('telescope.config').values
-local actions      = require('telescope.actions')
-local action_state = require('telescope.actions.state')
 
 local M = {}
 
@@ -98,27 +92,22 @@ local function compute_widths(results)
   }
 end
 
--- Creates the entry_display displayer once per picker open (stateful, not per-row).
-local function make_displayer(widths)
-  return require('telescope.pickers.entry_display').create({
-    separator = ' ',
-    items = {
-      { width = widths.key },
-      { width = widths.bc },
-      { remaining = true },
-      { width = widths.tags },
-    },
-  })
-end
-
--- Renders one row. Pure — no side effects.
-local function make_display(displayer, item)
-  return displayer({
-    { item.keys,              'TelescopeResultsIdentifier' },
-    { bc_label(item.bc),      'Comment' },
-    { item.desc },
-    { tags_label(item.pills), 'Comment' },
-  })
+-- Builds the 4-column snacks format function for one picker open (widths are
+-- measured from the full result set, so the closure is per-open, not per-row).
+-- Columns: key | icon+group breadcrumb (dim) | desc | tag pills (dim).
+local function make_format(widths)
+  local align = function(text, width) return Snacks.picker.util.align(text, width, { truncate = true }) end
+  return function(item)
+    return {
+      { align(item.keys, widths.key),         'SnacksPickerKeymapLhs' },
+      { ' ' },
+      { align(bc_label(item.bc), widths.bc),  'Comment' },
+      { ' ' },
+      { item.desc },
+      { ' ' },
+      { tags_label(item.pills),               'Comment' },
+    }
+  end
 end
 
 -- Build group breadcrumb by walking parent chain.
@@ -173,7 +162,7 @@ local function build_results()
     local kw   = keywords[keys] or ''
     local tags, derived = resolve_tags(keys, desc, tags_map)
     local tags_str = table.concat(tags, ' ')
-    -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+    -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
     local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. tags_str
 
     seen[keys] = true
@@ -195,7 +184,7 @@ local function build_results()
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp  = entry.group or ''
         local tags_str = table.concat(tags, ' ')
-        -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+        -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
         local ordinal = entry.lhs .. ' ' .. grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. tags_str
         table.insert(results, {
           keys = entry.lhs, bc = grp, desc = entry.desc,
@@ -216,40 +205,34 @@ function M.open()
     return
   end
 
-  local widths    = compute_widths(results)
-  local displayer = make_displayer(widths)
+  local widths = compute_widths(results)
 
-  pickers.new({}, {
-    prompt_title  = 'Keybindings',
-    layout_config = { width = 0.65, height = 0.45 },
-    finder = finders.new_table({
-      results = results,
-      entry_maker = function(item)
-        return {
-          value   = item,
-          display = function(entry) return make_display(displayer, entry.value) end,
-          ordinal = item.ordinal,
-        }
-      end,
-    }),
-    sorter    = conf.generic_sorter({}),
-    previewer = false,
+  -- The fuzzy matcher searches item.text: keys first, then breadcrumb/
+  -- desc/keywords/tags, so typing a key sequence ranks the binding itself
+  -- highest.
+  local items = {}
+  for _, r in ipairs(results) do
+    r.text = r.ordinal
+    items[#items + 1] = r
+  end
 
-    attach_mappings = function(prompt_bufnr)
-      actions.select_default:replace(function()
-        local entry = action_state.get_selected_entry()
-        actions.close(prompt_bufnr)
-        if entry then
-          vim.schedule(function()
-            local k = vim.api.nvim_replace_termcodes(entry.value.keys, true, true, true)
-            -- 'm' = remap keys, 't' = handle as if typed (triggers mappings)
-            vim.api.nvim_feedkeys(k, 'mt', false)
-          end)
-        end
-      end)
-      return true
+  return Snacks.picker.pick({
+    source = 'keybindings',
+    title = 'Keybindings',
+    items = items,
+    format = make_format(widths),
+    layout = { preset = 'select' },
+    confirm = function(picker, item)
+      picker:close()
+      if item then
+        vim.schedule(function()
+          local k = vim.api.nvim_replace_termcodes(item.keys, true, true, true)
+          -- 'm' = remap keys, 't' = handle as if typed (triggers mappings)
+          vim.api.nvim_feedkeys(k, 'mt', false)
+        end)
+      end
     end,
-  }):find()
+  })
 end
 
 return M

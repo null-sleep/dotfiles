@@ -1,96 +1,66 @@
--- pickers/buffer.lua — Telescope picker for buffers with number-jump quick-pick.
+-- pickers/buffer.lua — snacks buffer picker with number-jump quick-pick.
 --
 -- USAGE
---   require('pickers.buffer').open()        (bound to <leader>m)
+--   require('pickers.buffer').open()        (bound to <leader>bb / <leader>m)
 --
--- WHY A CUSTOM PICKER
---   Telescope's builtin.buffers shows vim's bufnr in the first column. We
---   want a row index there instead, since <M-1>..<M-9> jumps to row N — the
---   bufnr is then redundant noise. We also want flag/icon/path columns to
---   match the default look so the picker stays familiar.
+-- WHY A CUSTOM FORMAT
+--   snacks' builtin `buffers` format shows vim's bufnr in the first column.
+--   We want a row index there instead, since <M-1>..<M-9> jumps to row N —
+--   the bufnr is then redundant noise.
 --
--- HOW IT WORKS
---   Calls builtin.buffers with a custom entry_maker. The entry data is built
---   by telescope's own gen_from_buffer (so default open/delete/preview
---   actions still work), but entry.display is replaced with a 3-column
---   displayer: row idx | icon | path:lnum. common.bind_quick_pick
---   binds <M-1>..<M-9> to set_selection + select_default for that row.
---
---   The row index is captured at finder build time, so the visible "1", "2"
---   prefix matches the initial row order. Filtering reorders rows but keeps
---   indices stuck to entries — fine, because <M-N> is for the unfiltered
+--   The row index is item.idx (finder order), so the visible "1", "2" prefix
+--   matches the rows while the prompt is empty. Filtering reorders rows but
+--   keeps indices stuck to items — fine, because <M-N> is for the unfiltered
 --   "open and pounce" path.
+--
+--   sort_lastused is disabled for stable bufnr row ordering (the MRU
+--   default would reshuffle row numbers on every open and defeat the
+--   muscle-memory point of <M-N>).
 
-local builtin       = require('telescope.builtin')
-local make_entry    = require('telescope.make_entry')
-local entry_display = require('telescope.pickers.entry_display')
-local utils         = require('telescope.utils')
-local strings       = require('plenary.strings')
-local common        = require('pickers.common')
+local common = require('pickers.common')
 
 local M = {}
 
 function M.open()
-  -- Icon column width: match telescope's default behaviour by sampling a
-  -- representative devicon.
-  local icon_w = 0
-  local sample = utils.get_devicons('fname', false)
-  if sample then icon_w = strings.strdisplaywidth(sample) end
-
-  local listed = vim.tbl_filter(function(b) return vim.fn.buflisted(b) == 1 end,
+  local listed = #vim.tbl_filter(function(b) return vim.fn.buflisted(b) == 1 end,
     vim.api.nvim_list_bufs())
-  local idx_width = math.max(1, #tostring(#listed))
+  local idx_width = math.max(1, #tostring(listed))
 
-  local displayer = entry_display.create {
-    separator = ' ',
-    items = {
-      { width = idx_width },  -- row index (replaces bufnr)
-      { width = icon_w },     -- filetype icon
-      { remaining = true },   -- path:lnum
+  local qp_actions, qp_keys = common.quick_pick_actions()
+  local keys = vim.tbl_extend('force', qp_keys, {
+    -- Delete the highlighted buffer (or all multi-selected) without closing
+    -- the picker; shadows the default list_scroll_down in this picker only.
+    ['<C-d>'] = { 'bufdelete', mode = { 'i', 'n' } },
+    -- The buffers source binds <c-x> to bufdelete by default; restore the
+    -- global meaning (horizontal split, pairs with <C-s>/<C-v>) so the only
+    -- delete key is <C-d>.
+    ['<C-x>'] = { 'edit_split', mode = { 'i', 'n' } },
+  })
+
+  Snacks.picker.buffers({
+    sort_lastused = false,
+    actions = qp_actions,
+    transform = function(item)
+      -- Jump to the buffer's live cursor line (info.lnum), not the `"` mark
+      -- snacks defaults to: the mark is only written on unload and can point
+      -- past EOF after a file shrank, which crashes the jump's
+      -- nvim_win_set_cursor.
+      local lnum = item.info and item.info.lnum or 0
+      item.pos = lnum > 0 and { lnum, 0 } or nil
+      return item
+    end,
+    format = function(item, picker)
+      local ret = {}  ---@type snacks.picker.Highlight[]
+      ret[#ret + 1] = { Snacks.picker.util.align(tostring(item.idx), idx_width), 'SnacksPickerBufNr' }
+      ret[#ret + 1] = { ' ' }
+      -- icon + truncated path + :lnum (filename renders item.pos itself)
+      vim.list_extend(ret, Snacks.picker.format.filename(item, picker))
+      return ret
+    end,
+    win = {
+      input = { keys = keys },
+      list = { keys = keys },
     },
-  }
-
-  -- bufnr_width must be non-nil for gen_from_buffer's internal displayer to
-  -- construct successfully, even though we never call its display function.
-  local base = make_entry.gen_from_buffer({ bufnr_width = idx_width })
-  local idx = 0
-
-  builtin.buffers({
-    layout_config = { height = 0.55, horizontal = { preview_width = 0.5 } },
-    entry_maker = function(buf)
-      idx = idx + 1
-      local entry = base(buf)
-      if not entry then return nil end
-      local n = idx
-      entry.display = function(e)
-        local name = e.filename or '[No Name]'
-        local path_style
-        if e.filename then
-          name, path_style = utils.transform_path({}, e.filename)
-        end
-        if e.lnum and e.lnum > 0 then
-          name = name .. ':' .. e.lnum
-        end
-        local icon, hl = utils.get_devicons(e.filename or '', false)
-        return displayer {
-          { tostring(n), 'TelescopeResultsNumber' },
-          { icon, hl },
-          { name, function() return path_style end },
-        }
-      end
-      return entry
-    end,
-    attach_mappings = function(_, map)
-      common.bind_quick_pick(map)
-      local action_state = require('telescope.actions.state')
-      map({ 'i', 'n' }, '<C-d>', function(prompt_bufnr)
-        local entry = action_state.get_selected_entry()
-        if entry then
-          require('telescope.actions').delete_buffer(prompt_bufnr)
-        end
-      end)
-      return true
-    end,
   })
 end
 

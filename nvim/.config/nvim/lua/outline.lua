@@ -30,6 +30,13 @@ require('aerial').setup({
     -- (nvim-tree), right for sidekick (ai.lua's own edge-promotion trick).
     placement = 'edge',
     min_width = 25,
+    -- Drop the global scrolloff=10 / sidescrolloff=8 (configs.lua) the outline
+    -- inherits: they leave phantom columns right of the longest symbol and pull
+    -- the list out from under the cursor near the panel edges. aerial applies
+    -- win_opts by window id on every open, so this survives reopen and new tabs
+    -- — unlike a FileType autocmd, see filetree.lua's TreeOpen hook for why.
+    -- Scrolling past the last symbol is clamped separately (autocmds.lua).
+    win_opts = { scrolloff = 0, sidescrolloff = 0 },
   },
   -- 'global' (not 'window'): the single sidebar always mirrors whichever
   -- window currently has focus anywhere in the tabpage — VS Code/Zed-style
@@ -126,13 +133,6 @@ require('aerial').setup({
   end,
 })
 
--- Telescope fuzzy picker over aerial's symbols (works without LSP via treesitter).
--- telescope is packadd'd + setup() in plugins.lua (init.lua requires 'plugins'
--- before 'outline'), so the extension is safe to load here. pcall-guarded to
--- match the existing extension loads in plugins.lua: an unguarded failure here
--- would abort the rest of init.lua (keymaps, lsp, everything after).
-pcall(require('telescope').load_extension, 'aerial')
-
 -- Keymaps (global — toggles/search should work from any buffer, not just ones
 -- aerial has attached to; see on_attach above for the buffer-local ]a/[a).
 --
@@ -175,6 +175,6 @@ vim.keymap.set('n', '<leader>O', function()
   end
   vim.cmd('AerialNavToggle')
 end, { desc = 'Toggle: Outline nav popup (aerial)' })
--- No dedicated key for :Telescope aerial — it overlapped <leader>sd (document
--- symbols picker, which also covers fields/variables) and the sidebar/popup
--- above. The command remains available by name.
+-- No dedicated picker key for aerial's symbols — it would overlap <leader>sd
+-- (document symbols picker, which also covers fields/variables) and the
+-- sidebar/popup above.

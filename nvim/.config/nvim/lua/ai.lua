@@ -67,9 +67,9 @@ local prewarm_term ---@type any?
 
 require('sidekick').setup({
   cli = {
-    -- Use telescope for cli.select() (tool list) and cli.prompt() (prompt library)
+    -- Use snacks for cli.select() (tool list) and cli.prompt() (prompt library)
     -- so the sidekick UI matches the rest of the config.
-    picker = 'telescope',
+    picker = 'snacks',
     win = {
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
       -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
@@ -281,8 +281,8 @@ vim.api.nvim_create_autocmd('FileType', {
     -- toggle_active targets M.active, which the WinEnter stamp keeps equal to
     -- the focused session, so this hides the one you're in. Kill stays on the
     -- deliberate <leader>ad path (confirm-guarded) — no fast in-panel teardown.
-    -- (Buffer-local to this CLI terminal; doesn't clash with the sidekick-af-ac
-    -- plan's <M-a>, which is a telescope-picker mapping in a different buffer.)
+    -- (Buffer-local to this CLI terminal; doesn't clash with the global
+    -- <M-a> send-to-sidekick picker action, which lives in picker windows.)
     vim.keymap.set({ 't', 'n' }, '<M-a>', function() require('ai').toggle_active() end,
       { buffer = args.buf, desc = 'AI: Hide CLI panel (toggle)' })
 
@@ -556,52 +556,45 @@ function M.focus()
   require('sidekick.cli').focus({ name = M.active })
 end
 
--- <leader>al: custom telescope picker over running sidekick sessions.
+-- <leader>al: custom snacks picker over running sidekick sessions.
 -- <CR> shows/focuses (making it active); <C-d> tears down the highlighted one.
 function M.switch()
-  local State          = require('sidekick.cli.state')
-  local pickers        = require('telescope.pickers')
-  local finders        = require('telescope.finders')
-  local conf           = require('telescope.config').values
-  local actions        = require('telescope.actions')
-  local action_state   = require('telescope.actions.state')
+  local State = require('sidekick.cli.state')
 
-  local function finder()
-    return finders.new_table({
-      results = State.get({ started = true }),      -- running sessions only
-      entry_maker = function(s)
-        local name = s.tool.name
-        -- cwd in the display: same-named sessions in two cwds are otherwise
-        -- indistinguishable (see Known edges).
-        local cwd = s.session and vim.fn.fnamemodify(s.session.cwd, ':~') or ''
-        return { value = s, display = name .. '  ' .. cwd, ordinal = name .. ' ' .. cwd }
-      end,
-    })
+  local function items()
+    return vim.tbl_map(function(s)
+      -- cwd in the display: same-named sessions in two cwds are otherwise
+      -- indistinguishable (see Known edges).
+      local cwd = s.session and vim.fn.fnamemodify(s.session.cwd, ':~') or ''
+      return { text = s.tool.name .. ' ' .. cwd, name = s.tool.name, cwd = cwd, state = s }
+    end, State.get({ started = true }))              -- running sessions only
   end
 
-  pickers.new({}, {
-    prompt_title = 'Sidekick sessions',
-    finder = finder(),
-    sorter = conf.generic_sorter({}),
-    -- Compact, previewless picker — it's a short "name  cwd" list, not a file
-    -- search (same vertical strategy pickers/theme.lua uses for its short list).
-    -- Wide enough that ':~'-shortened cwds aren't truncated on a narrow term.
-    layout_strategy = 'vertical',
-    layout_config = { width = 0.6, height = 0.4 },
-    previewer = false,
-    attach_mappings = function(bufnr, map)
-      actions.select_default:replace(function()
-        local entry = action_state.get_selected_entry()
-        actions.close(bufnr)
-        if entry then
-          set_active(entry.value.tool.name)  -- eager; WinEnter confirms on focus
-          show_solo(entry.value.tool.name)  -- replace the open window, don't stack
-        end
-      end)
-      map({ 'i', 'n' }, '<C-d>', function(pbuf)
-        local entry = action_state.get_selected_entry()
-        if not entry then return end
-        local name = entry.value.tool.name
+  return Snacks.picker.pick({
+    source = 'sidekick_sessions',
+    title = 'Sidekick sessions',
+    finder = items,
+    format = function(item)
+      return {
+        { item.name },
+        { '  ' },
+        { item.cwd, 'Comment' },
+      }
+    end,
+    -- Compact, previewless picker — it's a short "name  cwd" list, not a
+    -- file search (same compact preset pickers/theme.lua uses).
+    layout = { preset = 'select' },
+    confirm = function(picker, item)
+      picker:close()
+      if item then
+        set_active(item.name)  -- eager; WinEnter confirms on focus
+        show_solo(item.name)   -- replace the open window, don't stack
+      end
+    end,
+    actions = {
+      kill_session = function(picker, item)
+        if not item then return end
+        local name = item.name
         -- Synchronous teardown: State.detach → terminal:close() removes the
         -- session inline (only the Detach *event* is scheduled), so the
         -- refresh below reads post-kill state. cli.close() would be two
@@ -619,13 +612,16 @@ function M.switch()
         -- while it's still started=true. Sets active before _forget runs, so
         -- _forget's own repoint below is a no-op on this path (active ≠ name).
         if M.active == name then M.active = fallback_active(name) end
-        State.detach(entry.value)
+        State.detach(item.state)
         M._forget(name)
-        action_state.get_current_picker(pbuf):refresh(finder(), { reset_prompt = false })
-      end)
-      return true
-    end,
-  }):find()
+        picker:find()  -- re-run the finder so the list reflects post-kill state
+      end,
+    },
+    win = {
+      input = { keys = { ['<C-d>'] = { 'kill_session', mode = { 'i', 'n' } } } },
+      list = { keys = { ['<C-d>'] = 'kill_session' } },
+    },
+  })
 end
 
 -- Cycle to the prev/next running session in place (dir -1/+1), wrapping around.

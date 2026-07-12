@@ -10,7 +10,7 @@
 > - Plugin READMEs for gitsigns, satellite, persistence, which-key, etc.
 
 Neovim 0.12+ with native `vim.pack` (not lazy.nvim), Mason for LSP server
-installs, blink.cmp for completion, Telescope for fuzzy finding, treesitter
+installs, blink.cmp for completion, snacks.picker for fuzzy finding, treesitter
 for highlighting/folding, lspconfig v3 API (`vim.lsp.config` + `vim.lsp.enable`).
 Requires a Nerd Font for statusline separators and completion icons.
 
@@ -27,7 +27,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Linting (nvim-lint)](#linting-nvim-lint)
   - [Themes](#themes)
   - [Treesitter](#treesitter)
-  - [Telescope](#telescope)
+  - [Picker (snacks.nvim)](#picker-snacks)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
   - [Editing utilities](#editing-utilities)
@@ -56,16 +56,16 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, `diffopt` with `linematch:60` + histogram, etc.), auto-reload for external file changes (focus/idle/buffer-switch + leaving a terminal, plus a 2s poll timer), nvim update check
 - **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix windows (skips any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
-- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
+- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
-- **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
+- **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
-- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
+- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
-- **`pickers/buffer.lua`** — Custom Telescope buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces telescope's bufnr column, `<M-1>`..`<M-9>` jumps to that row
-- **`pickers/gitstatus.lua`** — Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle
-- **`pickers/common.lua`** — Shared picker utilities: `bind_quick_pick(map)` binds `<M-1>`..`<M-9>` row-jump keys, used by buffer and gitstatus pickers
-- **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
+- **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
+- **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker
+- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
+- **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
@@ -79,21 +79,22 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
-- **`scratch.lua`** — snacks.nvim, `scratch` and `indent` modules: `scratch` is a floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list); `indent` renders indent guides + current-scope highlight (`<leader>tg` toggle, see [Indent guides](#indent-guides))
+- **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
+- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
-- **`pickers/keybindings.lua`** — Telescope picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
+- **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
-- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon
+- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
-- **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout
+- **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). snacks as picker, right-split layout
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
-- **`pickers/theme.lua`** — Custom Telescope picker for live theme preview with restore-on-cancel
+- **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
-- **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
+- **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, window-edge padding (4px sides / 4px bottom, matching iTerm2's pane margins), plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
 
 ### Plugin loading pattern
 
@@ -108,10 +109,10 @@ this file after updating plugins to keep versions consistent across machines.
 
 ### Load order
 
-From `init.lua`: configs -> autocmds -> plugins -> treesitter_context -> outline ->
-structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
+From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
+outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 testing -> ai -> format -> linting -> statusline -> session ->
-git -> gitui -> terminal -> titling -> whichkey -> autosave -> filetree -> neovide.
+git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath).
@@ -203,10 +204,13 @@ the same warning for anyone editing the file directly.
 
 `pickers/theme.lua` uses this pattern: the picker mutates session state live as
 the cursor moves (theme switches), but `<Esc>` reverts to the snapshot taken at
-open time. The trick is overriding
-`close_windows` on the picker so cancellation runs before windows tear down,
-plus a `need_restore` flag flipped to false in the confirm action. New
-pickers that need preview-style live state should follow the same shape.
+open time. On snacks this is all public API: `on_change` applies the
+highlighted item live (it also fires for the initial selection, and with a
+nil item when the list filters to empty — guard it), a `need_restore`
+upvalue is flipped to false in `confirm` *before* `picker:close()`, and
+`on_close` — which fires on every close path — restores the snapshot when
+the flag is still set. New pickers that need preview-style live state
+should follow the same shape.
 
 ### Why `builtins.lua` exists
 
@@ -398,6 +402,50 @@ symmetric pair between exactly two plugins, each already owning its own
 keymap file, so the check lives directly in both `outline.lua` and
 `keymaps.lua` rather than behind a new abstraction.
 
+### Panels stop at their last entry
+
+The file tree and outline are lists, not documents: scrolling a 19-entry tree
+until three files sit at the top and twenty blank rows fill the rest is just
+dead space. Two separate mechanisms are needed, and conflating them cost this
+config a commit that did nothing at all (`38a7c0a`, since reverted):
+
+**`scrolloff` does not stop scrolling past the last line.** It has no effect at
+EOF — dead rows below the last entry are identical with `scrolloff` at 0 and at
+10. The only thing that stops it is clamping the view, which is what the
+`WinScrolled` handler in `autocmds.lua` does: it pins `topline` to at most
+`line_count - winheight + 1`, so the last entry can never rise above the bottom
+row. It keeps its own two-entry filetype list rather than reusing
+`buffers.lua`'s `sidebar_filetypes` — that list answers "is this a docked
+sidebar" for the quit handler, and registering a future panel there shouldn't
+silently opt it into scroll clamping.
+
+**What `scrolloff`/`sidescrolloff` *do* fix** is the padding: `sidescrolloff = 8`
+leaves phantom columns to the right of the longest filename, and `scrolloff = 10`
+pulls the list out from under the cursor near the panel edges. Both are set to
+`0` per panel — see the next section for the trap in *how*.
+
+### Window options for a panel must be set by window id
+
+A `FileType` autocmd that sets `vim.wo.scrolloff = 0` for a panel looks obviously
+correct and is silently a no-op for nvim-tree. `vim.wo` writes to whichever window
+is **current at that instant**, and nvim-tree sets its buffer's filetype while the
+buffer is displayed in *no* window — so `FileType` fires inside Neovim's
+`aucmd_win`, the scratch window Neovim temporarily switches to for events on
+undisplayed buffers (`win_gettype() == 'autocmd'`). The write lands there and dies
+with it; the real tree window, created afterwards, keeps the global value.
+
+So set window options from a hook that runs **after** the panel's window exists,
+and address that window **by id**:
+
+- `filetree.lua` subscribes to nvim-tree's `Event.TreeOpen` (dispatched after
+  `open_window()`) and writes `vim.wo[api.tree.winid()]`.
+- `outline.lua` uses aerial's own `layout.win_opts`, which aerial applies by
+  window id on every open — so it survives close/reopen and new tabs for free.
+
+Prefer the plugin's own window hook when it has one. Reach for an autocmd only
+when it doesn't (nvim-tree), and never assume `FileType` runs in the window you
+think it does.
+
 ### Nested nvim routes into the parent (flatten.nvim)
 
 Shells inside an nvim-owned terminal (toggleterm, the sidekick CLI) inherit
@@ -487,7 +535,7 @@ get you there, plus the *defined in* file for a quick source jump.
 
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
-| `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | [Telescope](#telescope) → Keymaps |
+| `<leader>s*` | Search / pickers (snacks) | keymaps.lua, `pickers/*.lua` | [Picker (snacks.nvim)](#picker-snacks) → Keymaps |
 | `<C-\>`, `<leader>T*` | Terminal (toggleterm) — own prefix so gitsigns/LSP buffer-local `<leader>t*` toggles can't shadow it | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
@@ -505,7 +553,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
-| `<leader>tg` | Toggle indent guides + current-scope highlight | scratch.lua | [Indent guides (snacks.nvim)](#indent-guides) |
+| `<leader>tg` | Toggle indent guides + current-scope highlight | keymaps.lua (options in picker.lua) | [Indent guides (snacks.nvim)](#indent-guides) |
 | `<leader>q*` | Session save/restore | session.lua | [Session (persistence.nvim)](#session) |
 | `<Tab>`/`<S-Tab>`/`<CR>`/`<C-u>`/`<C-d>`/`<C-space>`/`<C-e>` (completion menu) | Autocompletion | completion.lua | [Autocompletion (blink.cmp)](#autocompletion) |
 | `<leader>ut` / `:Title` | Window/tab title override | titling.lua | [Window/tab title](#window-tab-title) |
@@ -534,7 +582,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
-| `<M-a>` (in any Telescope picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
+| `<M-a>` (in any picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
 
 Toggling a comment has no dedicated `<leader>t*` map — use nvim's native
 `gc` (operator, e.g. `gcip`) / `gcc` (current line), which are shorter and
@@ -565,18 +613,18 @@ Peek is additive; jumps are unchanged.
 | `gd` | `<leader>pd` | Definition |
 | `gy` | `<leader>pt` | Type definition |
 | `gri` | `<leader>pi` | Implementation |
-| `grr` | `<leader>pr` | References (opens a Telescope picker, then peeks) |
+| `grr` | `<leader>pr` | References (opens a picker, then peeks) |
 | `gD` | — | Declaration |
 | — | `<leader>pq` | Close all open peek floats |
 
 `gy`/`gri` (and their `pt`/`pi` peeks) and `gD` are capability-gated — they only
-map when the server supports the method. `gd`/`gy`/`gri`/`grr` all use Telescope
-pickers (falling back to the plain LSP handler if Telescope fails to load) —
-a single result still jumps straight there, but a server resolving to several
-targets (e.g. a trait method with multiple impls, or a type with several
-bounds) shows a picker instead of dumping into the quickfix list. `gD` has no
-Telescope equivalent (`telescope.builtin` has no `lsp_declarations`), so it
-stays on the plain handler.
+map when the server supports the method. `gd`/`gD`/`gy`/`gri`/`grr` all use
+snacks pickers (falling back to the plain LSP handler if snacks fails to
+load) — a single result still jumps straight there (via the pickers'
+`auto_confirm`, so it lands ~20% from the top like every picker jump), but a
+server resolving to several targets (e.g. a trait method with multiple
+impls, or a type with several bounds) shows a picker instead of dumping into
+the quickfix list.
 
 **Hover, actions & diagnostics:**
 
@@ -674,7 +722,7 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grx` (codelens) are nvim defaults,
-  not mapped in this config. `grr`/`gri` are overridden to use Telescope.
+  not mapped in this config. `grr`/`gri` are overridden to use snacks pickers.
 
 - **Peek floats (`<leader>p*`)** — VS Code / GoLand-style peek via
   goto-preview; see the LSP *Keymaps* table for the jump/peek pairs. Tuned in
@@ -907,7 +955,7 @@ and optional `setup`/`overrides` for per-theme customization.
 - **Persistence:** The active theme is saved to `stdpath('data')/theme.txt`
   and restored on startup. Delete the file to reset to the default
   (`catppuccin`).
-- **Live picker:** `<leader>st` opens a Telescope picker (`pickers/theme.lua`)
+- **Live picker:** `<leader>st` opens a snacks picker (`pickers/theme.lua`)
   with live preview. Scrolling applies themes in real-time; `<CR>` confirms
   and persists, `<Esc>` restores the original.
 - **Background switching:** Some themes (gruvbox, solarized, oxocarbon,
@@ -956,66 +1004,85 @@ Parser versions are pinned in `nvim-pack-lock.json` (see [Architecture](#archite
 | `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
 
 
-## Telescope
+<a id="picker-snacks"></a>
+## Picker (snacks.nvim)
 
-Fuzzy finder for files, text search, buffers, and help. Uses
-`telescope-fzf-native` (compiled C extension) for faster sorting.
+Fuzzy finder for files, text search, buffers, symbols, and help —
+snacks.picker, pure Lua, no compiled extension. Global setup (layout,
+frecency, shared actions) lives in `picker.lua`; the custom pickers live in
+`pickers/*.lua`. Replaced telescope in 2026-07 — background and decision
+record in `plans/telescope-vs-snacks-picker.md`.
 
 ### Keymaps
 
 | Keymap | Action |
 |---|---|
 | `<leader>sf` | Find files by name |
-| `<leader>sg` | Live grep (search file contents) |
-| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
+| `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
+| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
-| `<leader>sr` | Resume last search |
+| `<leader>sr` | Resume last picker (query, results, and selection restored) |
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
 | `<leader>so` | Recent files |
-| `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
-| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode |
+| `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
+| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim) |
 
-**Inside the telescope window:**
+**Live vs fuzzy (`<leader>sg` and `<leader>ss`):** these two are *live*
+pickers — every keystroke re-runs the search (ripgrep regex for grep, an LSP
+round-trip for symbols) instead of fuzzy-filtering a fixed list. In grep,
+raw rg flags pass through after ` -- `: `handleRequest -- -tgo -g
+'!*_test.go'` (ripgreprc custom types like `-ttest` work too — see README →
+ripgrep). Press `<c-g>` to freeze the current results into the fuzzy
+matcher: fzf-style operators (`'exact`, `^prefix`, `suffix$`, `!negate`,
+`|` OR) and `field:value` filters (`file:lua$`, and in the symbols picker
+`kind:class`, `client_name:gopls`) work there. Every other picker is fuzzy
+from the start.
+
+**Inside a picker** (press `<C-h>` in any picker for its full live keymap
+list — bindings below are the daily set):
 
 | Key | Action |
 |---|---|
-| Type anything | Fuzzy filter results |
-| `<C-n>` / `<C-p>` | Move down / up |
-| `<CR>` | Open highlighted entry (or all multi-selected entries) |
+| Type anything | Filter results (fuzzy, or live — see above) |
+| `<C-n>`/`<C-p>` or `<C-j>`/`<C-k>` | Move down / up |
+| `<CR>` | Open highlighted entry — cursor line lands ~20% from the window top (custom confirm in `picker.lua`; `scrolloff=10` is the floor in short windows) |
 | `<C-v>` | Open in vertical split |
-| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` duplicates `<C-x>`; overrides the global LSP signature-help key while a picker is focused) |
+| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` overrides the global LSP signature-help key while a picker is focused) |
 | `<C-t>` | Open in new tab |
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
-| `<C-q>` | Send all current results to the quickfix list and open it |
-| `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
-| `<C-d>` | In the buffer picker (`<leader>bb`/`<leader>m`): delete the highlighted buffer (or all multi-selected) |
-| `<C-/>` (insert) / `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (Telescope's built-in `which_key`; `<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
-| `<Esc>` | Close |
+| `<C-q>` | Send multi-selection (or all results if none selected) to the quickfix list and open it |
+| `<C-d>` | In the buffer picker: delete the highlighted buffer (or all multi-selected) |
+| `<M-a>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `path:line` refs |
+| `<a-h>` / `<a-i>` | Toggle hidden / ignored files (files and grep; shown as flags in the title) |
+| `<a-p>` / `<a-m>` | Toggle preview / maximize the picker |
+| `<c-g>` | Toggle live ↔ fuzzy (see above) |
+| `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (`<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
+| `<Esc>` | Close in one press, even from insert mode (custom `cancel` binding; focus returns to the launch window) |
 
 **Multi-select workflows:**
-- `<Tab>` marks an entry (a `+` appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
-- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs; `<M-q>` sends just the selected entries to the quickfix list.
-- `<C-q>` ignores tab marks and dumps the entire result list into qflist — handy after a grep when you want every match.
-- Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<M-q>` → `:cdo s/old/new/g | update`.
+- `<Tab>` marks an entry (a dot appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
+- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs.
+- `<C-q>` sends the selection to qflist — or the entire result list when nothing is marked (handy after a grep when you want every match).
+- Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<C-q>` → `:cdo s/old/new/g | update`.
 
 **Per-picker notes:**
-- `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
-- `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
-- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
+- `<leader>bb`/`<leader>m` (buffer picker) — Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
+- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker); the list refreshes in place.
 
 **Tips:**
-- Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
-- In `<leader>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`.
-- `<leader>sr` reopens the last search with the same query — useful when you close telescope and want to get back.
+- Both file search and live grep include hidden files/directories (e.g. `.github/`); `.git/` and `node_modules/` are excluded (source opts in `picker.lua`).
+- Frecency ranking is on: files you open often (and recently) float toward the top of file-ish pickers. The store lives under `stdpath('data')`; delete it to reset.
+- `<leader>sr` reopens the last picker with query and results intact — useful when you close it and want to get back.
+- In the files picker, pasting `path:12:4` jumps to that line/column on `<CR>` (`file:line:col` prompt syntax).
 
 ### Commands
 
 | Command | Purpose |
 |---|---|
-| `:checkhealth telescope` | Verify telescope and fzf-native are working |
+| `:checkhealth snacks` | Verify snacks and the picker's optional deps (sqlite, etc.) |
 
 
 ## Clipboard split
@@ -1213,7 +1280,7 @@ and diagnostic decorations.
 - **Trash** — `D` in the tree sends files to macOS trash (`trash.cmd = 'trash'`,
   uses `/usr/bin/trash`). `d` remains permanent delete.
 - **Polished prompts** — `select_prompts = true` routes rename/delete
-  confirmations through `vim.ui.select` (telescope-ui-select).
+  confirmations through `vim.ui.select` (snacks picker).
 - **Rename fixes imports** — renaming (`r`) or moving a file in the tree fires
   the LSP file-operation requests via nvim-lsp-file-operations, so files that
   imported the old path get rewritten (VS Code's "update imports?" behavior).
@@ -1260,7 +1327,7 @@ Inside the tree (buffer-local, set by `on_attach`):
 - The tree is a **spatial map**, not a search tool. Use `<leader>sf` (find
   files) and `<leader>sg` (grep) for search — they are faster.
 - `<leader>e` always reveals the current file when opening, so it doubles
-  as "where am I?" after jumping to a file via Telescope.
+  as "where am I?" after jumping to a file via a picker.
 - `f` (live filter) narrows the tree to matching filenames — useful for
   large directories. `F` clears it. This is tree-scoped filtering, not
   project-wide search.
@@ -1337,11 +1404,12 @@ that persists state across hides, plus a VS Code-style bottom panel.
 <a id="scratch-buffers"></a>
 ## Scratch buffers (snacks.nvim)
 
-Setup lives in `scratch.lua`. A floating, persistent scratchpad for
-throwaway notes or quick code — no need to create a real file. Only the
-`scratch` module of snacks.nvim is enabled; every other module (dashboard,
-notifier, picker, etc.) stays off since this config already has its own
-equivalents (mini.notify, telescope, ...).
+Keymaps live in `scratch.lua`; the module's options live in `picker.lua`'s
+shared `require('snacks').setup()` call. A floating, persistent scratchpad
+for throwaway notes or quick code — no need to create a real file. Only the
+`picker`, `scratch`, and `indent` modules of snacks.nvim are enabled; the
+rest (dashboard, notifier, etc.) stay off since this config already has its
+own equivalents (mini.notify, ...).
 
 ### Keymaps
 
@@ -1381,9 +1449,9 @@ now tells the whole buffer story: `<leader>bb` picker, `<leader>bd` close,
 <a id="indent-guides"></a>
 ## Indent guides (snacks.nvim)
 
-Setup lives in `scratch.lua`, in the same `require('snacks').setup({...})`
-call as the `scratch` module above — both modules share one setup call since
-that's how snacks.nvim is configured. The `indent` module draws a vertical
+Setup lives in `picker.lua`, in the same `require('snacks').setup({...})`
+call as the `scratch` module above — all snacks modules share one setup call
+since that's how snacks.nvim is configured. The `indent` module draws a vertical
 guide line at every indent level, plus a distinct highlight on the guide for
 the block the cursor is currently inside (its "scope").
 
@@ -1512,7 +1580,7 @@ section below for the full set of review workflows.
   `<leader>hr` reset, `<leader>hp` preview, `<leader>hb` blame line,
   `<leader>tb` toggle the inline current-line blame annotation,
   `]c`/`[c` hunk nav.
-- **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
+- **Git-status picker** (`<leader>sm`, snacks) — quick jump to a changed
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
@@ -1722,7 +1790,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    refills a freed number, so deleting `claude 2` and forking again gives
    `claude 4`, not `claude 2`. A typed label makes a reusable named session
    (`claude: tests`) that re-attaches if you type the same label again.
-   `<leader>al` opens a telescope picker over running sessions to **switch**
+   `<leader>al` opens a snacks picker over running sessions to **switch**
    (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
    Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
    place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
@@ -1753,7 +1821,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New Claude session — blank prompt = auto-numbered, label = named/reusable |
-| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (telescope) |
+| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (snacks picker) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
@@ -1968,6 +2036,12 @@ entirely. Startup-time settings (fork, frame, font) live in `neovide.toml`
 instead, since Neovide reads them before nvim launches. Install/symlink steps
 are in the repo README → "Neovide".
 
+**Launch it as bare `neovide`, not `neovide .`** — Neovide inherits the shell's
+cwd, so the `.` is redundant, and it reaches nvim as a directory buffer that
+nvim-tree hijacks (netrw is off, `hijack_directories` is on by default): you
+land in the file explorer instead of the startup screen. Same as `nvim .` vs
+`nvim`. Open the tree on demand with `<leader>e`.
+
 **macOS-style keymaps** (terminal nvim can't receive `<D-...>`):
 
 | Keymap | Action |
@@ -1982,7 +2056,7 @@ are in the repo README → "Neovide".
 Other Neovide-only behavior:
 
 - `option_key_is_meta = 'both'` — Option acts as Meta so `<M-...>` keymaps
-  (buffer-picker rows, telescope `<M-q>`/`<M-d>`, structural selection) work.
+  (buffer-picker rows, `<M-1>`..`<M-9>` quick-pick, structural selection) work.
 - **Force Click** on the trackpad triggers `:NeovideForceClick` — macOS
   "Look Up" popover for text, Quick Look for file paths/URLs. No setup.
 - Animations are tuned short (cursor 0.05s, scroll 0.1s); floating shadow is

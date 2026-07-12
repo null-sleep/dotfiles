@@ -1,5 +1,15 @@
 # Telescope vs snacks.nvim picker — research & swap assessment
 
+> **Status: MIGRATED (2026-07).** The full migration shipped: every picker
+> (including the custom `pickers/*.lua` and the multi-LSP `symbols.lua`) now
+> runs on snacks.picker, `vim.ui.select` is snacks, and telescope +
+> telescope-fzf-native + telescope-ui-select were removed (no more compiled
+> `make` dep). Global picker setup lives in `nvim/.config/nvim/lua/picker.lua`;
+> the commit series carries `Part-of: telescope -> snacks.picker migration`
+> trailers. Frecency is on; the `smart` picker and the explorer were
+> deliberately deferred — see [Post-migration TODO](#post-migration-todo).
+> The research below is kept as the decision record.
+
 Research doc comparing our current **telescope** stack against **folke's
 snacks.nvim picker**, with a focus on (1) the search-syntax / file-filter gap
 that motivated this, (2) what each is built on and how they perform, (3) each
@@ -862,6 +872,43 @@ quirks stay cleanly solved.
    a follow-up doc once you've decided.
 
 ---
+
+<a id="post-migration-todo"></a>
+## Post-migration TODO
+
+Deferred follow-ups from the migration (decided during implementation review,
+2026-07):
+
+1. **Evaluate the snacks `explorer`** as an nvim-tree complement/replacement —
+   deliberately skipped during the migration to keep it picker-focused.
+   nvim-tree config (including the recent `<C-d>` close-buffer and scrolloff
+   tweaks) is untouched.
+2. **Review snacks' default picker keymaps for inspiration** — the migration
+   preserved our keymap vocabulary; snacks ships bindings we don't surface
+   (`<a-f>` follow, `<c-r>`-register inserts, `<s-cr>` pick-window, layout
+   rotation via `<c-w>HJKL`, ...). Worth a pass over `defaults.lua` /
+   `Snacks.picker.picker_actions()` to steal the good ones.
+3. **Bind `Snacks.picker.smart()`** (frecency-ranked buffers + recent + files
+   in one list) — tentative `<leader><leader>`, key TBD. Note the conflict:
+   `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
+   Keymap index), so either pick another key or decide `smart` supersedes it.
+4. **Visual side-by-side of `<leader>sm` against the old telescope look** —
+   three review rounds already landed (status glyph columns + `syntax` diff
+   style; header-stripped `nowrap` preview; real file line numbers in the
+   preview gutter, derived from hunk headers — something telescope never
+   had) and it now reads "much better", but the direct comparison is still
+   owed. Recipe: screenshot the old look from a pre-migration commit
+   (`git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
+   `git checkout main && git stash pop`), then paste both screenshots into
+   a Claude session to diff the remaining details.
+5. **Look into re-orienting some pickers** — review each picker's layout
+   orientation (preview right vs below, compact vs full-height) against how
+   it's actually used. Snacks makes this cheap: per-source `layout = {
+   preset = ... }` overrides and runtime presets (`ivy`, `vscode`,
+   `dropdown`, `vertical`, `select`, ...), plus `<c-w>HJKL` rotates the
+   layout live inside an open picker for experimenting. Current state:
+   global flips default/vertical at 160 columns; symbols pin vertical;
+   theme/keybindings/sidekick use `select`.
 
 ## Sources
 

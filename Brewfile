@@ -27,9 +27,9 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
 brew "stow"            # symlink dotfiles into $HOME
 brew "git"
 brew "gh"              # GitHub CLI
-brew "fzf"             # fuzzy finder (zsh keybindings + nvim telescope)
-brew "ripgrep"         # rg — telescope live-grep
-brew "fd"              # fast find — telescope file finding
+brew "fzf"             # fuzzy finder (zsh keybindings)
+brew "ripgrep"         # rg — nvim snacks picker live-grep
+brew "fd"              # fast find — nvim snacks picker file finding
 brew "zoxide"          # z / zi directory jumping
 brew "direnv"          # per-directory environment
 brew "coreutils"       # provides gtimeout, used by claude-nvim
