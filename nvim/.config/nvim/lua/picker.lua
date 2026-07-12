@@ -4,8 +4,7 @@
 -- scratch.lua keeps only the scratch keymaps.
 --
 -- Picker migration background: plans/telescope-vs-snacks-picker.md (repo
--- root). During the migration telescope and snacks coexist; telescope is
--- removed in the final step.
+-- root) — this replaced telescope.nvim in 2026-07.
 vim.cmd.packadd('snacks.nvim')
 
 -- After selecting a result, scroll so the cursor lands ~20% from the top.
@@ -65,9 +64,9 @@ end
 
 require('snacks').setup({
   picker = {
-    -- telescope-ui-select still owns vim.ui.select while the two pickers
-    -- coexist; flipped to true when telescope is removed.
-    ui_select = false,
+    -- snacks owns vim.ui.select (consumers: nvim-tree confirmations,
+    -- rustaceanvim runnables, sidekick's prompt library).
+    ui_select = true,
     layout = {
       -- Flex parity with the old telescope config: preview on the right when
       -- wide, below when narrow, flipping at 160 columns.

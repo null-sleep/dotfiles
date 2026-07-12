@@ -38,9 +38,9 @@ Grouped by state, not priority.
 ## Active — outstanding work with momentum
 
 - [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md) — the single
-  tracking doc for the picker effort (telescope → live-grep-args/snacks):
-  research + swap assessment, the removed `filter.lua` spec + rebuild design,
-  and the `<leader>ss` symbols-picker eval (folded in from two former docs).
+  tracking doc for the picker effort, now **migrated** (telescope removed,
+  snacks.picker everywhere, 2026-07): research + swap assessment, the removed
+  `filter.lua` spec, the symbols-picker eval, and the post-migration TODOs.
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
   done / is idle (pipeline first, UI later).

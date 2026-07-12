@@ -17,7 +17,7 @@ require('nvim-tree').setup({
   },
   -- Filter directory names too, not just file names (default only filters files)
   live_filter = { always_show_folders = false },
-  -- Rename/delete confirmations go through vim.ui.select (telescope-ui-select)
+  -- Rename/delete confirmations go through vim.ui.select (snacks picker)
   select_prompts = true,
   diagnostics = { enable = false },
   -- Mark buffers with unsaved changes

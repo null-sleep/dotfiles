@@ -162,7 +162,7 @@ local function build_results()
     local kw   = keywords[keys] or ''
     local tags, derived = resolve_tags(keys, desc, tags_map)
     local tags_str = table.concat(tags, ' ')
-    -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+    -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
     local ordinal = display_keys .. ' ' .. bc .. ' ' .. desc .. ' ' .. kw .. ' ' .. tags_str
 
     seen[keys] = true
@@ -184,7 +184,7 @@ local function build_results()
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp  = entry.group or ''
         local tags_str = table.concat(tags, ' ')
-        -- Keys first so Telescope's fuzzy matcher prioritizes the keybinding itself.
+        -- Keys first so the fuzzy matcher prioritizes the keybinding itself.
         local ordinal = entry.lhs .. ' ' .. grp .. ' ' .. entry.desc .. ' ' .. kw .. ' ' .. tags_str
         table.insert(results, {
           keys = entry.lhs, bc = grp, desc = entry.desc,

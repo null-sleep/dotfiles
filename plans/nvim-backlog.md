@@ -19,8 +19,8 @@ The code is the source of truth; ✅ marks items already shipped.
 
 ## Current stack (for gap reference)
 
-Installed plugins (from `plugins.lua`): nvim-tree, telescope (+fzf-native,
-+ui-select), nvim-treesitter, lualine, gitsigns, satellite, toggleterm,
+Installed plugins (from `plugins.lua`): nvim-tree, snacks.picker,
+nvim-treesitter, lualine, gitsigns, satellite, toggleterm,
 sidekick.nvim (AI), blink.cmp, conform, nvim-lint, mason (+lspconfig
 +tool-installer), nvim-lspconfig, which-key, persistence, flatten, nvim-autopairs,
 render-markdown, lazydev, mini.icons / mini.notify, plenary.
@@ -367,7 +367,7 @@ These have their own plan files — pointers only, not re-listed here:
 - **Quickfix / problems-list ergonomics** → `plans/quickfix-improvements.md`
 - **Semantic text objects (`af`/`if`/`ac`/… select, move, swap)** →
   `plans/treesitter-textobjects.md` (LazyVim's mini.ai delta folded in there)
-- **Picker migration (telescope → live-grep-args/snacks), filter-preset rework,
+- **Picker migration (telescope → snacks — done 2026-07), filter-preset rework,
   and symbols-picker eval** → `plans/telescope-vs-snacks-picker.md`
 - **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
 - **cmux-inspired agent event pipeline (needs-input/done status per sidekick

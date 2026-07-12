@@ -8,7 +8,7 @@ vim.g.neovide_scroll_animation_length = 0.1
 vim.g.neovide_position_animation_length = 0.05
 vim.g.neovide_cursor_trail_size = 0.3
 
--- Treat Option as Meta so <M-...> keymaps work (buffer picker rows, telescope
+-- Treat Option as Meta so <M-...> keymaps work (buffer picker rows, picker
 -- <M-q>/<M-d>). Without this, Option types special chars like ¡, ™.
 vim.g.neovide_input_macos_option_key_is_meta = 'both'
 
@@ -18,7 +18,7 @@ vim.g.neovide_floating_corner_radius = 0.2
 
 -- Neovide draws a drop shadow around floating windows by default; a terminal like
 -- iTerm2 can't, so floats look flatter there. Disable it so floats (toggleterm,
--- telescope, etc.) render with clean flat edges that match terminal nvim.
+-- pickers, etc.) render with clean flat edges that match terminal nvim.
 vim.g.neovide_floating_shadow = false
 
 -- Cmd+Opt+Left/Right for jumplist navigation (editor-style back/forward

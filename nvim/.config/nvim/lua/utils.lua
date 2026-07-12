@@ -50,7 +50,7 @@ end
 -- Why this exists instead of the built-ins:
 --   * vim.fn.confirm() renders at the cmdline (bottom of screen); a centered
 --     popup is wanted, with the same single-keypress y/n interlock.
---   * vim.ui.select/telescope rejected: a fuzzy picker preselects an entry
+--   * vim.ui.select/picker rejected: a fuzzy picker preselects an entry
 --     and <CR> accepts it — exactly wrong for a destructive confirm, where
 --     the default must be No and confirming must be a deliberate 'y'.
 --
