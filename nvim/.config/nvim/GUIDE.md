@@ -10,7 +10,7 @@
 > - Plugin READMEs for gitsigns, satellite, persistence, which-key, etc.
 
 Neovim 0.12+ with native `vim.pack` (not lazy.nvim), Mason for LSP server
-installs, blink.cmp for completion, Telescope for fuzzy finding, treesitter
+installs, blink.cmp for completion, snacks.picker for fuzzy finding, treesitter
 for highlighting/folding, lspconfig v3 API (`vim.lsp.config` + `vim.lsp.enable`).
 Requires a Nerd Font for statusline separators and completion icons.
 
@@ -27,7 +27,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Linting (nvim-lint)](#linting-nvim-lint)
   - [Themes](#themes)
   - [Treesitter](#treesitter)
-  - [Telescope](#telescope)
+  - [Picker (snacks.nvim)](#picker-snacks)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
   - [Editing utilities](#editing-utilities)
@@ -56,7 +56,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`init.lua`** — Sets leader key, requires all modules in dependency order
 - **`configs.lua`** — Core vim options (`updatetime`, `scrolloff`, tabs, undo, splits, `diffopt` with `linematch:60` + histogram, etc.), auto-reload for external file changes (focus/idle/buffer-switch + leaving a terminal, plus a 2s poll timer), nvim update check
 - **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix windows (skips any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
-- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
+- **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
 - **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
@@ -85,7 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 4 columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim). Tags are derived from the desc prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group breadcrumb is hidden from the pills (still searchable)
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
-- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon
+- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). snacks as picker, right-split layout
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -491,7 +491,7 @@ get you there, plus the *defined in* file for a quick source jump.
 
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
-| `<leader>s*` | Search / Telescope pickers | keymaps.lua, `pickers/*.lua` | [Telescope](#telescope) → Keymaps |
+| `<leader>s*` | Search / pickers (snacks) | keymaps.lua, `pickers/*.lua` | [Picker (snacks.nvim)](#picker-snacks) → Keymaps |
 | `<C-\>`, `<leader>T*` | Terminal (toggleterm) — own prefix so gitsigns/LSP buffer-local `<leader>t*` toggles can't shadow it | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
@@ -538,7 +538,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
-| `<M-a>` (in any Telescope picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
+| `<M-a>` (in any picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
 
 Toggling a comment has no dedicated `<leader>t*` map — use nvim's native
 `gc` (operator, e.g. `gcip`) / `gcc` (current line), which are shorter and
@@ -960,74 +960,85 @@ Parser versions are pinned in `nvim-pack-lock.json` (see [Architecture](#archite
 | `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
 
 
-## Telescope
+<a id="picker-snacks"></a>
+## Picker (snacks.nvim)
 
-Fuzzy finder for files, text search, buffers, and help. Uses
-`telescope-fzf-native` (compiled C extension) for faster sorting.
-
-> **Migration in progress** (plans/telescope-vs-snacks-picker.md): the
-> pickers are moving to snacks.picker (setup in `picker.lua`). Already on
-> snacks: every picker in this config. Remaining on telescope:
-> `vim.ui.select` (telescope-ui-select), which flips when telescope is
-> removed; this section is rewritten wholesale when the migration completes.
+Fuzzy finder for files, text search, buffers, symbols, and help —
+snacks.picker, pure Lua, no compiled extension. Global setup (layout,
+frecency, shared actions) lives in `picker.lua`; the custom pickers live in
+`pickers/*.lua`. Replaced telescope in 2026-07 — background and decision
+record in `plans/telescope-vs-snacks-picker.md`.
 
 ### Keymaps
 
 | Keymap | Action |
 |---|---|
 | `<leader>sf` | Find files by name |
-| `<leader>sg` | Live grep (search file contents) |
-| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
+| `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
+| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
-| `<leader>sr` | Resume last search |
+| `<leader>sr` | Resume last picker (query, results, and selection restored) |
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
 | `<leader>so` | Recent files |
-| `<leader>sm` | Modified files (git status) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
-| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode |
+| `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
+| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim) |
 
-**Inside the telescope window** (telescope-backed pickers; the
-snacks-backed ones share `<CR>`/`<C-s>`/`<C-v>`/`<Tab>`/`<C-q>`/`<C-h>`/`<Esc>`
-behavior — press `<C-h>` in any picker for its live keymap list):
+**Live vs fuzzy (`<leader>sg` and `<leader>ss`):** these two are *live*
+pickers — every keystroke re-runs the search (ripgrep regex for grep, an LSP
+round-trip for symbols) instead of fuzzy-filtering a fixed list. In grep,
+raw rg flags pass through after ` -- `: `handleRequest -- -tgo -g
+'!*_test.go'` (ripgreprc custom types like `-ttest` work too — see README →
+ripgrep). Press `<c-g>` to freeze the current results into the fuzzy
+matcher: fzf-style operators (`'exact`, `^prefix`, `suffix$`, `!negate`,
+`|` OR) and `field:value` filters (`file:lua$`, and in the symbols picker
+`kind:class`, `client_name:gopls`) work there. Every other picker is fuzzy
+from the start.
+
+**Inside a picker** (press `<C-h>` in any picker for its full live keymap
+list — bindings below are the daily set):
 
 | Key | Action |
 |---|---|
-| Type anything | Fuzzy filter results |
-| `<C-n>` / `<C-p>` | Move down / up |
-| `<CR>` | Open highlighted entry (or all multi-selected entries) |
+| Type anything | Filter results (fuzzy, or live — see above) |
+| `<C-n>`/`<C-p>` or `<C-j>`/`<C-k>` | Move down / up |
+| `<CR>` | Open highlighted entry — cursor line lands ~20% from the window top (custom confirm in `picker.lua`; `scrolloff=10` is the floor in short windows) |
 | `<C-v>` | Open in vertical split |
-| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` duplicates `<C-x>`; overrides the global LSP signature-help key while a picker is focused) |
+| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` overrides the global LSP signature-help key while a picker is focused) |
 | `<C-t>` | Open in new tab |
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
-| `<C-q>` | Send all current results to the quickfix list and open it |
-| `<M-q>` | Send only multi-selected entries to the quickfix list and open it |
-| `<C-d>` | In the buffer picker (`<leader>bb`/`<leader>m`): delete the highlighted buffer (or all multi-selected) |
-| `<C-/>` (insert) / `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (Telescope's built-in `which_key`; `<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
-| `<Esc>` | Close |
+| `<C-q>` | Send multi-selection (or all results if none selected) to the quickfix list and open it |
+| `<C-d>` | In the buffer picker: delete the highlighted buffer (or all multi-selected) |
+| `<M-a>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `path:line` refs |
+| `<a-h>` / `<a-i>` | Toggle hidden / ignored files (files and grep; shown as flags in the title) |
+| `<a-p>` / `<a-m>` | Toggle preview / maximize the picker |
+| `<c-g>` | Toggle live ↔ fuzzy (see above) |
+| `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (`<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
+| `<Esc>` | Close in one press, even from insert mode (custom `cancel` binding; focus returns to the launch window) |
 
 **Multi-select workflows:**
-- `<Tab>` marks an entry (a `+` appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
-- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs; `<M-q>` sends just the selected entries to the quickfix list.
-- `<C-q>` ignores tab marks and dumps the entire result list into qflist — handy after a grep when you want every match.
-- Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<M-q>` → `:cdo s/old/new/g | update`.
+- `<Tab>` marks an entry (a dot appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
+- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs.
+- `<C-q>` sends the selection to qflist — or the entire result list when nothing is marked (handy after a grep when you want every match).
+- Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<C-q>` → `:cdo s/old/new/g | update`.
 
 **Per-picker notes:**
-- `<leader>sf` / `<leader>sg` (find files / live grep) — default `<Tab>` multi-select works as above.
-- `<leader>bb`/`<leader>m` (buffer picker) — default `<Tab>` multi-select works. Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
-- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker).
+- `<leader>bb`/`<leader>m` (buffer picker) — Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
+- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker); the list refreshes in place.
 
 **Tips:**
-- Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
-- `<leader>sg` (snacks live grep): every keystroke is a ripgrep regex; raw rg flags pass through after ` -- `, e.g. `handleRequest -- -tgo -g '!*_test.go'` (ripgreprc custom types like `-ttest` work too). Press `<c-g>` to freeze results into the fuzzy matcher (fzf operators, `field:value` filters).
-- `<leader>sr` reopens the last picker with the same query — useful when you close it and want to get back.
+- Both file search and live grep include hidden files/directories (e.g. `.github/`); `.git/` and `node_modules/` are excluded (source opts in `picker.lua`).
+- Frecency ranking is on: files you open often (and recently) float toward the top of file-ish pickers. The store lives under `stdpath('data')`; delete it to reset.
+- `<leader>sr` reopens the last picker with query and results intact — useful when you close it and want to get back.
+- In the files picker, pasting `path:12:4` jumps to that line/column on `<CR>` (`file:line:col` prompt syntax).
 
 ### Commands
 
 | Command | Purpose |
 |---|---|
-| `:checkhealth telescope` | Verify telescope and fzf-native are working |
+| `:checkhealth snacks` | Verify snacks and the picker's optional deps (sqlite, etc.) |
 
 
 ## Clipboard split
@@ -1225,7 +1236,7 @@ and diagnostic decorations.
 - **Trash** — `D` in the tree sends files to macOS trash (`trash.cmd = 'trash'`,
   uses `/usr/bin/trash`). `d` remains permanent delete.
 - **Polished prompts** — `select_prompts = true` routes rename/delete
-  confirmations through `vim.ui.select` (telescope-ui-select).
+  confirmations through `vim.ui.select` (snacks picker).
 - **Rename fixes imports** — renaming (`r`) or moving a file in the tree fires
   the LSP file-operation requests via nvim-lsp-file-operations, so files that
   imported the old path get rewritten (VS Code's "update imports?" behavior).
@@ -1272,7 +1283,7 @@ Inside the tree (buffer-local, set by `on_attach`):
 - The tree is a **spatial map**, not a search tool. Use `<leader>sf` (find
   files) and `<leader>sg` (grep) for search — they are faster.
 - `<leader>e` always reveals the current file when opening, so it doubles
-  as "where am I?" after jumping to a file via Telescope.
+  as "where am I?" after jumping to a file via a picker.
 - `f` (live filter) narrows the tree to matching filenames — useful for
   large directories. `F` clears it. This is tree-scoped filtering, not
   project-wide search.
@@ -1995,7 +2006,7 @@ are in the repo README → "Neovide".
 Other Neovide-only behavior:
 
 - `option_key_is_meta = 'both'` — Option acts as Meta so `<M-...>` keymaps
-  (buffer-picker rows, telescope `<M-q>`/`<M-d>`, structural selection) work.
+  (buffer-picker rows, `<M-1>`..`<M-9>` quick-pick, structural selection) work.
 - **Force Click** on the trackpad triggers `:NeovideForceClick` — macOS
   "Look Up" popover for text, Quick Look for file paths/URLs. No setup.
 - Animations are tuned short (cursor 0.05s, scroll 0.1s); floating shadow is

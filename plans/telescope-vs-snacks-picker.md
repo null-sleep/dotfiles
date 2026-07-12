@@ -1,5 +1,15 @@
 # Telescope vs snacks.nvim picker — research & swap assessment
 
+> **Status: MIGRATED (2026-07).** The full migration shipped: every picker
+> (including the custom `pickers/*.lua` and the multi-LSP `symbols.lua`) now
+> runs on snacks.picker, `vim.ui.select` is snacks, and telescope +
+> telescope-fzf-native + telescope-ui-select were removed (no more compiled
+> `make` dep). Global picker setup lives in `nvim/.config/nvim/lua/picker.lua`;
+> the commit series carries `Part-of: telescope -> snacks.picker migration`
+> trailers. Frecency is on; the `smart` picker and the explorer were
+> deliberately deferred — see [Post-migration TODO](#post-migration-todo).
+> The research below is kept as the decision record.
+
 Research doc comparing our current **telescope** stack against **folke's
 snacks.nvim picker**, with a focus on (1) the search-syntax / file-filter gap
 that motivated this, (2) what each is built on and how they perform, (3) each
@@ -862,6 +872,30 @@ quirks stay cleanly solved.
    a follow-up doc once you've decided.
 
 ---
+
+<a id="post-migration-todo"></a>
+## Post-migration TODO
+
+Deferred follow-ups from the migration (decided during implementation review,
+2026-07):
+
+1. **Evaluate the snacks `explorer`** as an nvim-tree complement/replacement —
+   deliberately skipped during the migration to keep it picker-focused.
+   nvim-tree config (including the recent `<C-d>` close-buffer and scrolloff
+   tweaks) is untouched.
+2. **Review snacks' default picker keymaps for inspiration** — the migration
+   preserved our keymap vocabulary; snacks ships bindings we don't surface
+   (`<a-f>` follow, `<c-r>`-register inserts, `<s-cr>` pick-window, layout
+   rotation via `<c-w>HJKL`, ...). Worth a pass over `defaults.lua` /
+   `Snacks.picker.picker_actions()` to steal the good ones.
+3. **Bind `Snacks.picker.smart()`** (frecency-ranked buffers + recent + files
+   in one list) — tentative `<leader><leader>`, key TBD. Note the conflict:
+   `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
+   Keymap index), so either pick another key or decide `smart` supersedes it.
+4. **Compare `<leader>sm` (git-status picker) against the old telescope
+   look** — the port restores the two-icon-column layout, but the telescope
+   version read cleaner (user review, migration pause 2); do a side-by-side
+   and refine spacing/columns.
 
 ## Sources
 

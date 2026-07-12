@@ -1,6 +1,6 @@
 # ripgrep global config — loaded because $RIPGREP_CONFIG_PATH points here
 # (set in zsh/.zshrc_config.zsh). Every `rg` invocation reads this file,
-# INCLUDING the ones telescope and the snacks nvim picker shell out to. So
+# INCLUDING the ones the snacks nvim picker shells out to. So
 # keep it to `--type-add` lines only: those merely *register* file types and
 # change no search behavior. Do NOT add flags like --smart-case or --hidden
 # here — they would silently apply to every editor picker search too.

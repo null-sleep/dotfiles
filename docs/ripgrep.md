@@ -425,7 +425,7 @@ inline unit-test modules. Grep those out with a pattern if needed
 This repo ships one as the [`ripgrep` stow package](../README.md#ripgrep) —
 `ripgrep/.config/ripgrep/ripgreprc`, with `RIPGREP_CONFIG_PATH` exported from
 `zsh`. It contains **only `--type-add` lines** (which merely register types and
-change no behavior), because the *same file is read by the Neovim telescope /
+change no behavior), because the *same file is read by the Neovim snacks
 snacks pickers* when they shell out to `rg` — a stray `--smart-case` or
 `--hidden` there would silently reshape every picker search.
 

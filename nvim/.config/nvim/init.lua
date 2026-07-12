@@ -4,7 +4,7 @@ require('autocmds')  -- general editor autocmds (mkdir-on-save, cursor restore, 
 require('plugins')
 require('picker')              -- snacks.nvim setup: picker (fuzzy finder) + scratch + indent modules
 require('treesitter_context')  -- sticky scope header (VS Code-style sticky scroll)
-require('outline')             -- outline sidebar + telescope picker (aerial.nvim)
+require('outline')             -- outline sidebar + nav popup (aerial.nvim)
 require('structural_select')   -- Helix-style <M-o>/<M-i> expand/shrink selection
 require('keymaps')
 require('completion')

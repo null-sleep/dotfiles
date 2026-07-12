@@ -285,7 +285,7 @@ vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitH
 -- go in the cli.win.keys table in ai.lua, not here.
 -- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
 -- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
--- mode only, so there's no conflict. Telescope's <Tab> (multi-select) is
+-- mode only, so there's no conflict. The picker's <Tab> (multi-select) is
 -- buffer-local to the picker prompt, so it shadows this global binding inside
 -- pickers — no conflict there either.
 vim.keymap.set('n', '<Tab>', function()

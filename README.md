@@ -45,7 +45,7 @@ Ordered path for a brand-new macOS machine. Each step links to its detailed
 section below; the rest of this README is reference material for individual tools.
 
 1. **Homebrew** — `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-2. **Xcode Command Line Tools** (C compiler for treesitter / fzf-native) — `xcode-select --install`
+2. **Xcode Command Line Tools** (C compiler for treesitter) — `xcode-select --install`
 3. **Clone this repo** to `~/src/dotfiles` (HTTPS for now — the [Git](#git) step later rewrites GitHub to SSH):
    ```bash
    mkdir -p ~/src && git clone https://github.com/null-sleep/dotfiles.git ~/src/dotfiles
@@ -152,7 +152,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | Terminal glyphs | file-tree / git icons render, not tofu boxes (▯) — fonts installed |
 | `~/.local/bin/claude-nvim check` | prints `startup-ok` (nvim config loads clean) |
 | `nvim` → `:Mason` | LSP servers/tools show installed, not failed ([Languages](#languages)) |
-| `nvim` → `:checkhealth` | treesitter, telescope, lsp, blink.cmp all green |
+| `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
 
 If the prompt shows the macOS default instead of `➜`, see [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
@@ -587,8 +587,6 @@ Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter AP
 brew install nvim rg fzf fd tree-sitter-cli curl git
 ```
 
-Compile tools: `telescope-fzf-native` needs `make` (ships with Xcode Command Line Tools — run `xcode-select --install` if missing).
-
 Then stow and launch:
 
 ```bash
@@ -599,10 +597,9 @@ nvim
 
 On first launch nvim will:
 1. Download all plugins via `vim.pack` (native package manager)
-2. Compile `telescope-fzf-native` via `make`
-3. Install treesitter parsers for configured languages
-4. Download the `blink.cmp` fuzzy binary (pre-built, requires `curl`)
-5. Install LSP servers via mason (requires internet)
+2. Install treesitter parsers for configured languages
+3. Download the `blink.cmp` fuzzy binary (pre-built, requires `curl`)
+4. Install LSP servers via mason (requires internet)
 
 > **Keymaps, plugins, and per-feature behavior live in
 > [`nvim/.config/nvim/GUIDE.md`](nvim/.config/nvim/GUIDE.md)** — the canonical,
@@ -1087,7 +1084,7 @@ The `rcmd config …` CLI is bundled inside the app but isn't on `PATH` by defau
 
 ## ripgrep
 
-A stow-managed global ripgrep config at `~/.config/ripgrep/ripgreprc` (pointed to by `$RIPGREP_CONFIG_PATH`, exported in [`zsh`](#zsh)) that registers custom [file types](https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#file-types). It contains **only** `--type-add` definitions — no search-behavior flags — because the same file is read by every `rg` invocation, including the ones the Neovim telescope / snacks pickers shell out to.
+A stow-managed global ripgrep config at `~/.config/ripgrep/ripgreprc` (pointed to by `$RIPGREP_CONFIG_PATH`, exported in [`zsh`](#zsh)) that registers custom [file types](https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#file-types). It contains **only** `--type-add` definitions — no search-behavior flags — because the same file is read by every `rg` invocation, including the ones the Neovim snacks pickers shell out to.
 
 ```bash
 cd ~/src/dotfiles

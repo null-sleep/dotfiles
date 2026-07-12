@@ -199,7 +199,7 @@ command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 # ripgrep — point rg at the stow-managed global config, which registers custom
 # file types (e.g. `-trs` for Rust, and per-language `-Ttest` test-file
-# exclusions). Also picked up by the telescope / snacks nvim pickers, since
+# exclusions). Also picked up by the snacks nvim pickers, since
 # they shell out to rg. Guarded on the file existing so an unstowed `ripgrep`
 # package doesn't make every rg call warn about a missing config.
 # See ripgrep/.config/ripgrep/ripgreprc.
