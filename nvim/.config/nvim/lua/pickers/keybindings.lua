@@ -44,6 +44,15 @@ local function is_noise(desc)
   return false
 end
 
+-- Display-only: drop a desc's "Group: " prefix when the group column already
+-- shows it ("Neovide ›  Neovide: Copy" → "Neovide ›  Copy"). The full desc stays
+-- in the search text, so typing "neovide copy" still matches.
+local function strip_group(desc, bc)
+  if bc == '' then return desc end
+  local rest = desc:match('^' .. vim.pesc(bc) .. ':%s*(.+)$')
+  return rest or desc
+end
+
 -- Mode letters → dim label. Normal-only rows render blank (they're most rows, so
 -- a column of "n"s is noise) — same hide-the-redundant idea as pill_tags() below.
 local function modes_label(modes)
@@ -139,7 +148,7 @@ local function make_format(widths)
       { ' ' },
       { align(bc_label(item.bc), widths.bc),        'Comment' },
       { ' ' },
-      { item.desc },
+      { item.label },
       { ' ' },
       { tags_label(item.pills),                     'Comment' },
     }
@@ -148,7 +157,12 @@ end
 
 -- Build group breadcrumb by walking parent chain.
 -- Returns e.g. "Search" for <leader>sg, "Session/Quit" for <leader>qs.
-local function breadcrumb(node)
+--
+-- Keys outside a which-key prefix group (<D-…>, K, jj) have no ancestor to walk,
+-- so fall back to the desc's own "Group: Action" prefix — that's the grouping
+-- <leader>sk should show ("Neovide ›" for `Neovide: Copy`). It doubles as the
+-- derived tag, so pill_tags() then drops the now-redundant +neovide pill.
+local function breadcrumb(node, desc)
   local parts = {}
   local n = node.parent
   while n and n.keys ~= '' do
@@ -157,6 +171,7 @@ local function breadcrumb(node)
     end
     n = n.parent
   end
+  if #parts == 0 then return desc:match('^([^:]+):') or '' end
   return table.concat(parts, ' > ')
 end
 
@@ -203,10 +218,11 @@ local function build_results()
           return '<C-' .. letter:lower() .. '>'
         end)
 
-        local bc = breadcrumb(node)
+        local bc = breadcrumb(node, desc)
         local tags, derived = resolve_tags(keys, desc, tags_map)
         row = {
-          keys = display_keys, bc = bc, desc = desc, modes = { mode },
+          keys = display_keys, bc = bc, desc = desc, label = strip_group(desc, bc),
+          modes = { mode },
           pills = pill_tags(tags, derived, bc),
           kw = keywords[keys] or '', tags_str = table.concat(tags, ' '),
         }
@@ -234,7 +250,8 @@ local function build_results()
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp = entry.group or ''
         results[#results + 1] = {
-          keys = entry.lhs, bc = grp, desc = entry.desc, modes = { 'n' },
+          keys = entry.lhs, bc = grp, desc = entry.desc,
+          label = strip_group(entry.desc, grp), modes = { 'n' },
           pills = pill_tags(tags, derived, grp),
           kw = keywords[entry.lhs] or '', tags_str = table.concat(tags, ' '),
         }
