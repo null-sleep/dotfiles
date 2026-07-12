@@ -16,6 +16,15 @@ vim.g.neovide_hide_mouse_when_typing = true
 vim.g.neovide_proxy_icon = true
 vim.g.neovide_floating_corner_radius = 0.2
 
+-- Breathing room between the window edge and the text — Neovide defaults to
+-- 0, which puts sidebar/gutter content flush against the edge; iTerm2 pads
+-- its panes by roughly this much. Top is left at 0: the titlebar already
+-- separates content vertically.
+vim.g.neovide_padding_left = 8
+vim.g.neovide_padding_right = 8
+vim.g.neovide_padding_bottom = 4
+vim.g.neovide_padding_top = 0
+
 -- Neovide draws a drop shadow around floating windows by default; a terminal like
 -- iTerm2 can't, so floats look flatter there. Disable it so floats (toggleterm,
 -- pickers, etc.) render with clean flat edges that match terminal nvim.
