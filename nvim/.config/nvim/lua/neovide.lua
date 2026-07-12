@@ -30,29 +30,32 @@ vim.g.neovide_padding_top = 0
 -- pickers, etc.) render with clean flat edges that match terminal nvim.
 vim.g.neovide_floating_shadow = false
 
+-- Keep the 'Neovide:' desc prefix on every keymap below: <leader>sk derives its
+-- tag pill from the text before the first ':', so they show up as +neovide.
+
 -- Cmd+Opt+Left/Right for jumplist navigation (editor-style back/forward
 -- through go-to-definition, search jumps, etc.). Terminal nvim can't receive
 -- Cmd, which is why this lives in the Neovide-only file.
-vim.keymap.set('n', '<D-M-Left>',  '<C-o>', { desc = 'Jumplist: Back' })
-vim.keymap.set('n', '<D-M-Right>', '<C-i>', { desc = 'Jumplist: Forward' })
+vim.keymap.set('n', '<D-M-Left>',  '<C-o>', { desc = 'Neovide: Jumplist back' })
+vim.keymap.set('n', '<D-M-Right>', '<C-i>', { desc = 'Neovide: Jumplist forward' })
 
 -- Standard macOS clipboard / save shortcuts.
 -- <C-r>+ is only a paste in insert/cmdline mode — in normal mode <C-r> is
 -- redo, so n/v need real put commands. Visual uses "_d"+P (delete selection
 -- into the black hole, put from clipboard) to match the register-preserving
 -- v-mode `p` mapping in keymaps.lua.
-vim.keymap.set('x', '<D-c>', '"+y',          { desc = 'Copy' })
-vim.keymap.set('n', '<D-v>', '"+p',              { desc = 'Paste' })
-vim.keymap.set('x', '<D-v>', '"_d"+P',           { desc = 'Paste over selection' })
-vim.keymap.set({ 'i', 'c' }, '<D-v>', '<C-r>+',  { desc = 'Paste' })
-vim.keymap.set('t', '<D-v>', [[<C-\><C-n>"+pi]],          { desc = 'Paste (terminal)' })
-vim.keymap.set({ 'n', 'i', 'x' }, '<D-s>', '<Cmd>w<CR>',   { desc = 'Save' })
+vim.keymap.set('x', '<D-c>', '"+y',          { desc = 'Neovide: Copy' })
+vim.keymap.set('n', '<D-v>', '"+p',              { desc = 'Neovide: Paste' })
+vim.keymap.set('x', '<D-v>', '"_d"+P',           { desc = 'Neovide: Paste over selection' })
+vim.keymap.set({ 'i', 'c' }, '<D-v>', '<C-r>+',  { desc = 'Neovide: Paste' })
+vim.keymap.set('t', '<D-v>', [[<C-\><C-n>"+pi]],          { desc = 'Neovide: Paste (terminal)' })
+vim.keymap.set({ 'n', 'i', 'x' }, '<D-s>', '<Cmd>w<CR>',   { desc = 'Neovide: Save' })
 
 -- Cmd+= / Cmd+- to zoom in/out (adjusts scale factor, font stays sharp).
 vim.g.neovide_scale_factor = 1.0
 local function change_scale(delta)
   vim.g.neovide_scale_factor = vim.g.neovide_scale_factor * delta
 end
-vim.keymap.set('n', '<D-=>', function() change_scale(1.1) end,   { desc = 'Zoom in' })
-vim.keymap.set('n', '<D-->', function() change_scale(1 / 1.1) end, { desc = 'Zoom out' })
-vim.keymap.set('n', '<D-0>', function() vim.g.neovide_scale_factor = 1.0 end, { desc = 'Reset zoom' })
+vim.keymap.set('n', '<D-=>', function() change_scale(1.1) end,   { desc = 'Neovide: Zoom in' })
+vim.keymap.set('n', '<D-->', function() change_scale(1 / 1.1) end, { desc = 'Neovide: Zoom out' })
+vim.keymap.set('n', '<D-0>', function() vim.g.neovide_scale_factor = 1.0 end, { desc = 'Neovide: Reset zoom' })
