@@ -67,9 +67,9 @@ local prewarm_term ---@type any?
 
 require('sidekick').setup({
   cli = {
-    -- Use telescope for cli.select() (tool list) and cli.prompt() (prompt library)
+    -- Use snacks for cli.select() (tool list) and cli.prompt() (prompt library)
     -- so the sidekick UI matches the rest of the config.
-    picker = 'telescope',
+    picker = 'snacks',
     win = {
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
       -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely

@@ -962,6 +962,12 @@ Parser versions are pinned in `nvim-pack-lock.json` (see [Architecture](#archite
 Fuzzy finder for files, text search, buffers, and help. Uses
 `telescope-fzf-native` (compiled C extension) for faster sorting.
 
+> **Migration in progress** (plans/telescope-vs-snacks-picker.md): the
+> pickers are moving to snacks.picker (setup in `picker.lua`). Already on
+> snacks: `<leader>sf`/`sg`/`sh`/`sr`/`s/`/`sb`/`so`. The custom pickers
+> below still run on telescope until their port lands; this section is
+> rewritten wholesale when the migration completes.
+
 ### Keymaps
 
 | Keymap | Action |
@@ -979,7 +985,9 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), icon+group breadcrumb (dim), desc, tag pills (dim) |
 
-**Inside the telescope window:**
+**Inside the telescope window** (telescope-backed pickers; the
+snacks-backed ones share `<CR>`/`<C-s>`/`<C-v>`/`<Tab>`/`<C-q>`/`<C-h>`/`<Esc>`
+behavior — press `<C-h>` in any picker for its live keymap list):
 
 | Key | Action |
 |---|---|
@@ -1009,8 +1017,8 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 **Tips:**
 - Both file search and live grep include hidden files/directories (e.g. `.github/`). The `.git/` directory and `node_modules/` are excluded via `file_ignore_patterns`.
-- In `<leader>sg` (live grep), type a space after your search term to filter by filename, e.g. `vim.pack plugins` searches for `vim.pack` only in files matching `plugins`.
-- `<leader>sr` reopens the last search with the same query — useful when you close telescope and want to get back.
+- `<leader>sg` (snacks live grep): every keystroke is a ripgrep regex; raw rg flags pass through after ` -- `, e.g. `handleRequest -- -tgo -g '!*_test.go'` (ripgreprc custom types like `-ttest` work too). Press `<c-g>` to freeze results into the fuzzy matcher (fzf operators, `field:value` filters).
+- `<leader>sr` reopens the last picker with the same query — useful when you close it and want to get back.
 
 ### Commands
 
