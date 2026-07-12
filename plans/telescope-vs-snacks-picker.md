@@ -893,9 +893,23 @@ Deferred follow-ups from the migration (decided during implementation review,
    `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
    Keymap index), so either pick another key or decide `smart` supersedes it.
 4. **Compare `<leader>sm` (git-status picker) against the old telescope
-   look** — the port restores the two-icon-column layout, but the telescope
-   version read cleaner (user review, migration pause 2); do a side-by-side
-   and refine spacing/columns.
+   look** — the port restores the two-icon-column layout, and two review
+   rounds already landed: telescope-style status glyphs + `syntax` diff
+   style, then a header-stripped diff preview (starts at the first `@@`
+   hunk) with `nowrap` (long lines truncate instead of wrapping — likely
+   the main "telescope looked nicer" gap). If it still reads worse than
+   telescope, grab a screenshot of the old look (any pre-migration commit:
+   `git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
+   `git checkout migrate-to-snacks-picker && git stash pop`) and paste both
+   into a Claude session to diff the remaining details.
+5. **Look into re-orienting some pickers** — review each picker's layout
+   orientation (preview right vs below, compact vs full-height) against how
+   it's actually used. Snacks makes this cheap: per-source `layout = {
+   preset = ... }` overrides and runtime presets (`ivy`, `vscode`,
+   `dropdown`, `vertical`, `select`, ...), plus `<c-w>HJKL` rotates the
+   layout live inside an open picker for experimenting. Current state:
+   global flips default/vertical at 160 columns; symbols pin vertical;
+   theme/keybindings/sidekick use `select`.
 
 ## Sources
 
