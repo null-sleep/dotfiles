@@ -12,9 +12,7 @@
 --   background switching (roughly half of them).
 --
 -- HOW IT WORKS
---   Unlike the telescope version this replaced (which overrode the
---   undocumented set_selection/close_windows picker internals), everything
---   here is public snacks API:
+--   Everything here is public snacks API:
 --
 --   on_change — fires on every cursor/selection change, including the
 --     initial selection when the list first renders, so the preview is

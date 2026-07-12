@@ -40,15 +40,13 @@
 --   list.
 --
 --   The picker runs in snacks live mode (the prompt re-fires the finder
---   per keystroke, like telescope's finders.new_dynamic). In live mode
---   snacks' fuzzy matcher does not score, so the finder itself ranks
---   items by name_query via vim.fn.matchfuzzy and `sort = {fields =
---   {'idx'}}` preserves that order. <c-g> (toggle_live) buffers results
+--   per keystroke). In live mode snacks' fuzzy matcher does not score, so
+--   the finder itself ranks items by name_query via vim.fn.matchfuzzy and
+--   `sort = {fields = {'idx'}}` preserves that order. <c-g> buffers results
 --   into the fuzzy matcher, which scores item.text = everything the row
 --   displays (name, kind, client, path — name first so it dominates), so
 --   the frozen set can be refined by any visible info; field-scoped
 --   queries (kind:class, client_name:gopls, relpath:go$) work there too.
---   The successor to the old <c-space> to_fuzzy_refine.
 --
 --   Both modes also share:
 --     1. cwd filter when lua_ls is attached anywhere in the session: drop

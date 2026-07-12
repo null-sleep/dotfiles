@@ -1,10 +1,7 @@
--- snacks.nvim setup: the picker module (fuzzy finder), plus the scratch and
--- indent modules whose options used to live in scratch.lua. There must be
--- exactly one require('snacks').setup() call, so this file owns it;
--- scratch.lua keeps only the scratch keymaps.
---
--- Picker migration background: plans/telescope-vs-snacks-picker.md (repo
--- root) — this replaced telescope.nvim in 2026-07.
+-- snacks.nvim setup: the picker module (fuzzy finder) plus the scratch and
+-- indent module options. There must be exactly one require('snacks').setup()
+-- call, so this file owns it; scratch.lua keeps only the scratch keymaps.
+-- Picker background and decision record: plans/telescope-vs-snacks-picker.md.
 vim.cmd.packadd('snacks.nvim')
 
 -- After selecting a result, scroll so the cursor lands ~20% from the top.
@@ -12,17 +9,15 @@ vim.cmd.packadd('snacks.nvim')
 local CURSOR_TOP_RATIO = 0.20
 
 -- Global <CR> confirm: snacks' default jump + the scroll adjustment above.
--- Two snacks-internals constraints shape this (see snacks picker actions.lua):
---  * <C-s>/<C-v> splits are implemented *through* confirm ({ action =
---    'confirm', cmd = 'split' }) — `action` must be forwarded to jump() or
---    every split key silently degrades to an in-place edit. Side effect:
---    splits get the same 20%-scroll, which telescope's <CR>-only version
---    didn't do.
+-- Two snacks-internals constraints (see snacks picker actions.lua):
+--  * <C-s>/<C-v> splits run *through* confirm ({ action = 'confirm', cmd =
+--    'split' }) — `action` must be forwarded to jump() or every split key
+--    silently degrades to an in-place edit.
 --  * jump() is async while the input is in insert mode (stopinsert +
---    vim.schedule + early return, then a final `norm! zzzv` that re-centers),
---    so a naive "jump then scroll" scrolls before the file is open and then
---    gets clobbered. Mirror the same stopinsert-and-reschedule dance here so
---    jump() runs synchronously (in normal mode) before the winrestview.
+--    vim.schedule + early return, ending in `norm! zzzv`), so a naive "jump
+--    then scroll" runs before the file is open and then gets clobbered.
+--    Mirror the same stopinsert-and-reschedule dance so jump() runs
+--    synchronously before the winrestview.
 local function confirm_and_scroll(picker, item, action)
   if vim.fn.mode():sub(1, 1) == 'i' then
     vim.cmd.stopinsert()
@@ -68,8 +63,8 @@ require('snacks').setup({
     -- rustaceanvim runnables, sidekick's prompt library).
     ui_select = true,
     layout = {
-      -- Flex parity with the old telescope config: preview on the right when
-      -- wide, below when narrow, flipping at 160 columns.
+      -- Preview on the right when wide, below when narrow; flips at 160
+      -- columns.
       preset = function()
         return vim.o.columns >= 160 and 'default' or 'vertical'
       end,
@@ -87,9 +82,8 @@ require('snacks').setup({
     win = {
       input = {
         keys = {
-          -- One-press close from insert mode (telescope muscle memory).
-          -- 'cancel', not 'close': cancel re-pins focus to the window the
-          -- picker was launched from before closing.
+          -- One-press close from insert mode. 'cancel', not 'close': cancel
+          -- re-pins focus to the launch window before closing.
           ['<Esc>'] = { 'cancel', mode = { 'n', 'i' } },
           ['<M-a>'] = { 'send_to_sidekick', mode = { 'i', 'n' } },
           -- <C-h> aliases the default `?` help popup (shows this picker's

@@ -207,9 +207,9 @@ function M.open()
 
   local widths = compute_widths(results)
 
-  -- The fuzzy matcher searches item.text (= the old telescope ordinal: keys
-  -- first, then breadcrumb/desc/keywords/tags, so typing a key sequence
-  -- still ranks the binding itself highest).
+  -- The fuzzy matcher searches item.text: keys first, then breadcrumb/
+  -- desc/keywords/tags, so typing a key sequence ranks the binding itself
+  -- highest.
   local items = {}
   for _, r in ipairs(results) do
     r.text = r.ordinal
