@@ -58,9 +58,42 @@ function M.open()
   return Snacks.picker.git_status({
     cwd = git_root,
     actions = qp_actions,
-    -- Classic full-width diff coloring in the preview; the default 'fancy'
-    -- style draws per-file chip boxes that look broken in a short pane.
-    previewers = { diff = { style = 'syntax' } },
+    -- Custom diff preview instead of the builtin git_status one, for two
+    -- look reasons: classic full-width diff coloring (the default 'fancy'
+    -- style draws per-file chip boxes that look broken in a short pane),
+    -- and no per-file header noise — the preview is already scoped to the
+    -- highlighted file, so the `diff --git`/`index`/`---`/`+++` block is
+    -- dead weight. Everything before the first `@@` hunk is dropped
+    -- *positionally* (a body line may legitimately start with `---` — e.g.
+    -- a deleted lua comment — so pattern-filtering would corrupt it).
+    -- Untracked/added files have no diff and show the file itself, same as
+    -- the builtin.
+    preview = function(ctx)
+      if (ctx.item.status or ''):find('^[A?]') then
+        return Snacks.picker.preview.file(ctx)
+      end
+      local args = { 'git', '-C', git_root, '--no-pager', 'diff' }
+      if ctx.item.status:find('[UAD][UAD]') then
+        args[#args + 1] = '--cc'      -- combined diff for conflicts
+      elseif ctx.item.status:sub(1, 1) ~= ' ' then
+        args[#args + 1] = '--cached'  -- staged changes
+      end
+      vim.list_extend(args, { '--', ctx.item.file })
+      local lines = vim.fn.systemlist(args)
+      local start = 1
+      for i, l in ipairs(lines) do
+        if l:find('^@@') then
+          start = i
+          break
+        end
+      end
+      ctx.item.preview = {
+        text = table.concat(lines, '\n', start),
+        ft = 'diff',
+        loc = false,
+      }
+      return Snacks.picker.preview.preview(ctx)
+    end,
     -- Plain filename colors — the two status-icon columns already carry the
     -- state, and the old picker didn't recolor paths either.
     formatters = { file = { git_status_hl = false } },
@@ -77,9 +110,12 @@ function M.open()
     end,
     -- Only the <M-N> keys are added here; the source's own <Tab> (stage
     -- toggle) and <c-r> (restore) bindings survive the deep-merge.
+    -- nowrap: long diff lines truncate instead of wrapping into unreadable
+    -- fragments (matches the old telescope preview's behavior).
     win = {
       input = { keys = qp_keys },
       list = { keys = qp_keys },
+      preview = { wo = { wrap = false } },
     },
   })
 end
