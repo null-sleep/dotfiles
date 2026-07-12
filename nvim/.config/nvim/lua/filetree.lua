@@ -88,23 +88,33 @@ require('nvim-tree').setup({
   view = { width = 35 },
 })
 
--- Drop the global scrolloff=10 / sidescrolloff=8 (configs.lua) the tree
--- inherits — they let you scroll well past the last file / longest name.
--- FileType refires on reopen, so this persists.
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'NvimTree',
-  desc = 'nvim-tree: drop inherited scrolloff/sidescrolloff padding',
-  callback = function()
-    vim.wo.scrolloff = 0
-    vim.wo.sidescrolloff = 0
-  end,
-})
-
--- Auto-open newly created files immediately after `a` in the tree
 do
   local api = require('nvim-tree.api')
+
+  -- Auto-open newly created files immediately after `a` in the tree
   api.events.subscribe(api.events.Event.FileCreated, function(file)
     vim.cmd('edit ' .. vim.fn.fnameescape(file.fname))
+  end)
+
+  -- Drop the global sidescrolloff=8 / scrolloff=10 (configs.lua) the tree
+  -- inherits: they leave phantom columns right of the longest name, and pull the
+  -- list out from under the cursor near the panel edges.
+  --
+  -- Set from TreeOpen, by window id — NOT from a FileType autocmd. nvim-tree
+  -- sets the filetype while the buffer is in no window, so FileType fires inside
+  -- Neovim's aucmd_win (win_gettype() == 'autocmd') and a vim.wo write there
+  -- dies with that scratch window. TreeOpen fires after open_window(), so
+  -- api.tree.winid() is the real window. See GUIDE.md "Window options for a
+  -- panel must be set by window id".
+  --
+  -- This does NOT stop scrolling past the last file — scrolloff has no effect at
+  -- EOF. That's the scroll clamp in autocmds.lua.
+  api.events.subscribe(api.events.Event.TreeOpen, function()
+    local win = api.tree.winid()
+    if win then
+      vim.wo[win].scrolloff = 0
+      vim.wo[win].sidescrolloff = 0
+    end
   end)
 end
 

@@ -402,6 +402,50 @@ symmetric pair between exactly two plugins, each already owning its own
 keymap file, so the check lives directly in both `outline.lua` and
 `keymaps.lua` rather than behind a new abstraction.
 
+### Panels stop at their last entry
+
+The file tree and outline are lists, not documents: scrolling a 19-entry tree
+until three files sit at the top and twenty blank rows fill the rest is just
+dead space. Two separate mechanisms are needed, and conflating them cost this
+config a commit that did nothing at all (`38a7c0a`, since reverted):
+
+**`scrolloff` does not stop scrolling past the last line.** It has no effect at
+EOF — dead rows below the last entry are identical with `scrolloff` at 0 and at
+10. The only thing that stops it is clamping the view, which is what the
+`WinScrolled` handler in `autocmds.lua` does: it pins `topline` to at most
+`line_count - winheight + 1`, so the last entry can never rise above the bottom
+row. It keeps its own two-entry filetype list rather than reusing
+`buffers.lua`'s `sidebar_filetypes` — that list answers "is this a docked
+sidebar" for the quit handler, and registering a future panel there shouldn't
+silently opt it into scroll clamping.
+
+**What `scrolloff`/`sidescrolloff` *do* fix** is the padding: `sidescrolloff = 8`
+leaves phantom columns to the right of the longest filename, and `scrolloff = 10`
+pulls the list out from under the cursor near the panel edges. Both are set to
+`0` per panel — see the next section for the trap in *how*.
+
+### Window options for a panel must be set by window id
+
+A `FileType` autocmd that sets `vim.wo.scrolloff = 0` for a panel looks obviously
+correct and is silently a no-op for nvim-tree. `vim.wo` writes to whichever window
+is **current at that instant**, and nvim-tree sets its buffer's filetype while the
+buffer is displayed in *no* window — so `FileType` fires inside Neovim's
+`aucmd_win`, the scratch window Neovim temporarily switches to for events on
+undisplayed buffers (`win_gettype() == 'autocmd'`). The write lands there and dies
+with it; the real tree window, created afterwards, keeps the global value.
+
+So set window options from a hook that runs **after** the panel's window exists,
+and address that window **by id**:
+
+- `filetree.lua` subscribes to nvim-tree's `Event.TreeOpen` (dispatched after
+  `open_window()`) and writes `vim.wo[api.tree.winid()]`.
+- `outline.lua` uses aerial's own `layout.win_opts`, which aerial applies by
+  window id on every open — so it survives close/reopen and new tabs for free.
+
+Prefer the plugin's own window hook when it has one. Reach for an autocmd only
+when it doesn't (nvim-tree), and never assume `FileType` runs in the window you
+think it does.
+
 ### Nested nvim routes into the parent (flatten.nvim)
 
 Shells inside an nvim-owned terminal (toggleterm, the sidekick CLI) inherit
