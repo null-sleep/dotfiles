@@ -34,7 +34,7 @@ M.sidebar_filetypes = {
 -- special — it over-matches (dashboards, Neogit/diffview, quickfix, help all
 -- use it too); see GUIDE.md for the accepted boundary this leaves. The
 -- `prompt` arm is future-proofing — neither current consumer can actually hit
--- it (a normal-mode map can't fire in an insert-mode Telescope prompt, and a
+-- it (a normal-mode map can't fire in an insert-mode picker prompt, and a
 -- prompt buffer is never the alternate buffer) — but it's cheap and correct.
 ---@param buf? integer buffer handle, default current (0)
 function M.is_special(buf)

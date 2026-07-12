@@ -58,9 +58,9 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix windows (skips any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), Telescope setup, render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
-- **`keymaps.lua`** — Global keymaps: Telescope pickers (`<leader>s*`), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
+- **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
-- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
+- **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker
@@ -87,9 +87,9 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, TelescopePrompt, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
-- **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). Telescope as picker, right-split layout
+- **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). snacks as picker, right-split layout
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
-- **`pickers/theme.lua`** — Custom Telescope picker for live theme preview with restore-on-cancel
+- **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
@@ -911,7 +911,7 @@ and optional `setup`/`overrides` for per-theme customization.
 - **Persistence:** The active theme is saved to `stdpath('data')/theme.txt`
   and restored on startup. Delete the file to reset to the default
   (`catppuccin`).
-- **Live picker:** `<leader>st` opens a Telescope picker (`pickers/theme.lua`)
+- **Live picker:** `<leader>st` opens a snacks picker (`pickers/theme.lua`)
   with live preview. Scrolling applies themes in real-time; `<CR>` confirms
   and persists, `<Esc>` restores the original.
 - **Background switching:** Some themes (gruvbox, solarized, oxocarbon,
@@ -967,10 +967,9 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 > **Migration in progress** (plans/telescope-vs-snacks-picker.md): the
 > pickers are moving to snacks.picker (setup in `picker.lua`). Already on
-> snacks: every `<leader>s*` picker and `<leader>bb`/`m`. Remaining on
-> telescope: the LSP goto pickers (`gd`/`gy`/`grr`/`gri`), the sidekick
-> session picker (`<leader>al`), and `vim.ui.select`; this section is
-> rewritten wholesale when the migration completes.
+> snacks: every picker in this config. Remaining on telescope:
+> `vim.ui.select` (telescope-ui-select), which flips when telescope is
+> removed; this section is rewritten wholesale when the migration completes.
 
 ### Keymaps
 
@@ -1736,7 +1735,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    refills a freed number, so deleting `claude 2` and forking again gives
    `claude 4`, not `claude 2`. A typed label makes a reusable named session
    (`claude: tests`) that re-attaches if you type the same label again.
-   `<leader>al` opens a telescope picker over running sessions to **switch**
+   `<leader>al` opens a snacks picker over running sessions to **switch**
    (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
    Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
    place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
@@ -1767,7 +1766,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New Claude session — blank prompt = auto-numbered, label = named/reusable |
-| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (telescope) |
+| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (snacks picker) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |

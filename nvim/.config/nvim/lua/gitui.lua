@@ -11,8 +11,8 @@
 -- (lua/git.lua). disable_signs below keeps Neogit from drawing its own gutter
 -- signs on top of gitsigns'.
 --
--- Deps already satisfied elsewhere: plenary.nvim (plugins.lua) and telescope.nvim
--- (plugins.lua) for the selection menus; mini.icons mocks nvim-web-devicons
+-- Deps already satisfied elsewhere: plenary.nvim (plugins.lua) and snacks.nvim
+-- (picker.lua) for the selection menus; mini.icons mocks nvim-web-devicons
 -- (init.lua) for file icons. diffview.nvim is the one new dependency, added
 -- purely for its rich side-by-side diff view via integrations.diffview.
 vim.cmd.packadd('diffview.nvim')
@@ -26,7 +26,7 @@ require('neogit').setup({
   graph_style = 'unicode',      -- portable pretty commit graph (no kitty graphics protocol needed)
   disable_signs = true,         -- gitsigns owns the gutter (see git.lua)
   integrations = {
-    telescope = true,           -- telescope-backed selection menus (branches, commits, ...)
+    snacks = true,              -- snacks-backed selection menus (branches, commits, ...)
     diffview  = true,           -- rich diffs via diffview.nvim instead of Neogit's inline-only view
   },
 })
