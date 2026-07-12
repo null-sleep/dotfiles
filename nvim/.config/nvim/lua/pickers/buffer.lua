@@ -27,15 +27,29 @@ function M.open()
   local idx_width = math.max(1, #tostring(listed))
 
   local qp_actions, qp_keys = common.quick_pick_actions()
-  -- Delete the highlighted buffer (or all multi-selected) without closing
-  -- the picker; shadows the default list_scroll_down in this picker only.
   local keys = vim.tbl_extend('force', qp_keys, {
+    -- Delete the highlighted buffer (or all multi-selected) without closing
+    -- the picker; shadows the default list_scroll_down in this picker only.
     ['<C-d>'] = { 'bufdelete', mode = { 'i', 'n' } },
+    -- The buffers source binds <c-x> to bufdelete by default; restore the
+    -- global meaning (horizontal split, pairs with <C-s>/<C-v>) so the only
+    -- delete key is <C-d>.
+    ['<C-x>'] = { 'edit_split', mode = { 'i', 'n' } },
   })
 
   Snacks.picker.buffers({
     sort_lastused = false,
     actions = qp_actions,
+    transform = function(item)
+      -- Jump to the buffer's live cursor line (info.lnum), not the `"` mark
+      -- snacks defaults to: the mark is only written on unload and can point
+      -- past EOF after a file shrank, which crashes the jump's
+      -- nvim_win_set_cursor. info.lnum tracks the current cursor and is the
+      -- old telescope picker's behavior.
+      local lnum = item.info and item.info.lnum or 0
+      item.pos = lnum > 0 and { lnum, 0 } or nil
+      return item
+    end,
     format = function(item, picker)
       local ret = {}  ---@type snacks.picker.Highlight[]
       ret[#ret + 1] = { Snacks.picker.util.align(tostring(item.idx), idx_width), 'SnacksPickerBufNr' }

@@ -30,7 +30,15 @@ local function confirm_and_scroll(picker, item, action)
     vim.schedule(function() confirm_and_scroll(picker, item, action) end)
     return
   end
-  require('snacks.picker.actions').jump(picker, item, action)
+  -- pcall: a stale item position (e.g. a mark past EOF of a shrunk file)
+  -- makes jump's nvim_win_set_cursor throw — degrade to a warning instead
+  -- of a stack trace. The buffer is usually open at that point, just not
+  -- at the intended line.
+  local ok, err = pcall(require('snacks.picker.actions').jump, picker, item, action)
+  if not ok then
+    vim.notify('picker jump: ' .. tostring(err), vim.log.levels.WARN)
+    return
+  end
   local offset = math.floor(vim.api.nvim_win_get_height(0) * CURSOR_TOP_RATIO)
   vim.fn.winrestview({ topline = math.max(1, vim.fn.line('.') - offset) })
 end
