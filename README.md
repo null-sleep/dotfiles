@@ -658,16 +658,14 @@ neovide() {
 }
 ```
 
-`--fork` detaches the GUI (double-forking, so it survives the terminal closing) and the shell returns immediately; without it Neovide blocks the terminal.
+Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from.
 
-Two traps, both learned the hard way:
+Why the real path: Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
 
-- **Don't redirect its stdout.** Neovide only forks when stdout is a tty, so `neovide --fork >/dev/null` silently becomes a blocking launch.
-- **Don't background it yourself** (`nohup … &`, `&!`). That orphans the process to PPID 1, which Neovide's macOS heuristic reads as a Finder/`open` launch — it then routes nvim through `/usr/bin/login`, which chdirs to `$HOME`, so you lose your working directory. Let `--fork` do the detaching; it sets `NEOVIDE_FORKED_FROM_TTY` to avoid exactly this misdetection.
+`--fork` detaches the GUI (double-forked, so it survives the terminal closing) and returns the shell immediately. Two ways to silently break it:
 
-Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher.
-
-Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
+- **Don't redirect stdout.** Neovide only forks when stdout is a tty, so `neovide --fork >/dev/null` becomes a blocking launch.
+- **Don't background it** (`nohup … &`, `&!`). That orphans it to PPID 1, which Neovide reads as a Finder launch — it then runs nvim via `/usr/bin/login`, which chdirs to `$HOME`, losing your working directory. Let `--fork` do the detaching.
 
 `open -a Neovide` registers too, but runs under launchd and inherits neither: it lands in `~`, and non-Homebrew LSPs/formatters (rust-analyzer, goimports) fall off `PATH`. `open -a Neovide .` fixes the directory at the cost of a directory buffer, which nvim-tree hijacks — see `GUIDE.md` → "Neovide".
 

@@ -163,15 +163,16 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 # Editor
 alias vim=nvim
 alias vi=nvim
-# Run the bundle's real executable, not the Homebrew shim that symlinks into it: a
-# symlinked exec never registers with LaunchServices, so rcmd can't see the window.
-# whence -p skips this function; :A resolves the symlink.
+# Exec the bundle's real executable, not the Homebrew shim that symlinks into it —
+# a symlinked exec never registers with LaunchServices, so rcmd can't see the window.
+# (whence -p = PATH-only lookup, skipping this function; :A resolves the symlink.)
 #
-# --fork detaches (double-forks, survives the terminal closing). Do NOT redirect its
-# stdout: Neovide gates forking on `is_tty()`, so `>/dev/null` silently turns --fork
-# into a blocking launch. Don't background it with nohup/`&!` either — that orphans it
-# to PPID 1, which Neovide's macOS heuristic reads as a Finder launch and routes nvim
-# through `/usr/bin/login`, landing you in $HOME instead of the cwd.
+# Two gotchas, both of which silently break --fork:
+#   - Never redirect stdout. Neovide only forks when stdout is a tty, so `>/dev/null`
+#     turns --fork into a blocking launch.
+#   - Never background it (nohup, `&!`). That orphans it to PPID 1, which Neovide
+#     reads as a Finder launch: it then runs nvim via /usr/bin/login, landing you in
+#     $HOME instead of the current directory.
 neovide() {
   local bin=$(whence -p neovide)
   command "${bin:A}" --fork "$@"

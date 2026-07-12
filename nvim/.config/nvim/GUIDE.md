@@ -2036,11 +2036,11 @@ entirely. Startup-time settings (fork, frame, font) live in `neovide.toml`
 instead, since Neovide reads them before nvim launches. Install/symlink steps
 are in the repo README → "Neovide".
 
-**Launch it as bare `neovide`, not `neovide .`** — the shell's cwd is inherited
-already, and the `.` reaches nvim as a directory buffer that nvim-tree hijacks
-(netrw is off, `hijack_directories` on by default), landing you in the file
-explorer instead of the startup screen. Same as `nvim .` vs `nvim`; open the
-tree on demand with `<leader>e`.
+**Launch it bare (`neovide`, or the `neo` / `neok` aliases), not `neovide .`** —
+the shell's cwd is inherited already, and the `.` reaches nvim as a directory
+buffer that nvim-tree hijacks (netrw is off, `hijack_directories` on by
+default), landing you in the file explorer instead of the startup screen. Same
+as `nvim .` vs `nvim`; open the tree on demand with `<leader>e`.
 
 **macOS-style keymaps** (terminal nvim can't receive `<D-...>`):
 
