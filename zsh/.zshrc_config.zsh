@@ -163,14 +163,18 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 # Editor
 alias vim=nvim
 alias vi=nvim
-# Run the app bundle's real executable, not the Homebrew shim that symlinks into
-# it: a symlinked exec never registers with LaunchServices, so rcmd can't see the
-# window. `open -a Neovide` registers but runs under launchd, losing cwd and PATH.
-# whence -p = PATH-only lookup (skips this function); :A resolves the symlink.
-# Detaching from the shell is neovide.toml's `fork = true`, not a flag here.
+# Run the bundle's real executable, not the Homebrew shim that symlinks into it: a
+# symlinked exec never registers with LaunchServices, so rcmd can't see the window.
+# whence -p skips this function; :A resolves the symlink. Detach is neovide.toml's fork.
 neovide() {
   local bin=$(whence -p neovide)
   command "${bin:A}" "$@"
+}
+alias neo=neovide
+# Same, but close the calling terminal session. `fork = true` detaches the GUI, so
+# it outlives the shell; the `&&` keeps a failed launch on screen.
+neok() {
+  neovide "$@" && exit
 }
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"

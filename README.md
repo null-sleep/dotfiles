@@ -658,6 +658,8 @@ neovide() {
 }
 ```
 
+Two shorthands come with it: `neo` (same thing) and `neok`, which also closes the terminal session it was launched from — handy when the shell was only ever a launcher. `fork = true` detaches the GUI, so it outlives the closed tab.
+
 Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* the bundle, and exec'ing it never registers the process with LaunchServices — so app switchers ([`rcmd`](#rcmd)) can't see or focus the window. The real path registers it while still inheriting the shell's cwd and `PATH`.
 
 `open -a Neovide` registers too, but runs under launchd and inherits neither: it lands in `~`, and non-Homebrew LSPs/formatters (rust-analyzer, goimports) fall off `PATH`. `open -a Neovide .` fixes the directory at the cost of a directory buffer, which nvim-tree hijacks — see `GUIDE.md` → "Neovide".
