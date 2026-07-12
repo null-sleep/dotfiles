@@ -65,7 +65,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
-- **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
+- **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
@@ -967,8 +967,9 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 > **Migration in progress** (plans/telescope-vs-snacks-picker.md): the
 > pickers are moving to snacks.picker (setup in `picker.lua`). Already on
-> snacks: `<leader>sf`/`sg`/`sh`/`sr`/`s/`/`sb`/`so`/`sm`/`st`/`sk`, `<leader>bb`/`m`. The custom pickers
-> below still run on telescope until their port lands; this section is
+> snacks: every `<leader>s*` picker and `<leader>bb`/`m`. Remaining on
+> telescope: the LSP goto pickers (`gd`/`gy`/`grr`/`gri`), the sidekick
+> session picker (`<leader>al`), and `vim.ui.select`; this section is
 > rewritten wholesale when the migration completes.
 
 ### Keymaps
