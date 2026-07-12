@@ -24,21 +24,4 @@ function M.quick_pick_actions()
   return actions, keys
 end
 
---- Telescope variant of the above, bound inside attach_mappings.
---- Still used by pickers/gitstatus.lua until its snacks port lands; removed
---- together with telescope at the end of the migration
---- (plans/telescope-vs-snacks-picker.md).
----
---- @param map function  the `map` arg from attach_mappings(prompt_bufnr, map)
-function M.bind_quick_pick(map)
-  local actions      = require('telescope.actions')
-  local action_state = require('telescope.actions.state')
-  for i = 1, 9 do
-    map({ 'i', 'n' }, '<M-' .. i .. '>', function(prompt_bufnr)
-      action_state.get_current_picker(prompt_bufnr):set_selection(i - 1)
-      actions.select_default(prompt_bufnr)
-    end)
-  end
-end
-
 return M

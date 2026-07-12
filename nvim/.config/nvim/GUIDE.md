@@ -63,8 +63,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (`:Telescope aerial` has no keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
-- **`pickers/gitstatus.lua`** — Custom Telescope git-status picker (`<leader>sm`): row-index column, XY status icons, `<M-1>`..`<M-9>` quick-pick, `<tab>` staging toggle
-- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer picker); the telescope-era `bind_quick_pick(map)` remains for gitstatus until its port lands
+- **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker
+- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom symbol pickers: `M.workspace` (`<leader>ss`) fans `workspace/symbol` to all active LSP clients with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps `lsp_document_symbols` with kind in the ordinal so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
@@ -964,7 +964,7 @@ Fuzzy finder for files, text search, buffers, and help. Uses
 
 > **Migration in progress** (plans/telescope-vs-snacks-picker.md): the
 > pickers are moving to snacks.picker (setup in `picker.lua`). Already on
-> snacks: `<leader>sf`/`sg`/`sh`/`sr`/`s/`/`sb`/`so`, `<leader>bb`/`m`. The custom pickers
+> snacks: `<leader>sf`/`sg`/`sh`/`sr`/`s/`/`sb`/`so`/`sm`, `<leader>bb`/`m`. The custom pickers
 > below still run on telescope until their port lands; this section is
 > rewritten wholesale when the migration completes.
 
@@ -1522,7 +1522,7 @@ section below for the full set of review workflows.
   `<leader>hr` reset, `<leader>hp` preview, `<leader>hb` blame line,
   `<leader>tb` toggle the inline current-line blame annotation,
   `]c`/`[c` hunk nav.
-- **Telescope git-status picker** (`<leader>sm`) — quick jump to a changed
+- **Git-status picker** (`<leader>sm`, snacks) — quick jump to a changed
   file with a diff preview.
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
