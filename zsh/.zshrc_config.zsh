@@ -167,9 +167,10 @@ alias vi=nvim
 # it: a symlinked exec never registers with LaunchServices, so rcmd can't see the
 # window. `open -a Neovide` registers but runs under launchd, losing cwd and PATH.
 # whence -p = PATH-only lookup (skips this function); :A resolves the symlink.
+# Detaching from the shell is neovide.toml's `fork = true`, not a flag here.
 neovide() {
   local bin=$(whence -p neovide)
-  command "${bin:A}" --fork "$@"
+  command "${bin:A}" "$@"
 }
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"

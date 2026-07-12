@@ -654,7 +654,7 @@ The [`zsh`](#zsh) package wraps `neovide` in a function that runs the app bundle
 ```zsh
 neovide() {
   local bin=$(whence -p neovide)
-  command "${bin:A}" --fork "$@"
+  command "${bin:A}" "$@"
 }
 ```
 
