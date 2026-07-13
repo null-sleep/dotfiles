@@ -773,6 +773,85 @@ change"), update the `## AI (sidekick.nvim)` section (`GUIDE.md:1609`):
     raw pasted text. This is the one behavior the "clone the preset" work
     exists to preserve, and nothing else in this list exercises it.
 
+## Performance — the shell-out session backends
+
+**Symptom: nvim freezes up to ~0.6s when you cycle (`<M-]>`), toggle (`<C-]>`)
+or tear down a session.** Found 2026-07-12, fixed in `88cb662`. Start here for
+any sidekick hang.
+
+### Root cause
+
+`State.get()` — which this design leans on everywhere (`fallback_active`, the
+detach sweep, `M.switch`, `M.cycle`, `M.toggle_last`) — runs **every registered
+backend's `sessions()`** synchronously on the main thread (`Util.exec` is
+`vim.system(cmd):wait()`, and nvim has no separate UI thread). Three of them
+shell out, none of which we asked for:
+
+| backend | registered because | blocking call | cost |
+|---|---|---|---|
+| `opencode` | load side-effect of its tool spec, `dofile`d since it's in the default `cli.tools` | `lsof -iTCP -sTCP:LISTEN` | ~41 ms |
+| `tmux` | `executable('tmux') == 1` alone — **not** `cli.mux.enabled` | `ps` scan + `list-panes`/`list-clients` | ~41 ms |
+| `zellij` | `executable('zellij') == 1` alone — same | `zellij list-sessions` | ~21 ms |
+| `terminal` | always; the one we use | none (in-memory registry) | ~0 ms |
+
+`mux.enabled = false` does **not** prevent registration — it only picks the
+backend for *new* sessions. Discovery runs regardless.
+
+Then the **multiplier**: the detach sweep issues up to 2 `State.get` per dynamic
+name, +1 for `M.active`, +2 in `fallback_active` — **9 calls** with 3 forked
+sessions. Measured with tmux + zellij + lsof all present:
+
+| | before | after `88cb662` |
+|---|---|---|
+| `State.get()` | 65 ms | 0.05 ms |
+| `<M-]>` cycle | 65 ms | 0.03 ms |
+| detach sweep (3 sessions) | ~590 ms | 0.17 ms |
+
+**This is why identical code hangs differently per machine**: with no mux binary
+only `opencode` registers (41 ms); install tmux — as the README tells you to,
+for claude-squad — and it's 65 ms.
+
+### The fix
+
+`ai.lua` stubs those backends' `sessions()` to `{}` and prunes `cli.tools` to
+`claude`. Only *external* session discovery is lost; starting and attaching from
+nvim is untouched. See GUIDE.md "Sidekick's session backends shell out on every
+lookup" for the three constraints (stub-never-nil; `Session.setup()` must run
+before the stub or it's silently reversible; skip tmux/zellij when mux is
+actually enabled).
+
+### Diagnostic runbook
+
+```sh
+cd ~/src/dotfiles && git log --oneline -1 && \
+git log --oneline -1 88cb662 2>/dev/null || echo "!! perf fix NOT pulled"; \
+echo "tmux:   $(command -v tmux   || echo 'not installed')"; \
+echo "zellij: $(command -v zellij || echo 'not installed')"; \
+env -u NVIM nvim --headless \
+  -c 'lua local S=require("sidekick.cli.session") S.setup() print("backends: "..table.concat(vim.tbl_keys(S.backends),", ")) local t0=vim.uv.hrtime() for _=1,20 do require("sidekick.cli.state").get({started=true}) end print(("State.get: %.1f ms"):format((vim.uv.hrtime()-t0)/1e6/20))' \
+  -c 'qa!'
+```
+
+- `State.get` **above ~1 ms** → a shell-out backend is live; if the fix isn't
+  pulled, `git pull`.
+- Backends staying *listed* post-fix is correct — only `sessions()` is stubbed.
+  Nil-ing them would trip `Session.new`'s `assert` if mux were enabled.
+- `env -u NVIM` is mandatory, or flatten.nvim routes the probe into your live
+  nvim and reports nothing useful.
+
+### Open follow-ups (only matter if mux is ever enabled)
+
+- **Collapse the sweep's 9 `State.get` calls to 1.** Each is a filtered view of
+  the same snapshot — the filter runs *after* a full enumeration, so it buys
+  nothing. One snapshot + table lookups would take mux's sweep from ~190ms to
+  ~21ms, and immunize this design against whatever backend upstream registers
+  next. Deferred: at 0.05ms/call it changes nothing today.
+- **Async discovery** for the rest: have `sessions()` return the last-known list
+  instantly and refresh via `vim.system(cmd, opts, callback)` (no `:wait()`) —
+  sidekick already does this in `status.lua` (5s TTL). Threads are *not* the
+  answer: `vim.uv` threads get a separate Lua state with no `vim.api`, and the
+  work is a subprocess anyway — only `:wait()` blocks.
+
 ## Out of scope / follow-ups
 
 - **Persistence across nvim restart** → that's the mux backend

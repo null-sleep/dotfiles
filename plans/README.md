@@ -28,6 +28,12 @@ off or delete them as they land; add new ones freely.
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
   in `669b19e`.
   - [ ] **Saved picker searches** - when you search something save that somewhere so you can easily re-run it later. This is a feature that I want to add to the picker plugin.
+- [ ] **Collapse the sidekick detach sweep's 9 `State.get` calls into 1** — all
+  9 filter the same snapshot, so the sweep re-scans the world 9× for nothing.
+  Harmless today (~0.05ms/call post-`88cb662`), but it's the multiplier that
+  turned a 65ms backend scan into a ~590ms freeze — do it before enabling mux.
+  See "Performance" in
+  [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md).
 - [ ] **Evaluate [avante.nvim](https://github.com/yetone/avante.nvim)** — a
   Cursor-style AI plugin (inline suggest + one-click apply, "Zen Mode" agent,
   multi-provider, project `avante.md` instructions). Overlaps what we already
@@ -103,7 +109,9 @@ Grouped by state, not priority.
 - [keymap-tracker.md](keymap-tracker.md) — deferred keymap-usage-tracker research
   (Neovim/which-key internals) + the parked Track C ergonomics backlog.
 - [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md) —
-  **shipped**; kept as the design reference the event-pipeline plan cites.
+  **shipped**; kept as the design reference the event-pipeline plan cites. Also
+  carries the **sidekick performance runbook** — start there if nvim hangs on
+  switching or tearing down a CLI session.
 
 ## Process / one-time
 
