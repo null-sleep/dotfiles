@@ -6,18 +6,24 @@
 -- package.loaded.debug, so require('debug') returns the C debug library, never
 -- this file). Same rationale as linting.lua-not-lint.lua.
 --
--- Rust adapter/configurations are provided by rustaceanvim (lua/rust.lua), so this
--- module only wires the generic engine + UI + keymaps. A Rust debug session is
--- STARTED via <leader>dR (debuggables), the Debug codelens (grx), or <leader>nd
--- (debug nearest test); the keymaps below then drive the running session.
+-- Rust's adapter/configs come from rustaceanvim (lua/rust.lua); Go's come from
+-- nvim-dap-go, set up here; no other language has an adapter. A Rust debug
+-- session is STARTED via <leader>dR (debuggables), the Debug codelens (grx),
+-- or <leader>nd (debug nearest test); the keymaps below then drive the
+-- running session.
 
 vim.cmd.packadd('nvim-nio')
 vim.cmd.packadd('nvim-dap')
 vim.cmd.packadd('nvim-dap-ui')
+vim.cmd.packadd('nvim-dap-go')
 
 local dap, dapui = require('dap'), require('dapui')
 
 dapui.setup()
+
+-- Registers dap.adapters.go + 7 dap.configurations.go for the `go` filetype —
+-- this is what makes a cold-start <F5>/<leader>dc work in a Go buffer.
+require('dap-go').setup()
 
 -- Auto open/close the UI with the debug session. dap.listeners.before[event]
 -- auto-vivifies the subtable; the `.dapui` key just namespaces our listener.
