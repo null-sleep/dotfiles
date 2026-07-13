@@ -120,7 +120,24 @@ require('snacks').setup({
       -- Assigning the same function replaces that table wholesale
       -- (including its `preview = "main"`), restoring the standard
       -- two-pane look with a real preview pane.
-      lines = { layout = pick_layout },
+      lines = {
+        layout = pick_layout,
+        -- With an empty prompt the default previewer duplicates the buffer
+        -- you're already looking at into the preview pane. Match grep's
+        -- empty-state look instead: keep the pane blank until a query is
+        -- typed. Clearing ctx.preview.item is load-bearing: the preview
+        -- memoizes the shown item and typing doesn't always move the
+        -- selection, so without it the blank pane could stick around after
+        -- the first keystroke.
+        preview = function(ctx)
+          if ctx.picker.input.filter.pattern ~= '' then
+            return Snacks.picker.preview.file(ctx)
+          end
+          -- Not preview.none(): that also prints "no preview available".
+          ctx.preview:reset()
+          ctx.preview.item = nil
+        end,
+      },
     },
   },
   scratch = {
