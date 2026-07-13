@@ -2365,16 +2365,23 @@ Note the lists differ even though the key doesn't: Rust's `<leader>dR` enumerate
 real cargo *targets*, while Go's enumerates dap-go's launch *configs*, because Go
 has no target provider to ask. Pick:
 
-- **Debug** — the common case. Builds and launches the package the current file
-  belongs to.
-- **Debug Package** — prompts for a package path, for a `cmd/foo`-style layout
-  where the `main` you want isn't the file you're looking at.
-- **Debug (Arguments)** — same, but prompts for command-line args first. Use
+- **Debug** — the common case. `program = "${file}"`: builds and launches from the
+  file you're in.
+- **Debug Package** — `program = "${fileDirname}"`: the *directory* of the file
+  you're in.
+- **Debug (Arguments)** — like Debug, but prompts for command-line args first. Use
   **Debug (Arguments & Build Flags)** when you also need `-tags`, `-ldflags`, etc.
 - **Attach** — attach to an already-running process instead of launching one.
 - **Debug test** / **Debug test (go.mod)** — debug the test under the cursor
   directly through dap-go, bypassing neotest. `<leader>nd` is the better path;
   these exist for when you want the dap session without neotest in the loop.
+
+**All of these are anchored to the current file** — every one derives `program`
+from `${file}` or `${fileDirname}` (`dap-go.lua`). None of them lets you pick a
+*different* `main` package, so in a `cmd/foo`-style repo you must already be
+inside the package you want to debug; from a library file there is no config that
+will launch your binary. This is the gap a real targets picker would close — see
+`plans/go-targets-picker.md`.
 
 **Inspect while stopped** — dap-ui's Locals pane updates automatically. `<leader>de`
 evaluates the expression under the cursor (or the visual selection); `<leader>dr`
