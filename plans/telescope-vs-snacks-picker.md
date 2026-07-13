@@ -1090,13 +1090,14 @@ Deferred follow-ups from the migration (decided during implementation review,
    assigning the shared `pick_layout` *function* to `sources.lines` —
    snacks replaces (rather than deep-merges) function layouts, which both
    kills the inherited `preview = "main"` and avoids leaking global keys
-   into pickers that pin compact presets. A global height raise 0.8 → 0.9
-   (the old telescope look) was tried and **reverted**: a scroll tick at
-   the list edge re-renders every visible row, so the taller windows made
-   held-down scrolling feel sluggish across all pickers. The `lines`
-   preview pane itself is free — snacks previews a loaded `item.buf` by
-   pointing the preview window at it (no re-read, no new treesitter
-   parse).
+   into pickers that pin compact presets. Global height was also raised
+   0.8 → 0.9 (the old telescope look); briefly reverted on a scroll-feels-
+   slower report — a scroll tick at the list edge re-renders every visible
+   row, so per-tick cost scales with height — then restored once the
+   sluggishness turned out not to track window size (likely snacks
+   itself). The `lines` preview pane is free either way — snacks previews
+   a loaded `item.buf` by pointing the preview window at it (no re-read,
+   no new treesitter parse).
 6. **Set up `<C-g>` (live mode) on more pickers** — we only ever think of
    `<c-g>` as the grep live/fuzzy toggle, but it's a *generic* picker action:
    snacks binds it to `toggle_live` in the picker input
