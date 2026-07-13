@@ -69,7 +69,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('akinsho/toggleterm.nvim') },
   { src = gh('willothy/flatten.nvim') },
 
-  -- Rust / Debug / Test
+  -- Debug / Test / Language support
   -- rustaceanvim pinned to ^9: fast-moving repo that ships breaking majors and
   -- tracks latest Neovim — an unpinned jump to v10 could break the vim.g.rustaceanvim
   -- schema. (Same rationale as blink.cmp's 1.* pin above.)
@@ -78,6 +78,12 @@ vim.pack.add(vim.list_extend({
   { src = gh('rcarriga/nvim-dap-ui') },
   { src = gh('nvim-neotest/nvim-nio') },
   { src = gh('nvim-neotest/neotest') },
+  -- nvim-dap-go publishes no git tags at all, so it cannot be pinned; leave it bare.
+  { src = gh('leoluz/nvim-dap-go') },
+  -- neotest-golang pinned to ^2: ships breaking majors (v1->v2 changed the
+  -- treesitter requirement out from under users) — same rationale as the
+  -- rustaceanvim ^9 pin above.
+  { src = gh('fredrikaverpil/neotest-golang'), version = vim.version.range('^2') },
   -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
   { src = gh('folke/sidekick.nvim') },
 }, themes.sources))

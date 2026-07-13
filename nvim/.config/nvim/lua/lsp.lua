@@ -58,6 +58,8 @@ require('mason-tool-installer').setup({
     'yamllint',       -- yaml linter
     'checkmake',      -- makefile linter
     'codelldb',       -- rust/c/c++ debug adapter (consumed by nvim-dap via rustaceanvim)
+    'delve',          -- go debug adapter (dlv; consumed by nvim-dap via nvim-dap-go)
+    'gotestsum',      -- go test runner (neotest-golang; keeps test JSON off stdout)
   },
 })
 
