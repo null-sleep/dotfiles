@@ -129,6 +129,15 @@ require('snacks').setup({
         -- empty pattern matches everything), so the emptiness has to be
         -- produced by the finder and re-produced when the prompt flips.
         show_empty = true,  -- 0 items on open must not auto-close the picker
+        -- The stock format dims the line-number column with LineNr, which
+        -- fades into the background here (no bold filename column to anchor
+        -- the row like grep has). Re-tag it with the group grep uses for
+        -- file names. ret[1] is the number column ({idx, hl, virtual}).
+        format = function(item, picker)
+          local ret = Snacks.picker.format.lines(item, picker)
+          ret[1][2] = 'SnacksPickerFile'
+          return ret
+        end,
         finder = function(opts, ctx)
           if ctx.filter.pattern == '' then return {} end
           return require('snacks.picker.source.lines').lines(opts, ctx)

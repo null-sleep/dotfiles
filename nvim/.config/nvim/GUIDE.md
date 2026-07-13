@@ -1100,7 +1100,7 @@ popups), but replaces function layouts wholesale.
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
-| `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer |
+| `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer — starts empty until you type (like grep, see the Layout note above); the line-number column borrows grep's file-name highlight so rows stay anchored |
 | `<leader>so` | Recent files |
 | `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns |
