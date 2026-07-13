@@ -151,6 +151,15 @@ require('snacks').setup({
       border = 'rounded',  -- match toggleterm's curved float style (nvim_open_win vocabulary differs)
     },
   },
+  -- Large-file protection. Defaults: >1.5MB, or an *average* line length >1000
+  -- (the minified case — a 1-line 2MB .js trips this despite being one line).
+  -- The mechanism is a filetype *rename* to 'bigfile', not a feature switch:
+  -- everything ft-keyed (LSP, treesitter, nvim-lint, conform, aerial,
+  -- render-markdown) then simply never matches. Subsystems that are NOT
+  -- ft-keyed — gitsigns, satellite, auto-save, sidekick NES — still run; see
+  -- GUIDE.md "Big files get a filetype rename, not a per-feature guard" and
+  -- plans/large-file-protection.md for what that leaves open.
+  bigfile = { enabled = true },
   -- Indent guides off by default; toggle on with <leader>tg. `enabled = false`
   -- survives snacks' auto-enable (setup only forces enabled=true when it's nil),
   -- so the module never activates on BufReadPost and Snacks.indent.enabled stays

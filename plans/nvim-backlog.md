@@ -389,6 +389,16 @@ Options land in `configs.lua`, autocmds in `autocmds.lua`. Only genuine deltas
   shell/TUI keys (readline, the Claude CLI uses several) — scope to non-CLI
   terminals only, or skip.
 
+### ✅ Done: big-file protection → `snacks.bigfile`
+
+Enabled with stock defaults in `picker.lua` (2026-07-13) — a one-liner, since
+snacks was already installed. Mechanism: it renames a >1.5MB (or minified —
+average line length >1000) buffer's **filetype to `bigfile`**, and everything
+ft-keyed (LSP, treesitter, nvim-lint, conform, aerial, render-markdown) then
+never matches. Not covered by the rename, and deliberately deferred: gitsigns,
+satellite, auto-save, sidekick NES. See `plans/large-file-protection.md` and
+GUIDE.md "Large files".
+
 ## Smaller wishlist (from TODO.md)
 
 - **octo.nvim** — view/comment/review GitHub PRs in-editor. Heavy plugin; may
@@ -477,12 +487,8 @@ they aren't proposed again.
   + `inccommand`; the others don't earn a slot yet.
 - **structlog / `:LvimInfo` / nlsp-settings** — `:checkhealth` + mini.notify +
   native `exrc` (`.nvim.lua`) cover these at personal scale.
-- **Big-file protection** (`bigfile.nvim` / `snacks.bigfile`) — deferred, not
-  hard-rejected: treesitter is already guarded (>50k lines / >1.5MB in
-  `plugins.lua`). Revisit only if big files still lag from blink or indent
-  guides; if so the move is enabling `snacks.bigfile` (already installed), not
-  a new plugin. (Adjudicated this way across the AstroNvim, LazyVim, and
-  LunarVim passes.)
+- ~~**Big-file protection**~~ — **shipped 2026-07-13**, moved out of Rejected;
+  see "Done: big-file protection" under Options & autocmds.
 
 ---
 

@@ -27,6 +27,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Linting (nvim-lint)](#linting-nvim-lint)
   - [Themes](#themes)
   - [Treesitter](#treesitter)
+  - [Large files](#large-files)
   - [Picker (snacks.nvim)](#picker-snacks)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
@@ -522,6 +523,50 @@ plugin global gets its stale value resurrected on each restore. Not worth it for
 a one-keystroke panel. (See `session.lua`'s posterity comment for the full
 rationale, including why the flag would've had to be stored `0`/`1` rather than
 a boolean.)
+
+### Big files get a filetype rename, not a per-feature guard
+
+`snacks.bigfile` doesn't disable anything. It renames the buffer's filetype to
+`bigfile`, and *that* is the protection — every filetype-keyed subsystem then
+never matches: LSP (`vim.lsp.enable` is ft-matched, so document-highlight and
+codelens go with it, since they only register inside `LspAttach`), nvim-lint
+(`linters_by_ft` — killing both its BufReadPost and BufWritePost runs), conform,
+aerial, render-markdown, treesitter-context, and native treesitter (whose
+`FileType` autocmd in `plugins.lua` is patterned on `ts_filetypes`, which
+doesn't include `bigfile`).
+
+The alternative was an exported `is_large(buf)` predicate threaded through every
+attach site. It would keep the real filetype — so `gc` and ftplugin survive —
+but it costs ~8 edit sites, each with a different attach lifecycle (LSP
+per-client, gitsigns per-buffer, aerial per-backend, satellite per-window), and
+every future ft-keyed plugin would need a fresh guard. The rename gets six
+subsystems for free and stays correct as plugins are added. LazyVim reaches the
+same conclusion: `bigfile = { enabled = true }` and no file-size logic of its
+own anywhere.
+
+The trade is real, and the price is paid in two places: `gc` breaks (no
+`commentstring`, since no ftplugin ran), and the subsystems that *aren't*
+ft-keyed — gitsigns, satellite, auto-save, sidekick NES — keep running. Both are
+accepted for now; `plans/large-file-protection.md` records the per-subsystem fix
+if one bites.
+
+**Two tiers, deliberately not unified.** snacks measures **bytes** (>1.5MB) and
+**average line length** (>1000, the minified case). `is_large_buffer` in
+`plugins.lua` measures **lines** (>50k) and gates treesitter only. Snacks has no
+line-count criterion at all, and the gap is real: a 60k-line file of short lines
+(~700KB) is not a snacks bigfile — its filetype stays `python`, LSP and
+completion still work, correctly, because they cope fine — but a treesitter
+parse plus `foldexpr` over 60k lines is the pathological part, and that guard
+already blocks exactly it. The size arm of `is_large_buffer` is now largely
+redundant, but it stays as the backstop for buffers snacks *can't* classify
+(no on-disk file → `getfsize <= 0` → never renamed).
+
+**`bigfile` is not in `buffers.lua`'s `special_filetypes`.** That registry means
+"not a real editable code buffer" and its consumers *decline to act* — the
+`<leader>o`/`<leader>O` outline guards, the quit-when-only-sidebars autocmd. A
+big file **is** a real code buffer, just an expensive one; registering it would
+make `<leader>o` refuse to open the outline on it. Same separation described in
+[Non-code buffer exceptions need a shared predicate](#non-code-buffer-exceptions-need-a-shared-predicate).
 
 ### Sidekick's session backends shell out on every lookup
 
@@ -1035,7 +1080,9 @@ attached directly in `plugins.lua`.
 - **Folding** — AST-based via `vim.treesitter.foldexpr()`; files open fully
   expanded (`foldlevel = 99`).
 - **Large files are skipped** — buffers over 50k lines or 1.5MB get neither
-  highlighting nor folding attached, to avoid UI lag.
+  highlighting nor folding attached, to avoid UI lag. This is the *line-count*
+  tier of large-file handling; the bytes tier belongs to snacks.bigfile, which
+  disables far more than treesitter. See [Large files](#large-files).
 - **Auto-install on startup** — parsers missing from `ensure_installed` are
   installed the next time nvim starts. There is **no** auto-install when
   opening a file whose language isn't in that list — for those, run
@@ -1058,6 +1105,45 @@ Parser versions are pinned in `nvim-pack-lock.json` (see [Architecture](#archite
 | `:InspectTree` | View the parsed AST for the current buffer |
 | `:Inspect` | Show highlight groups under the cursor |
 | `:checkhealth nvim-treesitter` | Verify installed parsers and requirements |
+
+
+## Large files
+
+`snacks.bigfile` (enabled in `picker.lua`, which owns the single
+`snacks.setup()`) protects you from opening a huge or minified file. It trips
+when a file is **over 1.5MB**, or when its **average line length exceeds
+1000** — the minified case, which a one-line 2MB `.js` hits despite being a
+single line.
+
+What it does is rename the buffer's **filetype to `bigfile`**. That rename *is*
+the protection: everything keyed on filetype — LSP (and with it
+document-highlight and codelens), nvim-lint, conform, aerial, render-markdown,
+treesitter — simply never matches. On top of that you get `foldmethod=manual`,
+no statuscolumn, no conceal, completion off, and matchparen off. Regex `syntax`
+highlighting is re-enabled with the real filetype, so the file is still
+readable, just not treesitter-highlighted.
+
+You'll know it fired: a notification on open, and `:set ft?` says `bigfile`
+(the statusline shows it too).
+
+**Why `gc` doesn't work in a big file** — no ftplugin ran, so `commentstring`
+is unset. `:setf lua` (the real filetype) brings commenting back, and
+re-attaches LSP with it. There's no dedicated restore command; treesitter still
+won't attach on a >1.5MB file, because the line/size guard in `plugins.lua` is
+independent.
+
+**What still runs on a big file** — gitsigns, satellite, auto-save and
+sidekick's NES are not filetype-keyed, so the rename doesn't reach them. This is
+a known, accepted gap; `plans/large-file-protection.md` records the fix for each
+if one ever bites. Note gitsigns' own `max_file_length` is 40000 *lines*, which
+a one-line minified file sails straight through.
+
+**Two limits of the mechanism:** it needs a real on-disk file (a pasted or
+`:enew` buffer is never classified), and it classifies at filetype-detection
+time only — a buffer that's already open needs `:e` to be re-checked.
+
+See Design Decisions →
+[Big files get a filetype rename, not a per-feature guard](#big-files-get-a-filetype-rename-not-a-per-feature-guard).
 
 
 <a id="picker-snacks"></a>
