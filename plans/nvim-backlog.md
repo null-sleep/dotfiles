@@ -286,6 +286,58 @@ inventory).
   (snacks already installed). Conflict: `]]`/`[[` are core section motions —
   confirm they're unused in your languages first.
 
+## Picker (snacks) — missing keymaps & sources
+
+From a 2026-07-13 pass over LazyVim's `extras/editor/snacks_picker.lua` (~45
+picker keymaps) against this config's ~12. The picker *internals* here are far
+ahead of LazyVim's (custom `confirm` scroll-to-20%, `send_to_sidekick`,
+frecency, width-flipping layout, the empty-until-typed `lines` source, plus the
+bespoke symbols/keybindings/gitstatus/buffer/theme pickers) — the gap is purely
+which stock snacks sources are bound. All of these are one-liners against
+already-installed snacks; the only real work is collision-checking keys against
+`plans/keymap-tracker.md`.
+
+Ordered by expected payoff:
+
+- **`<leader>sw` grep word/selection** — `Snacks.picker.grep_word()` in **both**
+  `n` and `x` mode (visual selection becomes the query). The most-used LazyVim
+  picker map and the most obvious hole here — today grepping the symbol under
+  the cursor means `<leader>sg` + retyping it.
+- **Diagnostics picker** — `Snacks.picker.diagnostics()` /
+  `diagnostics_buffer()`. There is no diagnostics *list* of any kind today
+  (no trouble, no qflist wiring), so this is the cheapest path to
+  project-wide-problems browsing. Overlaps the trouble.nvim /
+  `plans/quickfix-improvements.md` asks — do this first and see if either is
+  still wanted.
+- **`Snacks.picker.undo()`** — undotree as a picker (diff preview per undo
+  state), no new plugin. Nothing covers this today.
+- **Git history pickers** — `git_log_file()` (current file's history),
+  `git_log_line()` (blame the line, with the commit's diff in the preview),
+  `git_log()`, `git_diff()` (hunks), `git_stash()`. `pickers/gitstatus.lua`
+  covers *status* only; history/blame browsing has no picker (gitsigns'
+  inline blame is a different question — "who wrote this line", not "show me
+  the commit").
+- **`grep_buffers()`** — grep across open buffers only; the natural middle
+  ground between `<leader>sb` (this buffer) and `<leader>sg` (whole tree).
+- **Vim-state pickers** — `command_history`, `search_history`, `registers`,
+  `marks`, `jumps`, `qflist`, `loclist`, `commands`. Low individual value, but
+  they're free and they're what makes the picker a command palette.
+
+Not worth porting from LazyVim's picker config:
+
+- **`<a-t>` trouble_open** — requires trouble.nvim, which is not installed
+  (and is separately deferred above).
+- **`<a-c>` toggle_cwd** — the in-picker half of the root-dir abstraction; see
+  Rejected below.
+- **Flash-in-picker (`s` labels every visible row, then jumps)** — genuinely
+  nicer than the `<M-1>`–`<M-9>` quick-pick in `pickers/common.lua` (not capped
+  at 9, works after filtering), but it's a flash.nvim feature. Fold this into
+  the flash decision under "Editing power & motions" rather than treating it as
+  a picker item — if flash lands, add the picker action too.
+- **`Snacks.picker.projects()` / `colorschemes()`** — no project-switching
+  workflow here, and `pickers/theme.lua` already beats the stock colorscheme
+  picker.
+
 ## Language servers & snippets
 
 - **JSON/YAML LSP + schemastore** — verified gap: no `jsonls`/`yamlls` in
@@ -414,7 +466,13 @@ they aren't proposed again.
   covers diagnostics/inlay/format/lint/spell/numbers/indent/AI/blame/hover.
 - **Root-dir detection abstraction** (LazyVim `util/root.lua`) — big lift,
   moderate payoff unless monorepo (cwd ≠ project root) work becomes common.
-  Revisit on demand, don't port speculatively.
+  Revisit on demand, don't port speculatively. Reconfirmed 2026-07-13 during
+  the snacks.picker pass: LazyVim gives *every* file/grep map a root-dir and a
+  cwd variant (`<leader>ff` vs `<leader>fF`, detected LSP-workspace → root
+  patterns → cwd) plus an `<a-c>` toggle inside the picker. That doubles the
+  keymap surface to solve a problem that only exists when you launch nvim from
+  somewhere other than the project root — not the case here. Every picker in
+  this config uses cwd, deliberately.
 - **dial.nvim / yanky / inc-rename** — inc-rename is redundant with core `grn`
   + `inccommand`; the others don't earn a slot yet.
 - **structlog / `:LvimInfo` / nlsp-settings** — `:checkhealth` + mini.notify +
