@@ -8,11 +8,11 @@ vim.cmd.packadd('snacks.nvim')
 -- 160 columns, per picker open. Deliberately a *function*: snacks replaces
 -- (rather than deep-merges) function layouts, so pickers that pin their own
 -- layout (select popups, symbols) can't inherit stray keys from here.
+-- No height override: 0.9 (the old telescope look) was tried and reverted —
+-- a scroll tick at the list edge re-renders every visible row, so the
+-- taller window made held-down scrolling feel sluggish in every picker.
 local function pick_layout()
-  return {
-    preset = vim.o.columns >= 160 and 'default' or 'vertical',
-    layout = { height = 0.9 },  -- presets default to 0.8; match the old telescope look
-  }
+  return { preset = vim.o.columns >= 160 and 'default' or 'vertical' }
 end
 
 -- After selecting a result, scroll so the cursor lands ~20% from the top.
