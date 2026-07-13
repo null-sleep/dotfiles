@@ -59,7 +59,7 @@ constraint: keep both pre-warms.
 |---|--------|--------|------|
 | **5** | `utils.lua` — `lazy_setup` helper | enabler, trivial | Minimal (must precede 6–8) |
 | **6** | `gitui.lua` — defer neogit (11ms) | best of Phase 2 | Moderate — `:Neogit` `did_setup` lock-in needs the `UIEnter`-once override |
-| **7** | `testing.lua` — defer neotest (7.6ms) | medium | Moderate |
+| **7** | `testing.lua` — defer neotest (~15-19ms since Go landed) | now second-best | Moderate |
 | **8** | `filetree.lua`/`outline.lua` — defer nvim-tree (3.6ms) | smallest | Moderate — `is_ready()` guard |
 
 ### Recommended order
@@ -162,11 +162,19 @@ re-source like today's eager behavior).
   init-time override gets clobbered when the end-of-startup plugin phase re-sources `plugin/`
   files — verified empirically).
 
-### 7. `testing.lua` — defer neotest (7.6ms)
-- `ensure()` wraps packadds + `neotest.setup{adapters={require('rustaceanvim.neotest')}}`; all
-  `<leader>n*` prepend it. (`<leader>nd` needs no extra wiring now that dap stays eager.)
+### 7. `testing.lua` — defer neotest (7.6ms → ~15-19ms since Go landed)
+- **The payoff roughly doubled (2026-07).** Adding Go support put `neotest-golang` in the
+  adapter list, and constructing it eagerly costs **~7-11ms** on its own (it `require`s
+  plenary's whole lib chain at load). `nvim-dap-go` adds a further ~1.5ms to `debugging.lua`.
+  Every session pays it, including ones that never open a `.go` file — Rust, by contrast, is
+  ftplugin-lazy via `rust.lua`. Deferring this item now buys ~15-19ms, not 7.6ms.
+- `ensure()` wraps packadds + `neotest.setup{adapters={...}}`; all `<leader>n*` prepend it.
+  (`<leader>nd` needs no extra wiring now that dap stays eager.)
 - `rust.lua` stays an eager require in `init.lua` (keeps the deferred adapter require safe) —
   reword the ordering comments in `init.lua`/`testing.lua`/nvim `CLAUDE.md`.
+- Careful: `testing.lua` now builds its adapter list behind a `pcall` so a broken
+  neotest-golang can't take neotest (or Rust tests) down with it. Preserve that guard when
+  moving the setup into `ensure()`.
 - Optional: `UIEnter`-once `:Neotest` override calling `ensure()` (failure without it is loud,
   not silent — lower priority than `:Neogit`).
 

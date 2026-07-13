@@ -288,6 +288,37 @@ Per-change commits carrying a `Part-of: go debug + test support` trailer:
 
 Splitting 4 from 5 keeps the move/rename diff reviewable on its own.
 
+### What actually shipped (2026-07)
+
+Implemented and committed. Deviations from the above, all deliberate:
+
+- **GUIDE landed as one commit, not two.** The restructure and the Go section
+  touch interleaved regions of the same file; splitting them would have meant
+  hand-staging hunks for little review benefit.
+- **Two bugs caught by a post-implementation review**, fixed in a follow-up
+  commit — both were live defects in the first cut:
+  - `dap_manual_config` had been written as a **table literal**. neotest-golang
+    mutates what it gets back (sets `.program`, appends `-test.run <regex>` to
+    `.args`), so the literal was one shared table and each `<leader>nd` appended
+    another filter to it. A run with no regex would inherit the stale filter and
+    silently debug the *previous* test. It is now a **function returning a fresh
+    table** (upstream's type is `table|fun(): table`, and it calls it).
+  - **`outputMode = 'remote'` was missing.** dap-go sets it on all seven of its
+    own configs; delve defaults to local output mode, which a detached server
+    adapter can't forward — so a debugged Go test emitted no `t.Log`/`println`
+    output at all.
+- **Both Go plugin loads are `pcall`-guarded.** `init.lua` wraps nothing, so a
+  throw in `debugging.lua` would abort every module after it — and since the
+  dap-go setup sits above the keymaps, a broken *Go* plugin would have taken
+  *Rust* debugging with it. Same for the neotest-golang adapter, which would
+  otherwise have killed neotest wholesale, Rust tests included. nvim-dap-go has
+  no tags and tracks main, which makes this the likeliest thing here to break.
+- **Startup cost accepted, not paid down.** The eager adapters add ~9-13ms to
+  every session (neotest-golang is most of it — it pulls plenary's lib chain at
+  require time), including sessions that never open a `.go` file. Logged against
+  item #7 of `plans/nvim-startup-performance.md`, whose payoff this roughly
+  doubles; deferring belongs with that item, not bolted on here.
+
 ---
 
 ## Verification
