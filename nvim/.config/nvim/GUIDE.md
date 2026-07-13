@@ -73,8 +73,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
-- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Named to avoid shadowing `require('dap')` / `require('debug')`
-- **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter; `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
+- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Also sets up nvim-dap-go (the delve adapter + Go launch configs) — Rust's adapter comes from rustaceanvim instead, so it lives in `rust.lua`. Named to avoid shadowing `require('dap')` / `require('debug')`
+- **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, Copilot/NES activity, lsp_status, location), powerline separators, global statusline. The Copilot/NES indicator (in `lualine_x`, left of `lsp_status`) reads `sidekick.status.get()` — hidden when idle, robot glyph while the Copilot LSP is busy (NES requests flow through it), red on error
@@ -2340,9 +2340,19 @@ original opts. `dap-go.setup()` **appends** its seven configurations instead
 of replacing them (it only guards `dap.configurations.go == nil`), so under
 the default mode, each debugged test would permanently add 14 stale entries
 to the `<F5>` config picker. `'manual'` makes neotest build its own DAP
-config from `dap_manual_config` (`name`, `type = 'go'`, `request = 'launch'`,
-`mode = 'test'`) and never call `dap-go.setup()` again — the picker stays at
-seven.
+config from `dap_manual_config` and never call `dap-go.setup()` again — the
+picker stays at seven.
+
+`dap_manual_config` is passed as a **function returning a fresh table**, not as
+a table literal, and that matters for the same reason: neotest-golang *mutates*
+whatever it gets back (it sets `.program` and appends `-test.run <regex>` to
+`.args`). A literal would be the same shared table on every run, so the
+`-test.run` filters would pile up and a stale filter could silently debug the
+previous test. The table it returns supplies `name`, `type = 'go'` (the adapter
+dap-go registered), `request = 'launch'`, `mode = 'test'` (delve's test-binary
+mode), and `outputMode = 'remote'` — without that last key the debuggee's own
+stdout (`t.Log`, `fmt.Println`) never reaches dap's output, since delve defaults
+to local mode. neotest injects `program`, `args`, and `cwd` itself.
 
 ### Troubleshooting
 
@@ -2359,6 +2369,14 @@ seven.
   version, and the `-race`-without-cgo case.
 - **Don't put a scratch Go module under `/tmp`**: neotest-golang's health
   check flags `/tmp` and `/private/tmp` on macOS as known-problematic paths.
+- **Restart nvim after Mason's first install.** If `gotestsum` isn't on `PATH`
+  when a test runs, neotest-golang warns once, falls back to plain `go test`,
+  and — importantly — *rewrites the `runner` option for the rest of the
+  session*, so it keeps using `go test` even after Mason finishes installing
+  gotestsum. On a fresh machine Mason installs ~30s into the first launch (see
+  `start_delay` in `lsp.lua`), so that first session can silently run in the
+  very stdout-interleaving mode gotestsum exists to avoid. One restart fixes it
+  permanently.
 
 
 ## Neovide

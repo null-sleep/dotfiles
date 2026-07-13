@@ -607,6 +607,25 @@ On first launch nvim will:
 > Keymap index, and per-tool sections, all in `<leader>` notation). This
 > README covers only installing and first-launching Neovim.
 
+<a id="go-debugging-delve"></a>
+### Go debugging — delve first run (one-time setup)
+
+Mason installs `delve` (`dlv`) and `gotestsum` automatically, both built from
+source with `go install` — so the Go toolchain must be present first (see
+[Languages](#languages)). On macOS, delve can require a one-time codesigning /
+developer-mode approval the first time it attaches to a process. Get that out of
+the way in a shell, where the prompt is legible, rather than inside nvim:
+
+```bash
+cd ~/src/some-go-module   # any real module — delve needs a go.mod, not a bare .go file
+dlv debug                 # approve the prompt if one appears, then :q
+```
+
+Then restart nvim once after Mason's first install finishes (~30s into the first
+launch): if `gotestsum` wasn't on `PATH` when a test first ran, neotest falls back
+to plain `go test` for the rest of that session. Keymaps and troubleshooting are
+in [GUIDE.md → Go](nvim/.config/nvim/GUIDE.md#go).
+
 <a id="gpg-yubikey-notifications"></a>
 ### GPG commit signing — YubiKey touch notifications (one-time setup)
 
