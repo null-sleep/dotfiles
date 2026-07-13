@@ -122,21 +122,26 @@ require('snacks').setup({
       -- two-pane look with a real preview pane.
       lines = {
         layout = pick_layout,
-        -- With an empty prompt the default previewer duplicates the buffer
-        -- you're already looking at into the preview pane. Match grep's
-        -- empty-state look instead: keep the pane blank until a query is
-        -- typed. Clearing ctx.preview.item is load-bearing: the preview
-        -- memoizes the shown item and typing doesn't always move the
-        -- selection, so without it the blank pane could stick around after
-        -- the first keystroke.
-        preview = function(ctx)
-          if ctx.picker.input.filter.pattern ~= '' then
-            return Snacks.picker.preview.file(ctx)
-          end
-          -- Not preview.none(): that also prints "no preview available".
-          ctx.preview:reset()
-          ctx.preview.item = nil
+        -- Match grep's empty state: an empty prompt shows *nothing* (0/0,
+        -- both panes blank) instead of every buffer line — which rendered
+        -- the document you're already looking at, twice. The stock finder
+        -- runs only once (fuzzy pickers filter via the matcher, and an
+        -- empty pattern matches everything), so the emptiness has to be
+        -- produced by the finder and re-produced when the prompt flips.
+        show_empty = true,  -- 0 items on open must not auto-close the picker
+        finder = function(opts, ctx)
+          if ctx.filter.pattern == '' then return {} end
+          return require('snacks.picker.source.lines').lines(opts, ctx)
         end,
+        filter = {
+          -- Runs on every input change; returning true re-runs the finder.
+          -- Only the empty <-> non-empty flips need it — everything else is
+          -- normal matcher work on the already-collected lines.
+          transform = function(picker, filter)
+            local prev = picker.finder.filter
+            return ((not prev or prev.pattern == '') ~= (filter.pattern == ''))
+          end,
+        },
       },
     },
   },

@@ -1077,10 +1077,14 @@ layout: theme/keybindings use the compact `select` popup, the symbols
 pickers pin vertical at 0.9×0.9. The `lines` source (`<leader>sb`) would
 otherwise default to snacks' bottom-docked full-width ivy strip that
 scrolls the *main window* as its preview — `picker.lua` overrides it back
-to the standard two-pane layout, and keeps the preview pane blank while
-the prompt is empty (unlike live pickers such as `<leader>sg`/`ss`, a
-fuzzy list matches everything on an empty prompt, which previewed the
-buffer you were already looking at — the document twice, side by side).
+to the standard two-pane layout, and makes it start *empty* (0/0, both
+panes blank) like the live pickers `<leader>sg`/`ss`. Unlike those, a
+fuzzy list matches everything on an empty prompt, which rendered the
+buffer you were already looking at into both panes — the document twice,
+side by side. The override wraps the finder to return nothing while the
+prompt is empty and uses a `filter.transform` hook to re-run it when the
+prompt flips empty ↔ non-empty; `show_empty = true` keeps snacks from
+auto-closing a picker that opens with zero items.
 That override (and the global default)
 is deliberately a *function*, not a table: snacks deep-merges layout
 tables key-by-key (so a table override would inherit the ivy source's
