@@ -15,15 +15,25 @@
 vim.cmd.packadd('nvim-nio')
 vim.cmd.packadd('nvim-dap')
 vim.cmd.packadd('nvim-dap-ui')
-vim.cmd.packadd('nvim-dap-go')
 
 local dap, dapui = require('dap'), require('dapui')
 
 dapui.setup()
 
--- Registers dap.adapters.go + 7 dap.configurations.go for the `go` filetype —
--- this is what makes a cold-start <F5>/<leader>dc work in a Go buffer.
-require('dap-go').setup()
+-- Go's adapter: registers dap.adapters.go + 7 dap.configurations.go for the `go`
+-- filetype, which is what makes a cold-start <F5>/<leader>dc work in a Go buffer.
+--
+-- Guarded, unlike the core packadds above: nvim-dap-go publishes no git tags, so
+-- it tracks main and can break under us. This file is require()d from init.lua
+-- with no pcall around it, so an uncaught error here would abort every module
+-- after it — a broken Go plugin must not cost you Rust debugging, the keymaps
+-- below, or half the config.
+if not pcall(function()
+  vim.cmd.packadd('nvim-dap-go')
+  require('dap-go').setup()
+end) then
+  vim.notify('nvim-dap-go failed to load — Go debugging disabled', vim.log.levels.WARN)
+end
 
 -- Auto open/close the UI with the debug session. dap.listeners.before[event]
 -- auto-vivifies the subtable; the `.dapui` key just namespaces our listener.

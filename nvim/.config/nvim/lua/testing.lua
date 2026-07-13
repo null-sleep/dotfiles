@@ -8,33 +8,57 @@
 -- require('rustaceanvim.neotest') is on the runtimepath.
 
 vim.cmd.packadd('nvim-nio')       -- idempotent if debugging.lua already packadd'd it
-vim.cmd.packadd('plenary.nvim')
+vim.cmd.packadd('plenary.nvim')   -- neotest-golang require()s plenary.scandir at load
 vim.cmd.packadd('neotest')
-vim.cmd.packadd('neotest-golang')
 
-require('neotest').setup({
-  adapters = {
-    -- Rust: reuses rust-analyzer runnables + integrates with nvim-dap for debugging.
-    require('rustaceanvim.neotest'),
-    require('neotest-golang')({
-      runner = 'gotestsum',
-      -- dap_mode 'manual' is LOAD-BEARING, not a preference. The default
-      -- ('dap-go') re-runs dap-go.setup() on every test debug — and dap-go's
-      -- setup APPENDS its 7 configs instead of replacing them, so each debugged
-      -- test would permanently grow the <F5> picker by 14 stale entries.
-      -- 'manual' makes neotest build its own config and never touch dap-go.
-      dap_mode = 'manual',
-      dap_manual_config = {
+local adapters = {
+  -- Rust: reuses rust-analyzer runnables + integrates with nvim-dap for debugging.
+  require('rustaceanvim.neotest'),
+  -- Add more later (each needs its plugin in plugins.lua + a treesitter parser):
+  --   require('neotest-python'),
+}
+
+-- Go, guarded: neotest-golang is a third-party adapter, and an error while
+-- constructing it would propagate out of require('testing') in init.lua and take
+-- down neotest entirely (Rust tests included) plus every module loaded after it.
+local ok_go, go_adapter = pcall(function()
+  vim.cmd.packadd('neotest-golang')
+  return require('neotest-golang')({
+    runner = 'gotestsum',
+    -- dap_mode 'manual' is LOAD-BEARING, not a preference. The default
+    -- ('dap-go') re-runs dap-go.setup() on every test debug — and dap-go's
+    -- setup APPENDS its 7 configs instead of replacing them, so each debugged
+    -- test would permanently grow the <F5> picker by 14 stale entries.
+    -- 'manual' makes neotest build its own config and never touch dap-go.
+    dap_mode = 'manual',
+    -- A FUNCTION, not a table: neotest-golang mutates whatever this returns
+    -- (sets .program, table.inserts '-test.run <regex>' into .args). A table
+    -- literal here would be that same shared table on every run, so the
+    -- -test.run filters would pile up across debug sessions and a stale filter
+    -- would silently debug the previous test. A fresh table per call avoids it.
+    -- neotest injects program/args/cwd itself.
+    dap_manual_config = function()
+      return {
         name = 'Neotest Go',
-        type = 'go',        -- the adapter dap-go registered in debugging.lua
+        type = 'go',            -- the adapter dap-go registered in debugging.lua
         request = 'launch',
-        mode = 'test',      -- dlv test-binary mode
-      },
-    }),
-    -- Add more later (each needs its plugin in plugins.lua + a treesitter parser):
-    --   require('neotest-python'),
-  },
-})
+        mode = 'test',          -- dlv test-binary mode
+        -- Without this, the debuggee's stdout (t.Log, fmt.Println) never reaches
+        -- dap's output: delve defaults to local mode, and a detached server
+        -- adapter can't forward it. dap-go sets 'remote' on all of its own configs.
+        outputMode = 'remote',
+      }
+    end,
+  })
+end)
+
+if ok_go then
+  table.insert(adapters, go_adapter)
+else
+  vim.notify('neotest-golang failed to load — Go tests disabled', vim.log.levels.WARN)
+end
+
+require('neotest').setup({ adapters = adapters })
 
 -- Lazy handle: require('neotest') is cheap after setup, but wrapping keeps the
 -- keymap rhs from capturing a stale module reference.
