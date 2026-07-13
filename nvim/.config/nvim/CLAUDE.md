@@ -78,13 +78,30 @@ change, the same way you'd treat a missing test.
 
 ### Keymap ownership rule
 
-**Never document the same key in two tables.** Feature-specific keys are
+**Never document the same mapping in two tables.** Feature-specific keys are
 canonical in their Part 2 section (the prose there usually explains a
 gotcha the key alone doesn't convey — e.g. why `<leader>dR` differs from
 `<F5>` for a cold start). The `Keymap index` is an index: a *By prefix*
 table (prefix → purpose → defining file → link) plus a *Global keymaps*
 table for keys that have no feature section to live in. If you're about to
 add a key to both places, stop — it belongs in exactly one.
+
+A *key* bound buffer-locally by several language modules is not one mapping
+repeated — `<leader>dR` in `rust.lua` and `<leader>dR` in `golang.lua` are
+two different mappings (different filetype, different owning module,
+different action) that happen to share a keystroke on purpose, for
+muscle-memory symmetry across languages. Document each once, in its own
+language section's Keymaps table. That table is the mapping's canonical
+home; the `Keymap index` never becomes a second one.
+
+The `Keymap index` → *By prefix* table is exempt, because it is an index,
+not documentation: a row there carries no *action*, only
+prefix → purpose → owning file → a link to the canonical table. A key with
+several filetype-local meanings therefore gets **one row per owning
+module**, each qualified by filetype (`<leader>dR` (Rust ft) → `rust.lua`;
+`<leader>dR` (Go ft) → `golang.lua`) — that's how the reader finds which
+section to read, and it's why the index must never try to state what the
+key *does*.
 
 ### Section titles are grep anchors
 

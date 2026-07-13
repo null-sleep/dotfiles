@@ -73,7 +73,9 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
-- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Also sets up nvim-dap-go (the delve adapter + Go launch configs) — Rust's adapter comes from rustaceanvim instead, so it lives in `rust.lua`. Named to avoid shadowing `require('dap')` / `require('debug')`
+- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
+- **`golang.lua`** — Go's language module, the mirror of `rust.lua`: pcall-guarded `nvim-dap-go` setup (the delve adapter + seven `dap.configurations.go` launch configs) plus buffer-local `FileType go` keymaps (`<leader>dR` debug targets, `<leader>cR` run targets). Named `golang.lua`, not `go.lua` — `require('go')` is ray-x/go.nvim's own module name, so taking it would shadow that plugin (same rule as `debugging.lua`-not-`dap.lua`)
+- **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a toggleterm float
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
@@ -115,11 +117,14 @@ this file after updating plugins to keep versions consistent across machines.
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
 outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
-testing -> ai -> format -> linting -> statusline -> session ->
+golang -> testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
-which needs rustaceanvim on the runtimepath).
+which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
+`golang.lua`'s `require('dap-go').setup()` mutates `dap.adapters` /
+`dap.configurations`, so nvim-dap needs to already be on the runtimepath —
+`debugging.lua` is what `packadd`s it.
 
 
 ## Design Decisions
@@ -643,6 +648,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
 | `<leader>a*`, `<C-.>`, `<Tab>` | AI (sidekick CLI + NES) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
 | `<leader>c*` (Rust ft), `K` (Rust ft) | Rust actions | rust.lua | [Rust](#rust) → Keymaps |
+| `<leader>cR`/`<leader>dR` (Go ft) | Go run/debug targets | golang.lua | [Go](#go) → Keymaps |
 | `<leader>d*`, `<F5>`-`<F12>` | Debug (nvim-dap) | debugging.lua | [Debugging (nvim-dap)](#debugging) → Keymaps |
 | `<leader>n*` | Test (neotest) | testing.lua | [Testing (neotest)](#testing) → Keymaps |
 | `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
@@ -2072,15 +2078,18 @@ anything from a cold buffer:
 | Language | Adapter | Supplied by | Cold-start entry point |
 |---|---|---|---|
 | Rust | codelldb | rustaceanvim (`rust.lua`) | `<leader>dR` / `grx` / `<leader>nd` |
-| Go | delve | nvim-dap-go (`debugging.lua`) | `<leader>dR` / `<F5>` / `<leader>dc` |
+| Go | delve | nvim-dap-go (`golang.lua`) | `<leader>dR` / `<F5>` / `<leader>dc` |
 | Everything else | none | — | `<F5>` does nothing — nvim-dap has no configuration registered for the filetype |
 
-**`<leader>dR` is the "start a session by picking one" key in both languages**,
-mapped buffer-locally by each: in Rust it opens rustaceanvim's *debuggables*
-(real cargo targets); in Go it is `dap.continue()`, which with no session running
-opens the *launch-config* picker. Same gesture, different list — Go has no target
-provider to enumerate binaries the way rust-analyzer does. The key is unmapped in
-any other filetype.
+**`<leader>dR` is the "start a session by picking a target" key in both
+languages**, mapped buffer-locally by each: in Rust it opens rustaceanvim's
+*debuggables* (real cargo targets); in Go it opens the [Go targets
+picker](#go) (`golang.lua` → `pickers/gotargets.lua`), which enumerates real
+`main` packages via `go list`. Both languages now enumerate actual targets —
+rust-analyzer supplies Rust's, `go list` supplies Go's. `<F5>`/`<leader>dc`
+(`dap.continue`) remains the raw-config path in Go: a cold start there still
+opens the seven-entry launch-config picker (Attach, Debug (Arguments), etc. —
+see [Go](#go)). The `<leader>dR` key is unmapped in any other filetype.
 
 Rust's reliable entry point is `<leader>dR`, not `<F5>` — see
 [Rust](#rust) for why. Go's seven launch configurations (registered by
@@ -2108,9 +2117,8 @@ Rust's reliable entry point is `<leader>dR`, not `<F5>` — see
 
 Debugging a new language needs an **adapter** and a **configuration**, both
 keyed by filetype. Register them in `debugging.lua`, or in a language module
-if the plugin supplies its own (rustaceanvim does this in `rust.lua`; Go's
-`nvim-dap-go` call lives directly in `debugging.lua` since Go has no other
-language module to own it). Python via `nvim-dap-python` is the one-liner
+if the plugin supplies its own (rustaceanvim does this in `rust.lua`;
+nvim-dap-go does it in `golang.lua`). Python via `nvim-dap-python` is the one-liner
 case — it registers both itself:
 
 ```lua
@@ -2296,11 +2304,16 @@ The global Debug and Test keymap tables live in
 ## Go (delve + neotest)
 
 Debug and test support for Go, layered onto the shared engines the same way
-Rust is: `nvim-dap-go` supplies the delve adapter for `debugging.lua`,
-`neotest-golang` supplies the neotest adapter for `testing.lua`. There's no
-dedicated `go.lua` — gopls (`lsp.lua`), goimports-on-save (conform), and
-golangci-lint (nvim-lint) already cover editing, and Go has no
-rust-analyzer-sized keystone plugin to wrap.
+Rust is: `golang.lua` is Go's language module — the mirror of `rust.lua` —
+and owns the pcall-guarded `nvim-dap-go` setup (the delve adapter that feeds
+`debugging.lua`'s shared engine) plus the buffer-local `FileType go` keymaps
+(`<leader>dR`, `<leader>cR`). `neotest-golang` supplies the neotest adapter
+for `testing.lua` separately. Named `golang.lua`, not `go.lua`: `require('go')`
+is ray-x/go.nvim's own module name, and taking it would either block adopting
+that plugin later or force a rename — same shadowing rule as
+`debugging.lua`-not-`dap.lua`. gopls (`lsp.lua`), goimports-on-save (conform),
+and golangci-lint (nvim-lint) already cover editing, so `golang.lua` stays
+narrowly scoped to debug/run targets.
 
 ### What Mason installs
 
@@ -2316,7 +2329,7 @@ is already a documented prerequisite.
 
 ### Launch configurations
 
-`require('dap-go').setup()` (called once, in `debugging.lua`) registers
+`require('dap-go').setup()` (called once, in `golang.lua`) registers
 `dap.adapters.go` plus seven `dap.configurations.go` entries, by their exact
 upstream names: `Debug`, `Debug (Arguments)`,
 `Debug (Arguments & Build Flags)`, `Debug Package`, `Attach`, `Debug test`,
@@ -2331,10 +2344,18 @@ for `go test`. This is why `fixtures/` carries a `go.mod`: without it `animal.go
 is editable (gopls, formatting, linting all work) but not runnable, debuggable, or
 testable.
 
+Outside a module, `<leader>dR`/`<leader>cR` don't even try: `pickers/gotargets.lua`
+resolves the module root from the current buffer's directory
+(`vim.fs.root(dir, 'go.mod')`); when that comes back `nil` it fires one WARN
+notify (`Not in a Go module (no go.mod up the tree)`) and returns — no picker
+opens, and there is no fallback to the seven-config picker (which would just
+fail at the build step anyway).
+
 ### Common workflows
 
-Keys are canonical in [Debugging](#debugging) → Keymaps and
-[Testing](#testing) → Keymaps; this is what to reach for, when.
+Keys are canonical in [Debugging](#debugging) → Keymaps, [Testing](#testing)
+→ Keymaps, and this section's own Keymaps table below (`<leader>dR`/`<leader>cR`,
+buffer-local to `go`); this is what to reach for, when.
 
 **Run the test under the cursor** — `<leader>nn`. A pass/fail sign appears in the
 gutter next to the test. `<leader>nf` runs every test in the file;
@@ -2355,15 +2376,20 @@ runs it under delve, stopping at your breakpoint with dap-ui open. Continue with
 pane as it runs — that's what `outputMode = 'remote'` below buys, and it's easy to
 miss because it only appears once execution moves past the logging line.
 
-**Debug a program (not a test)** — breakpoint, then **`<leader>dR`** — the same key
-that starts a debug session in Rust, so there's no function key to remember and no
-per-language habit to keep straight. It opens a picker of the seven launch
-configurations above (`<F5>` and `<leader>dc` are equivalent — `<leader>dR` is
-buffer-local to `.go` and just gives the gesture a name that matches Rust's).
+**Debug a program (not a test)** — breakpoint, then **`<leader>dR`**: the [Go
+targets picker](#go) (`pickers/gotargets.lua`) runs `go list -e ./...` rooted
+at the current buffer's module, lists every `main` package it finds — from
+*any* buffer, including a library file — and on confirm launches the picked
+one under delve (`require('dap').run(...)`, `outputMode = 'remote'` so the
+program's stdout reaches dap's REPL). Breakpoint in `cmd/bar/main.go`, buffer
+open in `internal/util/util.go`, `<leader>dR` → pick `cmd/bar` → delve stops
+at the breakpoint, dap-ui opens.
 
-Note the lists differ even though the key doesn't: Rust's `<leader>dR` enumerates
-real cargo *targets*, while Go's enumerates dap-go's launch *configs*, because Go
-has no target provider to ask. Pick:
+**`<F5>`/`<leader>dc`** still opens dap-go's seven `dap.configurations.go`
+entries — these are *tools*, not targets. Every one that *launches* something
+is anchored to the current file (`program` derives from `${file}` or
+`${fileDirname}`, `dap-go.lua`); `Attach` doesn't launch at all. That is
+exactly why the picker above exists:
 
 - **Debug** — the common case. `program = "${file}"`: builds and launches from the
   file you're in.
@@ -2376,12 +2402,26 @@ has no target provider to ask. Pick:
   directly through dap-go, bypassing neotest. `<leader>nd` is the better path;
   these exist for when you want the dap session without neotest in the loop.
 
-**All of these are anchored to the current file** — every one derives `program`
-from `${file}` or `${fileDirname}` (`dap-go.lua`). None of them lets you pick a
-*different* `main` package, so in a `cmd/foo`-style repo you must already be
-inside the package you want to debug; from a library file there is no config that
-will launch your binary. This is the gap a real targets picker would close — see
-`plans/go-targets-picker.md`.
+**None of these seven can launch a *different* `main` package than the one
+you're already sitting in** — in a `cmd/foo`-style repo you must be inside
+the package you want to debug; from a library file there is no config that
+will build your binary. `<leader>dR`'s targets picker above is the answer to
+exactly that gap.
+
+**Run a program** — **`<leader>cR`**: the same picker, titled *Go
+runnables*; pick a `main` package and it runs `go run <import-path>` in a
+float terminal (toggleterm) from the module root — reaching any main package
+in the module, from any buffer, including a library file (the case a
+hand-rolled `go run .` could never serve). The terminal is reused: a second
+`<leader>cR` shuts down the running one first rather than stacking terminals,
+so it silently replaces whatever was still running. It does **not** close on
+exit (`close_on_exit = false`), so the program's output stays on screen after
+it finishes.
+
+**It passes no arguments.** `<leader>cR` runs the package bare. For a program
+that needs argv, open a terminal (`<leader>Tb`) and run `go run ./cmd/foo -flag`
+yourself — or, if you want to *debug* it with arguments, use `<F5>` →
+**Debug (Arguments)**, which prompts.
 
 **Inspect while stopped** — dap-ui's Locals pane updates automatically. `<leader>de`
 evaluates the expression under the cursor (or the visual selection); `<leader>dr`
@@ -2390,6 +2430,39 @@ toggles the `dap>` REPL, where you can run delve commands directly. Step with
 
 **Finish** — `<leader>dq` terminates the session and dap-ui closes itself. If it
 ever lingers, `<leader>du` toggles it.
+
+### Keymaps
+
+**Go actions** (buffer-local, `go` filetype only — from `golang.lua`):
+
+| Keymap | Action |
+|---|---|
+| `<leader>dR` | Debuggables — pick a `main` package, debug it under delve |
+| `<leader>cR` | Runnables — pick a `main` package, `go run` it in a terminal |
+
+The global Debug and Test keymap tables live in
+[Debugging](#debugging) → Keymaps and [Testing](#testing) → Keymaps.
+
+### Targets picker: scope and limits
+
+`pickers/gotargets.lua` is deliberately narrow. Read the source for the exact
+behavior; the honest summary:
+
+- **`main` packages only** — tests stay with neotest (`<leader>nn`/`<leader>nd`
+  above); a package-granularity "debug all tests" would be strictly coarser
+  (no `-test.run` filter, so delve stops at whichever test hits the
+  breakpoint first) and would bury the short binaries list in noise.
+- **Outside a Go module, it warns and does nothing** — see "You need a
+  `go.mod`" above; no fallback to the seven-config picker.
+- **A broken package elsewhere in the module does not hide the good
+  targets** — the enumerator runs `go list -e ./...`, so one unresolved
+  import anywhere in the module still leaves every buildable `main` package
+  on the list (with a WARN carrying `go list`'s stderr).
+- **Nested modules aren't descended into** — `go list ./...` stops at any
+  directory that has its own `go.mod`; open a buffer inside that module
+  instead to enumerate it.
+- **Build-tag-excluded packages don't appear** — a `//go:build linux`-only
+  `main` is simply invisible on macOS, exit 0, no error to explain why.
 
 ### `dap_mode = 'manual'`
 
