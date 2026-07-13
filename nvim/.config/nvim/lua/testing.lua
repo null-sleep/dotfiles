@@ -40,7 +40,7 @@ local ok_go, go_adapter = pcall(function()
     dap_manual_config = function()
       return {
         name = 'Neotest Go',
-        type = 'go',            -- the adapter dap-go registered in debugging.lua
+        type = 'go',            -- the adapter dap-go registered in golang.lua
         request = 'launch',
         mode = 'test',          -- dlv test-binary mode
         -- Without this, the debuggee's stdout (t.Log, fmt.Println) never reaches

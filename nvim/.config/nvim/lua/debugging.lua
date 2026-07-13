@@ -6,11 +6,11 @@
 -- package.loaded.debug, so require('debug') returns the C debug library, never
 -- this file). Same rationale as linting.lua-not-lint.lua.
 --
--- Rust's adapter/configs come from rustaceanvim (lua/rust.lua); Go's come from
--- nvim-dap-go, set up here; no other language has an adapter. A Rust debug
--- session is STARTED via <leader>dR (debuggables), the Debug codelens (grx),
--- or <leader>nd (debug nearest test); the keymaps below then drive the
--- running session.
+-- Adapters and configurations come from the language modules (rust.lua for
+-- Rust/codelldb, golang.lua for Go/delve); this module owns only the generic
+-- engine, its docked UI, signs, and keymaps. A Rust debug session is STARTED
+-- via <leader>dR (debuggables), the Debug codelens (grx), or <leader>nd
+-- (debug nearest test); the keymaps below then drive the running session.
 
 vim.cmd.packadd('nvim-nio')
 vim.cmd.packadd('nvim-dap')
@@ -19,40 +19,6 @@ vim.cmd.packadd('nvim-dap-ui')
 local dap, dapui = require('dap'), require('dapui')
 
 dapui.setup()
-
--- Go's adapter: registers dap.adapters.go + 7 dap.configurations.go for the `go`
--- filetype, which is what makes a cold-start <F5>/<leader>dc work in a Go buffer.
---
--- Guarded, unlike the core packadds above: nvim-dap-go publishes no git tags, so
--- it tracks main and can break under us. This file is require()d from init.lua
--- with no pcall around it, so an uncaught error here would abort every module
--- after it — a broken Go plugin must not cost you Rust debugging, the keymaps
--- below, or half the config.
-local go_ok = pcall(function()
-  vim.cmd.packadd('nvim-dap-go')
-  require('dap-go').setup()
-end)
-
-if go_ok then
-  -- <leader>dR in a Go buffer = "start a debug session by picking one", the same
-  -- thing the key means in a Rust buffer (rust.lua maps it to rustaceanvim's
-  -- debuggables). Go has no target provider, so here it's just dap.continue():
-  -- with no session running that opens the launch-config picker (via
-  -- vim.ui.select -> snacks). Identical to <F5>/<leader>dc — it exists so the
-  -- "pick something to debug" muscle memory carries across languages instead of
-  -- being a Rust-only habit. Buffer-local, like Rust's, so the key stays free
-  -- elsewhere.
-  vim.api.nvim_create_autocmd('FileType', {
-    pattern = 'go',
-    group = vim.api.nvim_create_augroup('UserGoDebug', { clear = true }),
-    callback = function(ev)
-      vim.keymap.set('n', '<leader>dR', function() require('dap').continue() end,
-        { buffer = ev.buf, desc = 'Debug: Go launch configs (picker)' })
-    end,
-  })
-else
-  vim.notify('nvim-dap-go failed to load — Go debugging disabled', vim.log.levels.WARN)
-end
 
 -- Auto open/close the UI with the debug session. dap.listeners.before[event]
 -- auto-vivifies the subtable; the `.dapui` key just namespaces our listener.

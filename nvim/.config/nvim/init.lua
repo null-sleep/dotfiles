@@ -11,6 +11,7 @@ require('completion')
 require('lsp')
 require('rust')       -- rustaceanvim (must precede testing: provides rustaceanvim.neotest)
 require('debugging')  -- nvim-dap + dap-ui
+require('golang')     -- nvim-dap-go (delve adapter) + Go ft keymaps (must follow debugging: needs nvim-dap on the rtp)
 require('testing')    -- neotest
 require('ai')
 require('format')
