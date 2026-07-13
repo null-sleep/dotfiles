@@ -1042,6 +1042,66 @@ plumbing touched. Live with both for a week and let the `<C-h>` reflex decide.
 
 ---
 
+<a id="scroll-profiling"></a>
+## 7. Picker scroll-perf profiling plan (Snacks.profiler)
+
+Plan for chasing the "holding `<C-j>` in a picker feels sluggish" report
+(TODO #7). Context from TODO #5: an 0.8 vs 0.9 height A/B showed the feel
+does **not** track window size, so the suspect is snacks' own render path —
+each scroll tick past the list edge re-renders every visible row
+(`core/list.lua:render`, `dirty` branch) and refreshes the preview
+(throttled `_throttled_preview`). Snacks ships an instrumentation profiler
+(`Snacks.profiler`, read: `docs/profiler.md` in the plugin) that can
+attribute Lua time per function/module; it's on-demand with zero overhead
+when not running, so the setup can land permanently.
+
+### Setup (one-time, ~5 lines)
+
+- Bind `<leader>tp` → `Snacks.toggle.profiler():map('<leader>tp')`, placed
+  in `picker.lua` after `setup()` (needs the `Snacks` global; same pattern
+  as scratch.lua owning its keymaps). `<leader>tp` is free — `<leader>t*`
+  is the toggle family; snacks' suggested `<leader>pp/ph` collide with the
+  goto-preview peek keys.
+- No `setup()` changes: the profiler module is on-demand, defaults are
+  fine, and `on_stop.pick = true` auto-opens the trace picker when the
+  profiler stops. `Snacks.profiler.scratch()` (unbound; `:lua`) tweaks
+  grouping/filtering of the captured run afterwards.
+- Document the keymap in GUIDE.md in the same change (repo rule).
+
+### Measurement protocol
+
+Runs of ~10s each, back-to-back, same repo (a big one — the work monorepo)
+and same starting query. Per run: `<leader>tp` → open `<leader>sf` → hold
+`<C-j>` ~10s → `<leader>tp` (trace picker opens on stop).
+
+1. **Preview on** (baseline).
+2. **Preview off** — hit `<a-p>` right after opening. Isolates list
+   rendering from preview redraw.
+3. Optional: repeat 1 at height 0.8 to quantify the height factor properly.
+
+In the trace picker, group by module (`Snacks.profiler.scratch()` →
+`{ group = 'def_modname', sort = 'time' }`) and record time + call counts
+for: `snacks.picker.core.list`, `core.preview`, `snacks.picker.format`,
+`util.highlight`, `core.matcher`.
+
+### Interpretation
+
+- Run 1 ≫ run 2 with the gap in `core.preview` → preview redraw dominates;
+  mitigation space: preview throttle (upstream — the `_throttled_preview`
+  interval isn't configurable), or live with `<a-p>`.
+- `core.list` / `format` dominate both runs → per-row render cost; compare
+  format functions (our `sb` wrapper is O(1) over stock; `sf` is
+  icons+filename) and consider an upstream issue with the trace attached.
+- **Lua totals small while the feel stays bad → the time is C-side screen
+  redraw, which instrumentation can't see.** Then the fix space is outside
+  snacks: try another terminal than kitty, check cursor-animation-style
+  plugins, `:set lazyredraw` experiments.
+
+Caveats (from the profiler docs): the session slows while profiling, and
+instrumentation overhead inflates hot tiny functions — exactly the render
+path — so treat *relative* differences between runs as the signal, never
+absolute ms. Record findings here when done.
+
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
 
@@ -1109,7 +1169,13 @@ Deferred follow-ups from the migration (decided during implementation review,
    matching the file list and driving `fd` live) and **`lsp_symbols`**
    (`<leader>ss`) — and whether our custom `pickers/*.lua` finders could set
    `supports_live` themselves.
-7. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
+7. **Profile the sluggish picker scroll** — holding `<C-j>` feels slower
+   than telescope did, and the height A/B (see item 5) ruled out window
+   size. Full plan in [§7](#scroll-profiling): bind `<leader>tp`
+   (`Snacks.toggle.profiler()`), capture preview-on vs preview-off scroll
+   runs, group traces by module, and decide between upstream issue /
+   config tweak / "it's terminal-side redraw".
+8. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
    Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
    Sources below but was only skimmed for the *decision*; it was never mined for
    **setup ideas**. Worth a proper read now that we're fully on snacks, to lift
