@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // Animal is an interface
 type Animal interface {
 	Sound() string
@@ -87,23 +89,21 @@ func main() {
 	cat := Cat{name: "Whiskers"}
 	bird := Bird{name: "Tweety"}
 
-	_ = dog.Sound()
-	_ = cat.Sound()
-	_ = bird.Fly()
+	fmt.Println(bird.Fly())
 
-	describe(dog)
-	describe(cat)
-	describe(bird)
+	fmt.Println(describe(dog))
+	fmt.Println(describe(cat))
+	fmt.Println(describe(bird))
 
 	// Anonymous function assigned to a local var — worth seeing whether
 	// aerial's treesitter query surfaces this as a nested symbol or not.
 	greet := func(a Animal) string {
 		return "Hello, " + a.Name() + "!"
 	}
-	_ = greet(dog)
+	fmt.Println(greet(dog))
 
 	zoo := Zoo{Animals: []Animal{dog, cat, bird}}
-	_ = zoo.Describe()
+	fmt.Print(zoo.Describe())
 
-	_ = Max(3, 7)
+	fmt.Println("Max(3, 7) =", Max(3, 7))
 }
