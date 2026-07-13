@@ -1096,6 +1096,71 @@ attaches an LSP / uses treesitter where telescope didn't" theories. But its
 through in [What this predicts](#preview-predictions) below. Kept as the
 decision record, not as live guidance.
 
+<a id="list-render-result"></a>
+### Result (2026-07-13): the list render IS O(visible rows) — but it is only ~0.9ms/tick
+
+Protocol 2 below, run headlessly against a 16k-file repo
+(`~/src/google-apis-rs`) with the preview off. `<C-j>` in a picker is
+`actions.list_down` → `picker.list:move(1)` (`actions.lua:813-815`), so a
+scripted `list:move(1)` loop drives *exactly* the key's code path — the loop
+this plan rejects as a preview benchmark is the correct list benchmark, and
+this is it. Steady-state was reached first (scroll past the window edge, where
+`top` starts moving and every tick goes dirty), then 300 ticks were timed with
+`vim.uv.hrtime()`, with `list._render` shadowed on the instance to count the
+rows each tick actually re-renders.
+
+| picker height | visible rows | rows re-rendered per tick | Lua ms per tick | ms per row |
+|---|---|---|---|---|
+| 0.30 | 14 | 14.0 | 0.253 | 0.018 |
+| 0.60 | 32 | 32.0 | 0.519 | 0.016 |
+| 0.95 | 53 | 53.0 | 0.886 | 0.017 |
+
+**The mechanism is confirmed, exactly as read from source.** Rows-re-rendered
+per tick equals the visible row count to the decimal — every scroll tick past
+the window edge re-formats and re-extmarks *every visible row*, and the cost is
+linear in that count (~0.017ms/row, flat across a 3.8× row spread). Item count
+is irrelevant (10.8k vs 13.8k items, same per-row cost), as it should be:
+`render()` only touches `self.top .. self.top + height - 1`.
+
+**But the magnitude exonerates Lua.** At our `height = 0.9` that is ~0.9ms of
+Lua per tick. Even at macOS's fastest key repeat (~15ms), that is ~6% of the
+frame budget. A 0.9ms tick does not feel sluggish. So this is the third
+[interpretation](#interpretation) branch, not the first: **the Lua render is
+O(rows) and small; the felt cost is C-side.**
+
+<a id="flush-hypothesis"></a>
+**Which sharpens the suspect to `win:redraw()`.** The dirty branch of
+`render()` (`core/list.lua:550-600`) does not scroll the list window — it
+*rewrites* it: `nvim_buf_clear_namespace`, `nvim_buf_set_lines` over the whole
+buffer, all visible rows re-extmarked, and then `win:redraw()`, which is
+`nvim__redraw({ win = ..., valid = false, flush = true })`
+(`snacks/win.lua:509-515`) — a full-window invalidate plus a **synchronous UI
+flush**, every tick. The headless bench cannot see any of that (no UI attached,
+nothing to flush to), which is precisely why the Lua number came back small.
+
+That is also the asymmetry against telescope this investigation has been
+looking for. Telescope scrolled its results by *moving the cursor* in a buffer
+whose lines were already set, so nvim's own redraw batching could coalesce
+ticks and the terminal could use a scroll-region update. snacks invalidates the
+whole window and forces a flush per tick, so every tick is a full ~53-row
+repaint that cannot be batched or scrolled — and when a repaint costs more than
+the key-repeat interval, the input queue backs up, which is exactly the
+"keeps scrolling after I let go" shape of upstream
+[#950](https://github.com/folke/snacks.nvim/discussions/950).
+
+**Next test (cheap, and it halves the space again):** in the real terminal,
+neuter the forced flush and see if the feel changes — e.g. shadow
+`Snacks.win.redraw` with a no-op (or with a plain `vim.cmd('redraw')`, i.e. no
+`valid = false` invalidate) and hold `<C-j>` again. If it gets smooth, the
+forced full-window flush is the bottleneck and the upstream issue writes itself
+(the render path could set only the changed lines, or drop `flush`, and let
+nvim batch). If it stays sluggish with both the preview *and* the flush out of
+the picture, the remaining cost is the terminal itself and the probe moves
+outside snacks (different terminal, `lazyredraw`, cursor-animation plugins).
+The profiler run (protocol 1) is still worth doing to confirm from the real
+session that Lua totals are as small as the bench says — but it is now a
+*confirmation*, not the primary probe, and it can only ever see the Lua half.
+
 <a id="preview-mechanism"></a>
 ### How the file preview is actually built — snacks vs telescope
 
@@ -1269,7 +1334,11 @@ leaves **modified** buffers that make `:qa` fail with `E162`, so set
 ### Measurement protocol
 
 Step 0 — the `<a-p>` preview-off test — is **done**, and it points at the list
-renderer ([result above](#preview-off-result)). What follows is scoped to that.
+renderer ([result above](#preview-off-result)). Protocol 2 is **done** too, and
+it confirmed the O(visible-rows) re-render while showing the Lua cost is far too
+small to be what's felt ([result above](#list-render-result)) — so the live
+question is now the forced synchronous flush, and protocol 1 is a confirmation
+run rather than the primary probe. What follows is kept as written.
 
 Pin the variables: same repo (the work monorepo), same starting query, same
 item count.
@@ -1286,12 +1355,15 @@ item count.
    Remember the default `filter_fn` drops `_`-prefixed functions — most of the
    hot path (`_render`, `_move`, `_scroll`) — so start with
    `filter_fn = { default = true }` to split render-internal from move-internal.
-2. **Per-row cost, measured directly.** The prediction from
-   `core/list.lua:550-600` is that per-tick cost scales with **visible rows**.
-   Test it properly this time (the 0.8-vs-0.9 A/B was far too small a delta):
-   compare `height = 0.3` against `height = 0.95` — a ~3× row-count spread, well
-   outside feel-test noise. If the sluggishness tracks *that*, the full-visible-row
-   re-render is confirmed and the fix is upstream.
+2. **Per-row cost, measured directly — DONE, see
+   [the result](#list-render-result).** Answered headlessly rather than by feel:
+   `height` 0.3 / 0.6 / 0.95 (a 3.8× row spread, unlike the useless 0.8-vs-0.9
+   A/B), 300 timed `list:move(1)` ticks each. Per-tick cost is exactly linear in
+   visible rows, and every visible row *is* re-rendered per tick — but at
+   ~0.017ms/row the Lua total is ~0.9ms/tick, too small to feel. Still worth
+   doing **as a feel test in the real terminal** (0.3 vs 0.95), because the
+   repaint volume scales with rows too: if 0.3 feels dramatically smoother while
+   the Lua delta is only ~0.6ms, that gap is the C-side flush cost, quantified.
 3. **Telescope control (the cross-tool claim).** The complaint is "slower than
    telescope," and telescope is gone, so memory isn't a baseline.
    `git stash && git checkout <pre-migration commit>`, open the equivalent
@@ -1312,29 +1384,41 @@ to bypass the throttle.
 
 ### Interpretation
 
-With the preview ruled out, the outcomes worth distinguishing are:
+With the preview ruled out, the outcomes worth distinguishing are — and the
+headless bench has already picked one, so the first two are kept only as the
+record of what *didn't* happen:
 
-- **`core.list` / `format` dominate the trace, and the cost tracks visible-row
-  count (protocol 2)** → confirmed: `list:render()` re-formats every visible row
-  on every tick, unthrottled. Our own format wrappers are O(1) over stock
-  (`sb`'s line-number recolor, `sm`'s status columns), so this is stock snacks
-  behavior and the fix is **upstream** — file it against `core/list.lua` with
-  the trace, framed as "the dirty branch re-renders all visible rows per scroll
-  tick, and there is no throttle on the render path (unlike the 60ms one on the
-  preview)". Local mitigations meanwhile: a smaller picker `height`, which
-  directly cuts the per-tick row count.
-- **`core.matcher` dominates** → it's not rendering at all but re-matching;
-  different upstream conversation, and `frecency` (which we enable) is worth
-  A/B-ing since it adds per-item scoring work.
-- **Lua time is small but the lag persists** → it's C-side: `win:redraw()` and
-  the terminal. Probe outside snacks entirely: a different terminal (we're on
-  kitty/iTerm2/Neovide), cursor-animation plugins, `:set lazyredraw`. Note the
+- ~~**`core.list` / `format` dominate the trace, and the cost tracks visible-row
+  count (protocol 2)**~~ → **half right, and the wrong half is the important
+  one.** The cost *does* track visible-row count, exactly (protocol 2), and our
+  own format wrappers are O(1) over stock (`sb`'s line-number recolor, `sm`'s
+  status columns), so it is stock snacks behavior. But `core.list` + `format`
+  add up to only ~0.9ms/tick, so they cannot *dominate* anything that is felt at
+  a 15-30ms key-repeat interval. Do not file an upstream issue about Lua render
+  cost; that would be a real mechanism with an irrelevant magnitude.
+- ~~**`core.matcher` dominates**~~ → ruled out by construction: the pattern
+  doesn't change while scrolling, so the matcher doesn't re-run. Per-row cost in
+  the bench was flat across a 3k-item spread, as expected. `frecency` scores at
+  *match* time, not scroll time, so it is not implicated either.
+- **Lua time is small but the lag persists → it's C-side.** This is where we
+  are. Sharpened by the bench from the vague "`win:redraw()` and the terminal"
+  into a specific, testable claim — the **forced synchronous full-window flush**
+  every tick ([above](#flush-hypothesis)): `nvim__redraw({ valid = false,
+  flush = true })` after clearing and rewriting the entire list buffer, which
+  denies nvim's redraw batching and the terminal's scroll-region update alike.
+  Test it by neutering `Snacks.win.redraw` in the real terminal. If that's it,
+  the upstream issue is against the *redraw* strategy, not the row loop. If it
+  is *not* it, the probe leaves snacks entirely: a different terminal (we're on
+  kitty/iTerm2/Neovide), cursor-animation plugins, `:set lazyredraw`. The
   preview-off result already rules out preview-buffer treesitter decoration
-  providers as the C-side culprit — the list window has no treesitter attached.
+  providers — the list window has no treesitter attached.
 
 Caveats (profiler docs + source): the session slows while profiling and
 instrumentation inflates hot tiny functions, so treat *relative* differences as
-signal, never absolute ms. Record findings here when done.
+signal, never absolute ms. The headless bench has the opposite blind spot — its
+absolute Lua ms are trustworthy (no instrumentation overhead), but it has no UI,
+so it measures none of the C-side cost that is now the suspect. Neither tool can
+see the thing the other is best at; that is why the next test is a feel test.
 
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
@@ -1412,14 +1496,23 @@ Deferred follow-ups from the migration (decided during implementation review,
    including a fully-designed preview-cache module that was **abandoned before
    landing** — its central premise was a reasoning error (a cache only helps
    *revisits*; scrolling down a fresh list is all misses, and telescope missed
-   on every one of those ticks too, more expensively). The remaining suspect is
-   the one piece of per-tick work that is unthrottled and synchronous:
-   `list:render()` re-formatting **every visible row** on every scroll tick
-   (`core/list.lua:271-289` → `:550-600`), which the 0.8-vs-0.9 height A/B was
-   far too underpowered to have exonerated. Next: bind `<leader>tp`
-   (`Snacks.toggle.profiler()`), attribute a held-`<C-j>` trace against
-   `core.list` / `format`, re-run the row-count test at a ~3× height spread,
-   and take it upstream. Full protocol in [§7](#scroll-profiling).
+   on every one of those ticks too, more expensively).
+   **The Lua list render has now been ruled out as well** (2026-07-13): a
+   headless `list:move(1)` bench over a 16k-file repo confirms `list:render()`
+   re-formats **every visible row** on every tick and that the cost is exactly
+   linear in row count — but it is only ~0.017ms/row, i.e. ~0.9ms/tick at our
+   `height = 0.9`, far too small to feel at a 15-30ms key repeat. Mechanism
+   real, magnitude irrelevant; see [§7 result](#list-render-result).
+   The live suspect is now **C-side**: the per-tick `win:redraw()` —
+   `nvim__redraw({ valid = false, flush = true })` — which invalidates the whole
+   list window and forces a synchronous UI flush after rewriting every line,
+   defeating both nvim's redraw batching and the terminal's scroll-region
+   update. This is also the asymmetry against telescope, which scrolled by
+   moving a cursor through an already-populated buffer.
+   Next: neuter `Snacks.win.redraw` in the real terminal and hold `<C-j>` (the
+   cheap decisive test); `<leader>tp` (bound) confirms Lua totals are small from
+   the real session; then upstream against the redraw strategy. Full protocol
+   and both results in [§7](#scroll-profiling).
 8. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
    Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
    Sources below but was only skimmed for the *decision*; it was never mined for
