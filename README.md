@@ -199,6 +199,14 @@ Additional cargo subcommands installed via `cargo install`: `cargo-nextest` (fas
 > golangci-lint, lua_ls, etc.) still install fine. To recover, install the missing
 > runtime and **relaunch nvim** — the `ensure_installed` lists retry on startup
 > — or reinstall the package from the `:Mason` UI.
+>
+> **Want a newly added tool *now*? Run `:MasonToolsUpdate`, not
+> `:MasonToolsInstall`.** The config sets `debounce_hours = 24`, which gates the
+> whole install check — and the automatic startup run refreshes that timestamp
+> on every launch, so for the next 24h `:MasonToolsInstall` **silently does
+> nothing**. `:MasonToolsUpdate` forces past the debounce. Either way, packages
+> built from source (`delve`, `gotestsum`) take minutes with no output — watch
+> `:Mason`, not the notifications.
 
 ### Format-on-save tools
 

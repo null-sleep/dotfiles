@@ -26,6 +26,15 @@ require('mason').setup({
 -- not Mason packages) and xmllint/just (system/user-provided CLIs).
 -- auto_update + debounce_hours: re-checks for updates at most once/24h on
 -- startup; notifies per-package itself (:help mason-tool-installer-auto_update).
+--
+-- ADDING A TOOL HERE? Run `:MasonToolsUpdate`, NOT `:MasonToolsInstall`.
+-- debounce_hours gates check_install() as a whole, and the automatic startup run
+-- rewrites its timestamp on every launch — so for 24h afterwards
+-- `:MasonToolsInstall` (which passes force_update=false) hits the debounce and
+-- returns *silently*, installing nothing. `:MasonToolsUpdate` forces past it.
+-- Left alone, a newly added package still installs on its own, just up to 24h
+-- late. Source-built packages (delve, gotestsum) then take minutes with no
+-- output — check progress in `:Mason`, not by waiting for a notification.
 -- start_delay: the check is pure maintenance (installed tools work either
 -- way), so push it well past startup instead of racing session restore and
 -- the async LSP storm (rust-analyzer indexing alone can run 10s+ on a real
