@@ -1069,6 +1069,20 @@ frecency, shared actions) lives in `picker.lua`; the custom pickers live in
 `pickers/*.lua`. Replaced telescope in 2026-07 — background and decision
 record in `plans/telescope-vs-snacks-picker.md`.
 
+**Layout:** every picker uses the standard two-pane look — input on top,
+results below, preview on the right — flipping to a vertical layout
+(preview below) when the window is under 160 columns, evaluated each time a
+picker opens (`pick_layout` in `picker.lua`). Exceptions pin their own
+layout: theme/keybindings use the compact `select` popup, the symbols
+pickers pin vertical at 0.9×0.9. The `lines` source (`<leader>sb`) would
+otherwise default to snacks' bottom-docked full-width ivy strip that
+scrolls the *main window* as its preview — `picker.lua` overrides it back
+to the standard two-pane layout. That override (and the global default)
+is deliberately a *function*, not a table: snacks deep-merges layout
+tables key-by-key (so a table override would inherit the ivy source's
+`preview = "main"`, and stray global keys would leak into the compact
+popups), but replaces function layouts wholesale.
+
 ### Keymaps
 
 | Keymap | Action |

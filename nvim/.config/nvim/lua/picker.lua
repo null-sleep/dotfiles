@@ -4,6 +4,16 @@
 -- Picker background and decision record: plans/telescope-vs-snacks-picker.md.
 vim.cmd.packadd('snacks.nvim')
 
+-- Global picker layout: preview on the right when wide, below when narrow;
+-- flips at 160 columns, evaluated per picker open. Kept as a function on
+-- purpose: Snacks.config.merge only deep-merges dicts, so a function layout
+-- is *replaced* wholesale by any source/call-site layout table instead of
+-- leaking keys into it (a table form here would deep-merge into every
+-- picker that only sets `preset`, e.g. the compact select-preset popups).
+local function pick_layout()
+  return { preset = vim.o.columns >= 160 and 'default' or 'vertical' }
+end
+
 -- After selecting a result, scroll so the cursor lands ~20% from the top.
 -- CURSOR_TOP_RATIO: 0.0 = top of window, 0.5 = center (zz), 1.0 = bottom
 local CURSOR_TOP_RATIO = 0.20
@@ -62,13 +72,7 @@ require('snacks').setup({
     -- snacks owns vim.ui.select (consumers: nvim-tree confirmations,
     -- rustaceanvim runnables, sidekick's prompt library).
     ui_select = true,
-    layout = {
-      -- Preview on the right when wide, below when narrow; flips at 160
-      -- columns.
-      preset = function()
-        return vim.o.columns >= 160 and 'default' or 'vertical'
-      end,
-    },
+    layout = pick_layout,
     matcher = {
       -- Boost results by recency+frequency of use (files/recent/buffers/...).
       -- Persisted store is created on first use under stdpath('data');
@@ -104,6 +108,13 @@ require('snacks').setup({
       -- exclude (it's only skipped by default when gitignored).
       files = { hidden = true, exclude = { 'node_modules' } },
       grep = { hidden = true, exclude = { 'node_modules' } },
+      -- lines (<leader>sb, <leader>s/) ships a source-level layout — a
+      -- bottom-docked full-width ivy strip that "previews" by scrolling the
+      -- main window — which silently beats the global layout above.
+      -- Assigning the same function replaces that table wholesale
+      -- (including its `preview = "main"`), restoring the standard
+      -- two-pane look with a real preview pane.
+      lines = { layout = pick_layout },
     },
   },
   scratch = {
