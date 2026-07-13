@@ -1138,15 +1138,51 @@ buffer, all visible rows re-extmarked, and then `win:redraw()`, which is
 flush**, every tick. The headless bench cannot see any of that (no UI attached,
 nothing to flush to), which is precisely why the Lua number came back small.
 
-That is also the asymmetry against telescope this investigation has been
-looking for. Telescope scrolled its results by *moving the cursor* in a buffer
-whose lines were already set, so nvim's own redraw batching could coalesce
-ticks and the terminal could use a scroll-region update. snacks invalidates the
-whole window and forces a flush per tick, so every tick is a full ~53-row
-repaint that cannot be batched or scrolled — and when a repaint costs more than
-the key-repeat interval, the input queue backs up, which is exactly the
-"keeps scrolling after I let go" shape of upstream
+<a id="scroll-asymmetry"></a>
+### Did telescope do this differently? Yes — architecturally (source-verified)
+
+This is the asymmetry the whole investigation has been looking for, and it is
+not a small one. Read firsthand from a fresh telescope clone (2026-07-13), since
+the earlier telescope read in this doc covered only the *previewer*:
+
+| per scroll tick | telescope | snacks |
+|---|---|---|
+| rows rewritten | 2 (old + new selection) | every visible row (~53) |
+| window scroll | native cursor scroll | none possible (virtual list) |
+| forced redraw/flush | no (none anywhere in its tree) | yes, synchronous, every tick |
+
+**Telescope's results buffer is a scrollable document, not a viewport.** It is
+pre-filled with `max_results = temp__scrolling_limit = 250` blank lines up front
+(`pickers.lua:324`, `:575-577`) — i.e. *bigger than the window*. So moving the
+selection is just `nvim_win_set_cursor(self.results_win, { row + 1, 0 })`
+(`pickers.lua:1158`) and **nvim scrolls the window itself**, which is the path
+that lets the terminal use a scroll-region update. Per tick, `set_selection`
+(`:1107-1142`) touches exactly two rows: `update_prefix` + `hi_multiselect` on
+the old selection row, and `update_prefix` + `hi_selection` + `hi_sorter` +
+`hi_multiselect` on the new one. No namespace clear, no buffer rewrite. And
+telescope **never forces a redraw at all** — `nvim__redraw`, `vim.cmd('redraw')`
+and `:redraw` do not appear anywhere in its `lua/` tree. It mutates the buffer
+and lets nvim's normal redraw cycle coalesce the ticks.
+
+**Snacks' list buffer *is* the viewport** — exactly `state.height` lines
+(`core/list.lua:116`, `:129`), a virtualized window onto an unbounded item list.
+A virtual list *cannot* scroll: there is nothing below the fold to scroll into.
+So to move the view it must rewrite the buffer in place, which is precisely why
+the dirty branch clears the namespace, re-sets every line, re-extmarks every
+visible row, and then has to force the invalidate + flush to get it on screen.
+
+**This is a real trade, not an oversight.** Telescope buys its 2-row,
+no-flush tick by *capping the scrollable set at 250 entries* — past that you
+simply cannot scroll further. Snacks virtualizes, so it scrolls a 16k-item list
+at constant buffer size. It pays for that with a full repaint per tick — and
+when a repaint costs more than the key-repeat interval, the input queue backs up,
+which is exactly the "keeps scrolling after I let go" shape of upstream
 [#950](https://github.com/folke/snacks.nvim/discussions/950).
+
+Note what this does and does not establish: it verifies the **asymmetry** (snacks
+does dramatically more per-tick work, of exactly the C-side kind the headless
+bench is blind to), not yet the **culprit**. The terminal test below is still
+what decides it — but if that comes back smooth, this is the *why*.
 
 **Next test (cheap, and it halves the space again):** in the real terminal,
 neuter the forced flush and see if the feel changes — e.g. shadow
@@ -1542,6 +1578,21 @@ Preview mechanism ([§7](#preview-mechanism)) — both read firsthand, 2026-07:
 - the pre-migration telescope config that was actually in use (no `preview`
   overrides, so all of the above defaults applied): `git show
   b5ccd8b^:nvim/.config/nvim/lua/plugins.lua`
+
+Scroll/render mechanism ([the asymmetry](#scroll-asymmetry)) — both read
+firsthand, 2026-07-13, and distinct from the previewer read above:
+
+- snacks: `picker/core/list.lua` (`_move`/`render`, the dirty branch, and
+  `state.height` — the buffer *is* the viewport), `picker/actions.lua`
+  (`list_down`), `snacks/win.lua:509-515` (`redraw` = `nvim__redraw({ valid =
+  false, flush = true })`)
+- telescope (fresh clone): `pickers.lua` (`set_selection` at `:1048-1158` —
+  two rows re-prefixed/re-highlighted, then `nvim_win_set_cursor`;
+  `__scrolling_limit = 250` at `:324` and the pre-filled 250-line results
+  buffer at `:575-577`), `pickers/scroller.lua`, `actions/init.lua`
+  (`move_selection_next`). Also grepped its whole `lua/` tree for
+  `nvim__redraw` / `vim.cmd('redraw')` / `:redraw` — **zero hits**, which is
+  the load-bearing negative result.
 - upstream report of the same symptom ("holding down J or K" sluggish), where
   folke's first diagnostic is the `<a-p>` preview-off test we ran, and where the
   users who resolved it did so via async treesitter in nvim 0.11+ (we're on
