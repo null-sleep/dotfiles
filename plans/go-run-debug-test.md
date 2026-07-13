@@ -323,10 +323,39 @@ Implemented and committed. Deviations from the above, all deliberate:
 
 ## Verification
 
-`fixtures/animal.go` is **not** enough — no `go.mod`, and delve needs a real
-package to build. Use a scratch module with a `main.go` and a `main_test.go`.
-**Create it under `~/src/`, not `/tmp`** — neotest-golang's own health check flags
-a `go.mod` under `/tmp` or `/private/tmp` on macOS as a known-problematic path.
+### Status (2026-07-13)
+
+Verified interactively against `fixtures/` (which now carries a `go.mod` and
+`animal_test.go`, so `animal.go` is a real module — delve needs one to build and
+neotest needs tests to find):
+
+- **Done** — cold-start `<F5>` in `animal.go` offers the 7-entry picker, stops at
+  the breakpoint, dap-ui opens with populated Locals/stack/REPL.
+- **Done** — `#require('dap').configurations.go` reads **7** after a debug
+  session (the dap-go duplication bug stays dead).
+- **Done** — `<leader>nd` stops inside `TestDescribe` under delve; `<leader>nf`
+  gives `✓2 ✗1` with the deliberately-failing `TestSoundIsWrong` red, under a
+  `neotest-golang` summary root.
+
+**TODO — the one check still outstanding: the `-test.run` state-leak.**
+Debug `TestDescribe` with `<leader>nd`, terminate it, then put the cursor in
+`TestMax` and `<leader>nd` again. **The second session must stop inside
+`TestMax`.** If it lands back in `TestDescribe`, the `-test.run` filters are
+accumulating across runs, which means `dap_manual_config` is not being honored as
+a *function* (see §4) and is back to being one shared, mutated table. This is the
+only defect from the review pass that hasn't been confirmed fixed on a real
+session — the fix is proven in a simulated harness, not yet in the editor.
+
+Also still worth doing once: confirm the `t.Log` line (`describing: Rex`) appears
+in the `dap>` REPL pane after continuing a debugged test to completion — that is
+what `outputMode = 'remote'` buys, and without it a debugged Go test emits no
+output at all.
+
+### The full pass
+
+Use a real module. **Create it under `~/src/`, not `/tmp`** — neotest-golang's own
+health check flags a `go.mod` under `/tmp` or `/private/tmp` on macOS as a
+known-problematic path.
 
 1. **Install:** restart nvim — `vim.pack` fetches nvim-dap-go + neotest-golang;
    mason-tool-installer auto-builds `delve` + `gotestsum` ~30s in. Confirm
