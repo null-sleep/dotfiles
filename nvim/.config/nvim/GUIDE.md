@@ -2316,18 +2316,61 @@ upstream names: `Debug`, `Debug (Arguments)`,
 `Debug test (go.mod)`. These are what populate the picker on a cold-start
 `<F5>`/`<leader>dc` in a `.go` buffer.
 
-### Debug walkthrough
+### You need a `go.mod`
 
-1. Set a breakpoint: `<leader>db` (or `<F9>`).
-2. `<F5>` from a cold start → the config picker appears → pick **Debug**.
-3. dap-ui opens automatically; step with `<F10>`/`<F11>`/`<F12>` (full table
-   in [Debugging](#debugging) → Keymaps).
+Everything below builds a Go *package*, so it needs a module — a lone `.go` file
+with no `go.mod` anywhere up the tree fails at the build step, both for delve and
+for `go test`. This is why `fixtures/` carries a `go.mod`: without it `animal.go`
+is editable (gopls, formatting, linting all work) but not runnable, debuggable, or
+testable.
 
-### Running tests
+### Common workflows
 
-`<leader>nn` runs the nearest test through `neotest-golang`/gotestsum;
-`<leader>nd` debugs it — delve stops at any breakpoint in the test. See
-[Testing](#testing) for the full keymap table.
+Keys are canonical in [Debugging](#debugging) → Keymaps and
+[Testing](#testing) → Keymaps; this is what to reach for, when.
+
+**Run the test under the cursor** — `<leader>nn`. A pass/fail sign appears in the
+gutter next to the test. `<leader>nf` runs every test in the file;
+`<leader>nl` re-runs whatever you ran last (the fast edit-test loop);
+`<leader>nq` stops a run in progress.
+
+**See why a test failed** — `<leader>no` opens the output for the test under the
+cursor (this is where `t.Log`, `t.Errorf`, and panics land). `<leader>ns` toggles
+the summary tree, which lists every test in the file under a `neotest-golang`
+root with its status, and lets you jump to or re-run individual tests;
+`<leader>nO` toggles the persistent output panel if you'd rather keep it open
+while you edit.
+
+**Debug the test under the cursor** — put a breakpoint on the line you care about
+(`<leader>db` or `<F9>`), then `<leader>nd`. neotest builds the test binary and
+runs it under delve, stopping at your breakpoint with dap-ui open. Continue with
+`<F5>`; the test's own output (`t.Log` and friends) prints into the `dap>` REPL
+pane as it runs — that's what `outputMode = 'remote'` below buys, and it's easy to
+miss because it only appears once execution moves past the logging line.
+
+**Debug a program (not a test)** — breakpoint, then `<F5>` from a cold start in
+any `.go` buffer. Because Go has no rustaceanvim-style "debuggables" picker, `<F5>`
+*is* the entry point here (unlike Rust, where `<leader>dR` is): it offers the seven
+launch configurations above. Pick:
+
+- **Debug** — the common case. Builds and launches the package the current file
+  belongs to.
+- **Debug Package** — prompts for a package path, for a `cmd/foo`-style layout
+  where the `main` you want isn't the file you're looking at.
+- **Debug (Arguments)** — same, but prompts for command-line args first. Use
+  **Debug (Arguments & Build Flags)** when you also need `-tags`, `-ldflags`, etc.
+- **Attach** — attach to an already-running process instead of launching one.
+- **Debug test** / **Debug test (go.mod)** — debug the test under the cursor
+  directly through dap-go, bypassing neotest. `<leader>nd` is the better path;
+  these exist for when you want the dap session without neotest in the loop.
+
+**Inspect while stopped** — dap-ui's Locals pane updates automatically. `<leader>de`
+evaluates the expression under the cursor (or the visual selection); `<leader>dr`
+toggles the `dap>` REPL, where you can run delve commands directly. Step with
+`<F10>` (over), `<F11>` (into), `<F12>` (out).
+
+**Finish** — `<leader>dq` terminates the session and dap-ui closes itself. If it
+ever lingers, `<leader>du` toggles it.
 
 ### `dap_mode = 'manual'`
 
