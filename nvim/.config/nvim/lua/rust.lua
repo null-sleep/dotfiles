@@ -26,6 +26,11 @@ vim.g.rustaceanvim = {
       ['rust-analyzer'] = {
         checkOnSave = true,
         check = { command = 'clippy' },
+        -- workspace/symbol (<leader>ss) defaults to only_types: traits/
+        -- structs/enums/modules but no functions, methods, fields, or
+        -- consts — which made <leader>ss look broken next to <leader>sd
+        -- (documentSymbol returns the full outline and is unaffected).
+        workspace = { symbol = { search = { kind = 'all_symbols' } } },
       },
     },
     -- Standalone .rs files with no Cargo project up the tree (e.g. the fixtures/
