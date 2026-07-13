@@ -44,7 +44,10 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Git (Neogit)](#git-neogit)
   - [Reviewing diffs (diffview.nvim)](#reviewing-diffs)
   - [AI (sidekick.nvim)](#ai-sidekick)
-  - [Rust (rustaceanvim + DAP + neotest)](#rust)
+  - [Debugging (nvim-dap)](#debugging)
+  - [Testing (neotest)](#testing)
+  - [Rust (rustaceanvim)](#rust)
+  - [Go (delve + neotest)](#go)
   - [Neovide](#neovide)
 
 
@@ -640,8 +643,8 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
 | `<leader>a*`, `<C-.>`, `<Tab>` | AI (sidekick CLI + NES) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
 | `<leader>c*` (Rust ft), `K` (Rust ft) | Rust actions | rust.lua | [Rust](#rust) → Keymaps |
-| `<leader>d*`, `<F5>`-`<F12>` | Debug (nvim-dap) | debugging.lua | [Rust](#rust) → Keymaps (Debug table) |
-| `<leader>n*` | Test (neotest) | testing.lua | [Rust](#rust) → Keymaps (Test table) |
+| `<leader>d*`, `<F5>`-`<F12>` | Debug (nvim-dap) | debugging.lua | [Debugging (nvim-dap)](#debugging) → Keymaps |
+| `<leader>n*` | Test (neotest) | testing.lua | [Testing (neotest)](#testing) → Keymaps |
 | `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
 | `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
 | `<leader>tl`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
@@ -2041,12 +2044,133 @@ mechanism (`virt_text_pos='inline'`).
 4. Install `claude` CLI if not already present.
 
 
-<a id="rust"></a>
-## Rust (rustaceanvim + DAP + neotest)
+<a id="debugging"></a>
+## Debugging (nvim-dap)
 
-IDE-grade run/debug/test for Rust, split across three modules: `rust.lua`
-(rustaceanvim), `debugging.lua` (nvim-dap + dap-ui), `testing.lua` (neotest).
-rustaceanvim is the keystone — it takes over rust-analyzer and, in doing so:
+nvim-dap + nvim-dap-ui: the shared debug engine and its docked UI (scopes,
+call stack, breakpoints, watches, REPL), wired in `debugging.lua`. nvim-dap
+itself registers **no adapters or configurations** — every language's debug
+support comes from something else declaring them (see the language-support
+table below). `debugging.lua` only owns the generic engine, the UI, the
+signs, and the global keymaps.
+
+### UI and signs
+
+dap-ui opens automatically when a session launches or attaches, and closes
+automatically when it terminates or exits (`dap.listeners.before[...]` hooks
+for `launch`/`attach`/`event_terminated`/`event_exited`). Breakpoint and
+stopped-line signs reuse theme-styled diagnostic highlights: `●`
+(`DapBreakpoint`, `DiagnosticError`) marks a breakpoint, `▶` (`DapStopped`,
+`DiagnosticWarn` + `Visual` line highlight) marks the current stopped line.
+
+### Language support
+
+nvim-dap needs an **adapter** (how to speak DAP to the debugger binary) and a
+**configuration** (what to launch) before `<F5>`/`<leader>dc` can start
+anything from a cold buffer:
+
+| Language | Adapter | Supplied by | Cold-start entry point |
+|---|---|---|---|
+| Rust | codelldb | rustaceanvim (`rust.lua`) | `<leader>dR` / `grx` / `<leader>nd` |
+| Go | delve | nvim-dap-go (`debugging.lua`) | `<F5>` / `<leader>dc` |
+| Everything else | none | — | `<F5>` does nothing — nvim-dap has no configuration registered for the filetype |
+
+Rust's reliable entry point is `<leader>dR`, not `<F5>` — see
+[Rust](#rust) for why. Go's seven launch configurations (registered by
+`nvim-dap-go`) are listed in [Go](#go).
+
+### Keymaps
+
+**Debug** (global, `<leader>d*` = Debug group):
+
+| Keymap | Action |
+|---|---|
+| `<leader>db` / `<F9>` | Toggle breakpoint |
+| `<leader>dB` | Conditional breakpoint (prompts for condition) |
+| `<leader>dc` / `<F5>` | Continue / start |
+| `<leader>di` / `<F11>` | Step into |
+| `<leader>do` / `<F10>` | Step over |
+| `<leader>dO` / `<F12>` | Step out |
+| `<leader>dl` | Run last |
+| `<leader>dq` | Terminate |
+| `<leader>dr` | Toggle REPL |
+| `<leader>du` | Toggle dap-ui |
+| `<leader>de` | Eval expression (normal: under cursor; visual: selection) |
+
+### Extending DAP to other languages
+
+Debugging a new language needs an **adapter** and a **configuration**, both
+keyed by filetype. Register them in `debugging.lua`, or in a language module
+if the plugin supplies its own (rustaceanvim does this in `rust.lua`; Go's
+`nvim-dap-go` call lives directly in `debugging.lua` since Go has no other
+language module to own it). Python via `nvim-dap-python` is the one-liner
+case — it registers both itself:
+
+```lua
+-- plugins.lua:    { src = gh('mfussenegger/nvim-dap-python') },
+-- debugging.lua:  require('dap-python').setup('uv')   -- or a python path
+```
+
+For a language with no such wrapper, register them by hand —
+`dap.adapters.<x>` plus a `dap.configurations.<filetype>` list; see nvim-dap's
+wiki for per-language recipes. Note that Mason already installs **codelldb**
+(`lsp.lua`), which is a C/C++ debugger as much as a Rust one, so those two
+need only a configuration — no new adapter binary. If the language also has a
+neotest adapter, add it (see [Testing](#testing) → Extending neotest to other
+languages) and `<leader>nd` starts working for it too.
+
+<a id="testing"></a>
+## Testing (neotest)
+
+neotest: the shared test runner UI, set up as an extensible framework in
+`testing.lua` — each language plugs in an adapter, its plugin goes in
+`plugins.lua`, and its treesitter parser must be installed.
+
+### Registered adapters
+
+| Language | Adapter | Debug via |
+|---|---|---|
+| Rust | `rustaceanvim.neotest` — reuses rust-analyzer runnables | nvim-dap (`<leader>nd`) |
+| Go | `neotest-golang`, runner `gotestsum` | nvim-dap via delve (`<leader>nd`) |
+
+`<leader>nd` (debug nearest test) routes through the shared nvim-dap engine
+either way — see [Debugging](#debugging) for that engine, and [Go](#go) →
+`dap_mode = 'manual'` for a Go-specific wrinkle in how that wiring is kept
+from corrupting the `<F5>` config picker.
+
+### Keymaps
+
+**Test** (global, `<leader>n*` = Test group):
+
+| Keymap | Action |
+|---|---|
+| `<leader>nn` | Run nearest test |
+| `<leader>nf` | Run all tests in file |
+| `<leader>nl` | Run last |
+| `<leader>nd` | Debug nearest test (via dap) |
+| `<leader>nq` | Stop running test(s) |
+| `<leader>ns` | Toggle summary tree |
+| `<leader>no` | Show output for nearest |
+| `<leader>nO` | Toggle output panel |
+
+### Extending neotest to other languages
+
+To add a language: add its adapter plugin to `plugins.lua`, `require` it in
+`testing.lua`'s `adapters` list, and ensure the treesitter parser is
+installed. E.g. for Python:
+
+```lua
+-- plugins.lua:  { src = gh('nvim-neotest/neotest-python') },
+-- testing.lua:  require('neotest-python'),
+```
+
+<a id="rust"></a>
+## Rust (rustaceanvim)
+
+IDE-grade Rust support, primarily via `rust.lua` (rustaceanvim), which plugs
+into the shared [Debugging](#debugging) and [Testing](#testing) engines
+rather than owning its own. rustaceanvim is the keystone — it takes over
+rust-analyzer and, in doing so:
 
 1. **Registers the Run/Debug codelens handlers.** rust-analyzer emits `▶ Run`
    / `⚙ Debug` codelens, but plain LSP has no client-side handler for the
@@ -2104,23 +2228,26 @@ it would also hide genuine "can't find your Cargo.toml" errors in real projects)
 - **`:RustLsp run`** — re-run the *last* runnable (fast edit-run loop).
 - Or just a terminal: `<leader>Tb`, then `cargo run -p <crate>`.
 
-### Debugging
+### Debugging entry point
 
 1. Set a breakpoint: **`<leader>db`** (or `<F9>`) — a `●` appears in the sign column.
 2. Start the session: **`<leader>dR`** (Rust debuggables) → pick the target →
    rustaceanvim compiles it in debug mode, launches under codelldb, and stops at
    the breakpoint. dap-ui opens automatically (scopes, stack, breakpoints, REPL)
-   and closes when the session ends.
-3. Drive it: `<F5>`/`<leader>dc` continue, `<F10>` over, `<F11>` into, `<F12>` out.
+   and closes when the session ends — see [Debugging](#debugging).
+3. Drive it with the shared Debug keymaps ([Debugging](#debugging) → Keymaps):
+   `<F5>`/`<leader>dc` continue, `<F10>` over, `<F11>` into, `<F12>` out.
 
 `<leader>dR` is the reliable entry point (it asks rust-analyzer for the exact
 cargo target). `<F5>`/`<leader>dc` (`dap.continue`) is for *resuming* a paused
-session — starting cold from it relies on rustaceanvim's auto-loaded configs.
+session — starting cold from it relies on rustaceanvim's auto-loaded configs
+(see [Debugging](#debugging) → Language support).
 
-### Testing
+### Testing entry point
 
-`<leader>nn` runs the test under the cursor; results show as signs + a summary
-tree. `<leader>nd` debugs the nearest test (breakpoints honored via dap).
+`<leader>nn` runs the test under the cursor via `rustaceanvim.neotest`;
+`<leader>nd` debugs the nearest test through nvim-dap (breakpoints honored).
+See [Testing](#testing) for the full keymap table and the adapter list.
 
 ### Keymaps
 
@@ -2136,45 +2263,8 @@ tree. `<leader>nd` debugs the nearest test (breakpoints honored via dap).
 | `<leader>dR` | Debuggables — start a Rust debug session |
 | `grx` | Run/Debug codelens under cursor (native codelens, now functional) |
 
-**Debug** (global, `<leader>d*` = Debug group — from `debugging.lua`):
-
-| Keymap | Action |
-|---|---|
-| `<leader>db` / `<F9>` | Toggle breakpoint |
-| `<leader>dB` | Conditional breakpoint (prompts for condition) |
-| `<leader>dc` / `<F5>` | Continue / start |
-| `<leader>di` / `<F11>` | Step into |
-| `<leader>do` / `<F10>` | Step over |
-| `<leader>dO` / `<F12>` | Step out |
-| `<leader>dl` | Run last |
-| `<leader>dq` | Terminate |
-| `<leader>dr` | Toggle REPL |
-| `<leader>du` | Toggle dap-ui |
-| `<leader>de` | Eval expression (normal: under cursor; visual: selection) |
-
-**Test** (global, `<leader>n*` = Test group — from `testing.lua`):
-
-| Keymap | Action |
-|---|---|
-| `<leader>nn` | Run nearest test |
-| `<leader>nf` | Run all tests in file |
-| `<leader>nl` | Run last |
-| `<leader>nd` | Debug nearest test (via dap) |
-| `<leader>nq` | Stop running test(s) |
-| `<leader>ns` | Toggle summary tree |
-| `<leader>no` | Show output for nearest |
-| `<leader>nO` | Toggle output panel |
-
-### Extending neotest to other languages
-
-`testing.lua` sets up neotest as a framework. To add a language: add its adapter
-plugin to `plugins.lua`, `require` it in `testing.lua`'s `adapters` list, and
-ensure the treesitter parser is installed. E.g. for Go:
-
-```lua
--- plugins.lua:  { src = gh('fredrikaverpil/neotest-golang') },
--- testing.lua:  require('neotest-golang'),
-```
+The global Debug and Test keymap tables live in
+[Debugging](#debugging) → Keymaps and [Testing](#testing) → Keymaps.
 
 ### Troubleshooting
 
@@ -2194,6 +2284,81 @@ ensure the treesitter parser is installed. E.g. for Go:
   skipped step 3 above.
 - **`require('rustaceanvim.neotest')` errors on startup**: `rust` must load
   before `testing` in `init.lua` (see Load order).
+
+<a id="go"></a>
+## Go (delve + neotest)
+
+Debug and test support for Go, layered onto the shared engines the same way
+Rust is: `nvim-dap-go` supplies the delve adapter for `debugging.lua`,
+`neotest-golang` supplies the neotest adapter for `testing.lua`. There's no
+dedicated `go.lua` — gopls (`lsp.lua`), goimports-on-save (conform), and
+golangci-lint (nvim-lint) already cover editing, and Go has no
+rust-analyzer-sized keystone plugin to wrap.
+
+### What Mason installs
+
+- **`delve`** (exe `dlv`) — the Go debugger, consumed by nvim-dap via
+  nvim-dap-go.
+- **`gotestsum`** — the test runner neotest-golang shells out to instead of
+  plain `go test`; plain `go test -json` interleaves test JSON with program
+  stdout, which corrupts neotest's parsing.
+
+Both are **source-built via `go install`** (same failure mode as any
+`go install`-based Mason tool — see README's Mason callout); the Go toolchain
+is already a documented prerequisite.
+
+### Launch configurations
+
+`require('dap-go').setup()` (called once, in `debugging.lua`) registers
+`dap.adapters.go` plus seven `dap.configurations.go` entries, by their exact
+upstream names: `Debug`, `Debug (Arguments)`,
+`Debug (Arguments & Build Flags)`, `Debug Package`, `Attach`, `Debug test`,
+`Debug test (go.mod)`. These are what populate the picker on a cold-start
+`<F5>`/`<leader>dc` in a `.go` buffer.
+
+### Debug walkthrough
+
+1. Set a breakpoint: `<leader>db` (or `<F9>`).
+2. `<F5>` from a cold start → the config picker appears → pick **Debug**.
+3. dap-ui opens automatically; step with `<F10>`/`<F11>`/`<F12>` (full table
+   in [Debugging](#debugging) → Keymaps).
+
+### Running tests
+
+`<leader>nn` runs the nearest test through `neotest-golang`/gotestsum;
+`<leader>nd` debugs it — delve stops at any breakpoint in the test. See
+[Testing](#testing) for the full keymap table.
+
+### `dap_mode = 'manual'`
+
+`testing.lua`'s `neotest-golang` adapter is configured with
+`dap_mode = 'manual'`. This is load-bearing, not a preference: the default
+(`dap_mode = 'dap-go'`) makes neotest-golang call `dap-go`'s `setup()` again
+on every test debug — once from its own `setup_debugging()`, and once more
+from a `dap.listeners.after.event_terminated` listener that restores the
+original opts. `dap-go.setup()` **appends** its seven configurations instead
+of replacing them (it only guards `dap.configurations.go == nil`), so under
+the default mode, each debugged test would permanently add 14 stale entries
+to the `<F5>` config picker. `'manual'` makes neotest build its own DAP
+config from `dap_manual_config` (`name`, `type = 'go'`, `request = 'launch'`,
+`mode = 'test'`) and never call `dap-go.setup()` again — the picker stays at
+seven.
+
+### Troubleshooting
+
+- **`-race` errors or crawls**: it's in neotest-golang's default
+  `go_test_args`, and needs cgo + a C compiler (Xcode CLT covers it on
+  macOS).
+- **delve prompts for codesigning approval (macOS)**: run `dlv debug` once
+  from a shell, in a real Go module, before trusting the editor path — it
+  surfaces the one-time approval prompt somewhere legible.
+- **`:checkhealth dap` can't validate the Go adapter**: `dap.adapters.go` is
+  a *function*, not a table, and dap's health check just prints "Adapter is
+  a function. Can't validate it." Use `:checkhealth neotest-golang` instead —
+  it checks `go`/`dlv`/`gotestsum` on `PATH`, `go.mod` discovery, the parser
+  version, and the `-race`-without-cgo case.
+- **Don't put a scratch Go module under `/tmp`**: neotest-golang's health
+  check flags `/tmp` and `/private/tmp` on macOS as known-problematic paths.
 
 
 ## Neovide
