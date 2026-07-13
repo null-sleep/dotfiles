@@ -101,11 +101,11 @@ local keywords = {
   ['<leader>db'] = 'breakpoint dap debugger',
   ['<leader>dc'] = 'debug continue start dap run delve go rust',
   ['<leader>du'] = 'dap-ui debugger panel scopes stack watches',
-  ['<leader>dR'] = 'debug rust debuggables rustaceanvim go delve launch configs picker',
+  ['<leader>dR'] = 'debug rust debuggables rustaceanvim go delve targets packages main picker',
   ['<leader>nn'] = 'neotest run test nearest',
   ['<leader>nd'] = 'neotest debug test dap nearest go delve rust',
   ['<leader>ns'] = 'neotest summary test tree panel',
-  ['<leader>cR'] = 'rust runnables run cargo rustaceanvim',
+  ['<leader>cR'] = 'run rust runnables cargo rustaceanvim go targets packages main picker',
   ['<leader>pd'] = 'peek definition popup float goto-preview vscode',
   ['<leader>pt'] = 'peek type definition popup float goto-preview',
   ['<leader>pi'] = 'peek implementation popup float goto-preview',
@@ -128,7 +128,8 @@ local keywords = {
 -- ISN'T the derivable prefix. Entries here are MERGED with the derived tag,
 -- never replace it — see resolve_tags() in pickers/keybindings.lua.
 local tags = {
-  ['<leader>dR'] = { 'rust' },              -- desc derives 'debug'; Rust debuggables is also rust
+  ['<leader>dR'] = { 'rust', 'go' },        -- desc derives 'debug'; Rust debuggables is also rust (was { 'rust' })
+  ['<leader>cR'] = { 'rust', 'go', 'run' },
   ['<leader>vv'] = { 'diff' },
   ['<leader>vp'] = { 'diff' },
   ['<leader>vn'] = { 'diff' },

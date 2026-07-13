@@ -24,24 +24,25 @@ if not dap_ok then
   vim.notify('nvim-dap-go failed to load — Go debugging disabled', vim.log.levels.WARN)
 end
 
--- NOTE: no early `return` on dap_ok. The autocmd below must still register
--- regardless of whether dap-go loaded; only the dap-dependent keymap is gated
--- on dap_ok.
+-- NOTE: no early `return` on dap_ok. <leader>cR (run in a terminal) has nothing
+-- to do with dap, so a broken nvim-dap-go must not take it down with it — only
+-- <leader>dR is gated below.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'go',
-  group = vim.api.nvim_create_augroup('UserGoDebug', { clear = true }),
+  group = vim.api.nvim_create_augroup('UserGoKeys', { clear = true }),
   callback = function(ev)
-    if dap_ok then
-      -- <leader>dR in a Go buffer = "start a debug session by picking one", the
-      -- same thing the key means in a Rust buffer (rust.lua maps it to
-      -- rustaceanvim's debuggables). Go has no target provider, so here it's
-      -- just dap.continue(): with no session running that opens the
-      -- launch-config picker (via vim.ui.select -> snacks). Identical to
-      -- <F5>/<leader>dc — it exists so the "pick something to debug" muscle
-      -- memory carries across languages instead of being a Rust-only habit.
-      -- Buffer-local, like Rust's, so the key stays free elsewhere.
-      vim.keymap.set('n', '<leader>dR', function() require('dap').continue() end,
-        { buffer = ev.buf, desc = 'Debug: Go launch configs (picker)' })
+    local map = function(lhs, rhs, desc)
+      vim.keymap.set('n', lhs, rhs, { buffer = ev.buf, desc = desc })
     end
+    -- Deliberately the same two keys Rust binds in rust.lua, with the same
+    -- meanings: dR = pick a target and debug it, cR = pick a target and run it.
+    -- require()d inside the callback so go list/the picker/toggleterm cost
+    -- nothing until the key is actually pressed.
+    if dap_ok then
+      map('<leader>dR', function() require('pickers.gotargets').open('debug') end,
+        'Debug: Go debuggables')
+    end
+    map('<leader>cR', function() require('pickers.gotargets').open('run') end,
+      'Go: Runnables (run)')
   end,
 })
