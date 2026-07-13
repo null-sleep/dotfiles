@@ -1055,6 +1055,175 @@ question is whether that Lua cost is what's *felt*, or whether it's C-side
 redraw the profiler can't see. Snacks ships an instrumentation profiler
 (`Snacks.profiler`, read `docs/profiler.md`) to settle it.
 
+<a id="preview-off-result"></a>
+### Result (2026-07-13): the preview is NOT the bottleneck
+
+**Run first, because it costs one keypress and halves the hypothesis space.**
+This is also the first thing folke asks people to try on the upstream report
+of this exact symptom ([discussion #950](https://github.com/folke/snacks.nvim/discussions/950),
+"holding down J or K" sluggish): toggle the preview off with `<a-p>` and see
+if the scroll is still slow.
+
+We did it the blunt way — `preview = false` in `picker.lua`'s `pick_layout()`,
+restart, open `<leader>sf`, hold `<C-j>`. **Verdict: "seems similar."** With
+the preview pane gone entirely, the scroll feels the same.
+
+That is a strong, cheap result, and it kills a lot of work:
+
+- **Every preview-side fix is dead.** The buffer cache, the bulk read, the
+  async read, the throttle tuning — none of them can explain a sluggishness
+  that persists with the preview *not rendering at all*.
+- **The remaining suspect is the list renderer**, which is the one piece of
+  per-tick work that is **unthrottled and synchronous**: `list:_move`
+  (`core/list.lua:271-289`) sets `dirty` whenever `top` changes — i.e. on
+  every tick once you're scrolling past the window edge — and calls
+  `list:render()` (`:550-600`) inline, which re-formats and re-extmarks
+  **every visible row** (~40 at `height = 0.9`) and then redraws. By contrast
+  the preview is throttled to ~16/sec (`core/picker.lua:134-139`, hardcoded
+  `ms = 60`) and dispatched via `vim.schedule` (`core/list.lua:628`).
+- **The height A/B did not exonerate the list**, contrary to what this section
+  used to assert. 0.9 → 0.8 changes the row count by ~10%, far below the noise
+  floor of a feel test. It was never evidence for the preview branch.
+
+Next step is therefore **profiler attribution against `core.list` / `format`**
+(below), not any of the preview work — and an upstream issue against
+`core/list.lua`'s per-tick full re-render, with the trace attached.
+
+Note for anyone re-reading the preview research below: it remains accurate as
+a *description of the two previewers*, and it correctly killed the "snacks
+attaches an LSP / uses treesitter where telescope didn't" theories. But its
+**conclusions about the cause of the sluggishness were wrong**, and are struck
+through in [What this predicts](#preview-predictions) below. Kept as the
+decision record, not as live guidance.
+
+<a id="preview-mechanism"></a>
+### How the file preview is actually built — snacks vs telescope
+
+Read firsthand (2026-07) at the installed snacks commit and a fresh telescope
+clone, because the preview pane is the leading suspect and the two pickers
+turn out to build it *differently in exactly the ways that matter for scroll*.
+Both were running stock defaults: the pre-migration `plugins.lua`
+(`b5ccd8b^`) passed **no** `preview = {}` overrides to `telescope.setup()`,
+and `picker.lua` passes none to snacks today.
+
+**The part that is identical in both** — and which therefore explains nothing
+about the regression, but does kill a whole family of hypotheses:
+
+- Neither opens a real file buffer. No `:edit`, no `bufadd`/`bufload`, no
+  `nvim_buf_set_name`. The file is read as *text* and pushed into an
+  unlisted scratch buffer (`nvim_create_buf(false, true)` → `buftype=nofile`)
+  with `nvim_buf_set_lines`.
+- **Neither ever sets `filetype` on that buffer**, so `FileType` never fires:
+  no LSP client, no `LspAttach`, no ftplugin, no diagnostics, no folds-by-ft.
+  Snacks leaves the buffer's ft as the literal `snacks_picker_preview`
+  (`picker/core/preview.lua:262`) and wraps every option write in
+  `vim.o.eventignore = "all"`; telescope swaps the buffer into the preview
+  window via `utils.win_set_buf_noautocmd` (`previewers/buffer_previewer.lua:412,420`),
+  which is `eventignore = "all"` around `nvim_win_set_buf`. The detected
+  filetype is used *only* to choose a treesitter language.
+- Highlighting in both is `vim.treesitter.start(buf, lang)` attached to the
+  **whole buffer** (snacks `picker/core/preview.lua:307`, telescope
+  `previewers/utils.lua:170-176`), with a regex `bo.syntax = ft` fallback
+  when no parser exists. Actual parsing is viewport-driven by Neovim's core
+  highlighter, running as C-invoked decoration providers.
+
+So "snacks attaches an LSP to previews" and "snacks uses treesitter where
+telescope didn't" are both **false** — strike them from the hypothesis list.
+The difference is entirely in *buffer lifecycle*, *when the read happens*,
+and *how often the preview fires*:
+
+| Behavior [1] | telescope (`vim_buffer_cat` → `file_maker`) | snacks (`previewers.file`) |
+| --- | --- | --- |
+| Buffer per previewed file | one new scratch buf per file | one scratch buf per *picker*, rewritten in place |
+| Buffer cache | yes: path → bufnr, unbounded, no eviction | no cache |
+| Re-preview of a file seen earlier | cache hit: swap the buf back in, no re-read, no re-parse | full re-read + full re-parse |
+| File read | async (plenary `Path:_read_async`, libuv) | synchronous `io.open`/`io.lines` on the main loop |
+| Treesitter lifecycle | parser stays attached to the cached buf | `treesitter.stop` on every reset, re-`start` per file |
+| Preview throttle | none | 60ms, leading + trailing |
+| No-preview size cap | 25MB | 1MB |
+| No-highlight size cap | 1MB (text still shown) | n/a (no preview at all past 1MB) |
+| Line-splitting budget | 250ms, else "Previewer timed out" | none |
+| Long-line handling | none | truncated at 500 chars |
+| Binary detection | `file --mime-type` shell call | per-line control-char regex |
+| Buffer cleanup | all cached bufs deleted at picker teardown | scratch buf lives for the picker; force-loaded bufs swept on `WinClosed` |
+
+[1] snacks: `picker/preview.lua:80-181` (`M.file`), `picker/core/preview.lua`
+(`reset` 244-268, `scratch` 274-286, `highlight` 288-310, `set_lines` 396-401),
+`picker/core/picker.lua:134-139, 469-480` (throttle),
+`picker/config/defaults.lua:197-201` (`max_size`, `max_line_length`).
+telescope: `previewers/buffer_previewer.lua` (`preview_fn` 402-462, `file_maker`
+238-274, `handle_file_preview` 147-232, cache 333-365, `teardown` 375-400),
+`previewers/utils.lua:115-178` (`highlighter`), `config.lua:599-608` (defaults),
+`pickers.lua:1150, 1199-1209` (`refresh_previewer`, un-debounced).
+
+Two snacks details worth spelling out, because they cut in opposite
+directions:
+
+- **Same-path short-circuit** (`picker/preview.lua:123`): if the newly
+  selected item resolves to the same path as the previous one, snacks does
+  *not* re-read or re-highlight — only `loc()` moves the cursor. So scrolling
+  through many grep hits *within one file* is cheap. This is the one case
+  snacks matches telescope's cache.
+- **No cache across files**: scrolling a `files` list, every tick that lands
+  on a new path pays a blocking read + a fresh `treesitter.stop`/`start`
+  cycle + a full parse of the new buffer. Telescope paid that once per file,
+  ever, for the life of the picker.
+
+The `item.buf` path is the exception in snacks and is already noted in TODO
+#5: buffers/`lines`/LSP pickers carry a real loaded buffer, which snacks
+previews by pointing the preview window straight at it (`picker/preview.lua:107`)
+— no re-read, no new parse. That's why `<leader>sb` scrolling feels fine and
+`<leader>sf` doesn't, and it's a useful control: **if the sluggishness is
+absent in `lines` and present in `files`, the read+parse path is implicated,
+not the list renderer** (which is identical in both).
+
+<a id="preview-predictions"></a>
+### What this predicted about the sluggishness — and why it was wrong
+
+**Superseded by the [preview-off result](#preview-off-result).** Kept because
+the reasoning error is instructive and worth not repeating.
+
+The three hypotheses this section originally ranked were (1) the missing
+preview-buffer cache, "best fit"; (2) the synchronous read; (3) C-side
+decoration providers. An adversarial review plus the one-keypress `<a-p>` test
+killed all three as explanations of the reported symptom:
+
+- **The cache hypothesis was a reasoning error, independent of the `<a-p>`
+  result.** A `path → bufnr` cache only helps *revisits*. Holding `<C-j>` down
+  a fresh file list is 100% cache **misses** — and **telescope missed on every
+  one of those ticks too**, paying *more* per miss than snacks does (a brand-new
+  buffer per file, plus the read, plus `treesitter.start`). There is no
+  amortization when every tick is an unseen path. The old claim ("snacks pays
+  full price forever while telescope amortized") is only true of the scroll-*back*
+  leg, which nobody complained about. A cache is a fine optimization for the
+  `<C-j>`/`<C-k>` oscillation case; it is *not* a fix for this bug.
+- **The read and the decoration providers are moot**, because the sluggishness
+  survives the preview being switched off entirely.
+
+What actually remains: **`list:render()`'s per-tick, unthrottled, full-visible-row
+re-render** (`core/list.lua:271-289` → `:550-600`). It was in front of us the
+whole time — `picker.lua:15-17` already carries a comment describing exactly
+this mechanic — and it got wrongly demoted because the 0.8-vs-0.9 height A/B
+was read as exculpating it. That A/B was underpowered (~10% row-count delta,
+well inside feel-test noise) and proved nothing.
+
+Also worth recording: the upstream thread ([#950](https://github.com/folke/snacks.nvim/discussions/950))
+notes that users who *did* fix a similar sluggishness got it from **async
+treesitter in nvim 0.11+**. We're on 0.12, so we already have that — another
+reason the treesitter-parse theories were weak here.
+
+If the cache is ever built anyway (for the oscillation case), four defects were
+found in the draft design and must not be rebuilt:
+`Snacks.win:on` is **not idempotent** (registering teardown from inside the
+previewer adds an autocmd *per tick* — guard it, as snacks' own `colorscheme`
+previewer does at `picker/preview.lua:351-359`); the teardown must `vim.schedule`
+its `nvim_buf_delete` calls and skip the still-displayed buffer (snacks' own
+sweep does both, `core/preview.lua:104-121`); it must preserve snacks'
+same-path short-circuit (`picker/preview.lua:123`) or consecutive grep hits in
+one file get *slower* than stock; and `buftype = ''` + `nvim_buf_set_lines`
+leaves **modified** buffers that make `:qa` fail with `E162`, so set
+`modified = false` after filling.
+
 ### What the profiler can and can't see (verified against source)
 
 - Starting mid-session **does** instrument already-loaded modules
@@ -1070,7 +1239,17 @@ redraw the profiler can't see. Snacks ships an instrumentation profiler
 - **Blind entirely:** the preview buffer's treesitter highlighting runs as
   C-invoked decoration providers (`on_win`/`on_line`), not Lua module
   functions — invisible to instrumentation. So is the `win:redraw()`
-  screen paint. This is the leading suspect, not a footnote.
+  screen paint. Still a real blind spot, but see
+  [the mechanism comparison](#preview-mechanism): telescope highlighted
+  previews with the *same* `vim.treesitter.start` over the *same* whole
+  buffer, so decoration-provider cost alone can't explain a snacks-specific
+  regression — what changed is how often snacks re-pays it (no buffer cache,
+  `treesitter.stop`/`start` per file).
+- **Visible, and now the thing to look for:** the synchronous file read
+  (`io.open`/`io.lines` inside `snacks.picker.preview`, `M.file`) *is* Lua on
+  the main loop, so it lands in the trace under the `snacks.picker.preview`
+  module bucket. If `core.preview` outweighs `core.list` in a preview-on run,
+  read that as the blocking read + parse attach, not as list rendering.
 - "Zero overhead when off" holds only until the first run: `stop()` doesn't
   un-wrap modules, so a light per-call guard persists until nvim restarts.
   The *bind* is free to land permanently; a *run* leaves residue.
@@ -1089,56 +1268,73 @@ redraw the profiler can't see. Snacks ships an instrumentation profiler
 
 ### Measurement protocol
 
-Pin the variables: same repo (the work monorepo), same starting query, same
-item count. Three complementary measurements, not one.
+Step 0 — the `<a-p>` preview-off test — is **done**, and it points at the list
+renderer ([result above](#preview-off-result)). What follows is scoped to that.
 
-1. **Scripted baseline (primary, deterministic).** Drive the list directly —
-   key-repeat rate and hand timing make hand-held `<C-j>` runs
-   incomparable. Pin the active picker's list and:
-   `local t = vim.uv.hrtime(); for _ = 1, 2000 do list:move(1) end;
-   print((vim.uv.hrtime() - t) / 1e6)` — fixed tick count, wall-time in ms,
-   no profiler skew. (Confirm the list accessor first.) Optionally read
-   exact full-render counts via `debug.getupvalue` on
-   `Snacks.picker.core.list.render`'s `stats` upvalue (cumulative — use
-   before/after deltas).
-2. **Profiler attribution, preview on vs off.** `<leader>tp` → `<leader>sf`
-   → hold `<C-j>` ~10s → `<leader>tp` (trace picker opens). Repeat with
-   preview off (`<a-p>` right after opening). Group flat by module
-   (`scratch()` → `{ group = 'def_modname', sort = 'time' }`); record time
-   and counts for `snacks.picker.core.list`, `core.preview`,
-   `snacks.picker.format`, `util.highlight`, `core.matcher`. Close the
-   trace picker before the next run — it's itself a snacks picker
-   (`start()` clears prior events, but an open trace picker would land in
-   the next trace).
-3. **Telescope control (the actual comparison).** The complaint is "slower
-   than telescope," and telescope is gone, so memory isn't a baseline.
+Pin the variables: same repo (the work monorepo), same starting query, same
+item count.
+
+1. **Profiler attribution on the list path (primary).** `<leader>tp` →
+   `<leader>sf` → hold `<C-j>` ~10s → `<leader>tp` (trace picker opens). Group
+   flat by module (`scratch()` → `{ group = 'def_modname', sort = 'time' }`)
+   and record time + counts for `snacks.picker.core.list`,
+   `snacks.picker.format`, `util.highlight`, `core.matcher`. Run it with the
+   preview **off** (`<a-p>`) so the trace isn't diluted — the preview is
+   already exonerated, and excluding it makes the list numbers legible. Close
+   the trace picker before the next run: it's itself a snacks picker, and an
+   open one would land in the next trace.
+   Remember the default `filter_fn` drops `_`-prefixed functions — most of the
+   hot path (`_render`, `_move`, `_scroll`) — so start with
+   `filter_fn = { default = true }` to split render-internal from move-internal.
+2. **Per-row cost, measured directly.** The prediction from
+   `core/list.lua:550-600` is that per-tick cost scales with **visible rows**.
+   Test it properly this time (the 0.8-vs-0.9 A/B was far too small a delta):
+   compare `height = 0.3` against `height = 0.95` — a ~3× row-count spread, well
+   outside feel-test noise. If the sluggishness tracks *that*, the full-visible-row
+   re-render is confirmed and the fix is upstream.
+3. **Telescope control (the cross-tool claim).** The complaint is "slower than
+   telescope," and telescope is gone, so memory isn't a baseline.
    `git stash && git checkout <pre-migration commit>`, open the equivalent
-   telescope picker on the *same* repo, run the same scroll (scripted if
-   feasible, else hand-scroll + wall-clock), then
-   `git checkout main && git stash pop` — the same pinned-commit trick as
-   TODO #4. Without this the cross-tool claim is unfalsifiable.
+   telescope picker on the *same* repo, hold `<C-j>`, then
+   `git checkout main && git stash pop` — the pinned-commit trick from TODO #4.
+   Telescope re-rendered its results buffer differently *and* previewed on
+   **every** selection change with no throttle at all, so if it still wins with
+   both previews off, the difference is squarely in list rendering.
+
+**Do not** use a scripted `for _ = 1, N do list:move(1) end` + `hrtime` loop as
+a *preview* benchmark — an earlier draft of this plan did, and it's invalid:
+the 60ms throttle (`core/picker.lua:134-139`) plus the `vim.schedule` dispatch
+(`core/list.lua:628`) mean such a loop fires roughly **one** preview and
+silently times list movement instead. It is, however, a perfectly good *list*
+benchmark — which is now the thing we care about. If a scripted preview number
+is ever wanted, drive `picker.preview:show(picker, { force = true })` directly
+to bypass the throttle.
 
 ### Interpretation
 
-- Scripted Lua time (1) is large and the profiler gap (2) sits in
-  `core.preview` → snacks Lua render/preview cost; mitigation is upstream
-  (the `_throttled_preview` interval is hardcoded `ms = 60`) or live with
-  `<a-p>`.
-- `core.list` / `format` dominate both preview states → per-row render
-  cost; compare format functions (our `sb` wrapper is O(1) over stock) and
-  consider an upstream issue with the trace attached.
-- **Scripted Lua time small but the felt lag stays, or lag scales with
-  preview file size → it's C-side: `win:redraw()` + treesitter decoration
-  providers on the preview buffer.** Probe outside snacks: preview a
-  20-line vs a 5000-line file, `syntax off` / `:set redrawtime` in the
-  preview, a non-kitty terminal, cursor-animation plugins,
-  `:set lazyredraw`.
+With the preview ruled out, the outcomes worth distinguishing are:
+
+- **`core.list` / `format` dominate the trace, and the cost tracks visible-row
+  count (protocol 2)** → confirmed: `list:render()` re-formats every visible row
+  on every tick, unthrottled. Our own format wrappers are O(1) over stock
+  (`sb`'s line-number recolor, `sm`'s status columns), so this is stock snacks
+  behavior and the fix is **upstream** — file it against `core/list.lua` with
+  the trace, framed as "the dirty branch re-renders all visible rows per scroll
+  tick, and there is no throttle on the render path (unlike the 60ms one on the
+  preview)". Local mitigations meanwhile: a smaller picker `height`, which
+  directly cuts the per-tick row count.
+- **`core.matcher` dominates** → it's not rendering at all but re-matching;
+  different upstream conversation, and `frecency` (which we enable) is worth
+  A/B-ing since it adds per-item scoring work.
+- **Lua time is small but the lag persists** → it's C-side: `win:redraw()` and
+  the terminal. Probe outside snacks entirely: a different terminal (we're on
+  kitty/iTerm2/Neovide), cursor-animation plugins, `:set lazyredraw`. Note the
+  preview-off result already rules out preview-buffer treesitter decoration
+  providers as the C-side culprit — the list window has no treesitter attached.
 
 Caveats (profiler docs + source): the session slows while profiling and
-instrumentation inflates hot tiny functions, so treat *relative*
-differences as signal, never absolute ms — which is exactly why step 1's
-un-instrumented `hrtime` loop is the primary number and the profiler is
-for attribution. Record findings here when done.
+instrumentation inflates hot tiny functions, so treat *relative* differences as
+signal, never absolute ms. Record findings here when done.
 
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
@@ -1207,14 +1403,23 @@ Deferred follow-ups from the migration (decided during implementation review,
    matching the file list and driving `fd` live) and **`lsp_symbols`**
    (`<leader>ss`) — and whether our custom `pickers/*.lua` finders could set
    `supports_live` themselves.
-7. **Profile the sluggish picker scroll** — holding `<C-j>` feels slower
-   than telescope did, and the height A/B (see item 5) ruled out window
-   size. Full plan in [§7](#scroll-profiling): a scripted `hrtime`
-   `list:move` loop as the deterministic baseline, `<leader>tp`
-   (`Snacks.toggle.profiler()`) attribution runs with preview on vs off,
-   and a pre-migration-checkout telescope control — then decide between
-   upstream issue / config tweak / "it's C-side redraw" (treesitter
-   decoration providers on the preview are the leading suspect).
+7. **Profile the sluggish picker scroll** — holding `<C-j>` feels slower than
+   telescope did. **The preview has been ruled out** (2026-07-13): with
+   `preview = false` forced globally, the scroll still "seems similar", so the
+   cost is not the preview pane at all — see
+   [§7 result](#preview-off-result). That kills the whole preview-side branch
+   of this investigation (buffer cache, bulk read, async read, throttle tuning),
+   including a fully-designed preview-cache module that was **abandoned before
+   landing** — its central premise was a reasoning error (a cache only helps
+   *revisits*; scrolling down a fresh list is all misses, and telescope missed
+   on every one of those ticks too, more expensively). The remaining suspect is
+   the one piece of per-tick work that is unthrottled and synchronous:
+   `list:render()` re-formatting **every visible row** on every scroll tick
+   (`core/list.lua:271-289` → `:550-600`), which the 0.8-vs-0.9 height A/B was
+   far too underpowered to have exonerated. Next: bind `<leader>tp`
+   (`Snacks.toggle.profiler()`), attribute a held-`<C-j>` trace against
+   `core.list` / `format`, re-run the row-count test at a ~3× height spread,
+   and take it upstream. Full protocol in [§7](#scroll-profiling).
 8. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
    Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
    Sources below but was only skimmed for the *decision*; it was never mined for
@@ -1229,6 +1434,25 @@ Deferred follow-ups from the migration (decided during implementation review,
   `core/frecency.lua`, `util/init.lua`, `source/grep.lua`, `source/files.lua`,
   `config/defaults.lua`, `config/layouts.lua`)
 - telescope source: `lua/telescope/{sorters,config,finders,pickers,mappings,algos/fzy,builtin/__files}.lua`
+
+Preview mechanism ([§7](#preview-mechanism)) — both read firsthand, 2026-07:
+
+- snacks: `picker/preview.lua` (`M.file`), `picker/core/preview.lua`
+  (`reset`/`scratch`/`highlight`/`set_lines`), `picker/core/picker.lua`
+  (`show_preview` + the 60ms throttle), `picker/config/defaults.lua`
+  (`previewers.file`), `util/init.lua` (`get_lang`, `throttle`)
+- telescope (clone of `nvim-telescope/telescope.nvim`, not installed anymore):
+  `previewers/buffer_previewer.lua` (`new_buffer_previewer`, `file_maker`,
+  the bufname cache + `teardown`), `previewers/utils.lua` (`highlighter`,
+  `ts_highlighter`, `regex_highlighter`, `timed_split_lines`), `config.lua`
+  (`preview` defaults, `file_previewer`), `pickers.lua` (`refresh_previewer`)
+- the pre-migration telescope config that was actually in use (no `preview`
+  overrides, so all of the above defaults applied): `git show
+  b5ccd8b^:nvim/.config/nvim/lua/plugins.lua`
+- upstream report of the same symptom ("holding down J or K" sluggish), where
+  folke's first diagnostic is the `<a-p>` preview-off test we ran, and where the
+  users who resolved it did so via async treesitter in nvim 0.11+ (we're on
+  0.12): <https://github.com/folke/snacks.nvim/discussions/950>
 - fzf search syntax: <https://junegunn.github.io/fzf/search-syntax/>
 - telescope-fzf-native: <https://github.com/nvim-telescope/telescope-fzf-native.nvim>
 - telescope-live-grep-args: <https://github.com/nvim-telescope/telescope-live-grep-args.nvim>
