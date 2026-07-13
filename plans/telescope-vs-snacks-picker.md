@@ -1047,60 +1047,98 @@ plumbing touched. Live with both for a week and let the `<C-h>` reflex decide.
 
 Plan for chasing the "holding `<C-j>` in a picker feels sluggish" report
 (TODO #7). Context from TODO #5: an 0.8 vs 0.9 height A/B showed the feel
-does **not** track window size, so the suspect is snacks' own render path —
-each scroll tick past the list edge re-renders every visible row
-(`core/list.lua:render`, `dirty` branch) and refreshes the preview
-(throttled `_throttled_preview`). Snacks ships an instrumentation profiler
-(`Snacks.profiler`, read: `docs/profiler.md` in the plugin) that can
-attribute Lua time per function/module; it's on-demand with zero overhead
-when not running, so the setup can land permanently.
+does **not** track window size. The mechanic is real — a scroll tick that
+moves `top` marks the list dirty, and the dirty branch of
+`core/list.lua:render()` re-renders every visible row and calls
+`win:redraw()` — so per-tick Lua cost scales with visible rows. The open
+question is whether that Lua cost is what's *felt*, or whether it's C-side
+redraw the profiler can't see. Snacks ships an instrumentation profiler
+(`Snacks.profiler`, read `docs/profiler.md`) to settle it.
 
-### Setup (one-time, ~5 lines)
+### What the profiler can and can't see (verified against source)
 
-- Bind `<leader>tp` → `Snacks.toggle.profiler():map('<leader>tp')`, placed
-  in `picker.lua` after `setup()` (needs the `Snacks` global; same pattern
-  as scratch.lua owning its keymaps). `<leader>tp` is free — `<leader>t*`
-  is the toggle family; snacks' suggested `<leader>pp/ph` collide with the
+- Starting mid-session **does** instrument already-loaded modules
+  (`profiler/core.lua` walks `package.loaded` on start), so
+  `snacks.picker.*` gets wrapped even though it loaded long ago.
+- The default `filter_fn` drops every `_`-prefixed function
+  (`^.*%._[^%.]*$`) — which is most of the hot path: `_render`, `_move`,
+  `_scroll`, `_show_preview`, `_throttled_preview`. By default their time
+  folds into the public caller, so module-level buckets (`core.list`,
+  `core.preview`) are trustworthy but render-internal vs preview-internal
+  isn't split. To split it, start with `filter_fn = { default = true }`
+  (drops the underscore rule).
+- **Blind entirely:** the preview buffer's treesitter highlighting runs as
+  C-invoked decoration providers (`on_win`/`on_line`), not Lua module
+  functions — invisible to instrumentation. So is the `win:redraw()`
+  screen paint. This is the leading suspect, not a footnote.
+- "Zero overhead when off" holds only until the first run: `stop()` doesn't
+  un-wrap modules, so a light per-call guard persists until nvim restarts.
+  The *bind* is free to land permanently; a *run* leaves residue.
+
+### Setup (one-time, ~3 lines)
+
+- Bind `<leader>tp` → `Snacks.toggle.profiler():map('<leader>tp')` in
+  `picker.lua` after `setup()` (needs the `Snacks` global; same pattern as
+  scratch.lua owning its keymaps). `<leader>tp` is free (`<leader>t*` =
+  toggle family); snacks' suggested `<leader>pp/ph` collide with the
   goto-preview peek keys.
-- No `setup()` changes: the profiler module is on-demand, defaults are
-  fine, and `on_stop.pick = true` auto-opens the trace picker when the
-  profiler stops. `Snacks.profiler.scratch()` (unbound; `:lua`) tweaks
-  grouping/filtering of the captured run afterwards.
+- No `setup()` change for a first pass — `start()` applies defaults and
+  `on_stop.pick` auto-opens the trace picker on stop. Use
+  `Snacks.profiler.scratch()` to tweak `group`/`filter`/`filter_fn` per run.
 - Document the keymap in GUIDE.md in the same change (repo rule).
 
 ### Measurement protocol
 
-Runs of ~10s each, back-to-back, same repo (a big one — the work monorepo)
-and same starting query. Per run: `<leader>tp` → open `<leader>sf` → hold
-`<C-j>` ~10s → `<leader>tp` (trace picker opens on stop).
+Pin the variables: same repo (the work monorepo), same starting query, same
+item count. Three complementary measurements, not one.
 
-1. **Preview on** (baseline).
-2. **Preview off** — hit `<a-p>` right after opening. Isolates list
-   rendering from preview redraw.
-3. Optional: repeat 1 at height 0.8 to quantify the height factor properly.
-
-In the trace picker, group by module (`Snacks.profiler.scratch()` →
-`{ group = 'def_modname', sort = 'time' }`) and record time + call counts
-for: `snacks.picker.core.list`, `core.preview`, `snacks.picker.format`,
-`util.highlight`, `core.matcher`.
+1. **Scripted baseline (primary, deterministic).** Drive the list directly —
+   key-repeat rate and hand timing make hand-held `<C-j>` runs
+   incomparable. Pin the active picker's list and:
+   `local t = vim.uv.hrtime(); for _ = 1, 2000 do list:move(1) end;
+   print((vim.uv.hrtime() - t) / 1e6)` — fixed tick count, wall-time in ms,
+   no profiler skew. (Confirm the list accessor first.) Optionally read
+   exact full-render counts via `debug.getupvalue` on
+   `Snacks.picker.core.list.render`'s `stats` upvalue (cumulative — use
+   before/after deltas).
+2. **Profiler attribution, preview on vs off.** `<leader>tp` → `<leader>sf`
+   → hold `<C-j>` ~10s → `<leader>tp` (trace picker opens). Repeat with
+   preview off (`<a-p>` right after opening). Group flat by module
+   (`scratch()` → `{ group = 'def_modname', sort = 'time' }`); record time
+   and counts for `snacks.picker.core.list`, `core.preview`,
+   `snacks.picker.format`, `util.highlight`, `core.matcher`. Close the
+   trace picker before the next run — it's itself a snacks picker
+   (`start()` clears prior events, but an open trace picker would land in
+   the next trace).
+3. **Telescope control (the actual comparison).** The complaint is "slower
+   than telescope," and telescope is gone, so memory isn't a baseline.
+   `git stash && git checkout <pre-migration commit>`, open the equivalent
+   telescope picker on the *same* repo, run the same scroll (scripted if
+   feasible, else hand-scroll + wall-clock), then
+   `git checkout main && git stash pop` — the same pinned-commit trick as
+   TODO #4. Without this the cross-tool claim is unfalsifiable.
 
 ### Interpretation
 
-- Run 1 ≫ run 2 with the gap in `core.preview` → preview redraw dominates;
-  mitigation space: preview throttle (upstream — the `_throttled_preview`
-  interval isn't configurable), or live with `<a-p>`.
-- `core.list` / `format` dominate both runs → per-row render cost; compare
-  format functions (our `sb` wrapper is O(1) over stock; `sf` is
-  icons+filename) and consider an upstream issue with the trace attached.
-- **Lua totals small while the feel stays bad → the time is C-side screen
-  redraw, which instrumentation can't see.** Then the fix space is outside
-  snacks: try another terminal than kitty, check cursor-animation-style
-  plugins, `:set lazyredraw` experiments.
+- Scripted Lua time (1) is large and the profiler gap (2) sits in
+  `core.preview` → snacks Lua render/preview cost; mitigation is upstream
+  (the `_throttled_preview` interval is hardcoded `ms = 60`) or live with
+  `<a-p>`.
+- `core.list` / `format` dominate both preview states → per-row render
+  cost; compare format functions (our `sb` wrapper is O(1) over stock) and
+  consider an upstream issue with the trace attached.
+- **Scripted Lua time small but the felt lag stays, or lag scales with
+  preview file size → it's C-side: `win:redraw()` + treesitter decoration
+  providers on the preview buffer.** Probe outside snacks: preview a
+  20-line vs a 5000-line file, `syntax off` / `:set redrawtime` in the
+  preview, a non-kitty terminal, cursor-animation plugins,
+  `:set lazyredraw`.
 
-Caveats (from the profiler docs): the session slows while profiling, and
-instrumentation overhead inflates hot tiny functions — exactly the render
-path — so treat *relative* differences between runs as the signal, never
-absolute ms. Record findings here when done.
+Caveats (profiler docs + source): the session slows while profiling and
+instrumentation inflates hot tiny functions, so treat *relative*
+differences as signal, never absolute ms — which is exactly why step 1's
+un-instrumented `hrtime` loop is the primary number and the profiler is
+for attribution. Record findings here when done.
 
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
@@ -1171,10 +1209,12 @@ Deferred follow-ups from the migration (decided during implementation review,
    `supports_live` themselves.
 7. **Profile the sluggish picker scroll** — holding `<C-j>` feels slower
    than telescope did, and the height A/B (see item 5) ruled out window
-   size. Full plan in [§7](#scroll-profiling): bind `<leader>tp`
-   (`Snacks.toggle.profiler()`), capture preview-on vs preview-off scroll
-   runs, group traces by module, and decide between upstream issue /
-   config tweak / "it's terminal-side redraw".
+   size. Full plan in [§7](#scroll-profiling): a scripted `hrtime`
+   `list:move` loop as the deterministic baseline, `<leader>tp`
+   (`Snacks.toggle.profiler()`) attribution runs with preview on vs off,
+   and a pre-migration-checkout telescope control — then decide between
+   upstream issue / config tweak / "it's C-side redraw" (treesitter
+   decoration providers on the preview are the leading suspect).
 8. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
    Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
    Sources below but was only skimmed for the *decision*; it was never mined for
