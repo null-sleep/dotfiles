@@ -20,10 +20,10 @@ Today, in a `.go` buffer:
   a list of **real cargo targets** from rust-analyzer, and `<leader>cR` →
   runnables → `cargo run` on the picked target.
 
-The seven Go entries are not targets. Worse than the GUIDE currently claims:
-GUIDE.md's Go section says *"**Debug Package** — prompts for a package path"*.
-**It does not prompt.** dap-go hard-codes `program = "${fileDirname}"`
-(`~/.local/share/nvim/site/pack/core/opt/nvim-dap-go/lua/dap-go.lua:129`), and
+The seven Go entries are not targets — they are *tools*, and every one of them is
+anchored to the buffer you already have open. dap-go hard-codes
+`program = "${fileDirname}"` for "Debug Package"
+(`~/.local/share/nvim/site/pack/core/opt/nvim-dap-go/lua/dap-go.lua:135`), and
 nvim-dap expands `${fileDirname}` to `vim.fn.expand('%:p:h')` — the *current
 file's own directory* (`nvim-dap/lua/dap.lua:369-371`). So:
 
@@ -38,6 +38,11 @@ service layout — debugging `cmd/bar` means: open a file under `cmd/bar/`, then
 `<leader>dR`, then pick. From a library file (`internal/store/store.go`), the
 list offers nothing that builds: "Debug" and "Debug Package" both point at a
 non-main package and delve fails at the build step.
+
+`GUIDE.md`'s Go section already documents this honestly ("All of these are
+anchored to the current file … None of them lets you pick a different `main`
+package") and points at this plan. So there is no doc bug to fix here — the job
+is to close the gap the docs already admit to.
 
 This plan adds the missing provider — Go has no rust-analyzer to ask, but it
 has `go list`, which is exactly a target enumerator — and wires it to the two
@@ -65,7 +70,7 @@ From delve v1.27.0's `LaunchConfig` (`~/go/pkg/mod/github.com/go-delve/delve@v1.
   Delve's working directory is used"* (`types.go:93-101`) — i.e. nvim's cwd,
   which is not necessarily the module root. Set it explicitly.
 - **`outputMode`** (`types.go:159-160`) — dap-go sets `"remote"` on all seven of
-  its launch configs (`dap-go.lua:22`, `output_mode = "remote"` in
+  its launch configs (`dap-go.lua:20`, `output_mode = "remote"` in
   `default_config`). `plans/go-run-debug-test.md` already records why: without
   it, a detached delve server can't forward the debuggee's stdout, and the
   program appears to print nothing. **This applies to a hand-built config too** —
@@ -96,8 +101,32 @@ Command (one line per package, `|`-separated; no Go import path or package dir
 can contain `|`):
 
 ```sh
-go list -f '{{if eq .Name "main"}}main{{else}}pkg{{end}}|{{.ImportPath}}|{{.Dir}}|{{len .TestGoFiles}}|{{if .GoFiles}}{{index .GoFiles 0}}{{end}}' ./...
+go list -e -f '{{if eq .Name "main"}}main{{else}}pkg{{end}}|{{.ImportPath}}|{{.Dir}}|{{len .TestGoFiles}}|{{if .GoFiles}}{{index .GoFiles 0}}{{end}}' ./...
 ```
+
+**`-e` is load-bearing, and so is ignoring the exit code.** Without `-e`, a
+*single* broken package anywhere in the module — an unresolved import mid-`go
+get`, a half-typed file — makes `go list` **exit 1**, even though it still prints
+every other package to stdout. Measured:
+
+```
+$ go list -f '{{.Name}}|{{.ImportPath}}' ./...          # one package has a bad import
+broken/b.go:3:8: no required module provides package github.com/nope/doesnotexist
+broken|example.com/gp/broken
+main|example.com/gp/cmd/foo                             # ← the target IS here
+exit=1
+$ go list -e -f '{{.Name}}|{{.ImportPath}}' ./... ; echo $?
+broken|example.com/gp/broken
+main|example.com/gp/cmd/foo
+exit=0
+```
+
+So the finder must **parse stdout regardless of exit status**, and only report an
+error when *no* lines parsed. An early `if res.code ~= 0 then return end` would
+hand you an empty picker exactly when you are mid-edit and reaching for the
+debugger — the moment the feature is most wanted. Surface `stderr` as a warning
+when the exit was non-zero *and* targets were still found; error only when both
+fail.
 
 Measured on this machine (`go1.26.4 darwin/arm64`), warm cache, best of 3:
 
@@ -398,32 +427,40 @@ function M.open(mode)
     finder = function(_, cb_ctx)
       return function(cb)
         local async = Async.running()
-        local res
+        local res, obj
         async:schedule(function()
-          vim.system(
-            { 'go', 'list', '-f', LIST_FORMAT, './...' },
+          obj = vim.system(
+            -- -e: keep going past a broken package. Without it a single bad
+            -- import anywhere in the module exits 1 — with every good target
+            -- still on stdout. See "go list — measured" above.
+            { 'go', 'list', '-e', '-f', LIST_FORMAT, './...' },
             { cwd = root, text = true },
             -- schedule_wrap: vim.system's on_exit may run in a fast event
             -- context; resuming the picker coroutine from there is not safe.
             vim.schedule_wrap(function(r) res = r; async:resume() end)
           )
         end)
+        -- Don't leave a 3s `go list` running if the user escapes the picker
+        -- (symbols.lua cancels its in-flight LSP requests the same way).
+        async:on('abort', function()
+          if obj then pcall(function() obj:kill(15) end) end
+        end)
         while not res and not async:aborted() do
           async:suspend()
         end
         if not res or async:aborted() then return end
-        if res.code ~= 0 then
-          vim.schedule(function()
-            vim.notify('go list failed:\n' .. (res.stderr or ''), vim.log.levels.ERROR)
-          end)
-          return
-        end
+
+        -- Parse stdout NO MATTER the exit code: `go list` reports per-package
+        -- errors on stderr and still emits the packages it did resolve. Only a
+        -- run that yields zero parseable targets is a real failure.
+        local found = 0
         for line in vim.gsplit(res.stdout or '', '\n', { trimempty = true }) do
           local kind, importpath, dir, ntests, first = line:match('^(.-)|(.-)|(.-)|(.-)|(.*)$')
           -- main packages only — see plans/go-targets-picker.md §3 (tests stay
           -- with neotest). ntests is parsed but unused: it's the hook for a
           -- future test group, and free to collect.
           if kind == 'main' then
+            found = found + 1
             cb({
               text = importpath,              -- what the fuzzy matcher scores
               importpath = importpath,
@@ -435,6 +472,20 @@ function M.open(mode)
               file = first ~= '' and vim.fs.joinpath(dir, first) or nil,
             })
           end
+        end
+
+        -- Nothing at all → real error (bad module, go missing). Something, but
+        -- go list also complained → the module has a broken package somewhere;
+        -- say so, but still show the targets that did resolve.
+        if found == 0 then
+          vim.schedule(function()
+            vim.notify('go list found no main packages\n' .. (res.stderr or ''), vim.log.levels.ERROR)
+          end)
+        elseif res.code ~= 0 then
+          vim.schedule(function()
+            vim.notify('go list reported errors (showing what resolved):\n' .. (res.stderr or ''),
+              vim.log.levels.WARN)
+          end)
         end
       end
     end,
@@ -492,16 +543,18 @@ Notes on the sketch:
 -- pcall-guarded: nvim-dap-go publishes no git tags, so it tracks main and can
 -- break under us. init.lua wraps nothing, so an uncaught throw here would abort
 -- every module after it.
-local ok = pcall(function()
+local dap_ok = pcall(function()
   vim.cmd.packadd('nvim-dap-go')
   require('dap-go').setup()  -- dap.adapters.go + 7 dap.configurations.go
 end)
 
-if not ok then
+if not dap_ok then
   vim.notify('nvim-dap-go failed to load — Go debugging disabled', vim.log.levels.WARN)
-  return
 end
 
+-- NOTE: no early `return` on dap_ok. <leader>cR (run in a terminal) has nothing
+-- to do with dap, so a broken nvim-dap-go must not take it down with it — only
+-- <leader>dR is gated below.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'go',
   group = vim.api.nvim_create_augroup('UserGoKeys', { clear = true }),
@@ -511,8 +564,10 @@ vim.api.nvim_create_autocmd('FileType', {
     end
     -- Deliberately the same two keys Rust binds in rust.lua, with the same
     -- meanings: dR = pick a target and debug it, cR = pick a target and run it.
-    map('<leader>dR', function() require('pickers.gotargets').open('debug') end,
-      'Debug: Go debuggables')
+    if dap_ok then
+      map('<leader>dR', function() require('pickers.gotargets').open('debug') end,
+        'Debug: Go debuggables')
+    end
     map('<leader>cR', function() require('pickers.gotargets').open('run') end,
       'Go: Runnables (run)')
   end,
@@ -532,7 +587,19 @@ configurations come from the language modules (`rust.lua`, `golang.lua`)".
 The keymaps, signs, and dap-ui listeners below are untouched; `<F5>` /
 `<leader>dc` keep opening dap-go's seven-config picker exactly as today.
 
-### 4. `lua/init.lua` — one new `require`
+### 3b. Stale references the move creates (grep before committing)
+
+Moving `dap-go.setup()` out of `debugging.lua` falsifies three places that name
+it. Per the repo's "grep for stale references" rule these are part of the change,
+not follow-ups:
+
+- `lua/testing.lua:43` — the comment `type = 'go', -- the adapter dap-go registered in debugging.lua`
+- `GUIDE.md:76` — `debugging.lua`'s Architecture bullet, which says it "Also sets
+  up nvim-dap-go (the delve adapter + Go launch configs)". That clause moves to a
+  new `golang.lua` bullet.
+- `GUIDE.md:2319` — "`require('dap-go').setup()` (called once, in `debugging.lua`)".
+
+### 4. `init.lua` — one new `require`
 
 ```lua
 require('rust')       -- rustaceanvim (must precede testing: provides rustaceanvim.neotest)
@@ -552,18 +619,25 @@ conservative order.
 
 ### 5. `lua/whichkey.lua` — aliases and tags
 
+These are **two separate tables** in `lua/whichkey.lua` — `keywords` (~line 108)
+and `tags` (~line 131). Do not paste them into one literal; each key must appear
+once per table.
+
 ```lua
--- keywords (the <leader>sk fuzzy picker)
+-- in `keywords` (feeds the <leader>sk fuzzy picker)
 ['<leader>dR'] = 'debug rust debuggables rustaceanvim go delve targets packages main picker',
 ['<leader>cR'] = 'run rust runnables cargo rustaceanvim go targets packages main picker',
--- tags: <leader>cR now derives 'code' but is really run/go/rust
+```
+
+```lua
+-- in `tags` (preserve the existing inline comment on the <leader>dR entry)
 ['<leader>cR'] = { 'rust', 'go', 'run' },
 ['<leader>dR'] = { 'rust', 'go' },   -- was { 'rust' }
 ```
 
 No new group, no new prefix — both keys already exist.
 
-### 6. `GUIDE.md` — four edits, one of them a bug fix
+### 6. `GUIDE.md` — four edits
 
 Per `nvim/.config/nvim/CLAUDE.md` (new module → Architecture entry + Load order;
 new keymap → the owning feature's table; keymap ownership = one mapping, one
@@ -593,10 +667,11 @@ table):
 4. **`## Go (delve + neotest)`** (line ~2295): the section takes the brunt.
    - Rewrite the *"There's no dedicated `go.lua`"* paragraph — there is now a
      `golang.lua`; keep the naming rationale (go.nvim would shadow `go.lua`).
-   - **Fix the false claim** under *Common workflows*: *"**Debug Package** —
-     prompts for a package path"*. It does not prompt; it is `${fileDirname}`,
-     i.e. the current file's own directory (`dap-go.lua:129`, `dap.lua:369-371`).
-     This is the bug that motivated the whole plan and it must not survive it.
+   - The *Common workflows* bullets already describe the configs accurately
+     (`Debug` = `${file}`, `Debug Package` = `${fileDirname}`), and the paragraph
+     below them already states that none of them can launch a `main` you aren't
+     sitting in, pointing here. Keep both; just delete the forward-reference to
+     this plan once it has shipped.
    - Rewrite **"Debug a program (not a test)"** around the targets picker:
      `<leader>dR` → pick a `main` package (any package in the module, from any
      buffer) → delve builds and launches it. Keep the seven-config list, but
@@ -614,10 +689,9 @@ table):
      | `<leader>dR` | Debuggables — pick a `main` package, debug it under delve |
      | `<leader>cR` | Runnables — pick a `main` package, `go run` it in a terminal |
 
-     This is not a keymap-ownership violation despite `<leader>cR`/`<leader>dR`
-     also appearing in Rust's table: they are *different mappings* (buffer-local
-     to different filetypes), and the rule is one **mapping**, one home. The Go
-     table is the canonical home for the Go ones, exactly as Rust's is for Rust's.
+     The same two *keys* appear in Rust's table, which brushes against the
+     "never document the same key in two tables" rule — resolved in §6b below,
+     by amending the rule rather than asserting an exception to it.
    - Extend **"You need a `go.mod`"** with the picker's behavior: no module →
      one WARN, no picker (and no misleading fallback).
    - Note the enumeration's blind spots in one line: nested modules are not
@@ -626,6 +700,22 @@ table):
 5. **`## Picker (snacks.nvim)`** — if its section lists the custom pickers under
    `pickers/`, add `gotargets.lua` to that list (check at implementation time;
    `pickers/theme.lua` and `pickers/keybindings.lua` are the precedent).
+
+### 6b. `nvim/.config/nvim/CLAUDE.md` — amend the keymap-ownership rule
+
+The Go Keymaps table puts `<leader>dR` and `<leader>cR` in a second table, while
+Rust's table already lists the same two *keys*. That reads as a violation of
+"**Never document the same key in two tables**" — and the honest move is to amend
+the rule, not to assert an exception inside a plan nobody will re-read.
+
+These are genuinely *different mappings*: buffer-local to different filetypes,
+bound by different modules, doing different things. The rule exists to stop one
+mapping from being documented — and going stale — in two places, which this does
+not do. So amend `nvim/.config/nvim/CLAUDE.md` → "Keymap ownership rule" to read:
+one **mapping**, one table; a key bound buffer-locally by several language modules
+is documented once **per language section**, and never in the shared/global
+tables. Do it in the same commit as the Go table — a convention amended after the
+fact is a convention nobody trusts.
 
 ### 7. `README.md` — no change
 
@@ -645,7 +735,9 @@ checked, not assumed — the fresh-machine bootstrap path is unchanged.
 | `lua/debugging.lua` | −23 lines: the Go block moves out; header comment back to "engine only" |
 | `init.lua` | +`require('golang')`, after `debugging`, before `testing` |
 | `lua/whichkey.lua` | widen `<leader>dR` / `<leader>cR` keyword aliases + tags |
-| `GUIDE.md` | Architecture + Load order; `By prefix` row; Debugging → Language support (delete the "no target provider" paragraph); Go section (fix the false "Debug Package prompts" claim, new Keymaps table, run/debug workflows) |
+| `GUIDE.md` | Architecture + Load order; `By prefix` row; Debugging → Language support (delete the "no target provider" paragraph); Go section (new Keymaps table, run/debug workflows) |
+| `lua/testing.lua` | comment fix only (`:43` names `debugging.lua` as dap-go's home) |
+| `nvim/.config/nvim/CLAUDE.md` | amend the keymap-ownership rule for per-filetype tables (§6b) |
 | `README.md` | none (verified: no new setup step) |
 
 No new plugin, no `nvim-pack-lock.json` change, no Mason addition.
@@ -655,13 +747,14 @@ No new plugin, no `nvim-pack-lock.json` change, no Mason addition.
 Per-change commits with a `Part-of: go targets picker` trailer:
 
 1. `refactor(nvim): give Go its own language module` — `golang.lua` +
-   `debugging.lua` + `init.lua`. Pure move: `<leader>dR` still calls
-   `dap.continue()` at this point, so the config is behavior-identical and the
-   move stays reviewable on its own.
-2. `feat(nvim): add a Go run/debug targets picker` — `pickers/gotargets.lua` +
-   the two keymaps in `golang.lua` + `whichkey.lua`.
-3. `docs(nvim): document the Go targets picker` — `GUIDE.md` (including the
-   `Debug Package` correction).
+   `debugging.lua` + `init.lua` + the `testing.lua` comment. **Behavior-identical:**
+   this commit's `golang.lua` carries the *existing* `<leader>dR` →
+   `dap.continue()` mapping verbatim (commit 2 replaces it), so the move is a move
+   and reviewable as one.
+2. `feat(nvim): add a Go run/debug targets picker` — `pickers/gotargets.lua`, the
+   two keymaps in `golang.lua` (replacing the `dap.continue()` one), `whichkey.lua`.
+3. `docs(nvim): document the Go targets picker` — `GUIDE.md` + the
+   `CLAUDE.md` keymap-ownership amendment.
 
 ## Verification
 
@@ -689,16 +782,24 @@ macOS) with `cmd/foo`, `cmd/bar`, and an `internal/util` library + test.
    reads **7** (not 14 — the dap-go double-setup regression guard from
    `plans/go-run-debug-test.md`; moving the `setup()` call between files is
    exactly the kind of edit that could accidentally call it twice).
-6. **No go.mod** — open `nvim/.config/nvim/lua/golang.lua`'s sibling: a `.go`
-   file outside any module (e.g. copy one to `~/scratch.go`), press
-   `<leader>dR` → one WARN notify, no picker, no stack trace.
-7. **Big module** — open a file in `~/src/google-api-go-client`, `<leader>dR`.
-   The picker window appears **immediately** (not after 0.5s), fills with 3 main
-   packages, and nvim never blocks (type into the prompt while it loads).
-8. **No regression in Rust** — `<leader>dR` and `<leader>cR` in a Cargo project
+6. **No go.mod** — create a bare `.go` file outside any module (`~/scratch.go`,
+   with no `go.mod` anywhere up the tree), press `<leader>dR` → one WARN notify,
+   no picker, no stack trace.
+7. **A broken package doesn't hide the good targets** (the `-e` regression
+   guard). In the scratch module, add a package with an unresolvable import
+   (`import _ "github.com/nope/doesnotexist"`), then `<leader>dR` from anywhere:
+   `cmd/foo` and `cmd/bar` **still list**, with a WARN carrying go's stderr. If
+   the picker comes back empty, `-e` is missing or the finder is bailing on a
+   non-zero exit code — the single most likely regression in this whole change.
+8. **Big module** — open a file in a large module (`~/src/google-api-go-client`,
+   675 packages, if it's still on the machine — otherwise any big one). The picker
+   window appears **immediately** (not after 0.5s), fills with its main packages,
+   and nvim never blocks (type into the prompt while it loads). Then `<Esc>` it
+   mid-load: the `go list` subprocess must be killed, not orphaned.
+9. **No regression in Rust** — `<leader>dR` and `<leader>cR` in a Cargo project
    still hit rustaceanvim, and `<leader>nn`/`<leader>nd` still run/debug tests in
    both languages (proves the `dap-go.setup()` move didn't disturb neotest).
-9. **Clean load** — `:messages` / `:Notifications` clean; `:checkhealth` shows no
+10. **Clean load** — `:messages` / `:Notifications` clean; `:checkhealth` shows no
    new complaints.
 
 ## Risks / gotchas
