@@ -107,6 +107,47 @@ require('sidekick').setup({
   },
 })
 
+-- Kill the shell-out session backends. State.get() runs EVERY registered
+-- backend's sessions() synchronously on the UI thread, and two of them shell
+-- out: opencode (`lsof -iTCP -sTCP:LISTEN`, 40ms) and tmux/zellij (a full `ps`
+-- scan, +22ms). Neither was asked for — opencode registers itself as a *load
+-- side-effect* of its tool spec, and Session.setup() registers tmux/zellij on
+-- `executable(name)==1` alone, NOT on cli.mux.enabled. So State.get cost 40.8ms
+-- and the detach sweep below (9 of them with 3 forked sessions) froze nvim for
+-- ~370ms. Now 0.05ms. See GUIDE.md "Sidekick's session backends shell out on
+-- every lookup".
+--
+-- Three constraints, each learned the hard way:
+--   * Stub sessions(), don't nil the backend — Session.new asserts it exists.
+--     This only disables discovery of *externally started* sessions.
+--   * Call Session.setup() first (it's normally lazy). Registering before we
+--     stub also warms tool.lua's dofile cache, so the spec can't reload and
+--     quietly restore the real sessions().
+--   * Skip tmux/zellij when mux IS enabled — there, discovery is the feature.
+local Session = require('sidekick.cli.session')
+Session.setup()
+local no_sessions = function() return {} end
+local no_discovery = { 'opencode' }
+if not require('sidekick.config').cli.mux.enabled then
+  vim.list_extend(no_discovery, { 'tmux', 'zellij' })
+end
+for _, name in ipairs(no_discovery) do
+  local backend = Session.backends[name]
+  if backend then backend.sessions = no_sessions end
+end
+
+-- We only use claude: drop the other presets so no spec but claude's is ever
+-- dofile'd (opencode proved a spec can register a scanner on load) and
+-- State.get's per-call tool loop shrinks from 12 entries to 1. Must run *after*
+-- the stub above — pruning first leaves the dofile cache cold, so a later
+-- tool.get('opencode') would re-register the real 40ms sessions(). With claude
+-- alone, sidekick's tool launcher offers nothing <leader>aa doesn't, so
+-- keymaps.lua drops <leader>as; restore both together to run a second tool.
+local tools = require('sidekick.config').cli.tools
+for name in pairs(tools) do
+  if name ~= 'claude' then tools[name] = nil end
+end
+
 -- Promote the sidekick CLI to a full-height edge column on every show.
 -- Without this, opening sidekick while the bottom panel (or any non-editor
 -- window) has focus splits *that* window — the CLI ends up as a short column
@@ -341,8 +382,9 @@ local function do_prewarm()
   -- Guard 1: a *claude* CLI already exists (user opened it during the wait, or
   -- a restore surfaced one) -> don't double-spawn. Match the claude tool
   -- specifically via sidekick's live terminal registry, NOT the
-  -- `sidekick_terminal` filetype -- other tools (codex/aider via <leader>as)
-  -- share that filetype and must not suppress the claude pre-warm.
+  -- `sidekick_terminal` filetype -- every sidekick CLI shares that filetype, so
+  -- were another tool ever re-added to cli.tools it would wrongly suppress the
+  -- claude pre-warm.
   for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
     if t.tool and t.tool.name == 'claude' and t:buf_valid() then
       return

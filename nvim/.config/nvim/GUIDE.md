@@ -523,6 +523,43 @@ a one-keystroke panel. (See `session.lua`'s posterity comment for the full
 rationale, including why the flag would've had to be stored `0`/`1` rather than
 a boolean.)
 
+### Sidekick's session backends shell out on every lookup
+
+`State.get()` runs **every registered backend's `sessions()`** synchronously on
+the UI thread, and two of them shell out — neither of which we asked for:
+
+- **opencode** registers itself as a *load side-effect* of its tool spec, which
+  sidekick `dofile`s merely because `opencode` is in the default `cli.tools`.
+  Its `sessions()` runs a system-wide `lsof -iTCP -sTCP:LISTEN`: **40ms**.
+- **tmux / zellij** register on `executable(name) == 1` *alone* — **not** on
+  `cli.mux.enabled`, which only picks the backend for *new* sessions. Disabling
+  mux does not stop their discovery. Installing tmux (the README recommends it
+  for claude-squad) adds a full `ps` scan: 41ms → 63ms, measured with a stub
+  `tmux` on `PATH`.
+
+So `State.get` cost 40.8ms, and the detach sweep — 9 of them with 3 forked
+sessions — froze nvim for **~370ms**. `ai.lua` stubs those backends'
+`sessions()` to `{}` and prunes `cli.tools` to `claude`: now **0.05ms**.
+Stubbing only disables discovery of *externally started* sessions; starting and
+attaching from nvim is untouched.
+
+Three traps if you revisit this:
+
+- **There is no config-level opt-out.** `cli.tools.opencode = false` leaves the
+  key in `cli.tools`, so `Config.tools()` still `dofile`s and registers it.
+- **Order.** `ai.lua` calls `Session.setup()` (normally lazy) so registration
+  precedes the stub, which also warms `tool.lua`'s dofile cache — the spec then
+  can't reload and quietly restore the real `sessions()`. Prune *after* the
+  stub: pruning first leaves that cache cold, and one `tool.get('opencode')`
+  brings the 40ms back with no signal.
+- **Stub, never `nil`.** `Session.new` asserts `backends[name]` exists, so
+  nil-ing tmux would hard-error if mux is ever enabled.
+
+Pruning to `claude` also means no spec but claude's is ever `dofile`d, so no
+future upstream tool can reintroduce this. It leaves sidekick's tool launcher
+(formerly `<leader>as`) with nothing `<leader>aa` doesn't do, so that keymap is
+gone; restore it alongside a name in `cli.tools` to run a second tool.
+
 
 ## Keymap index
 
@@ -802,8 +839,8 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
   the chat; `<leader>ad` when you're done with the conversation. Guarded by
   a floating confirm popup (`utils.confirm` — single-keypress `y` confirms,
-  anything else is No) — it sits one key from `<leader>aa`/`<leader>as`,
-  so a typo can't silently discard a running conversation.
+  anything else is No) — it sits one key from `<leader>aa`, so a typo can't
+  silently discard a running conversation.
 
   With **multiple sessions** running, killing the active one (via `<leader>ad`
   or the `<leader>al` picker's `<C-d>`) repoints "active" to a *surviving*
@@ -1818,8 +1855,11 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    session in place, and `<M-a>` hides the panel (the `<leader>aa` toggle)
    without first escaping terminal mode. Kill stays on the deliberate
    `<leader>ad` path — there's no fast in-panel teardown.
-   `<leader>as` stays the **tool launcher** — start a different CLI tool
-   (Copilot, Gemini, etc.) — distinct from `<leader>al`.
+   There is **no tool launcher**: `ai.lua` prunes `cli.tools` to `claude`, which
+   left sidekick's launcher (formerly `<leader>as`) with nothing `<leader>aa`
+   doesn't do. See "Sidekick's session backends shell out on every lookup" for
+   why the other presets are dropped rather than merely unused, and how to
+   restore one.
 
    Sessions are keyed by `(tool name, cwd)`; each extra session is a
    dynamically-registered tool name cloned from the `claude` preset (so
@@ -1846,7 +1886,6 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | New auto-numbered session in place (labels stay on `<leader>an`) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
-| `<leader>as` | Launch a CLI tool (copilot, gemini, …) |
 | `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
 | `<leader>at` | Send position (normal) or selection (visual) to CLI |

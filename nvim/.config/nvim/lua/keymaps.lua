@@ -312,14 +312,16 @@ vim.keymap.set('n', '<leader>an',
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
   { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
-vim.keymap.set('n', '<leader>as',
-  function() require('sidekick.cli').select() end, { desc = 'AI: Select CLI tool' })
+-- No <leader>as (sidekick's tool launcher): ai.lua prunes cli.tools to claude,
+-- so it could only offer what <leader>aa already does. Restore it alongside a
+-- tool name in cli.tools. See GUIDE.md "Sidekick's session backends shell out
+-- on every lookup".
 -- close() kills the terminal process, deletes the buffer, and detaches the
 -- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
 -- show/hide without losing state. Guarded with a floating confirm popup
 -- (utils.confirm — y confirms, anything else is No): <leader>ad sits one key
--- from <leader>aa/<leader>as, so a typo shouldn't be able to silently discard
--- a running Claude conversation.
+-- from <leader>aa, so a typo shouldn't be able to silently discard a running
+-- Claude conversation.
 vim.keymap.set('n', '<leader>ad', function()
   require('utils').confirm('Kill active CLI session? (Tears down the terminal and session state)',
     function() require('ai').kill_active() end)
