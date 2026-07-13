@@ -4,19 +4,14 @@
 -- Picker background and decision record: plans/telescope-vs-snacks-picker.md.
 vim.cmd.packadd('snacks.nvim')
 
--- Global picker layout: preview on the right when wide, below when narrow;
--- flips at 160 columns, evaluated per picker open. Kept as a function on
--- purpose: Snacks.config.merge only deep-merges dicts, so a function layout
--- is *replaced* wholesale by any source/call-site layout table instead of
--- leaking keys into it (a table form here would deep-merge into every
--- picker that only sets `preset`, e.g. the compact select-preset popups).
+-- Global picker layout: preview right when wide, below when narrow; flips at
+-- 160 columns, per picker open. Deliberately a *function*: snacks replaces
+-- (rather than deep-merges) function layouts, so pickers that pin their own
+-- layout (select popups, symbols) can't inherit stray keys from here.
 local function pick_layout()
   return {
     preset = vim.o.columns >= 160 and 'default' or 'vertical',
-    -- Taller than the presets' 0.8, matching the pre-migration telescope
-    -- look. Only reaches pickers that resolve this function; pinned
-    -- layouts (select popups, symbols) are unaffected.
-    layout = { height = 0.9 },
+    layout = { height = 0.9 },  -- presets default to 0.8; match the old telescope look
   }
 end
 
@@ -114,25 +109,19 @@ require('snacks').setup({
       -- exclude (it's only skipped by default when gitignored).
       files = { hidden = true, exclude = { 'node_modules' } },
       grep = { hidden = true, exclude = { 'node_modules' } },
-      -- lines (<leader>sb, <leader>s/) ships a source-level layout — a
-      -- bottom-docked full-width ivy strip that "previews" by scrolling the
-      -- main window — which silently beats the global layout above.
-      -- Assigning the same function replaces that table wholesale
-      -- (including its `preview = "main"`), restoring the standard
-      -- two-pane look with a real preview pane.
+      -- lines (<leader>sb, <leader>s/): the source's own layout (bottom ivy
+      -- strip previewing in the main window) beats the global one; the same
+      -- function replaces it wholesale, `preview = "main"` included.
       lines = {
         layout = pick_layout,
-        -- Match grep's empty state: an empty prompt shows *nothing* (0/0,
-        -- both panes blank) instead of every buffer line — which rendered
-        -- the document you're already looking at, twice. The stock finder
-        -- runs only once (fuzzy pickers filter via the matcher, and an
-        -- empty pattern matches everything), so the emptiness has to be
-        -- produced by the finder and re-produced when the prompt flips.
-        show_empty = true,  -- 0 items on open must not auto-close the picker
-        -- The stock format dims the line-number column with LineNr, which
-        -- fades into the background here (no bold filename column to anchor
-        -- the row like grep has). Re-tag it with the group grep uses for
-        -- file names. ret[1] is the number column ({idx, hl, virtual}).
+        -- Match grep's empty state: nothing until a query is typed (an
+        -- empty fuzzy pattern matches every line — the document you're
+        -- already in, twice). The finder produces the emptiness; the
+        -- transform re-runs it when the prompt flips empty <-> non-empty
+        -- (transform fires on every input change, true = re-run finder).
+        show_empty = true,  -- don't auto-close on opening with 0 items
+        -- Line numbers get grep's file-name group instead of LineNr, which
+        -- fades into the background. ret[1] is the number column.
         format = function(item, picker)
           local ret = Snacks.picker.format.lines(item, picker)
           ret[1][2] = 'SnacksPickerFile'
@@ -143,12 +132,9 @@ require('snacks').setup({
           return require('snacks.picker.source.lines').lines(opts, ctx)
         end,
         filter = {
-          -- Runs on every input change; returning true re-runs the finder.
-          -- Only the empty <-> non-empty flips need it — everything else is
-          -- normal matcher work on the already-collected lines.
           transform = function(picker, filter)
             local prev = picker.finder.filter
-            return ((not prev or prev.pattern == '') ~= (filter.pattern == ''))
+            return (not prev or prev.pattern == '') ~= (filter.pattern == '')
           end,
         },
       },

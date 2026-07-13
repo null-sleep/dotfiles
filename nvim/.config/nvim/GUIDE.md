@@ -1069,27 +1069,18 @@ frecency, shared actions) lives in `picker.lua`; the custom pickers live in
 `pickers/*.lua`. Replaced telescope in 2026-07 — background and decision
 record in `plans/telescope-vs-snacks-picker.md`.
 
-**Layout:** every picker uses the standard two-pane look — input on top,
-results below, preview on the right — flipping to a vertical layout
-(preview below) when the window is under 160 columns, evaluated each time a
-picker opens (`pick_layout` in `picker.lua`). Exceptions pin their own
-layout: theme/keybindings use the compact `select` popup, the symbols
-pickers pin vertical at 0.9×0.9. The `lines` source (`<leader>sb`) would
-otherwise default to snacks' bottom-docked full-width ivy strip that
-scrolls the *main window* as its preview — `picker.lua` overrides it back
-to the standard two-pane layout, and makes it start *empty* (0/0, both
-panes blank) like the live pickers `<leader>sg`/`ss`. Unlike those, a
-fuzzy list matches everything on an empty prompt, which rendered the
-buffer you were already looking at into both panes — the document twice,
-side by side. The override wraps the finder to return nothing while the
-prompt is empty and uses a `filter.transform` hook to re-run it when the
-prompt flips empty ↔ non-empty; `show_empty = true` keeps snacks from
-auto-closing a picker that opens with zero items.
-That override (and the global default)
-is deliberately a *function*, not a table: snacks deep-merges layout
-tables key-by-key (so a table override would inherit the ivy source's
-`preview = "main"`, and stray global keys would leak into the compact
-popups), but replaces function layouts wholesale.
+**Layout:** pickers use a two-pane look — input on top, results below,
+preview right — flipping to vertical (preview below) under 160 columns,
+decided per open by `pick_layout` in `picker.lua`. Exceptions pin their
+own layout: theme/keybindings use the compact `select` popup, the symbols
+pickers vertical at 0.9×0.9. The `lines` source (`<leader>sb`) would
+otherwise use snacks' bottom-docked ivy strip previewing in the *main
+window* — `picker.lua` overrides it back to two panes and makes it start
+empty like grep (see the keymap table). Both the global default and that
+override are *functions*, not tables: snacks deep-merges layout tables
+key-by-key (a table would inherit the ivy source's `preview = "main"` and
+leak global keys into the compact popups) but replaces function layouts
+wholesale.
 
 ### Keymaps
 
@@ -1100,10 +1091,10 @@ popups), but replaces function layouts wholesale.
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
-| `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer — starts empty until you type (like grep, see the Layout note above); the line-number column borrows grep's file-name highlight so rows stay anchored |
+| `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer — starts empty until you type, like grep; line numbers use grep's file-name highlight |
 | `<leader>so` | Recent files |
 | `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
-| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns. Two coverage gotchas: after a session restore only the LSPs of files you've *visited* are in the fan-out (see [Session](#session)), and `workspace/symbol` returns named declarations only — `impl` blocks show up in `<leader>sd`, never here |
+| `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns. Coverage gotchas: after a session restore only the LSPs of *visited* files join the fan-out ([Session](#session)), and servers match declaration names only — `impl` blocks and fields show up in `<leader>sd`, never here |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
@@ -1274,18 +1265,14 @@ excluded (closed before save, not restored) — see
 session-serialized".
 
 **Restored buffers load — and start their LSPs — lazily.** `mksession`
-recreates background buffers with `badd`, which registers a buffer *without
-reading the file*, so filetype detection (and the `FileType` → LSP autostart
-chain) never runs for it. Only the buffers displayed in restored windows load
-immediately. The first time you visit a background buffer it loads for real
-and its server starts; from then on that client stays alive for the whole
-session. Practical consequence: right after `<leader>qs`,
-`<leader>ss` (which fans `workspace/symbol` out to all *active* clients)
-only covers the languages of files you've focused at least once — visit a Go
-buffer once and gopls joins the fan-out permanently. Deliberately not
-"fixed" by eager-loading every session buffer on restore: that would launch
-every server in the session at startup (rust-analyzer indexing alone can run
-10s+) to serve an occasional cross-language search.
+recreates background buffers with `badd`, which doesn't read the file, so
+filetype detection and the LSP autostart chain only run when a buffer is
+first *visited* (buffers shown in restored windows load immediately); once
+started, a client stays alive for the whole session. So right after
+`<leader>qs`, `<leader>ss` covers only the languages of files you've
+focused at least once. Deliberately not "fixed" by eager-loading every
+session buffer — that would launch every server in the session at startup
+(rust-analyzer indexing alone can run 10s+).
 
 
 ## Spell checking

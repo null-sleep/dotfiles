@@ -26,10 +26,9 @@ vim.g.rustaceanvim = {
       ['rust-analyzer'] = {
         checkOnSave = true,
         check = { command = 'clippy' },
-        -- workspace/symbol (<leader>ss) defaults to only_types: traits/
-        -- structs/enums/modules but no functions, methods, fields, or
-        -- consts — which made <leader>ss look broken next to <leader>sd
-        -- (documentSymbol returns the full outline and is unaffected).
+        -- workspace/symbol (<leader>ss) defaults to only_types; include
+        -- functions/methods/consts too. Fields and impl blocks still never
+        -- appear — rust-analyzer doesn't index them for this request.
         workspace = { symbol = { search = { kind = 'all_symbols' } } },
       },
     },
