@@ -28,10 +28,29 @@ dapui.setup()
 -- with no pcall around it, so an uncaught error here would abort every module
 -- after it — a broken Go plugin must not cost you Rust debugging, the keymaps
 -- below, or half the config.
-if not pcall(function()
+local go_ok = pcall(function()
   vim.cmd.packadd('nvim-dap-go')
   require('dap-go').setup()
-end) then
+end)
+
+if go_ok then
+  -- <leader>dR in a Go buffer = "start a debug session by picking one", the same
+  -- thing the key means in a Rust buffer (rust.lua maps it to rustaceanvim's
+  -- debuggables). Go has no target provider, so here it's just dap.continue():
+  -- with no session running that opens the launch-config picker (via
+  -- vim.ui.select -> snacks). Identical to <F5>/<leader>dc — it exists so the
+  -- "pick something to debug" muscle memory carries across languages instead of
+  -- being a Rust-only habit. Buffer-local, like Rust's, so the key stays free
+  -- elsewhere.
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'go',
+    group = vim.api.nvim_create_augroup('UserGoDebug', { clear = true }),
+    callback = function(ev)
+      vim.keymap.set('n', '<leader>dR', function() require('dap').continue() end,
+        { buffer = ev.buf, desc = 'Debug: Go launch configs (picker)' })
+    end,
+  })
+else
   vim.notify('nvim-dap-go failed to load — Go debugging disabled', vim.log.levels.WARN)
 end
 

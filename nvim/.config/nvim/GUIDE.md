@@ -2072,8 +2072,15 @@ anything from a cold buffer:
 | Language | Adapter | Supplied by | Cold-start entry point |
 |---|---|---|---|
 | Rust | codelldb | rustaceanvim (`rust.lua`) | `<leader>dR` / `grx` / `<leader>nd` |
-| Go | delve | nvim-dap-go (`debugging.lua`) | `<F5>` / `<leader>dc` |
+| Go | delve | nvim-dap-go (`debugging.lua`) | `<leader>dR` / `<F5>` / `<leader>dc` |
 | Everything else | none | — | `<F5>` does nothing — nvim-dap has no configuration registered for the filetype |
+
+**`<leader>dR` is the "start a session by picking one" key in both languages**,
+mapped buffer-locally by each: in Rust it opens rustaceanvim's *debuggables*
+(real cargo targets); in Go it is `dap.continue()`, which with no session running
+opens the *launch-config* picker. Same gesture, different list — Go has no target
+provider to enumerate binaries the way rust-analyzer does. The key is unmapped in
+any other filetype.
 
 Rust's reliable entry point is `<leader>dR`, not `<F5>` — see
 [Rust](#rust) for why. Go's seven launch configurations (registered by
@@ -2348,10 +2355,15 @@ runs it under delve, stopping at your breakpoint with dap-ui open. Continue with
 pane as it runs — that's what `outputMode = 'remote'` below buys, and it's easy to
 miss because it only appears once execution moves past the logging line.
 
-**Debug a program (not a test)** — breakpoint, then `<F5>` from a cold start in
-any `.go` buffer. Because Go has no rustaceanvim-style "debuggables" picker, `<F5>`
-*is* the entry point here (unlike Rust, where `<leader>dR` is): it offers the seven
-launch configurations above. Pick:
+**Debug a program (not a test)** — breakpoint, then **`<leader>dR`** — the same key
+that starts a debug session in Rust, so there's no function key to remember and no
+per-language habit to keep straight. It opens a picker of the seven launch
+configurations above (`<F5>` and `<leader>dc` are equivalent — `<leader>dR` is
+buffer-local to `.go` and just gives the gesture a name that matches Rust's).
+
+Note the lists differ even though the key doesn't: Rust's `<leader>dR` enumerates
+real cargo *targets*, while Go's enumerates dap-go's launch *configs*, because Go
+has no target provider to ask. Pick:
 
 - **Debug** — the common case. Builds and launches the package the current file
   belongs to.
