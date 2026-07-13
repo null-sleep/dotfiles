@@ -1077,14 +1077,26 @@ Deferred follow-ups from the migration (decided during implementation review,
    (`git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
    `git checkout main && git stash pop`), then paste both screenshots into
    a Claude session to diff the remaining details.
-5. **Look into re-orienting some pickers** — review each picker's layout
-   orientation (preview right vs below, compact vs full-height) against how
-   it's actually used. Snacks makes this cheap: per-source `layout = {
-   preset = ... }` overrides and runtime presets (`ivy`, `vscode`,
-   `dropdown`, `vertical`, `select`, ...), plus `<c-w>HJKL` rotates the
-   layout live inside an open picker for experimenting. Current state:
-   global flips default/vertical at 160 columns; symbols pin vertical;
-   theme/keybindings/sidekick use `select`.
+5. **Look into re-orienting some pickers** — ✅ **done (2026-07).** Every
+   picker was compared against the pre-migration telescope screenshots
+   (`sf`/`sb`/`sd`/`sm`). Outcome: `sf`/`sg`/`sm`/`sd`/`ss` already matched
+   the old structure; the chrome difference (telescope's three separate
+   titled boxes vs snacks' merged single box) was deliberately kept
+   snacks-style — tighter, more result rows. The one real regression was
+   `<leader>sb`: the `lines` source ships its own source-level layout
+   (bottom-docked full-width ivy strip, `preview = "main"` scrolling the
+   real buffer) that silently beats the global layout — on an ultrawide it
+   rendered as a shallow full-width banner. Fixed in `picker.lua` by
+   assigning the shared `pick_layout` *function* to `sources.lines` —
+   snacks replaces (rather than deep-merges) function layouts, which both
+   kills the inherited `preview = "main"` and avoids leaking global keys
+   into pickers that pin compact presets. Global height was also raised
+   0.8 → 0.9 inside `pick_layout`, matching the old telescope look; scoped
+   by the same function-replacement property, so `select`/`vscode` popups
+   and `vim.ui.select` stay compact. No perf impact: the `lines` preview
+   pane reuses the already-loaded buffer (snacks previews a loaded
+   `item.buf` by pointing the preview window at it — no re-read, no new
+   treesitter parse).
 6. **Set up `<C-g>` (live mode) on more pickers** — we only ever think of
    `<c-g>` as the grep live/fuzzy toggle, but it's a *generic* picker action:
    snacks binds it to `toggle_live` in the picker input

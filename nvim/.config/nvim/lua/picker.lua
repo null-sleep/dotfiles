@@ -11,7 +11,13 @@ vim.cmd.packadd('snacks.nvim')
 -- leaking keys into it (a table form here would deep-merge into every
 -- picker that only sets `preset`, e.g. the compact select-preset popups).
 local function pick_layout()
-  return { preset = vim.o.columns >= 160 and 'default' or 'vertical' }
+  return {
+    preset = vim.o.columns >= 160 and 'default' or 'vertical',
+    -- Taller than the presets' 0.8, matching the pre-migration telescope
+    -- look. Only reaches pickers that resolve this function; pinned
+    -- layouts (select popups, symbols) are unaffected.
+    layout = { height = 0.9 },
+  }
 end
 
 -- After selecting a result, scroll so the cursor lands ~20% from the top.
