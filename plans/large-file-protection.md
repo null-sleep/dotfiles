@@ -57,31 +57,47 @@ Two consequences worth knowing before you hit them:
 - **`:set ft?` says `bigfile`** — that's the signal protection is on, and it's
   visible in the statusline.
 
-## What this leaves open (deferred, not overlooked)
+## TODO — what the rename doesn't reach
 
-The rename only reaches filetype-keyed things. These are not, and still run on
-a big file:
+Deferred, not overlooked. The rename only reaches filetype-keyed things; these
+four are not ft-keyed and still run on a big file. Do them **if one actually
+bites** — each is small and independent, so there's no need to take them as a
+batch.
 
-| Subsystem | Why the rename misses it |
-|---|---|
-| gitsigns | attaches per *buffer*, filetype-agnostic. Its own `max_file_length` is 40000 **lines**, so a 1-line 2MB minified file sails straight through it |
-| satellite | decorates per *window* |
-| auto-save | has a filetype *exclusion* list, not filetype dispatch — add `'bigfile'` to it |
-| sidekick NES | gated on `vim.b.sidekick_nes`, not filetype |
-| undofile | global option; auto-save's writes rewrite a multi-MB undofile |
-| `wrap = true` | window option; a 2MB single line wrapped is the worst redraw case |
-
-If any of these actually bites, the fix is a custom `setup` hook in the snacks
-opts (note: overriding `setup` **replaces** snacks' default wholesale — the
-default isn't exported, so a custom hook must re-implement it verbatim first),
-plus `'bigfile'` in satellite's and auto-save's exclusion lists and a `false`
-return from gitsigns' `on_attach`.
+- [ ] **gitsigns** — attaches per *buffer*, filetype-agnostic. Its own
+  `max_file_length` is 40000 **lines**, so a 1-line 2MB minified file sails
+  straight through it. Fix: `on_attach` returns `false` when
+  `vim.bo[buf].filetype == 'bigfile'` — a refusal, not a post-hoc `detach()`,
+  so there's no autocmd-ordering race. In `lua/git.lua`. Worth also writing
+  `max_file_length = 40000` explicitly, since today the upstream default is
+  silently in effect.
+- [ ] **satellite** — decorates per *window*. Fix: add `'bigfile'` to
+  `excluded_filetypes` in `lua/git.lua`.
+- [ ] **auto-save** — has a filetype *exclusion* list rather than ft dispatch.
+  Fix: add `'bigfile'` to the `excluded` list in `lua/autosave.lua`. This is
+  the one most likely to bite: a huge buffer plus the 1000ms debounce plus
+  `undofile` means a multi-megabyte write after every burst of typing.
+- [ ] **sidekick NES / undofile / `wrap`** — all need a custom `setup` hook in
+  the snacks opts: `vim.b[buf].sidekick_nes = false`,
+  `vim.bo[buf].undofile = false`, and `wrap = false` (a 2MB single line,
+  wrapped, is the worst redraw case there is).
+  **Trap:** overriding `setup` **replaces** snacks' default wholesale — deep-extend
+  swaps functions, and the default isn't exported — so a custom hook must first
+  re-implement the default verbatim (`:NoMatchParen`, `foldmethod=manual`,
+  `statuscolumn=''`, `conceallevel=0`, `vim.b.completion = false`, the two
+  mini.* flags, and the scheduled `syntax = ctx.ft` restore). That's the point
+  at which this stops being a one-liner and wants its own `lua/largefile.lua`.
+- [ ] **Escape hatch (`:LargeFileRestore`)** — only worth building alongside
+  the hook above, since it needs the real filetype stashed in a buffer var
+  (snacks doesn't stash it). Today the manual equivalent is `:setf <realft>`,
+  which restores `gc` and LSP but *not* treesitter — `plugins.lua`'s guard
+  blocks that independently, and a force flag would be needed to override it.
 
 Not a hole: blink's `buffer` source already skips buffers over
 `max_async_buffer_size` (200k chars).
 
-Accepted limitations of the mechanism itself: snacks bails when
-`getfsize <= 0`, so pasted/stdin/`:enew` blobs are unprotected; and
+Accepted limitations of the mechanism itself, not worth fixing: snacks bails
+when `getfsize <= 0`, so pasted/stdin/`:enew` blobs are unprotected; and
 classification happens only at filetype-detection time, so a buffer that is
 already open needs `:e` to be reclassified.
 
