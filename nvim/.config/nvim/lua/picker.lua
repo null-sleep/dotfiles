@@ -11,10 +11,12 @@ vim.cmd.packadd('snacks.nvim')
 local function pick_layout()
   return {
     preset = vim.o.columns >= 160 and 'default' or 'vertical',
-    -- 0.9 over the presets' 0.8, matching the old telescope look. Note:
-    -- scroll ticks at the list edge re-render every visible row, so
-    -- scroll feel degrades with height — briefly reverted to 0.8 for
-    -- that, then restored (the sluggishness didn't track window size).
+    -- 0.9 over the presets' 0.8, matching the old telescope look. Every scroll
+    -- tick past the list edge re-renders all visible rows *and* forces a
+    -- full-window redraw flush, so per-tick cost is linear in height — but the
+    -- Lua half of that is only ~0.9ms/tick here (measured), so it isn't why
+    -- scrolling feels sluggish, and 0.8 didn't help when tried. Suspect is the
+    -- forced flush; see plans/telescope-vs-snacks-picker.md §7.
     layout = { height = 0.9 },
   }
 end
@@ -172,3 +174,13 @@ require('snacks').setup({
     animate  = { enabled = false },
   },
 })
+
+-- <leader>tp: start/stop the snacks instrumentation profiler; stopping opens a
+-- picker over the trace. Lives here because it needs the `Snacks` global that
+-- this file's setup() creates. Standing tool, but the reason it exists is the
+-- picker scroll-perf hunt in plans/telescope-vs-snacks-picker.md §7 — run it
+-- there with `Snacks.profiler.scratch()` to set `filter_fn = { default = true }`,
+-- otherwise the default filter hides every `_`-prefixed function, which is most
+-- of the list-render hot path. A profiled *run* leaves the wrapped modules in
+-- place until restart, so quit nvim before timing anything for real.
+Snacks.toggle.profiler():map('<leader>tp')

@@ -674,6 +674,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
 | `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
+| `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
