@@ -1,5 +1,15 @@
 # Go debug + test in Neovim (nvim-dap-go + neotest-golang)
 
+> **Status: SHIPPED (2026-07).** Go debugging (nvim-dap-go + delve) and testing
+> (neotest-golang + gotestsum) are in and verified interactively. The *run* story
+> this plan cut was later closed a different way — not by go.nvim, but by the
+> targets picker in [`go-targets-picker.md`](go-targets-picker.md), which also
+> replaced the `<leader>dR` mapping described here and moved the dap-go setup
+> into `golang.lua`. **One verification is still outstanding** — the `-test.run`
+> state-leak check; see [Verification](#verification). Kept as the decision
+> record: `dap_mode = 'manual'` and `outputMode = 'remote'` are both load-bearing
+> and explained nowhere else.
+
 > **Scope narrowed (2026-07).** This plan originally proposed a *hybrid* that
 > also added **ray-x/go.nvim** for a run/build/imports/code-action layer
 > (`:GoRun`, `:GoBuild`, `:GoImports`, `:GoCodeAction`). That layer is **cut** —

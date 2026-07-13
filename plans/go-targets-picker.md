@@ -1,5 +1,15 @@
 # Go targets picker (`go list` → snacks → delve / `go run`)
 
+> **Status: SHIPPED (2026-07).** Landed in three commits (`15ec98f` the
+> `golang.lua` module move, `7537657` the picker, `edf8334` the docs).
+> `<leader>dR` debugs and `<leader>cR` runs any `main` package in the module,
+> from any buffer. Two review findings changed the shipped code from the sketch
+> below: the run terminal takes a fixed `id = 101` (an unset id lands in
+> `terminal.lua`'s reserved 1-99 count-addressable pool), and the abort handler
+> is registered *before* the spawn is scheduled. Kept as the decision record —
+> the `go list -e` exit-code trap and delve's `program`-must-be-a-folder contract
+> are the parts worth re-reading before touching this code.
+
 > Follow-up to [`plans/go-run-debug-test.md`](go-run-debug-test.md), which
 > shipped Go debugging (nvim-dap-go + delve) and testing (neotest-golang). That
 > plan deliberately cut the *run* story and left `<leader>dR` in Go as a plain

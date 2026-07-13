@@ -28,6 +28,14 @@ off or delete them as they land; add new ones freely.
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
   in `669b19e`.
   - [ ] **Saved picker searches** - when you search something save that somewhere so you can easily re-run it later. This is a feature that I want to add to the picker plugin.
+- [ ] **Finish verifying Go debug/test** — two interactive checks never closed.
+  (1) The `-test.run` **state-leak**: `<leader>nd` on `TestDescribe`, terminate,
+  then `<leader>nd` on `TestMax` — the second session must stop in `TestMax`, not
+  back in `TestDescribe`. The fix (a `dap_manual_config` *function*, not a table)
+  is proven in a simulated harness but never on a real session. (2) The targets
+  picker's **abort/kill**: `<leader>dR` on a big module, `<Esc>` mid-load, then
+  `pgrep -f "go list"` — nothing should linger. See
+  [go-run-debug-test.md](go-run-debug-test.md) → Verification.
 - [ ] **Collapse the sidekick detach sweep's 9 `State.get` calls into 1** — all
   9 filter the same snapshot, so the sweep re-scans the world 9× for nothing.
   Harmless today (~0.05ms/call post-`88cb662`), but it's the multiplier that
@@ -70,8 +78,6 @@ Grouped by state, not priority.
 
 ## Ready to build — self-contained specs, not started
 
-- [go-run-debug-test.md](go-run-debug-test.md) — Go run/debug/test support
-  (go.nvim + nvim-dap-go + neotest-golang), mirroring the Rust setup.
 - [harpoon2.md](harpoon2.md) — persistent, ordered per-project file bookmarks
   (`<leader>1`–`<leader>5`).
 - [treesitter-textobjects.md](treesitter-textobjects.md) — semantic
@@ -112,6 +118,15 @@ Grouped by state, not priority.
   **shipped**; kept as the design reference the event-pipeline plan cites. Also
   carries the **sidekick performance runbook** — start there if nvim hangs on
   switching or tearing down a CLI session.
+- [go-run-debug-test.md](go-run-debug-test.md) — **shipped** (2026-07): Go
+  debugging (nvim-dap-go + delve) and testing (neotest-golang + gotestsum). Kept
+  as the decision record — it's where the `dap_mode = 'manual'` trap and the
+  `outputMode = 'remote'` requirement are explained, and it carries the one
+  outstanding verification (the `-test.run` state-leak check).
+- [go-targets-picker.md](go-targets-picker.md) — **shipped** (2026-07):
+  `<leader>dR`/`<leader>cR` debug/run any `main` package in the module via an
+  async `go list`. Kept for the `go list -e` exit-code trap and delve's
+  `program`-must-be-a-folder contract.
 
 ## Process / one-time
 
