@@ -1,6 +1,7 @@
--- neotest: test runner UI. Set up as an extensible framework — Rust now via
--- rustaceanvim's adapter, other languages added by dropping an adapter into the
--- list below (+ its plugin in plugins.lua + the treesitter parser).
+-- neotest: test runner UI. Set up as an extensible framework — Rust via
+-- rustaceanvim's adapter, Go via neotest-golang, other languages added by
+-- dropping an adapter into the list below (+ its plugin in plugins.lua + the
+-- treesitter parser).
 --
 -- Named testing.lua to avoid shadowing require('neotest'). Requires rustaceanvim
 -- to be packadd'd first (lua/rust.lua, required before this in init.lua) so
@@ -9,13 +10,28 @@
 vim.cmd.packadd('nvim-nio')       -- idempotent if debugging.lua already packadd'd it
 vim.cmd.packadd('plenary.nvim')
 vim.cmd.packadd('neotest')
+vim.cmd.packadd('neotest-golang')
 
 require('neotest').setup({
   adapters = {
     -- Rust: reuses rust-analyzer runnables + integrates with nvim-dap for debugging.
     require('rustaceanvim.neotest'),
+    require('neotest-golang')({
+      runner = 'gotestsum',
+      -- dap_mode 'manual' is LOAD-BEARING, not a preference. The default
+      -- ('dap-go') re-runs dap-go.setup() on every test debug — and dap-go's
+      -- setup APPENDS its 7 configs instead of replacing them, so each debugged
+      -- test would permanently grow the <F5> picker by 14 stale entries.
+      -- 'manual' makes neotest build its own config and never touch dap-go.
+      dap_mode = 'manual',
+      dap_manual_config = {
+        name = 'Neotest Go',
+        type = 'go',        -- the adapter dap-go registered in debugging.lua
+        request = 'launch',
+        mode = 'test',      -- dlv test-binary mode
+      },
+    }),
     -- Add more later (each needs its plugin in plugins.lua + a treesitter parser):
-    --   require('neotest-golang'),
     --   require('neotest-python'),
   },
 })
