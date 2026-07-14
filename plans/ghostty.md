@@ -1,22 +1,31 @@
-# Plan: Add a `ghostty` stow package
+# Plan: Migrate iTerm2 → Ghostty (incremental)
 
 ## Context
 
-The repo runs **iTerm2** (primary) + **nvim** on macOS, with a partial **kitty**
-package already present. This adds **Ghostty** — a native-macOS, GPU-accelerated
-terminal — as a stow package **alongside** kitty and iTerm2 (nothing removed),
-mirroring the existing kitty pattern. Ghostty fits this repo better than either
-existing terminal: it needs **zero binary import/export** (unlike iTerm2's
-tracked `.itermexport` blob) and **no manual theme-picker step** (unlike kitty's
-`kitten themes`) — a single plain-text config does it all.
+The repo runs **iTerm2** (primary) + **nvim** on macOS, plus a **kitty** package
+that turned out to be dead (see below). This migrates the primary terminal to
+**Ghostty** — a native-macOS, GPU-accelerated terminal — in commits you can stop
+between. **iTerm2 stays installed and fully working** as the fallback throughout;
+this is a migration, not a cutover.
 
-Decisions already made:
-- **Theming:** native macOS-following dual theme via Ghostty's built-in themes
-  (Catppuccin Latte light / Dracula dark), so it swaps with macOS appearance on
-  its own — exactly like the iTerm2 dual-color profile. The `zsh/.local/bin/theme`
-  script is **not touched**.
-- **Config scope:** ship **parity-only** by default; the Ghostty-only niceties
-  (§5) are a menu to enable individually — none on unless chosen.
+Ghostty fits this repo better than either existing terminal: **zero binary
+import/export** (unlike iTerm2's tracked `.itermexport` blob), **no manual
+theme-picker step** (unlike kitty's `kitten themes`), and a single plain-text,
+stow-managed, git-diffable config.
+
+The guiding principle, confirmed by the export audit below: **lean into Ghostty's
+native tab/window/pane handling and shortcuts.** Do not port iTerm2's — there is
+essentially nothing there to port.
+
+### Decisions (made 2026-07-14)
+
+| Question | Decision |
+|---|---|
+| The `kitty` package | **Remove it** — it is dead (see below) |
+| Rollout | **Ghostty primary immediately**; iTerm2 stays installed as fallback |
+| Status-bar loss | **Flag as an open item**, decide after living with Ghostty |
+| Font size | **14** — match the real iTerm2 profile, not kitty.conf's 15 |
+| Theming | Native macOS-following dual theme. `zsh/.local/bin/theme` is **not touched** |
 
 ### ⚠️ Verify before building (two real risks flagged in review)
 
@@ -30,6 +39,56 @@ Decisions already made:
   so it is *likely* present — but **not guaranteed**. If `ghostty +list-themes`
   does not list Dracula, vendor it as a theme file (fallback in §1).
 
+## Ground truth from the iTerm2 export (source-verified, 2026-07-14)
+
+Read from `iterm2/iTerm2 State.itermexport` — a **gzipped tar**, payload
+`user-defaults/UserDefaults.plist`. This audit changed the shape of the port and
+produced one outright correction to the earlier draft of this plan.
+
+- **Font is `HackNFM-Regular` at 14pt** — *not* 15. The `15.0` in
+  `kitty/.config/kitty/kitty.conf:3` is **wrong**, and this plan had inherited
+  it. Ship **14**.
+- **Dual light/dark is real, and is the single most important thing to carry
+  over.** `Use Separate Colors for Light and Dark Mode = True`; the dark palette
+  is an exact match for `iterm2/Dracula.itermcolors`, the light one for
+  `iterm2/catppuccin-latte.itermcolors`.
+- **There is exactly ONE custom keybinding in the entire export:** `GlobalKeyMap`
+  → **Shift+Enter → Send Text `\n`** (multi-line input in Claude Code / REPLs).
+  Port this. Everything else in the keymap is either iTerm2's stock "Natural Text
+  Editing" preset (which Ghostty ships as macOS defaults) or iTerm2 factory
+  defaults — **nothing to port**.
+- **Zero pane/tab/window bindings were ever customized.** No split bindings, no
+  pane navigation, no tab switching, no profile switching. The user lived on
+  iTerm2's stock menu shortcuts (`Cmd+D`, `Cmd+Shift+D`, `Cmd+[`/`Cmd+]`,
+  `Cmd+T`, `Cmd+1-9`) — which are **also Ghostty's macOS defaults**. This is the
+  evidence behind "lean into the natives": there is genuinely nothing to
+  replicate.
+- Also set: **unlimited scrollback**; **Option-as-Meta on both left and right**
+  (`Option Key Sends = 2`, `Right Option Key Sends = 2` — set 2026-07-11);
+  audible bell silenced, visual bell on; no confirm-on-quit; quit when all
+  windows close; 125×25 window; bar cursor, **blinking**.
+- **No hotkey/quake window is configured** (`Has Hotkey = False`) — the §5
+  "quick terminal" nicety is speculative, not a port.
+- **Genuine losses with no Ghostty equivalent:** the **status bar** (cwd, git
+  branch, CPU, memory) and **three-finger-swipe tab switching**. See Open items.
+
+### Why `kitty` gets removed
+
+Two commits, last touched **April 2026** (iTerm2 was touched three days before
+this audit). Its `kitty.conf:35` `include`s a `current-theme.conf` that **is not
+in the repo**, so a fresh `stow kitty` would break on a new machine. The
+commented-out tab-bar block still hardcodes a stale username. It was an
+experiment that stalled, and Ghostty supersedes it entirely.
+
+### Why the `theme` script needs no logic change
+
+`zsh/.local/bin/theme:43-52` records that iTerm2 is **deliberately not touched**:
+it follows macOS appearance natively, so flipping macOS is enough. Ghostty's
+`theme = light:…,dark:…` works the **same way** — macOS is the hinge, the
+terminal follows for free. The script's contract ("flip macOS + Claude + nvim")
+is unchanged. Only its **comments** name iTerm2 explicitly and go stale at final
+cutover.
+
 ## Key wins (why Ghostty is worth it for this setup)
 
 1. **Slots into the theme switcher for free.** One line
@@ -41,8 +100,9 @@ Decisions already made:
    appearance.
 2. **Native splits with iTerm2 muscle memory.** Ghostty macOS defaults are
    `Cmd+D` = split right, `Cmd+Shift+D` = split down, `Cmd+[`/`Cmd+]` = focus
-   previous/next split — the **same keys as the iTerm2 panes** (README §iTerm2 →
-   Panes). Kitty has *no* `Cmd+D` split. iTerm2-style splitting out of the box.
+   previous/next split — the **same keys the export proves were actually in
+   use**. Kitty has *no* `Cmd+D` split. iTerm2-style splitting out of the box,
+   with zero config.
 3. **Plain-text, stow-managed, one file.** Config at `~/.config/ghostty/config`
    — a single stowable, git-diffable text file, unlike iTerm2's binary export.
 4. **Faster than iTerm2 on TUIs, native on macOS.** GPU-accelerated (Metal) like
@@ -50,150 +110,428 @@ Decisions already made:
    integration that Alacritty/kitty lack.
 5. **nvim renders correctly with no special config.** Truecolor + undercurl are
    on by default. The nvim config sets no hard terminal requirement (no
-   `termguicolors`, and it deliberately avoids the kitty graphics protocol —
-   `lua/gitui.lua:26`); the only prerequisite is a Nerd Font, already installed
+   `termguicolors`); the only prerequisite is a Nerd Font, already installed
    (Hack Nerd Font).
-6. **Zero-cost coexistence.** kitty and iTerm2 stay exactly as they are; purely
-   additive.
 
-## 1. New files (the stow package)
+   > **Correction (verified, do not repeat this mistake):** an earlier draft
+   > claimed Ghostty unlocks neogit's `kitty` graph style. **It does not.** That
+   > style has nothing to do with the graphics protocol — it renders the graph
+   > from **private-use-area glyphs** that kitty ships in its *builtin symbol
+   > map*. neogit's own README says so: *"use flog-symbols if you don't use
+   > Kitty"* (neogit `README.md:155`). Under Ghostty with Hack Nerd Font Mono it
+   > would most likely render tofu. Adopting it is a **font** change (add
+   > `rbong/flog-symbols` as a Ghostty `font-family` fallback), entirely
+   > independent of this plan. The comment at `lua/gitui.lua:26` ("no kitty
+   > graphics protocol needed") encodes the same misconception and should be
+   > reworded if that line is ever touched.
+6. **Unlocks inline images in nvim — including mermaid diagrams.** Ghostty
+   speaks the **kitty graphics protocol**, which iTerm2 does not (it has its own
+   incompatible protocol). This is the difference between rendering diagrams and
+   images *in the buffer* versus shelling out to a browser tab. See §6.
+7. **iTerm2 keeps working throughout.** Nothing in the migration commits touches
+   `iterm2/`. It remains installed, stowed, and usable side by side for as long
+   as wanted.
 
-Mirror the kitty layout (`kitty/.config/kitty/kitty.conf` →
-`~/.config/kitty/kitty.conf`):
+## Commits
+
+Sequenced so you can stop after any one of them. `Part-of:` trailers tie them
+together.
+
+| # | Commit | Ships |
+|---|---|---|
+| 0 | `docs(plans): rewrite the ghostty plan as an incremental migration` | **this doc** — alone, before any config changes |
+| 1 | `feat(ghostty): add the ghostty stow package as the primary terminal` | §1–§4 — the package, Brewfile, CLAUDE.md, README |
+| 2 | `chore(kitty): remove the dead kitty stow package` | §5 — delete `kitty/` and all its references |
+| 3 | `feat(nvim): render images and mermaid diagrams under ghostty` | §6 — **deferred** until Ghostty is the daily driver |
+| — | *final iTerm2 cutover* | **not scheduled** — see Deferred, below |
+
+## 1. The stow package
 
 ```
 ghostty/.config/ghostty/config      →  ~/.config/ghostty/config   (via `stow ghostty`)
 ```
 
-`.stowrc` already targets `~`, so `stow ghostty` just works — no stow changes.
+`.stowrc` already targets `~`, so `stow ghostty` just works — no stow changes,
+no `.stow-local-ignore` needed.
 
-### `ghostty/.config/ghostty/config` (parity build)
+### `ghostty/.config/ghostty/config`
 
-Ported 1:1 from `kitty/.config/kitty/kitty.conf`, in Ghostty's `key = value`
-syntax:
+Ported from the **iTerm2 export**, not from `kitty.conf` (which has the wrong
+font size):
 
 ```ini
-# Font (matches iTerm2 / kitty: Hack Nerd Font Mono, size 15)
+# Font — matches the iTerm2 profile (HackNFM-Regular 14)
 font-family = Hack Nerd Font Mono
-font-size = 15
+font-size = 14
 
-# Window (matches iTerm2 / kitty: 125x25 in cells)
+# Theme — follows macOS appearance natively, exactly like the iTerm2 dual
+# light/dark profile ("Use Separate Colors for Light and Dark Mode").
+# VERIFY the exact names with `ghostty +list-themes` before committing:
+# 1.2.0 switched to Title Case, and Dracula's presence is likely-not-guaranteed.
+theme = light:Catppuccin Latte,dark:Dracula
+
+# Window — matches iTerm2 (125x25 cells)
 window-width = 125
 window-height = 25
-window-padding-x = 4
-window-padding-y = 4
+window-padding-x = 5
+window-padding-y = 5
 
-# Cursor (matches iTerm2 / kitty: bar cursor)
+# Cursor — matches iTerm2 (bar, blinking)
 cursor-style = bar
+cursor-style-blink = true
 
-# macOS — Option-as-Meta so nvim <M-...> mappings work (iTerm2 "Left Option: Esc+")
+# macOS — Option-as-Meta on BOTH left and right, so nvim <M-...> mappings work.
+# (iTerm2: "Option Key Sends = Esc+" and "Right Option Key Sends = Esc+".)
 macos-option-as-alt = true
-# Cmd+D / Cmd+Shift+D splits and Cmd+[ / Cmd+] focus are Ghostty defaults —
-# they already match the iTerm2 pane bindings, so no keybinds here.
-# Shell integration is auto-detected (no setting needed).
 
-# Theme — follows macOS appearance natively (like the iTerm2 dual profile).
-# Title Case names as of 1.2.0; confirm with `ghostty +list-themes`.
-theme = light:Catppuccin Latte,dark:Dracula
+# iTerm2 had "Unlimited Scrollback". Ghostty has no unlimited — go large.
+scrollback-limit = 100000000
+
+# iTerm2 had "Prompt Before Closing = No" and "Quit when all windows closed".
+confirm-close-surface = false
+quit-after-last-window-closed = true
+
+# The ONLY custom keybinding in the entire iTerm2 export (GlobalKeyMap):
+# Shift+Enter sends a literal newline — multi-line input in Claude Code / REPLs.
+keybind = shift+enter=text:\n
+
+# Deliberately NOT ported: splits, pane navigation, tab switching, natural-text-
+# editing bindings. The iTerm2 export contains ZERO custom bindings for any of
+# them — Ghostty's macOS defaults (Cmd+D, Cmd+Shift+D, Cmd+[ / Cmd+], Cmd+T,
+# Cmd+1-9, and the natural-text-editing set) already match what was in use.
+# Shell integration is auto-detected; no setting needed.
+```
+
+Confirm on the machine before committing:
+- **Theme names** — `ghostty +list-themes` (Title Case, per the risk callout).
+  **Dracula fallback:** if the built-in is missing, vendor it in-repo at
+  `ghostty/.config/ghostty/themes/dracula`; Ghostty auto-discovers
+  `~/.config/ghostty/themes/` and it can be referenced by name. Only add this
+  file if the built-in is absent.
+- **Audible bell** — iTerm2 had `Silence Bell = True`. Check whether Ghostty's
+  default is already silent; if not, add `bell-features`.
+- `macos-option-as-alt = true` uses `true`, not kitty's `yes`.
+
+## 2. `CLAUDE.md` (repo root)
+
+Stow-package list: **add `ghostty`, drop `kitty`.** Currently reads "nvim, zsh,
+kitty, macos, rcmd, zellij, claude, yknotify, ripgrep".
+
+## 3. `Brewfile`
+
+Ghostty is primary, so it is **uncommented**, in the GUI-apps block — not in the
+commented "Optional / situational" block where the other terminals live:
+
+```ruby
+cask "ghostty"       # GPU-accelerated native terminal; config in ghostty/ (then `stow ghostty`)
+```
+
+`# cask "iterm2"` **stays commented** (fallback, still installed).
+`# cask "kitty"` is **deleted** in commit 2.
+
+## 4. `README.md` (required in the same change per `CLAUDE.md`)
+
+- **Contents TOC** — *Terminals & multiplexing* becomes
+  `[Ghostty](#ghostty) · [iTerm2](#iterm2) · [Zellij](#zellij)` — Ghostty first,
+  Kitty gone. Plain-word headings → no explicit `<a id>` anchors needed.
+- **New `## Ghostty` Part 2 section**, placed **before** `## iTerm2`. Model on the
+  existing `## Kitty` shape: one-line intro, `brew install --cask ghostty` +
+  `stow ghostty` block, a "ported from the iTerm2 profile (Hack Nerd Font Mono
+  **14pt**, 125×25 window, blinking bar cursor)" line, the native dual-theme
+  line, a **Keymaps** table for the *native* shortcuts (splits, pane focus, tabs
+  — noting they match iTerm2 and need no config), the one ported keybinding
+  (Shift+Enter), and a `ghostty +list-themes` / `ghostty +show-config` reference
+  line (the analog of kitty's `kitten themes`).
+- **`## iTerm2`** — keep it, reframed as the **fallback / side-by-side** terminal.
+  Its `### Panes` tables stay accurate for iTerm2 and are still useful.
+- **`## Setup`** — `stow ghostty` moves **out** of the optional-terminals block
+  into the main stow list; `stow kitty` is deleted.
+- **Quick start step 6** — add `ghostty` to the main stow line; drop `kitty` from
+  the optional parenthetical.
+- **Fonts** — add ghostty to the "prerequisites for the terminals (iTerm2,
+  kitty)" and "used by iTerm2, kitty, nvim, Neovide" mentions; drop kitty.
+- **Unified theme switching** — the `### One-time iTerm2 setup` section and the
+  iTerm2 bullet under `### How each tool switches live` get a Ghostty equivalent.
+  The mechanism is identical (macOS is the hinge; the terminal follows natively),
+  so this is prose, not new machinery.
+
+Also: tick the `- [ ]` checkbox in `plans/README.md`, and move this plan's index
+entry from *Ready to build* → *Parked / reference* with `**shipped** (2026-07)`,
+per the convention the Go plans use.
+
+## 5. Remove the dead `kitty` package
+
+Delete `kitty/`, the `## Kitty` README section, its TOC entry, the
+`# cask "kitty"` Brewfile line, and the `stow kitty` lines in Setup and Quick
+start. (`CLAUDE.md`'s stow list is already handled in §2.)
+
+## 6. Inline images & mermaid diagrams (deferred follow-on)
+
+Not part of the migration commits — a **separate change once Ghostty is the daily
+driver**. Recorded here because it is the strongest practical reason to switch.
+
+**No new plugin needed.** `snacks.nvim` is already installed and its `image`
+module already renders mermaid natively: it shells out to `mmdc` and even themes
+the diagram to the current background (`snacks/image/init.lua:125`). It is simply
+gated on a terminal this repo doesn't currently run.
+
+- **Which frontends can display an image at all.** snacks' support table
+  (`snacks/image/terminal.lua:7-38`):
+
+  | Frontend | Can display | Unicode placeholders [1] |
+  |---|---|---|
+  | kitty | yes | yes |
+  | ghostty | yes | yes |
+  | wezterm | yes | no |
+  | iTerm2 | no — incompatible protocol | n/a |
+  | zellij | no — explicitly `supported = false` (`terminal.lua:35`) | n/a |
+  | Neovide | no — GUI, no image protocol at all | n/a |
+
+  [1] Placeholders keep images anchored correctly when scrolling and splitting.
+  Ghostty is in the best tier here, alongside kitty.
+
+- **Prerequisite binaries — two, not one:**
+  - `mmdc` for mermaid (`snacks/image/convert.lua:120-127`). It writes PNG
+    directly, so mermaid alone doesn't need ImageMagick. **Not brew-installable
+    as such** — it's `npm i -g @mermaid-js/mermaid-cli` (the npm package pulls a
+    headless Chromium via puppeteer, hundreds of MB). So it's a **README step,
+    not a Brewfile line**, unless the `mermaid-cli` formula is used instead.
+  - `magick` (ImageMagick) for **everything else** — svg, pdf, non-PNG rasters,
+    LaTeX/typst math (`snacks/image/init.lua:128-133`). Missing it is a health
+    **ERROR**, not a warning (`init.lua:313-314`), and it is currently in neither
+    the Brewfile nor on this machine. Add `brew "imagemagick"` in the follow-on,
+    or accept that only PNG-producing paths (including mermaid) work.
+
+### Gate it on the frontend — do this from the start
+
+**Requirement:** the config must never *try* to render a diagram in a frontend
+that can't display one. This repo's nvim runs in at least four environments
+(iTerm2, Neovide, Ghostty, and possibly zellij/tmux), and only some can show an
+image. Ship the capability check in the same change that turns image rendering
+on — not as a later fix — so a single stowed config stays correct everywhere and
+no machine needs a local edit.
+
+**Why a gate is needed at all — the real reason.** snacks' *own* detection is
+good: it probes the terminal live with an XTVERSION query (`M.write("\27[>q")`,
+`terminal.lua:290`, parsed by a `TermResponse` autocmd at `:268-281`), with a
+`tmux display-message -p '#{client_termname}'` fallback (`:255-266`). That is
+strictly more robust than sniffing `TERM`. **But the document path does not
+consult it.** Only `buf.lua` calls `supports_terminal()` (`buf.lua:13,20`);
+`doc.lua` never does — it computes `inline = doc.inline and env().placeholders`
+and `float = doc.float and not inline` (`doc.lua:445-448`), so in iTerm2, where
+`placeholders` is nil, **`float` wins and `doc.attach()` proceeds anyway** —
+spawning `mmdc` and writing kitty-graphics escapes into a terminal that cannot
+read them. The doc path **fails open**. That is what the gate exists to prevent;
+it is not a second-guessing of snacks' detection.
+
+```lua
+-- Image rendering only where the frontend can actually display one.
+-- snacks' doc path fails OPEN (doc.lua:445-448 never calls supports_terminal()),
+-- so it would spawn mmdc and emit kitty-graphics escapes in iTerm2. Gate it here.
+--
+-- Detect via terminal-specific env vars, NOT $TERM: tmux rewrites TERM to
+-- screen-256color/tmux-256color, and kitty sets no TERM_PROGRAM at all — so a
+-- TERM/TERM_PROGRAM sniff would be a false NEGATIVE under tmux (which does
+-- support graphics, via the passthrough snacks enables itself, terminal.lua:29).
+-- These vars are set by the terminal and survive into the multiplexer's panes.
+local function can_render_images()
+  -- Neovide inherits TERM=xterm-ghostty from the launching shell, so this check
+  -- is load-bearing, not belt-and-braces: without it the GUI is a false positive.
+  if vim.g.neovide then return false end
+  if os.getenv('ZELLIJ') then return false end        -- drops graphics escapes
+  return os.getenv('KITTY_WINDOW_ID') ~= nil          -- kitty
+      or os.getenv('GHOSTTY_RESOURCES_DIR') ~= nil    -- ghostty
+      or os.getenv('WEZTERM_PANE') ~= nil             -- wezterm
+end
+```
+
+Then feed it into the **existing** setup call — `picker.lua` states there must
+be exactly one `require('snacks').setup()` and that this file owns it
+(`picker.lua:2-3`), so add an `image` key to that table rather than calling
+setup a second time:
+
+```lua
+require('snacks').setup({
+  picker = { ... },              -- unchanged
+  image = { enabled = can_render_images() },
+})
 ```
 
 Notes:
-- **Verify theme names** with `ghostty +list-themes` before committing (Title
-  Case, per the risk callout above).
-- **Dracula fallback:** if the built-in is missing, vendor it — this mirrors
-  kitty's `current-theme.conf` convention and stays fully in-repo:
-  ```
-  ghostty/.config/ghostty/themes/dracula     # palette file, checked into the repo
-  ```
-  Ghostty auto-discovers files in `~/.config/ghostty/themes/`; reference it by
-  name. Only add this file if the built-in is absent.
-- `macos-option-as-alt = true` uses `true`, not kitty's `yes`.
+- **Do NOT fold `executable('mmdc')` into the gate.** `image.enabled = false`
+  turns off the *whole* module — the `BufReadCmd` handler for opening png/jpg/
+  pdf/mp4 as buffers (`snacks/init.lua:195`, formats at `image/init.lua:52-69`)
+  and the LaTeX/typst math rendering path (`image/init.lua:280`), not just
+  mermaid. `mmdc` is one converter among many (`convert.lua:120-127`). Gating on
+  it would silently disable image and PDF viewing on any machine without a Node
+  toolchain. Let snacks degrade mermaid on its own; it already health-warns.
+- **Verify the env-var names before shipping.** `GHOSTTY_RESOURCES_DIR` and
+  `WEZTERM_PANE` are from documentation, not from a running instance on this
+  machine — confirm with `env | grep -i ghostty` inside Ghostty once installed,
+  and fall back to `TERM_PROGRAM` only as a supplement, never as the sole check.
+- **tmux is deliberately allowed** — it passes graphics through and snacks
+  enables `allow-passthrough` itself (`terminal.lua:29`). The env-var approach
+  above is what makes that actually true; a `$TERM` sniff would have broken it.
+- The check belongs next to the setup call in `picker.lua`; if the image config
+  grows past a few lines, split it into `lua/image.lua` and keep the single
+  `setup()` contract intact.
+- **Neovide caveat:** Neovide gets nothing from this — no terminal choice changes
+  that. If mermaid rendering is wanted in Neovide too, that needs a
+  browser-preview plugin (`brianhuster/live-preview.nvim` — pure Lua, no Node,
+  renders mermaid + KaTeX, works in every frontend) as a *separate* decision from
+  the terminal.
+- **zellij** is latent, not blocking: verified that nothing in `zsh/` auto-starts
+  it, so bare-terminal nvim is the normal path.
+- **Not a bonus — struck.** Flipping `lua/gitui.lua:26` to neogit's `kitty` graph
+  style is **not** unlocked by Ghostty: that style needs kitty's builtin PUA
+  symbol map (or the flog-symbols font), not the graphics protocol. See the
+  correction under Key win 5. Leave `graph_style = 'unicode'` alone.
 
-## 2. `CLAUDE.md` (repo root) — stow package list
+## Deferred — the final iTerm2 cutover
 
-Add `ghostty` to the stow-packages sentence (currently "nvim, zsh, kitty, macos,
-rcmd, zellij, claude, yknotify"). One-word edit; keeps the canonical list right.
+**Not scheduled.** Both terminals run side by side until Ghostty has earned it.
+When it happens, the surface is small and already mapped:
 
-## 3. `Brewfile` — commented optional cask
+- `zsh/.zshrc_config.zsh:35` — drop `antigen bundle iterm2` (dead weight under
+  Ghostty; **keep it while iTerm2 is still in use**).
+- `zsh/.zshrc_config.zsh:98` — the `(iTerm2)` comment on the title machinery is
+  already inaccurate: `_set_term_title()` writes **generic OSC 1/2**, which
+  Ghostty honors. Comment-only fix; no logic change.
+- `zsh/.local/bin/theme:2`, `:39-52`, `:79` — header/help comments name iTerm2
+  explicitly. Comment-only; the script's logic is terminal-agnostic already.
+- `README.md` — the iTerm2 section and the `### One-time iTerm2 setup` theme
+  heading.
+- Decide the fate of `iterm2/` (the `.itermexport` blob + `.itermcolors` presets).
 
-Add next to the other optional-terminal casks, same commented style:
+## Open items
 
-```ruby
-# cask "ghostty"       # GPU-accelerated native terminal; config in ghostty/ (then `stow ghostty`)
-```
+- **Status bar.** iTerm2 showed working directory, git branch, CPU, and memory.
+  **Ghostty has no status bar at all** — this is the biggest genuine loss. cwd and
+  git survive via the zsh prompt and the OSC-1/2 window title
+  (`zsh/.zshrc_config.zsh:97-130`); **CPU and memory do not**. Decide after living
+  with it: accept the loss, or add a prompt-based replacement (Starship, or extend
+  the existing prompt).
+- **Three-finger-swipe tab switching.** iTerm2 bound the gesture; Ghostty has no
+  gesture system. Fallback is `Cmd+Shift+[` / `Cmd+Shift+]`.
+- **`ApplePressAndHoldEnabled`.** iTerm2 sets it `false` on its app domain so
+  Option-key accents don't intercept. The Ghostty equivalent
+  (`defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool false`)
+  may be needed — **verify empirically, don't assume**; `macos-option-as-alt` may
+  already cover it.
 
-## 4. `README.md` edits (required in the same change per CLAUDE.md)
+## Alternatives considered (and rejected)
 
-Following the kitty precedent:
+Evaluated against the same goal — inline diagrams + iTerm2 parity on macOS:
 
-- **Contents TOC** — add to the *Terminals & multiplexing* line:
-  `[iTerm2](#iterm2) · [Kitty](#kitty) · [Ghostty](#ghostty) · [Zellij](#zellij)`.
-  Plain-word heading → **no explicit `<a id>` anchor needed**.
-- **New `## Ghostty` Part 2 section** — right after `## Kitty`, before
-  `## Zellij` (grouping the two GPU terminals). Model on `## Kitty`: one-line
-  intro, `brew install --cask ghostty` + `stow ghostty` block, a note that
-  font/window/cursor match the iTerm2 profile, the native-theme line, a short
-  **Keymaps** table (Cmd+D / Cmd+Shift+D splits, Cmd+[ /Cmd+] focus, Cmd+T,
-  Cmd+1–9) noting these match iTerm2, and a `ghostty +list-themes` /
-  `ghostty +show-config` reference line (the analog of kitty's `kitten themes`).
-- **Setup** — add under the "Optional terminals" block:
-  `stow ghostty                 # needs the ghostty cask`.
-- **Quick start step 6** — extend the parenthetical to
-  ``(add `kitty`/`zellij`/`ghostty` only if you enabled those optional casks)``.
-- **Fonts** — extend the "terminals (iTerm2, kitty)" / "used by iTerm2, kitty,
-  nvim, Neovide" mentions to include ghostty (same Hack Nerd Font Mono 15). In
-  place, no new heading.
+- **kitty** — technically equal for images (allowlist + placeholders). Loses on
+  everything else this repo cares about: no `Cmd+D` split, manual `kitten themes`
+  step, ignores macOS appearance. And its package here is dead (see Context).
+- **WezTerm** — most graphics-capable (kitty protocol + Sixel + iTerm2 protocol)
+  and has a **built-in multiplexer** that could replace zellij without breaking
+  images. But: last **stable** release is `20240203` (Feb 2024) — nightlies only
+  since, with open issues asking whether the project is still maintained — and
+  snacks gives it `placeholders = false`, the weakest image anchoring of the
+  three. Rejected on release cadence for a repo meant to bootstrap new machines.
+- **Alacritty** — **no image support at all** (no kitty protocol, no Sixel), and
+  no tabs, splits, or ligatures, all by explicit design philosophy. Strictly
+  worse than the iTerm2 status quo here. Not in the Brewfile; nothing to undo.
+- **iTerm2 (status quo)** — its own image protocol, which snacks does not speak.
+  Browser preview would be the only mermaid path. **Stays installed regardless**
+  as the fallback for this migration.
 
-## 5. Ghostty-only niceties — a menu to decide individually
+### Font rendering is *not* a differentiator
 
-Not in the parity build; each is one or two lines, added as a commented,
-labeled block in the config so it can be toggled without hunting docs:
+Worth recording so it doesn't get re-litigated: the "fonts look too thin on
+macOS" complaint applies to **both** kitty and Ghostty. Both render via CoreText
+rather than Apple's native text stack, and both ship the same escape hatch —
+kitty's `macos_thicken_font`, Ghostty's `font-thicken` — with the same tradeoff
+(heavier strokes, slightly blurrier). Ghostty additionally has an open
+DPI-dependent rendering inconsistency. Neither is a reason to pick one over the
+other, and the config above (Hack Nerd Font Mono 14, §1) is unaffected either
+way. If either ever looks too thin, `font-thicken` is the knob — start low.
 
-- **Drop-down "quick terminal"** — global hotkey summons a Ghostty panel over
-  any app (like iTerm2's hotkey window):
-  `keybind = global:cmd+backquote=toggle_quick_terminal` (key token is
-  `backquote`, not `grave_accent`). Grants macOS Accessibility permission on
-  first use.
-- **Background opacity + blur** — `background-opacity = 0.96` +
-  `background-blur = 20`. Pure aesthetics; off by default (kitty/iTerm2 are
-  opaque).
-- **Ligatures off (explicit)** — `font-feature = -calt,-liga,-dlig`. A no-op
-  with Hack, but documents intent if the font is ever swapped.
-- **Cursor / mouse niceties** — `cursor-style-blink = false`,
-  `mouse-hide-while-typing = true`.
-- **Window save/restore** — `window-save-state = always` (reopen where you left
-  off) and/or `macos-titlebar-style = tabs` (compact native tabs). Caveat:
-  `window-save-state = always` restores the previous window *size*, overriding
-  `window-width`/`window-height` on later launches; combined with
-  `macos-titlebar-style = tabs` it has reported quirks. Enable deliberately.
-- **Larger scrollback** — `scrollback-limit` (bytes) beyond the default.
+## Files touched
 
-## Files touched (summary)
+**Commit 1 — the package (primary):**
 
 | File | Change |
 |---|---|
-| `ghostty/.config/ghostty/config` | **new** — parity config (+ any §5 opt-ins) |
-| `CLAUDE.md` (root) | add `ghostty` to stow-package list |
-| `Brewfile` | commented `# cask "ghostty"` |
-| `README.md` | Contents TOC, new `## Ghostty` section, Setup, Quick start, Fonts |
+| `ghostty/.config/ghostty/config` | **new** — the config in §1 |
+| `CLAUDE.md` (root) | stow list: `+ghostty`, `-kitty` |
+| `Brewfile` | **uncommented** `cask "ghostty"` in the GUI-apps block |
+| `README.md` | TOC, new `## Ghostty` section (before `## iTerm2`), Setup, Quick start, Fonts, theme docs |
+| `plans/README.md` | tick the checkbox; move the index entry to *Parked / reference* |
 
-No changes to `.stowrc`, the `theme` script, kitty, or iTerm2.
+**Commit 2 — remove kitty:**
+
+| File | Change |
+|---|---|
+| `kitty/` | **deleted** |
+| `README.md` | delete `## Kitty` + its TOC entry + `stow kitty` lines |
+| `Brewfile` | delete `# cask "kitty"` |
+
+**Commit 3 — the §6 image follow-on (deferred):**
+
+| File | Change |
+|---|---|
+| `nvim/.config/nvim/lua/picker.lua` | `can_render_images()` gate + `image = {...}` in the single `snacks.setup()` |
+| `Brewfile` | `brew "imagemagick"` — required for svg/pdf/math (health ERROR without it) |
+| `README.md` | `mmdc` via npm (not brew-able), + imagemagick; per the same-change rule |
+| `nvim/.config/nvim/GUIDE.md` | any new keymap (per the nested `CLAUDE.md` ownership rule) |
+
+`lua/gitui.lua` is **not** touched — the neogit `kitty` graph style is a font
+dependency, not a graphics-protocol one (see Key win 5). `.stowrc`, the `theme`
+script, and `iterm2/` are **not** touched by any migration commit.
 
 ## Verification
 
 1. **Install & stow** — `brew install --cask ghostty`; `stow ghostty`;
    `ls -l ~/.config/ghostty/config` is a symlink into the repo.
 2. **Config is valid & themes resolve** — run `ghostty +list-themes` first,
-   confirm exact names/casing for Catppuccin Latte and Dracula, and write those
-   into the `theme` line (vendor a Dracula theme file if absent — see §1). Then
-   `ghostty +show-config` prints the merged config with no parse errors and the
-   resolved theme.
-3. **Launch Ghostty** — Hack Nerd Font Mono 15, ~125×25 window, bar cursor;
-   `Cmd+D`/`Cmd+Shift+D` split and `Cmd+[`/`Cmd+]` move focus (iTerm2 parity);
-   toggle macOS Appearance (or `theme light`/`theme dark`) and Ghostty recolors
-   between Catppuccin Latte and Dracula on its own, all windows, no restart;
-   open `nvim` — truecolor + LSP undercurls render, Nerd Font glyphs (not tofu),
-   `Option+1` in insert mode behaves as `<M-1>` not `¡`.
-4. **Docs sanity** — README `## Ghostty` renders in `render-markdown`, the
-   `#ghostty` TOC link resolves, and
-   `grep -n ghostty README.md CLAUDE.md Brewfile` shows all expected spots.
+   confirm exact names/casing for Catppuccin Latte and Dracula, write those into
+   the `theme` line (vendor a Dracula theme file if absent — see §1). Then
+   `ghostty +show-config` prints the merged config with no parse errors.
+3. **Launch Ghostty** — Hack Nerd Font Mono **14**, ~125×25 window, **blinking
+   bar** cursor; Nerd Font glyphs render (not tofu); nvim shows truecolor + LSP
+   undercurls.
+4. **The natives work — the point of the migration.** `Cmd+D` / `Cmd+Shift+D`
+   split, `Cmd+[` / `Cmd+]` focus, `Cmd+T` new tab, `Cmd+1-9` select tab — all
+   behave like iTerm2, with **zero keybinds in the config**.
+5. **The one ported binding** — Shift+Enter in Claude Code inserts a newline
+   rather than submitting.
+6. **Option-as-Meta, both sides** — `Option+1` in nvim insert mode is `<M-1>`,
+   not `¡`. Test the **right** Option key too (iTerm2 had both set).
+7. **Theme follows macOS** — toggle Appearance (or `theme light` / `theme dark`)
+   and Ghostty recolors between Catppuccin Latte and Dracula on its own, all
+   windows, no restart, with **no change to the `theme` script**. The zsh prompt
+   recolors with it (it uses ANSI color *names*, not RGB).
+8. **iTerm2 still works** — it's the fallback; nothing in these commits touches it.
+9. **kitty is gone cleanly** — `grep -rn kitty README.md CLAUDE.md Brewfile
+   plans/README.md` returns nothing (the deliberate graphics-protocol mentions in
+   `plans/ghostty.md` and `lua/gitui.lua` are expected and stay).
+10. **Docs sanity** — README `## Ghostty` renders in `render-markdown`, the
+    `#ghostty` TOC link resolves.
+
+### If the §6 image follow-on is built, also verify the gate
+
+The point of the gate is what it *doesn't* do, so test the negative cases first:
+
+1. **Off where it must be off** — open a markdown file with a ```mermaid block
+   in **iTerm2**, in **Neovide**, and inside **zellij**. Expect: the block stays
+   plain text, nothing is attempted, and **no errors** (`:messages` clean). This
+   is the regression that would otherwise hit every non-Ghostty frontend.
+2. **On where it should be on** — same file in **Ghostty**: the diagram renders
+   inline as an image.
+3. **Degrades without `mmdc`** — remove just the mmdc directory from `PATH`
+   (**not** `PATH= nvim`, which breaks nvim's own subprocess spawning) and reopen
+   in Ghostty. Expect: **images still render**, only the mermaid block stays text.
+   If PNG viewing also broke, the `mmdc` check leaked into the gate — see the
+   "Do NOT fold `executable('mmdc')` into the gate" note.
+4. **tmux is not a false negative** — run nvim inside tmux under Ghostty and
+   confirm the diagram still renders. This is the case a `$TERM` sniff would have
+   silently broken (tmux rewrites `TERM`), and the reason the gate keys off
+   `KITTY_WINDOW_ID`/`GHOSTTY_RESOURCES_DIR`/`WEZTERM_PANE` instead.
+5. **`:checkhealth snacks`** — with `mmdc` + `imagemagick` installed under
+   Ghostty: mermaid supported, no errors. **Without imagemagick it reports an
+   ERROR**, not a warning (`image/init.lua:313-314`) — expected, and the reason
+   `brew "imagemagick"` is in the follow-on's file list.
