@@ -1676,6 +1676,28 @@ Deferred follow-ups from the migration (decided during implementation review,
    **setup ideas**. Worth a proper read now that we're fully on snacks, to lift
    any config/keymap/layout tricks we missed. Overlaps items 2 and 5 — fold
    whatever it turns up into those.
+9. **Re-search *within* a picker's current results (iterated narrowing)** —
+   take the result set as it stands and make it the corpus for the next query,
+   repeatedly. Distinct from `<c-g>`, which [§8](#live-mode-audit) covers:
+   `<c-g>` gives exactly *one* freeze-and-refine round (a live query plus a
+   fuzzy pattern layered on it), and there is no way to bank that combined
+   result and search it again — the next thing you type replaces one of the two
+   queries rather than narrowing what they produced. What's wanted is
+   drill-down: grep `handleRequest`, keep the ~200 hits, then grep *those* for
+   `ctx`, then filter *those* to `!_test`.
+
+   Today's workaround is `<C-q>` (send results to quickfix) and then re-search
+   the quickfix list — lossy and leaves the picker. Sketch of the real thing: a
+   custom action that snapshots `picker:items()` (or `picker:selected()`) and
+   opens a fresh picker over them — `Snacks.picker.pick({ items = snapshot })`
+   for a fuzzy round, or, to re-*grep* rather than re-*match*, feed the
+   snapshot's distinct paths back to `rg` as the search corpus (the `grep`
+   source takes `dirs`; a file list needs either `args` or a custom finder à la
+   `grep_buffers`). Two things to work out: whether the snapshot should be all
+   results or just the multi-selection, and whether narrowing rounds should
+   stack on one picker (a corpus stack, with a key to pop back a level) or just
+   open a new one each time. Check upstream first — snacks may already have a
+   primitive for this, and if it doesn't, this is a plausible feature request.
 
 ## Sources
 
