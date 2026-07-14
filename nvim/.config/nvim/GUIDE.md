@@ -1214,25 +1214,51 @@ Grep and symbols start live; files starts fuzzy. Three things follow:
 - **The query you toggle away from is kept** — it shows to the left of the
   prompt and keeps filtering. So the two stack, and `<c-g>` narrows in both
   directions: grep then fuzzy-refine the hits, or fuzzy then add a tool query.
-- **The finder runs first, always.** The matcher can only filter what the tool
-  returned — it can never add back a result `rg` didn't emit.
+- **The finder runs first and decides what *exists*; the matcher only decides
+  what you *see*.** No pattern can bring back a result the tool never emitted.
 - **` -- ` flags only reach the tool in live mode**, since only the live query
   is passed to it; in fuzzy mode they're just literal text for the matcher to
   chew on. That's the point of `<c-g>` in `<leader>sf`: fuzzy can *approximate*
   "only `.lua` files" (`lua$` tests the path string), only live `fd` can ask
   for them.
 
-**Worked example (`<leader>sg`).** Type `foo -- -tmd`: ripgrep searches
-markdown only, say 200 match lines. `<c-g>` freezes those 200 — `foo -- -tmd`
-moves to the left of the prompt and keeps applying — and now typing filters
-them in Lua. What it filters *on* is the one thing worth knowing: the matcher
-matches an item's `text`, and a grep item's text is the whole composite
-`path:line:col:matched line`. So `todo` keeps hits whose **path or matched
-line** contains it, not just filenames; `file:todo` scopes the term to the path
-alone; `!test` drops hits with "test" anywhere in that string. Nothing you type
-brings back a `.go` file — rg never emitted one. (In `<leader>sf` the items
-*are* files, so their text is just the path and post-`<c-g>` typing really is
-path filtering.)
+**Whose grammar is it?** The prompt is a string handed to somebody, and `<c-g>`
+chooses who — so the same keystrokes mean different things on either side of
+the toggle. A space is the clearest tell:
+
+- **the matcher** (any picker, fuzzy) — space is **AND**, each term matched
+  fuzzily (`'foo` for a literal substring); `|` is **OR** and binds tighter, so
+  `dog animal | cat` reads `dog AND (animal OR cat)`.
+- **`rg` / `fd`** (`<leader>sg`, `<leader>sf` live) — the string is a **regex**,
+  so a space is a literal space: `foo bar` matches the *text* "foo bar", not
+  both words. OR is regex alternation, `foo|bar`. AND across a line needs
+  `foo.*bar` — or `<c-g>`, and let the matcher do it.
+- **our symbols finder** (`<leader>ss` live) — a grammar of our own: the first
+  token is the name query sent to the LSP, **the rest filters by file path**.
+  So `animal .go` = symbols named "animal" in Go files.
+
+**What the matcher matches against** is the item's `text`, which is usually more
+than the name on screen: a grep item's text is the whole `path:line:col:matched
+line`, and an `<leader>ss` item's is `name kind client_name relpath`. So a bare
+term filters across all of that at once — handy, but use `field:value`
+(`file:`, `kind:`, `client_name:`, `relpath:`) when you need to be exact.
+
+**Worked examples:**
+
+- `<leader>sg` — `foo -- -tmd` greps markdown only, say 200 hits. `<c-g>`
+  freezes them (`foo -- -tmd` moves left of the prompt, still applying) and now
+  `todo` filters those hits by path *or* matched line, `file:todo` by path
+  alone, `!test` drops anything with "test" in the row. No `.go` file can come
+  back — rg never emitted one.
+- `<leader>sd` — always fuzzy, so just type: `animal | cat` for either name,
+  `foo function` for a symbol named ~foo whose kind is function (kind is in the
+  item text).
+- `<leader>ss` — `animal gopls` does **not** filter by client; it asks the LSP
+  for "animal" in paths matching "gopls" (see the two-token grammar above). For
+  the client, `<c-g>` first, then `client_name:gopls`. And `animal | cat` is
+  **not expressible at all**: the LSP takes one query, so the frozen set holds
+  only what came back for "animal" — there are no cats in it to OR with. Run
+  the picker twice, or use `<leader>sd` if both live in one file.
 
 Every other picker is a fixed list with nothing to re-query, so `<c-g>` warns
 and no-ops there.
