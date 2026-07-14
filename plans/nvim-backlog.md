@@ -1,7 +1,8 @@
 # Neovim enhancement backlog
 
 **Status:** research / backlog — running list, not a committed roadmap
-**Started:** 2026-06-28 · consolidated 2026-07-11
+**Started:** 2026-06-28 · consolidated 2026-07-11 · re-audited against the code
+2026-07-14
 
 The single backlog of Neovim features/enhancements this config doesn't have
 yet, mapped to candidate plugins. Consolidated from four docs that used to
@@ -19,14 +20,26 @@ The code is the source of truth; ✅ marks items already shipped.
 
 ## Current stack (for gap reference)
 
-Installed plugins (from `plugins.lua`): nvim-tree, snacks.picker,
-nvim-treesitter, lualine, gitsigns, satellite, toggleterm,
-sidekick.nvim (AI), blink.cmp, conform, nvim-lint, mason (+lspconfig
-+tool-installer), nvim-lspconfig, which-key, persistence, flatten, nvim-autopairs,
-render-markdown, lazydev, mini.icons / mini.notify, plenary.
+Installed plugins, grouped as in `plugins.lua` — keep this in sync with that
+file, since every "no equivalent today" claim below is measured against it:
 
-Already strong: fuzzy finding, formatting, linting, LSP, AI assist, git signs,
-sessions, terminal panel.
+- **Editing / UI** — nvim-treesitter (+ `-context` for sticky scroll,
+  `-textobjects` for the queries sidekick reads), snacks.nvim (picker, indent,
+  bigfile, scratch, profiler), nvim-tree, aerial (outline sidebar), stickybuf,
+  lualine, satellite, which-key, render-markdown, nvim-autopairs, mini.icons /
+  mini.notify / mini.bufremove.
+- **LSP / completion** — nvim-lspconfig, mason (+ lspconfig + tool-installer),
+  lazydev, nvim-lsp-file-operations, goto-preview (peek), blink.cmp, conform,
+  nvim-lint.
+- **Git** — gitsigns (signs, inline blame), neogit (Magit-style operations
+  dashboard, `<leader>g*`), diffview (rich diffs, `<leader>v*`).
+- **Debug / test / languages** — nvim-dap + nvim-dap-ui + nvim-nio, neotest,
+  rustaceanvim (Rust), nvim-dap-go + neotest-golang (Go).
+- **Workflow** — sidekick.nvim (AI), toggleterm, persistence (sessions),
+  auto-save, flatten, plenary.
+
+Already strong: fuzzy finding, formatting, linting, LSP, AI assist, git (signs
+*and* a full operations UI), debugging, test running, sessions, terminal panel.
 
 ---
 
@@ -43,8 +56,8 @@ Closest faithful port of Zed's killer feature. Run a project search, results ope
 in a normal buffer, edit them inline (regex/replacement, per-match toggles),
 changes apply to source files on save. Highest value-to-effort; no overlap with
 anything currently installed. Independently reconfirmed by the LazyVim and TODO
-passes. Keymap: LazyVim binds it `<leader>sr`, but that's Telescope resume here
-— use `<leader>sR`.
+passes. Keymap: LazyVim binds it `<leader>sr`, but that's taken here by
+picker-resume (`Snacks.picker.resume()`, `keymaps.lua`) — use `<leader>sR`.
 - https://github.com/MagicDuck/grug-far.nvim
 
 ### Secondary gaps (each fills a real hole)
@@ -59,7 +72,7 @@ passes. Keymap: LazyVim binds it `<leader>sr`, but that's Telescope resume here
   Zed's problems panel and "find all references in a multibuffer." Pairs with the
   existing LSP setup. (Also relevant to the edgebar idea in
   `plans/unified-sidebar-panel.md`.) The LazyVim/LunarVim passes both *rejected*
-  trouble for now — loclist + Telescope + satellite marks cover the
+  trouble for now — loclist + the picker + satellite marks cover the
   diagnostics-list workflow, and `plans/quickfix-improvements.md` owns list
   ergonomics; reconsider only if that plan stalls or the problems-panel/
   references ask below wins out.
@@ -70,27 +83,38 @@ passes. Keymap: LazyVim binds it `<leader>sr`, but that's Telescope resume here
   structural symbols by default (Class/Function/Method/Interface/Struct/Enum/
   Module/Constructor — same as VS Code's default, hiding locals/params/vars).
   Chose aerial over `hedyhli/outline.nvim` for its treesitter-first backend
-  (works with no LSP attached) and first-class Telescope extension. Docked
-  left (alongside nvim-tree), persistent (never auto-closes on jump).
+  (works with no LSP attached). Docked left (alongside nvim-tree), persistent
+  (never auto-closes on jump).
   We already have a fuzzy *picker* for this (`pickers/symbols.lua`, `<leader>ss`
   workspace / `<leader>sS` document) — the popup search box — this adds the
-  persistent sidebar tree that was missing, plus a second Telescope picker
-  scoped to aerial's own symbol source.
-  `<leader>o` toggles the sidebar, `<leader>O` the AerialNav popup,
-  `<leader>sb` the Telescope picker, `]a`/`[a` jump between symbols.
-  Implemented in `lua/outline.lua` (2026-07-03).
+  persistent sidebar tree that was missing.
+  `<leader>o` toggles the sidebar, `<leader>O` the AerialNav popup, `]a`/`[a`
+  jump between symbols. Implemented in `lua/outline.lua` (2026-07-03).
+  (The originally-planned third keymap — a fuzzy picker over aerial's own
+  symbol source — was never bound: it was to be aerial's Telescope extension,
+  and the snacks migration dropped Telescope. `<leader>sb` is
+  `Snacks.picker.lines()`. The two `pickers/symbols.lua` maps cover the ask.)
   - https://github.com/stevearc/aerial.nvim
   - alt (not chosen): `hedyhli/outline.nvim` — lower Neovim version floor,
     finer-grained inclusive/exclusive kind filtering, weaker picker integration.
     https://github.com/hedyhli/outline.nvim
   - alt: `trouble.nvim` symbols mode (`:Trouble symbols`) gives a near-identical
     live outline for free if we install Trouble for the references panel above.
-- **Git panel (stage/commit/diff in a pane)** → `neogit`
-  Zed shipped a real git panel in 2025; current setup only has inline `gitsigns`.
-  Biggest behavioral upgrade if doing commits inside the editor.
+- ✅ **Done: Git panel (stage/commit/diff in a pane)** → `neogit` + `diffview`
+  Zed shipped a real git panel in 2025; this config had only inline `gitsigns`
+  when the gap was written. Now a Magit-style operations dashboard in
+  `lua/gitui.lua` (`<leader>gg` status, `<leader>gc`/`gp`/`gu`/`gl`/`gd`/`gb`/
+  `gr`/`gw` popups, mnemonics mirroring the zsh git aliases), with `diffview`
+  for the rich diffs (`<leader>v*`). gitsigns still owns the gutter — Neogit's
+  own signs are disabled so the two don't stack.
   - https://github.com/NeogitOrg/neogit
-- **Native debugger** → `nvim-dap` + `nvim-dap-ui`
-  Zed shipped this in 2025. Largest lift; only worth it for in-editor debugging.
+- ✅ **Done: Native debugger** → `nvim-dap` + `nvim-dap-ui`
+  Zed shipped this in 2025; it was the largest lift on this list and it landed.
+  `lua/debugging.lua` owns the generic engine + docked UI (scopes, call stack,
+  breakpoints, watches, REPL); adapters live in the language modules
+  (`rust.lua`/codelldb, `golang.lua`/delve). Test running came with it via
+  `neotest` (+ `neotest-golang`). Still open, and now a genuine one-liner:
+  `nvim-dap-virtual-text` (see Smaller wishlist).
 
 ### Recommendation / priority
 
@@ -100,8 +124,8 @@ passes. Keymap: LazyVim binds it `<leader>sr`, but that's Telescope resume here
    the existing `<leader>ss` symbol picker.
 4. `trouble.nvim` — diagnostics/references panel (also gives an outline mode for
    free; ties into the sidebar plan).
-5. `neogit` — only if moving git workflow into the editor.
-6. `nvim-dap` — only if in-editor debugging is wanted.
+5. ✅ `neogit` + `diffview` — git operations dashboard; done.
+6. ✅ `nvim-dap` + `nvim-dap-ui` — in-editor debugging; done (plus `neotest`).
 
 ---
 
@@ -149,7 +173,12 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
   - https://github.com/rmagatti/goto-preview
   - alt (not chosen): https://github.com/dnlhc/glance.nvim
 - **Tasks runner (tasks.json: build/test/run from the editor)** → `overseer.nvim`
-  VS Code's task system with a task list and output panel. No task runner today.
+  VS Code's task system with a task list and output panel. Narrower ask than
+  when first written (2026-07-14): `neotest` now runs tests from the editor,
+  and the Go targets picker (`plans/go-targets-picker.md`) runs/debugs `main`
+  packages. What's still missing is the *generic*, per-project task list —
+  arbitrary build/lint/deploy commands with an output panel. Only worth it if
+  that generic need shows up.
   - https://github.com/stevearc/overseer.nvim
 - **Rename with live preview (F2)** → `inc-rename.nvim`
   VS Code's rename shows changes as you type. Native LSP rename has no live
@@ -159,8 +188,10 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 
 ### Already covered (no action needed)
 
-- **Command palette** → telescope (`commands` / `command_history` pickers) +
-  which-key already cover this.
+- **Command palette** → which-key (leader-key discovery) + the custom
+  keybindings picker cover the discovery half. The literal `:`-command half
+  (snacks' `commands` / `command_history` sources) is *not* bound — it's the
+  "Vim-state pickers" item under "Picker (snacks)" below, not a separate ask.
 - **Minimap** → `satellite.nvim` already provides the navigation/overview role
   (git, diagnostics, search, cursor marks) without a full minimap render. A true
   minimap (`neominimap` / `codewindow.nvim`) would be cosmetic overlap.
@@ -187,13 +218,14 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 JetBrains IDEs let a single "Find in Files" search become a saved, persistent
 panel: iterate over the results, dismiss irrelevant hits, keep the rest, then
 act on what's left. The closest Neovim primitive is the **quickfix list** —
-it's just not wired up to Telescope or pruned with a plugin yet.
+it's just not wired up to the picker or pruned with a plugin yet.
 
 ### Core loop (native, no new plugin required)
 1. Seed the quickfix list from a search — `:grep`/`:vimgrep`, LSP references,
-   or (since Telescope is already installed) hit `<C-q>` in a `live_grep`/
-   `grep_string` picker to send all (or just the `<Tab>`-multiselected)
-   results to the qflist instead of jumping to one match.
+   or from the picker: `<C-q>` sends all results (or just the
+   `<Tab>`-multiselected ones) to the quickfix list instead of jumping to one
+   match. ✅ Already works — it's a snacks *default* binding, so it came free
+   with the picker migration; see GUIDE.md "Picker (snacks.nvim)".
 2. `:copen` opens it as a persistent panel. `]q`/`[q` (or `:cnext`/`:cprev`)
    cycle entries; `<CR>` on a line jumps there while the panel stays open.
 3. **Dismissing entries** — the quickfix window is an editable buffer: `dd` a
@@ -231,20 +263,20 @@ several sessions.
 - see `plans/harpoon2.md` for the existing implementation plan
 
 ### Gaps in the current config
-No `<C-q>`-to-qflist keymap and no qf-pruning plugin are wired up yet.
-Telescope, fzf-native, and ui-select are already installed, so this is mostly
-wiring + one new plugin. Harpoon2 is a fully separate, already-planned addition
-(see above) — not required for the quickfix workflow itself.
+Step 1 (seeding) is **already done** — `<C-q>` → `qflist` is a stock snacks
+binding in both the input and list windows, so it came free with the picker
+migration and works in every source. What's missing is everything downstream of
+it: no qf-pruning plugin, and no `:cbuffer`-reload keymap for the
+zero-dependency dismiss loop. Harpoon2 is a fully separate, already-planned
+addition (see above) — not required for the quickfix workflow itself.
 
 ### Recommendation / priority
-1. Wire `<C-q>` in the `live_grep` picker (`<leader>sg`, now plain
-   `builtin.live_grep`) to send results to the quickfix list.
-2. Add a `:cbuffer`-reload keymap in the qf window as the zero-dependency
-   dismiss workflow.
-3. `nvim-bqf` — if the native `dd`+`:cbuffer` loop feels clunky in practice.
-4. Revisit `trouble.nvim` decision jointly with the VS Code problems-panel ask
+1. Add a `:cbuffer`-reload keymap in the qf window as the zero-dependency
+   dismiss workflow. (Seeding the list is already covered — see Gaps above.)
+2. `nvim-bqf` — if the native `dd`+`:cbuffer` loop feels clunky in practice.
+3. Revisit `trouble.nvim` decision jointly with the VS Code problems-panel ask
    above, since one install would serve both.
-5. Harpoon2 — separate track, already planned in `plans/harpoon2.md`; worth
+4. Harpoon2 — separate track, already planned in `plans/harpoon2.md`; worth
    implementing regardless, and complements this workflow for cross-session
    bookmarking of the results you kept.
 
@@ -360,8 +392,9 @@ Options land in `configs.lua`, autocmds in `autocmds.lua`. Only genuine deltas
 - **Options** — `splitkeep="screen"` (no text jump when splits open/close;
   noticeable with the bottom panel + sidebars), `jumpoptions="view"` (jumplist
   restores scroll position — pairs with the mouse-button jumplist maps),
-  `grepprg="rg --vimgrep"` + `grepformat` (makes `:grep` a usable Telescope
-  fallback), `smoothscroll`, `virtualedit="block"`, `shiftround`.
+  `grepprg="rg --vimgrep"` + `grepformat` (makes `:grep` a usable
+  straight-to-quickfix fallback when you don't want the picker UI),
+  `smoothscroll`, `virtualedit="block"`, `shiftround`.
 - **`VimResized` auto-equalize** — `tabdo wincmd =` then return to the active
   tab (LunarVim's fixed version, commit `aa51c20f`). Relevant here: Neogit
   opens in a tab, Neovide resizes are common.
@@ -405,9 +438,10 @@ GUIDE.md "Large files".
   want to defer or avoid.
 - **Markdown auto lists/headings** — continue list markers / heading levels on
   `<CR>` in markdown.
-- **Telescope preview placement** — where the preview shows and whether it can
-  be dynamic; and having a selected result land near the top of the screen
-  (TODO items 3–4).
+- ✅ **Picker preview placement / result scroll position** — both landed with
+  the snacks migration: the layout flips preview placement by window width, and
+  the custom `confirm` action scrolls the jumped-to result to ~20% from the top.
+  See `plans/telescope-vs-snacks-picker.md`. No action.
 - **Buffer-name display for inactive windows** — low-effort way to show which
   buffer an inactive window holds.
 - **`nvim-dap-virtual-text`** — inline variable values during DAP sessions;
@@ -432,6 +466,13 @@ These have their own plan files — pointers only, not re-listed here:
 - **Picker migration (telescope → snacks — done 2026-07), filter-preset rework,
   and symbols-picker eval** → `plans/telescope-vs-snacks-picker.md`
 - **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
+- **Go debug + test stack** (delve, neotest-golang) → `plans/go-run-debug-test.md`
+  — **shipped**; the `nvim-dap` / `neotest` install traces back to it.
+- **Go run/debug targets picker** → `plans/go-targets-picker.md` — **shipped**
+  (`<leader>dR` in Go buffers). Narrows the `overseer.nvim` ask above.
+- **Startup performance** → `plans/nvim-startup-performance.md`
+- **Unified sidebar / edgebar (docking nvim-tree + aerial + trouble)** →
+  `plans/unified-sidebar-panel.md`
 - **cmux-inspired agent event pipeline (needs-input/done status per sidekick
   session)** → `plans/sidekick-agent-event-pipeline.md` — look into soon.
   Event pipeline only (Claude Code hooks → per-session registry); UI (status
@@ -459,13 +500,15 @@ they aren't proposed again.
   `automatic_installation`. All serve deferred-loading/distro concerns; this
   config is eager `vim.pack` with `nvim-pack-lock.json` pinning and native
   `vim.lsp.enable`.
-- **UI swaps already decided against** — snacks picker/explorer/dashboard/
-  notifier/lazygit, noice, bufferline, neo-tree, alpha dashboard, navic winbar,
+- **UI swaps already decided against** — snacks explorer/dashboard/notifier/
+  lazygit, noice, bufferline, neo-tree, alpha dashboard, navic winbar,
   vim-illuminate, indent-blankline, Comment.nvim, project.nvim, lir.nvim,
-  floating lazygit. Deliberate counter-choices exist (Telescope + custom
-  pickers, nvim-tree, mini.notify, lualine-only, Neogit + diffview, native
-  documentHighlight, aerial + treesitter-context, snacks.indent, native `gc`,
-  `vim.fs.root`).
+  floating lazygit. Deliberate counter-choices exist (nvim-tree, mini.notify,
+  lualine-only, Neogit + diffview, native documentHighlight, aerial +
+  treesitter-context, snacks.indent, native `gc`, `vim.fs.root`).
+  Note: snacks' *picker* is **not** in this list — it was adopted (migration
+  done 2026-07, `plans/telescope-vs-snacks-picker.md`), replacing Telescope.
+  Only the other snacks UI modules were declined.
 - **barbar.nvim** — TODO's own note said "I should not, but if I did"; no
   bufferline is a deliberate choice.
 - **dropbar.nvim breadcrumbs** — tried and removed 2026-07-03; didn't like it.
