@@ -2307,8 +2307,10 @@ Debug and test support for Go, layered onto the shared engines the same way
 Rust is: `golang.lua` is Go's language module — the mirror of `rust.lua` —
 and owns the pcall-guarded `nvim-dap-go` setup (the delve adapter that feeds
 `debugging.lua`'s shared engine) plus the buffer-local `FileType go` keymaps
-(`<leader>dR`, `<leader>cR`). `neotest-golang` supplies the neotest adapter
-for `testing.lua` separately. Named `golang.lua`, not `go.lua`: `require('go')`
+(`<leader>dR`, `<leader>cR`). If `nvim-dap-go` ever fails to load,
+`<leader>cR` keeps working and `<leader>dR` stays mapped — to a notify stub
+saying Go debugging is disabled — rather than silently vanishing.
+`neotest-golang` supplies the neotest adapter for `testing.lua` separately. Named `golang.lua`, not `go.lua`: `require('go')`
 is ray-x/go.nvim's own module name, and taking it would either block adopting
 that plugin later or force a rename — same shadowing rule as
 `debugging.lua`-not-`dap.lua`. gopls (`lsp.lua`), goimports-on-save (conform),
@@ -2454,6 +2456,10 @@ behavior; the honest summary:
   breakpoint first) and would bury the short binaries list in noise.
 - **Outside a Go module, it warns and does nothing** — see "You need a
   `go.mod`" above; no fallback to the seven-config picker.
+- **A module with zero `main` packages closes the picker with one WARN**
+  ("No main packages in this module") — a library-only module is a normal
+  state, not an error. Only a `go list` run that *fails* and yields no
+  targets reports an ERROR carrying `go list`'s stderr.
 - **A broken package elsewhere in the module does not hide the good
   targets** — the enumerator runs `go list -e ./...`, so one unresolved
   import anywhere in the module still leaves every buildable `main` package

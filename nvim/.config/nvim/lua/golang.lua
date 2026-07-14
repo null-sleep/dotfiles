@@ -41,6 +41,14 @@ vim.api.nvim_create_autocmd('FileType', {
     if dap_ok then
       map('<leader>dR', function() require('pickers.gotargets').open('debug') end,
         'Debug: Go debuggables')
+    else
+      -- Still mapped when dap-go is broken: the startup WARN is long gone by
+      -- the time the key is pressed, and a key that silently does nothing
+      -- reads as a broken keymap (CLAUDE.md, "Guarding a code-only global
+      -- keymap" — same principle, applied to a disabled feature).
+      map('<leader>dR', function()
+        vim.notify('Go debugging disabled — nvim-dap-go failed to load', vim.log.levels.WARN)
+      end, 'Debug: Go debuggables (disabled)')
     end
     map('<leader>cR', function() require('pickers.gotargets').open('run') end,
       'Go: Runnables (run)')

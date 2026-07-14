@@ -72,10 +72,13 @@ local function run_target(item, root)
   -- close_on_exit = false so the program's output survives its exit.
   run_term = Terminal:new({
     -- Fixed high id, same convention as terminal.lua's bottom panel (id = 100):
-    -- without an explicit id, toggleterm hands out the lowest free integer, which
-    -- would drop this terminal into the 1-99 pool reserved for count-addressable
-    -- floats (2<C-\>, 3<C-\>) and the <C-]> cycle list — and its id would shift
-    -- between runs, since shutdown() frees it again.
+    -- without an explicit id, toggleterm hands out the lowest free integer, so
+    -- this terminal would collide with the 1-99 pool reserved for
+    -- count-addressable floats (2<C-\>, 3<C-\>) — and its id would shift
+    -- between runs, since shutdown() frees it again. That is ALL the id buys:
+    -- the <C-]> cycle filters on `hidden`, not id, so this (non-hidden)
+    -- terminal stays in the cycle — deliberately; cycling back to the
+    -- program's output is useful.
     id = 101,
     cmd = 'go run ' .. vim.fn.shellescape(item.importpath),
     dir = root,
@@ -113,12 +116,16 @@ function M.open(mode)
         -- Registered BEFORE the schedule() below, not after: schedule() suspends
         -- the coroutine, so an abort arriving while we're parked inside it would
         -- otherwise land before this handler exists — and the `go list` would run
-        -- on unwatched. The nil-check covers the reverse window (abort before
-        -- vim.system has even been called; nothing spawned, nothing to kill).
+        -- on unwatched. The reverse window (abort before the spawn) is what the
+        -- aborted() guard inside the scheduled fn covers: abort handlers fire
+        -- when the coroutine dies, but a callback already queued via
+        -- vim.schedule still runs afterwards — unguarded, it would spawn
+        -- `go list` with this handler already spent (obj was nil when it ran).
         async:on('abort', function()
           if obj then pcall(function() obj:kill(15) end) end
         end)
         async:schedule(function()
+          if async:aborted() then return end
           obj = vim.system(
             -- -e: keep going past a broken package. Without it a single bad
             -- import anywhere in the module exits 1 — with every good target
@@ -140,10 +147,11 @@ function M.open(mode)
         if not res or async:aborted() then return end
 
         -- Parse stdout NO MATTER the exit code: `go list` reports per-package
-        -- errors on stderr and still emits the packages it did resolve. Only a
-        -- run that yields zero parseable targets is a real failure. See the
-        -- comment above the vim.system call — this is the single most likely
-        -- thing to get "cleaned up" back into a regression.
+        -- errors on stderr and still emits the packages it did resolve. Zero
+        -- targets is a real failure only when go list itself failed — a healthy
+        -- library-only module also yields zero mains (both handled below). See
+        -- the comment above the vim.system call — this is the single most
+        -- likely thing to get "cleaned up" back into a regression.
         local found = 0
         for line in vim.gsplit(res.stdout or '', '\n', { trimempty = true }) do
           local kind, importpath, dir, ntests, first = line:match('^(.-)|(.-)|(.-)|(.-)|(.*)$')
@@ -165,12 +173,20 @@ function M.open(mode)
           end
         end
 
-        -- Nothing at all → real error (bad module, go missing). Something, but
+        -- Zero targets → two very different states. go list happy → a
+        -- library-only module (an SDK; perfectly normal): one quiet WARN, and
+        -- close the empty picker — there is nothing to pick. go list failed →
+        -- real error (bad module, go missing); surface stderr. Something, but
         -- go list also complained → the module has a broken package somewhere;
         -- say so, but still show the targets that did resolve.
         if found == 0 then
           vim.schedule(function()
-            vim.notify('go list found no main packages\n' .. (res.stderr or ''), vim.log.levels.ERROR)
+            ctx.picker:close()
+            if res.code == 0 then
+              vim.notify('No main packages in this module', vim.log.levels.WARN)
+            else
+              vim.notify('go list failed:\n' .. (res.stderr or ''), vim.log.levels.ERROR)
+            end
           end)
         elseif res.code ~= 0 then
           vim.schedule(function()

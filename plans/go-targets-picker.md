@@ -9,11 +9,12 @@
 > is registered *before* the spawn is scheduled. Kept as the decision record —
 > the `go list -e` exit-code trap and delve's `program`-must-be-a-folder contract
 > are the parts worth re-reading before touching this code.
-> A post-ship review (2026-07-13) upheld the design but recorded five open
-> findings and four drawbacks. Everything still to do — the code fixes, the
-> interactive checks not yet run, and the deferred decisions from both plans —
-> is consolidated in [Open items](#open-items) below; the findings' full text
-> lives in [Post-ship review](#post-ship-review).
+> A post-ship review (2026-07-13) upheld the design but recorded five
+> findings and four drawbacks; the four code fixes (findings 1-4) were
+> applied 2026-07-14. Everything still to do — the interactive checks not
+> yet run and the deferred decisions from both plans — is consolidated in
+> [Open items](#open-items) below; the findings' full text lives in
+> [Post-ship review](#post-ship-review).
 
 > Follow-up to [`plans/go-run-debug-test.md`](go-run-debug-test.md), which
 > shipped Go debugging (nvim-dap-go + delve) and testing (neotest-golang). That
@@ -34,25 +35,26 @@ rationale for each entry lives where it's linked — nothing is duplicated here.
 
 ### Code fixes (from the post-ship review)
 
-Each is a verified defect with a concrete fix in
+Each was a verified defect with a concrete fix in
 [Post-ship review](#post-ship-review); the number is that finding's number.
+**All four applied 2026-07-14** (GUIDE.md updated in the same change for the
+two behavior changes: the zero-mains WARN and the disabled-`<leader>dR` stub).
 
-- [ ] **1 — library-only module gets an ERROR for a normal state**
-  (`pickers/gotargets.lua:171-180`). Split `found == 0`: `code == 0` → WARN "no
-  main packages", close the picker; `code ~= 0` → keep the ERROR + stderr.
-  Most likely to bite a real session. ([finding 1](#post-ship-review))
-- [ ] **2 — abort-race comment overstates the nil-check**
-  (`pickers/gotargets.lua:113-120`). An abort in the one-tick `async:schedule`
-  window still spawns an unwatched `go list`. Add `if async:aborted() then
-  return end` atop the scheduled fn and reword the comment. ([finding 2](#post-ship-review))
-- [ ] **3 — `dap_ok = false` silently unmaps `<leader>dR`**
-  (`golang.lua:41-44`). Map a `vim.notify('Go debugging disabled …')` stub
-  instead of not mapping, per the repo's guard-code-only-keymaps rule.
-  ([finding 3](#post-ship-review))
-- [ ] **4 — `id = 101` comment misstates the `<C-]>` cycle**
-  (`pickers/gotargets.lua:75-79`). `cycle_term` filters on `hidden`, not id
-  range. Either fix the comment (`id = 101` only buys count-address stability)
-  or add `hidden = true`. ([finding 4](#post-ship-review))
+- [x] **1 — library-only module gets an ERROR for a normal state**
+  (`pickers/gotargets.lua`). Split `found == 0`: `code == 0` → WARN "No main
+  packages in this module", close the picker; `code ~= 0` → keep the ERROR +
+  stderr. ([finding 1](#post-ship-review))
+- [x] **2 — abort-race comment overstates the nil-check**
+  (`pickers/gotargets.lua`). An abort in the one-tick `async:schedule` window
+  still spawned an unwatched `go list`. Added `if async:aborted() then return
+  end` atop the scheduled fn and reworded the comment. ([finding 2](#post-ship-review))
+- [x] **3 — `dap_ok = false` silently unmaps `<leader>dR`**
+  (`golang.lua`). Now mapped to a `vim.notify('Go debugging disabled …')`
+  stub, per the repo's guard-code-only-keymaps rule. ([finding 3](#post-ship-review))
+- [x] **4 — `id = 101` comment misstates the `<C-]>` cycle**
+  (`pickers/gotargets.lua`). Comment fixed: the id only buys count-address
+  stability; the terminal stays in the `<C-]>` cycle deliberately (cycling
+  back to program output is useful). ([finding 4](#post-ship-review))
 
 ### Left to test
 
@@ -1053,7 +1055,11 @@ One strength verified in passing that nothing had documented: `dap.run()`
 records `last_run` (`nvim-dap/lua/dap.lua:626`), so **`<leader>dl` correctly
 re-launches a picker-chosen target**.
 
-### Open findings (not yet applied)
+### Findings
+
+Findings 1-4 were applied on 2026-07-14 (the entries below are the review
+record, kept as written); finding 5 is an interactive check, tracked under
+"Left to test" in [Open items](#open-items).
 
 1. **A library-only module gets an ERROR for a normal state**
    (`pickers/gotargets.lua:171-180`). `found == 0` is reported as a real error
