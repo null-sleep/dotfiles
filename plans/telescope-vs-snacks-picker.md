@@ -1197,6 +1197,71 @@ The profiler run (protocol 1) is still worth doing to confirm from the real
 session that Lua totals are as small as the bench says — but it is now a
 *confirmation*, not the primary probe, and it can only ever see the Lua half.
 
+<a id="flush-result"></a>
+### Result (2026-07-14): the forced flush is NOT the culprit either — it *helps*
+
+Ran the terminal test. **B (no-op `Snacks.win.redraw`) is *slower* than A
+(stock).** Not "no better" — worse. Same with a trackpad scroll, which doesn't
+go through key repeat at all, so this isn't a key-repeat artifact.
+
+That doesn't just fail to confirm the hypothesis, it **inverts** it. The forced
+`nvim__redraw({ valid = false, flush = true })` is what puts each tick on screen
+*immediately*. Take it away and nvim defers the repaint to its own idle point,
+so while a key is held the list stops updating and then catches up in a lurch —
+which reads as *more* lag, not less. snacks forces the flush deliberately, and
+it's buying responsiveness with it. **Do not file this upstream, and do not
+"fix" it locally.**
+
+So the whole hypothesis chain is now exhausted:
+
+| suspect | verdict |
+|---|---|
+| preview pane (cache / read / treesitter) | ruled out — `<a-p>` off, still sluggish |
+| Lua list render, O(visible rows) | mechanism confirmed, magnitude irrelevant (~0.9ms/tick) |
+| forced full-window flush | ruled out — removing it makes it **worse** |
+
+<a id="the-actual-answer"></a>
+### What the sluggishness actually was: `<C-j>` is the wrong tool
+
+The thing that was never questioned is the premise. **`<C-j>` moves the
+selection exactly one row, so scroll speed is bounded by the OS key-repeat
+rate, not by anything snacks does.** macOS's "Fast" setting is ~30ms/repeat
+(already maxed here), i.e. ~33 rows/sec — crossing a 16k-file list that way
+takes about eight minutes. No render optimization can fix that, because the
+render was never the bottleneck: *the input rate is*. It felt "slower than
+telescope" partly because telescope's list only ever held 250 entries
+([the asymmetry](#scroll-asymmetry)) — there was far less list to be slow at.
+
+The fix is a keymap that already exists. Stock snacks binds `<C-d>`/`<C-u>` to
+`list_scroll_down`/`list_scroll_up` (`config/defaults.lua:248,258`, both the
+input and list windows), which call `list:scroll(state.scroll)` where
+`state.scroll` is the window's `'scroll'` option (`core/list.lua:208`) — half
+a window, ~26 rows at our `height = 0.9`. **One keypress, one render, ~26× the
+distance of a `<C-j>` tick, for identical per-tick cost.** Documented in
+GUIDE.md's picker keymap table.
+
+<a id="scroll-residual"></a>
+### Open residual: the intermittent hang
+
+Not explained, and honestly recorded rather than waved off: **both A and B
+"sometimes hang"** during a scroll. Since it survives the no-op-redraw patch, it
+is not the flush, and since it survives `<a-p>`, it is not the preview. It is
+therefore *not* the same phenomenon as the key-repeat-bound slowness above —
+that one is fully explained and has a fix.
+
+Not chased further because `<C-d>`/`<C-u>` makes the whole area a non-problem in
+daily use (2026-07-14 decision: **parked, not solved**). If it resurfaces and is
+worth picking up, the untested candidates, in order:
+
+- **the matcher/finder still streaming.** A 16k-file finder runs async; ticks
+  that land while items are still arriving contend with match+sort work. Test:
+  wait for the count to settle *completely*, then scroll. If the hang only
+  happens early, this is it.
+- **`frecency`** (we enable it) adds per-item scoring at match time — an A/B
+  with it off is one line in `picker.lua`.
+- **GC pauses.** Every dirty tick allocates a fresh line table + extmarks;
+  `collectgarbage('count')` sampled across a scroll would show it.
+
 <a id="preview-mechanism"></a>
 ### How the file preview is actually built — snacks vs telescope
 
@@ -1436,18 +1501,22 @@ record of what *didn't* happen:
   doesn't change while scrolling, so the matcher doesn't re-run. Per-row cost in
   the bench was flat across a 3k-item spread, as expected. `frecency` scores at
   *match* time, not scroll time, so it is not implicated either.
-- **Lua time is small but the lag persists → it's C-side.** This is where we
-  are. Sharpened by the bench from the vague "`win:redraw()` and the terminal"
-  into a specific, testable claim — the **forced synchronous full-window flush**
-  every tick ([above](#flush-hypothesis)): `nvim__redraw({ valid = false,
-  flush = true })` after clearing and rewriting the entire list buffer, which
-  denies nvim's redraw batching and the terminal's scroll-region update alike.
-  Test it by neutering `Snacks.win.redraw` in the real terminal. If that's it,
-  the upstream issue is against the *redraw* strategy, not the row loop. If it
-  is *not* it, the probe leaves snacks entirely: a different terminal (we're on
-  kitty/iTerm2/Neovide), cursor-animation plugins, `:set lazyredraw`. The
-  preview-off result already rules out preview-buffer treesitter decoration
-  providers — the list window has no treesitter attached.
+- ~~**Lua time is small but the lag persists → it's C-side.**~~ → **also wrong,
+  and instructively so.** The bench sharpened this into a specific claim — the
+  forced synchronous full-window flush ([above](#flush-hypothesis)) — and the
+  terminal test then **inverted** it: removing the flush makes scrolling *worse*
+  ([result](#flush-result)). The flush is load-bearing for perceived
+  responsiveness, not a drag on it.
+
+**None of the three branches was right, because the question was wrong.** Every
+branch above assumes the per-tick *cost* is the problem. It isn't: `<C-j>` moves
+one row per key repeat, so the traversal is bounded by the OS input rate, and no
+per-tick saving can touch that. See [the actual answer](#the-actual-answer) —
+it's `<C-d>`/`<C-u>`, which already exist. Keep the branches as the record of a
+hunt that produced three correct mechanisms and zero relevant ones; the lesson
+worth carrying is that "make the tick cheaper" was never going to work, and two
+days of source-verified mechanism could not tell us that. The first cheap
+end-to-end test could have.
 
 Caveats (profiler docs + source): the session slows while profiling and
 instrumentation inflates hot tiny functions, so treat *relative* differences as
@@ -1523,32 +1592,29 @@ Deferred follow-ups from the migration (decided during implementation review,
    matching the file list and driving `fd` live) and **`lsp_symbols`**
    (`<leader>ss`) — and whether our custom `pickers/*.lua` finders could set
    `supports_live` themselves.
-7. **Profile the sluggish picker scroll** — holding `<C-j>` feels slower than
-   telescope did. **The preview has been ruled out** (2026-07-13): with
-   `preview = false` forced globally, the scroll still "seems similar", so the
-   cost is not the preview pane at all — see
-   [§7 result](#preview-off-result). That kills the whole preview-side branch
-   of this investigation (buffer cache, bulk read, async read, throttle tuning),
-   including a fully-designed preview-cache module that was **abandoned before
-   landing** — its central premise was a reasoning error (a cache only helps
-   *revisits*; scrolling down a fresh list is all misses, and telescope missed
-   on every one of those ticks too, more expensively).
-   **The Lua list render has now been ruled out as well** (2026-07-13): a
-   headless `list:move(1)` bench over a 16k-file repo confirms `list:render()`
-   re-formats **every visible row** on every tick and that the cost is exactly
-   linear in row count — but it is only ~0.017ms/row, i.e. ~0.9ms/tick at our
-   `height = 0.9`, far too small to feel at a 15-30ms key repeat. Mechanism
-   real, magnitude irrelevant; see [§7 result](#list-render-result).
-   The live suspect is now **C-side**: the per-tick `win:redraw()` —
-   `nvim__redraw({ valid = false, flush = true })` — which invalidates the whole
-   list window and forces a synchronous UI flush after rewriting every line,
-   defeating both nvim's redraw batching and the terminal's scroll-region
-   update. This is also the asymmetry against telescope, which scrolled by
-   moving a cursor through an already-populated buffer.
-   Next: neuter `Snacks.win.redraw` in the real terminal and hold `<C-j>` (the
-   cheap decisive test); `<leader>tp` (bound) confirms Lua totals are small from
-   the real session; then upstream against the redraw strategy. Full protocol
-   and both results in [§7](#scroll-profiling).
+7. **~~Profile the sluggish picker scroll~~ — CLOSED (2026-07-14). The answer
+   was `<C-d>`/`<C-u>`, and no code changed.** Holding `<C-j>` felt slower than
+   telescope did, so this went hunting for the expensive thing. Three suspects,
+   each verified against source, each *real*, and none of them the cause:
+   the **preview** (ruled out by `<a-p>`: scroll is just as slow with no preview
+   pane at all — which killed a fully-designed preview-cache module *before it
+   landed*, on a premise that was a reasoning error); the **Lua list render**
+   (confirmed to re-format every visible row per tick, exactly linear in row
+   count — and to cost all of ~0.9ms/tick, far too little to feel); and the
+   **forced redraw flush** (which turned out to make things *better*, not worse
+   — removing it is slower, because it's what puts each tick on screen
+   immediately).
+   The premise was the bug: **`<C-j>` moves one row per key repeat, so traversal
+   is bounded by the OS input rate (~33 rows/s, already maxed), not by anything
+   snacks does** — no per-tick saving could ever have fixed it. Stock
+   `<C-d>`/`<C-u>` scroll half a window per press (~26 rows, one render, same
+   cost as a single `<C-j>` tick) and make the whole thing a non-issue. Now
+   documented in GUIDE.md's picker keymap table; that's the entire fix.
+   Nothing to file upstream. Left behind: `<leader>tp` (profiler toggle, useful
+   in its own right) and one **unexplained residual** — an intermittent hang
+   that survives both `<a-p>` and the no-op-redraw patch, parked with its
+   candidate list in [§7](#scroll-residual). Full record, including what each
+   dead end taught, in [§7](#scroll-profiling).
 8. **Read and evaluate linkarzu's "Why I moved from Telescope to Snacks
    Picker"** — <https://linkarzu.com/posts/neovim/snacks-picker/>. It's cited in
    Sources below but was only skimmed for the *decision*; it was never mined for

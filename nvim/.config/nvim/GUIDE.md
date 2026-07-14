@@ -1212,7 +1212,8 @@ list — bindings below are the daily set):
 | Key | Action |
 |---|---|
 | Type anything | Filter results (fuzzy, or live — see above) |
-| `<C-n>`/`<C-p>` or `<C-j>`/`<C-k>` | Move down / up |
+| `<C-n>`/`<C-p>` or `<C-j>`/`<C-k>` | Move down / up — **one row per key repeat**, so holding these is a bad way to cross a long list (see `<C-u>`/`<C-d>`) |
+| `<C-u>` / `<C-d>` | Scroll the list up / down by half a window (`'scroll'`, ~26 rows here) — one keypress covers ~26× what a `<C-j>` repeat tick does, for the *same* render cost. This is the answer to "the list scrolls too slowly", not a faster key repeat. Stock snacks, so it works in **every** picker — except that we rebind `<C-d>` itself in the two pickers whose lists are short anyway: the buffer picker (delete buffer, below) and the AI session picker (kill session). `<C-u>` is never overridden |
 | `<CR>` | Open highlighted entry — cursor line lands ~20% from the window top (custom confirm in `picker.lua`; `scrolloff=10` is the floor in short windows) |
 | `<C-v>` | Open in vertical split |
 | `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` overrides the global LSP signature-help key while a picker is focused) |
