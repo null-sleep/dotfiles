@@ -74,6 +74,30 @@ local function send_to_sidekick(picker)
   end
 end
 
+-- Copy the item's path, cwd-relative — what the list shows, and what `yp` yanks
+-- for the open buffer (yank.lua). Can't just yank item.file: it's the finder's
+-- raw output, cwd-relative for files/grep but absolute for buffers/recent/
+-- lsp_symbols/diagnostics, and absent on `lines` items (buffer-scoped, .buf
+-- only). Snacks' formatter hides that by rendering util.path() against
+-- picker:cwd(), so the wrong path would *look* right on screen.
+--
+-- Register '+' is explicit: `clipboard` is unset here (configs.lua), so the
+-- unnamed register snacks' stock `yank` defaults to is not the system clipboard.
+local function copy_path(picker, item)
+  local path = Snacks.picker.util.path(item)
+  if not path and item and item.buf then
+    path = vim.api.nvim_buf_get_name(item.buf)
+  end
+  if not path or path == '' then
+    vim.notify('No path for this item', vim.log.levels.WARN)
+    return
+  end
+  local rel = vim.fs.relpath(picker:cwd(), path) or path
+  picker:close()
+  vim.fn.setreg('+', rel)
+  vim.notify('Copied: ' .. rel)
+end
+
 require('snacks').setup({
   picker = {
     -- snacks owns vim.ui.select (consumers: nvim-tree confirmations,
@@ -89,6 +113,7 @@ require('snacks').setup({
     actions = {
       confirm = confirm_and_scroll,
       send_to_sidekick = send_to_sidekick,
+      copy_path = copy_path,
     },
     win = {
       input = {
@@ -101,11 +126,15 @@ require('snacks').setup({
           -- live keymaps); shadows the global "move to left split" <C-h>
           -- only while the picker input is focused.
           ['<C-h>'] = { 'toggle_help_input', mode = { 'i', 'n' } },
+          -- Shadows the global <C-y> (scroll up one line) only while the
+          -- picker input is focused — same trade as <C-h> above.
+          ['<C-y>'] = { 'copy_path', mode = { 'i', 'n' } },
         },
       },
       list = {
         keys = {
           ['<M-a>'] = 'send_to_sidekick',
+          ['<C-y>'] = 'copy_path',
         },
       },
     },
