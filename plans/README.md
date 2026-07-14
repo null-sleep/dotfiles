@@ -53,6 +53,13 @@ off or delete them as they land; add new ones freely.
   undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
   bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
   not a swap — worth a look purely on "can I see and navigate my edit history".
+- [ ] **Build the Python debug/test stack** — spec'd and twice-reviewed in
+  [python-debug-test.md](python-debug-test.md). Two follow-on decisions it
+  deliberately leaves open: (1) **what is a Python "run target"?** — the
+  `pickers/pytargets.lua` analogue of `go list` (`__main__` scripts?
+  `[project.scripts]`? `python -m pkg`?), which is what finally binds
+  `<leader>dR` for Python; (2) whether `dap-python.debug_selection()` (debug a
+  visual selection — no neotest equivalent) deserves a key.
 
 ---
 
@@ -78,6 +85,11 @@ Grouped by state, not priority.
 
 ## Ready to build — self-contained specs, not started
 
+- [python-debug-test.md](python-debug-test.md) — Python debugging (nvim-dap-python
+  + debugpy) and testing (neotest-python), the Rust/Go stacks' missing sibling —
+  plus the venv convention neither of them needed (`uv` creates it,
+  `<project>/.venv` is the contract, one resolver feeds pyright + debugpy +
+  neotest). Twice adversarially reviewed; the targets picker is deferred.
 - [harpoon2.md](harpoon2.md) — persistent, ordered per-project file bookmarks
   (`<leader>1`–`<leader>5`).
 - [treesitter-textobjects.md](treesitter-textobjects.md) — semantic
