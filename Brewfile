@@ -116,8 +116,7 @@ brew "docker"
 # Optional / situational — uncomment per machine as needed. The configs for
 # these live in the repo and are stowed only if you opt in (see Setup).
 #-----------------------------------------------------------------------------
-# cask "iterm2"        # terminal (if not already installed); profiles imported in iterm2/
-# cask "kitty"         # GPU-accelerated terminal; config in kitty/  (then `stow kitty`)
+# cask "iterm2"        # fallback terminal (if not already installed); profiles imported in iterm2/
 # brew "zellij"        # terminal multiplexer; config in zellij/     (then `stow zellij`)
 # brew "tmux"          # required by claude-squad
 # brew "claude-squad"  # `cs` AI session manager — plain core formula, no tap (see Claude Squad section)

@@ -19,9 +19,16 @@ off or delete them as they land; add new ones freely.
   one-time checklist that says to delete itself once every machine has pulled +
   migrated).
 - [x] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
-  alongside kitty/iTerm2 that follows macOS light/dark on its own. Verify theme
-  names with `ghostty +list-themes` first (see the risk callout). See
-  [ghostty.md](ghostty.md).
+  that follows macOS light/dark on its own. See [ghostty.md](ghostty.md).
+  *(Shipped 2026-07 — Ghostty is the primary terminal, iTerm2 stays installed as
+  the fallback, and the dead `kitty` package is removed. Both flagged risks came
+  out clean: `Catppuccin Latte` and `Dracula` are Title-Case built-ins.)*
+- [ ] **Render images + mermaid diagrams in nvim under Ghostty** —
+  [ghostty.md](ghostty.md) §6, deliberately deferred until Ghostty has been the
+  daily driver for a while. No new plugin: `snacks.image` already does it, but
+  its doc path **fails open**, so it needs a frontend gate or it will spew
+  kitty-graphics escapes into iTerm2/Neovide. Also needs `imagemagick` (brew) and
+  `mmdc` (npm).
 - [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
   machine's saved sessions have quit at least once under the fix (self-healing
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
@@ -107,9 +114,6 @@ Grouped by state, not priority.
 - [terminal-fresh-splits.md](terminal-fresh-splits.md) — decouple fresh-spawn
   split terminals from the pre-warmed float (they currently share id=1 and stomp
   its `direction`).
-- [ghostty.md](ghostty.md) — add a `ghostty` stow package (native-macOS GPU
-  terminal) alongside kitty/iTerm2, with a native macOS-following Catppuccin
-  Latte / Dracula dual theme and iTerm2-parity keybindings.
 - [unified-sidebar-panel.md](unified-sidebar-panel.md) — edgy.nvim-style unified
   stacked edgebar (tree + git + outline + terminal); the narrower
   file-tree↔outline mutual-exclusion already shipped (see GUIDE.md).
@@ -135,6 +139,13 @@ Grouped by state, not priority.
   as the decision record — it's where the `dap_mode = 'manual'` trap and the
   `outputMode = 'remote'` requirement are explained, and it carries the one
   outstanding verification (the `-test.run` state-leak check).
+- [ghostty.md](ghostty.md) — **shipped** (2026-07): Ghostty is the primary
+  terminal (iTerm2 kept as the fallback), and the dead `kitty` package is gone.
+  Kept as the decision record — it carries the iTerm2-export audit that proves
+  there was nothing to port but `shift+enter`, the correction that Ghostty does
+  **not** unlock neogit's `kitty` graph style (that's a font dependency), and the
+  two still-open items: the lost status bar and `ApplePressAndHoldEnabled`. Its
+  **§6 inline-images/mermaid follow-on is still unbuilt** — see the TODO above.
 - [go-targets-picker.md](go-targets-picker.md) — **shipped** (2026-07):
   `<leader>dR`/`<leader>cR` debug/run any `main` package in the module via an
   async `go list`. Kept for the `go list -e` exit-code trap and delve's

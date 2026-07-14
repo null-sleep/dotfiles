@@ -24,7 +24,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Typora](#typora)
 
 *Terminals & multiplexing*
-- [Ghostty](#ghostty) · [iTerm2](#iterm2) · [Kitty](#kitty) · [Zellij](#zellij)
+- [Ghostty](#ghostty) · [iTerm2](#iterm2) · [Zellij](#zellij)
 
 *Shell*
 - [ZSH](#zsh) — [zoxide](#directory-jumping-zoxide) · [troubleshooting antigen](#troubleshooting-antigen)
@@ -52,7 +52,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude` (add `kitty`/`zellij` only if you enabled those optional casks) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -60,12 +60,12 @@ section below; the rest of this README is reference material for individual tool
 ## Fonts
 
 Install these **first** — they are prerequisites for the terminals (Ghostty,
-iTerm2, kitty) and editors (nvim, Neovide) configured here. Without a Nerd Font,
-icons and glyphs render as tofu boxes (▯), and iTerm2 won't render the exported
+iTerm2) and editors (nvim, Neovide) configured here. Without a Nerd Font, icons
+and glyphs render as tofu boxes (▯), and iTerm2 won't render the exported
 profiles correctly.
 
 ```bash
-# Hack Nerd Font (used by Ghostty, iTerm2, kitty, nvim, Neovide for icons and glyphs)
+# Hack Nerd Font (used by Ghostty, iTerm2, nvim, Neovide for icons and glyphs)
 brew install font-hack-nerd-font
 
 # SF Mono Square (SF Mono patched with Nerd Font glyphs and square CJK characters)
@@ -99,8 +99,7 @@ stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
-# Optional terminals — only if you uncommented their casks in the Brewfile:
-stow kitty                   # needs the kitty cask
+# Optional — only if you uncommented its formula in the Brewfile:
 stow zellij                  # needs the zellij formula
 ```
 
@@ -671,7 +670,7 @@ gpgconf --kill gpg-agent && gpgconf --launch gpg-agent
 
 GUI frontend for Neovim. Two config files split by mechanism:
 
-- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt to match iTerm2/kitty). `maximized` is commented out so window size is restored from `neovide-settings.json`. It also sets `fork = true`, but the zsh function below passes `--fork` explicitly rather than relying on it.
+- **`nvim/.config/nvim/neovide.toml`** — startup settings Neovide reads before nvim launches: `frame = "transparent"` + `title-hidden = true` (chrome blends with the editor), font (Hack Nerd Font Mono 15pt). `maximized` is commented out so window size is restored from `neovide-settings.json`. It also sets `fork = true`, but the zsh function below passes `--fork` explicitly rather than relying on it.
 - **`nvim/.config/nvim/lua/neovide.lua`** — runtime `vim.g.neovide_*` vars and keymaps. Gated by `if not vim.g.neovide then return end`, so terminal nvim skips it. Contains animation tuning (cursor/scroll/position lengths, cursor trail), `option_key_is_meta = 'both'` (so `<M-1>`..`<M-9>` keymaps work), proxy icon, hide-mouse-when-typing, floating corner radius, and the keymaps below.
 
 ```bash
@@ -779,7 +778,7 @@ keybinding in the entire iTerm2 export.
 
 | Command | Description |
 |---|---|
-| `ghostty +list-themes` | Browse the built-in themes (the analog of kitty's `kitten themes`) |
+| `ghostty +list-themes` | Browse the built-in themes |
 | `ghostty +show-config` | Print the merged config — use it to check for parse errors |
 | `ghostty +show-config --default` | Print every setting's default value |
 
@@ -849,49 +848,6 @@ Set Right Option to `Esc+` too if you use it. Verify by pressing `Option+1` in n
 | Shortcut | Action |
 |---|---|
 | `Cmd+Ctrl+Arrow` | Resize pane in that direction |
-
-## Kitty
-
-GPU-accelerated terminal emulator. Config is managed via stow.
-
-```bash
-brew install --cask kitty
-cd ~/src/dotfiles
-stow kitty
-```
-
-Settings are ported from the iTerm2 profile (Hack Nerd Font Mono 15pt, 125×25 window, bar cursor). To pick a color theme interactively:
-
-```bash
-kitten themes
-```
-
-This writes `~/.config/kitty/current-theme.conf` which kitty auto-includes. The config lives at `~/.config/kitty/kitty.conf` (symlinked by stow).
-
-### Keymaps
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+N` | New window |
-| `Cmd+T` | New tab |
-| `Cmd+W` | Close tab/window |
-| `Cmd+Enter` | New OS window |
-| `Cmd+D` | No built-in split — use tabs or launch a second window |
-| `Cmd+1-9` | Jump to tab by number |
-| `Cmd+Shift+]` / `Cmd+Shift+[` | Next / previous tab |
-| `Ctrl+Shift+Enter` | New window (split within tab, requires layout change) |
-| `Ctrl+Shift+]` / `Ctrl+Shift+[` | Next / previous window in tab |
-
-**Layouts** (cycle with `Ctrl+Shift+L`): tall, fat, grid, horizontal, vertical, stack.
-
-### Commands
-
-| Command | Description |
-|---|---|
-| `kitten themes` | Browse and apply color themes |
-| `kitten diff file1 file2` | Side-by-side diff |
-| `kitten ssh host` | SSH with full kitty features on remote |
-| `kitty +kitten icat image.png` | Display image in terminal |
 
 ## Zellij
 
@@ -1022,7 +978,7 @@ So the only per-machine step is `brew install zoxide` (included in the deps abov
 `nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. The script itself is just `exec nvim "$@"` — the routing lives in **flatten.nvim** inside the host editor:
 
 - **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): flatten.nvim intercepts the child nvim and opens the buffer in the parent instance, blocking for `gitcommit`/`gitrebase` buffers so git waits for the edit (see GUIDE.md → Design Decisions → "Nested nvim routes into the parent").
-- **Standalone terminal** (iTerm, Kitty, etc.): just a fresh `nvim` process.
+- **Standalone terminal** (Ghostty, iTerm2, etc.): just a fresh `nvim` process.
 
 This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR` caller automatically use your existing nvim session when you're working inside one.
 
