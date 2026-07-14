@@ -1,7 +1,7 @@
 # dotfiles
 
-Stow-managed dotfiles repo. Stow packages: nvim, zsh, kitty, macos, rcmd,
-zellij, claude, yknotify, ripgrep. NOT stow packages: `iterm2/` (color presets + a
+Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, kitty, macos,
+rcmd, zellij, claude, yknotify, ripgrep. NOT stow packages: `iterm2/` (color presets + a
 settings export, loaded via iTerm2's own import — never run `stow iterm2`),
 `plans/` (design/feature planning docs), `fixtures/` (per-language demo
 files for testing editor features), `docs/` (standalone learn-it reference

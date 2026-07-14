@@ -27,17 +27,19 @@ essentially nothing there to port.
 | Font size | **14** — match the real iTerm2 profile, not kitty.conf's 15 |
 | Theming | Native macOS-following dual theme. `zsh/.local/bin/theme` is **not touched** |
 
-### ⚠️ Verify before building (two real risks flagged in review)
+### ✅ Both flagged risks resolved (verified on-machine 2026-07-14, Ghostty 1.3.1)
 
-- **Theme name casing.** Ghostty **1.2.0** switched built-in theme names to
-  **Title Case** (`Catppuccin Latte`, `Dracula`) — *not* the kebab-case
-  `catppuccin-latte`/`dracula` slugs the `theme` script uses for nvim/Claude,
-  which do not transfer to Ghostty's namespace. Confirm exact names with
-  `ghostty +list-themes` and write those exact strings.
-- **Dracula availability.** Catppuccin flavors are definitively bundled. Ghostty
-  also bundles the `iterm2-color-schemes` set, which contains a `Dracula` scheme,
-  so it is *likely* present — but **not guaranteed**. If `ghostty +list-themes`
-  does not list Dracula, vendor it as a theme file (fallback in §1).
+- **Theme name casing — confirmed.** `ghostty +list-themes` lists **`Catppuccin
+  Latte`** and **`Dracula`** in Title Case, not the kebab-case
+  `catppuccin-latte`/`dracula` slugs the `theme` script uses for nvim/Claude.
+  The config ships the Title Case strings.
+- **Dracula availability — confirmed present.** Bundled as a built-in (alongside
+  `Dracula+`). **The vendored-theme fallback in §1 is not needed** and was not
+  built.
+- **Bell — no setting needed.** `ghostty +show-config --default` shows
+  `bell-features = no-system,no-audio,attention,title,no-border`: the audible
+  bell is already off by default, which is what iTerm2's `Silence Bell = True`
+  bought. The §1 "add `bell-features`" contingency is closed.
 
 ## Ground truth from the iTerm2 export (source-verified, 2026-07-14)
 
@@ -75,10 +77,14 @@ produced one outright correction to the earlier draft of this plan.
 ### Why `kitty` gets removed
 
 Two commits, last touched **April 2026** (iTerm2 was touched three days before
-this audit). Its `kitty.conf:35` `include`s a `current-theme.conf` that **is not
-in the repo**, so a fresh `stow kitty` would break on a new machine. The
-commented-out tab-bar block still hardcodes a stale username. It was an
-experiment that stalled, and Ghostty supersedes it entirely.
+this audit). The commented-out tab-bar block still hardcodes a stale username. It
+was an experiment that stalled, and Ghostty supersedes it entirely.
+
+> **Correction (2026-07-14, found while building).** An earlier draft of this
+> section claimed `kitty.conf`'s `include current-theme.conf` pointed at a file
+> **not in the repo**, so a fresh `stow kitty` would break. **That is wrong** —
+> `kitty/.config/kitty/current-theme.conf` is tracked (`git ls-files kitty`).
+> Removal still stands on the other grounds above; it just isn't broken-on-clone.
 
 ### Why the `theme` script needs no logic change
 

@@ -90,6 +90,9 @@ brew "delphinus/sfmono-square/sfmono-square"  # formula: symlink its .otf into
 #-----------------------------------------------------------------------------
 # GUI apps
 #-----------------------------------------------------------------------------
+cask "ghostty"         # primary terminal; GPU-accelerated and native to macOS.
+                       # Config in ghostty/ (then `stow ghostty`). iTerm2 stays
+                       # installed as the fallback — see the commented block below.
 cask "neovide-app"     # Neovim GUI
 cask "typora"          # markdown editor (`typora` shell alias)
 cask "signal"

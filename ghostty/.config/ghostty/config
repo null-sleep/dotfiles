@@ -1,0 +1,46 @@
+# Ghostty — the primary terminal. Stowed to ~/.config/ghostty/config.
+#
+# Ported from the iTerm2 profile (iterm2/iTerm2 State.itermexport), not from the
+# old kitty.conf. iTerm2 stays installed as the fallback; nothing here touches it.
+
+# Font — matches the iTerm2 profile (HackNFM-Regular 14).
+font-family = Hack Nerd Font Mono
+font-size = 14
+
+# Theme — follows macOS appearance natively, exactly like the iTerm2 dual
+# light/dark profile ("Use Separate Colors for Light and Dark Mode"). Both names
+# are Ghostty built-ins; `ghostty +list-themes` prints them in this Title Case.
+# The `theme` script only has to flip macOS — Ghostty recolors on its own.
+theme = light:Catppuccin Latte,dark:Dracula
+
+# Window — matches iTerm2 (125x25 cells).
+window-width = 125
+window-height = 25
+window-padding-x = 5
+window-padding-y = 5
+
+# Cursor — matches iTerm2 (bar, blinking).
+cursor-style = bar
+cursor-style-blink = true
+
+# Option-as-Meta on BOTH left and right, so nvim <M-...> mappings work.
+# (iTerm2: "Option Key Sends = Esc+" and "Right Option Key Sends = Esc+".)
+macos-option-as-alt = true
+
+# iTerm2 had "Unlimited Scrollback". Ghostty has no unlimited — go large.
+scrollback-limit = 100000000
+
+# iTerm2 had "Prompt Before Closing = No" and "Quit when all windows closed".
+confirm-close-surface = false
+quit-after-last-window-closed = true
+
+# The ONLY custom keybinding in the entire iTerm2 export (GlobalKeyMap):
+# Shift+Enter sends a literal newline — multi-line input in Claude Code / REPLs.
+keybind = shift+enter=text:\n
+
+# Deliberately NOT ported: splits, pane navigation, tab switching, natural-text-
+# editing bindings. The iTerm2 export contains ZERO custom bindings for any of
+# them — Ghostty's macOS defaults (Cmd+D, Cmd+Shift+D, Cmd+[ / Cmd+], Cmd+T,
+# Cmd+1-9, and the natural-text-editing set) already match what was in use.
+# The audible bell is already silent by default (bell-features has no-audio).
+# Shell integration is auto-detected; no setting needed.

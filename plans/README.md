@@ -18,7 +18,7 @@ off or delete them as they land; add new ones freely.
   [review-remediation-migration.md](review-remediation-migration.md) (it's a
   one-time checklist that says to delete itself once every machine has pulled +
   migrated).
-- [ ] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
+- [x] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
   alongside kitty/iTerm2 that follows macOS light/dark on its own. Verify theme
   names with `ghostty +list-themes` first (see the risk callout). See
   [ghostty.md](ghostty.md).
