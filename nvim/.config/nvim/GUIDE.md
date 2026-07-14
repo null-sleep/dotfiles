@@ -1195,23 +1195,32 @@ wholesale.
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 
-**Live vs fuzzy (`<leader>sg`, `<leader>ss`, `<leader>sf`):** `<c-g>` toggles
-these three. In **live** mode each keystroke re-runs the real search (a rg
-regex for grep, an LSP round-trip for symbols, an `fd` regex for files); in
-**fuzzy** mode the results are frozen and the prompt drives snacks' matcher —
-fzf operators (`'exact`, `^prefix`, `suffix$`, `!negate`, `|` OR) and
-`field:value` filters (`file:lua$`, and in symbols `kind:class`,
-`client_name:gopls`). Grep and symbols start live, files starts fuzzy. Two
-non-obvious bits:
+**Live vs fuzzy — `<c-g>` (`<leader>sg`, `<leader>ss`, `<leader>sf`):** a picker
+is a **finder → matcher** pipeline. The finder shells out (`rg` for grep, `fd`
+for files, an LSP request for symbols); the matcher fuzzy-filters what came
+back, in Lua. They take **two separate queries, both always applied**, and
+`<c-g>` only decides which one the prompt box is typing into:
 
-- **Raw tool flags after ` -- ` only work in live mode** — `handleRequest --
-  -tgo -g '!*_test.go'` reaches ripgrep (ripgreprc types like `-ttest` too —
-  see README → ripgrep), `conf -- -e lua` runs `fd -e lua conf`. In fuzzy mode
-  they never reach the tool and are just more text to match. That's the reason
-  to press `<c-g>` in `<leader>sf`: fuzzy can *approximate* "only `.lua`"
-  (`lua$`), only `fd` can ask for it.
-- **The two queries stack** — toggling keeps the one you're leaving (shown left
-  of the prompt) and it keeps filtering, so `<c-g>` refines in both directions.
+- **live** — the prompt feeds the *finder*, in the tool's own language: an
+  rg/fd regex, plus raw flags after ` -- ` (`handleRequest -- -tgo -g
+  '!*_test.go'`; ripgreprc types like `-ttest` work too — see README →
+  ripgrep). `conf -- -e lua` in `<leader>sf` literally runs `fd -e lua conf`.
+- **fuzzy** — the prompt feeds the *matcher*: fzf operators (`'exact`,
+  `^prefix`, `suffix$`, `!negate`, `|` OR) and `field:value` filters
+  (`file:lua$`; in symbols `kind:class`, `client_name:gopls`).
+
+Grep and symbols start live; files starts fuzzy. Three things follow:
+
+- **The query you toggle away from is kept** — it shows to the left of the
+  prompt and keeps filtering. So the two stack, and `<c-g>` narrows in both
+  directions: grep then fuzzy-refine the hits, or fuzzy then add a tool query.
+- **The finder runs first, always.** The matcher can only filter what the tool
+  returned — it can never add back a result `rg` didn't emit.
+- **` -- ` flags only reach the tool in live mode**, since only the live query
+  is passed to it; in fuzzy mode they're just literal text for the matcher to
+  chew on. That's the point of `<c-g>` in `<leader>sf`: fuzzy can *approximate*
+  "only `.lua` files" (`lua$` tests the path string), only live `fd` can ask
+  for them.
 
 Every other picker is a fixed list with nothing to re-query, so `<c-g>` warns
 and no-ops there.
