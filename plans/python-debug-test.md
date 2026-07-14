@@ -14,14 +14,23 @@
 > design question "what *is* a Python run target?" is unanswered, and is parked
 > in [Deferred](#deferred-targets-picker).
 >
-> **Adversarially reviewed twice (2026-07-14), pre-implementation.** Pass 1
-> killed two blockers — a pyright `before_init` that wrote settings to a detached
-> table (i.e. the plan's centrepiece was a silent no-op) and a module cycle that
-> could permanently disable Python debugging for a session — plus a `<leader>dR`
-> that duplicated `<F5>`. Pass 2 killed a blocker in the *fix*: the resolver's
-> `vim.fs.find` call used a function predicate, which skips a symlinked `.venv`
-> and readdirs every ancestor directory up to `/`. Findings that shaped the
-> design are flagged **[review]** where they land.
+> **Adversarially reviewed three times (2026-07-14), pre-implementation.** Each pass
+> found a blocker in the previous pass's *fix*, which is the argument for having run
+> them:
+> - **Pass 1** — a pyright `before_init` that reassigned `config.settings` instead of
+>   mutating it (so the plan's centrepiece silently sent pyright nothing), and a module
+>   cycle that could permanently disable Python debugging for a session. Plus a
+>   `<leader>dR` that duplicated `<F5>`.
+> - **Pass 2** — the resolver's `vim.fs.find` used a *function* predicate, which types
+>   entries from scandir and therefore **skips a symlinked `.venv`** outright.
+> - **Pass 3** — the table form still walks to `/`: with no `stop`, one stray `~/.venv`
+>   becomes the interpreter for **every** venv-less project (pyright, debugpy and pytest
+>   at once). And `warn_if_unsynced` stat'd `<root>/.venv` directly, so it lied at every
+>   uv **workspace member** and every `venv/`-named project. Both fixed in §2. Pass 3
+>   also found that two comments defended invariants that *cannot be violated* — a
+>   rationale that is wrong is worse than none, because it's what hid the walk bug.
+>
+> Findings that shaped the design are flagged **[review]** where they land.
 
 ## Context
 
@@ -155,13 +164,18 @@ two adversarial passes.
     `vim.lsp.config('pyright', {...})` deep-merges cleanly and its `on_attach`
     (which registers `:LspPyrightSetPythonPath`) survives.
 - **`vim.fs.find`** has **two implementations** (`runtime/lua/vim/fs.lua:355-381`):
-  a **table** of names → `uv.fs_stat` per name (follows symlinks; iterates in the
+  a **table** of names → `uv.fs_stat` per name (follows symlinks; tests names in the
   given order), and a **function** predicate → a full `readdir` of the directory
   (types come from scandir, so a symlink is `'link'`, **not** `'directory'`).
-  **[review — this is pass 2's blocker]** With `type = 'directory'` the function
-  form therefore *skips a symlinked `.venv`*, readdirs every ancestor up to `/`
-  (including `$HOME`), and returns matches in nondeterministic readdir order.
-  **Use the table form.**
+  **[review — pass 2's blocker]** With `type = 'directory'` the function form
+  therefore *silently skips a symlinked `.venv`* and returns matches in
+  nondeterministic readdir order. **Use the table form.**
+- **`vim.fs.find`'s upward walk runs to `/` unless you pass `stop`**
+  (`fs.lua:355-400`: `for parent in M.parents(path) do if stop and parent == stop then
+  break end`), and `limit = math.huge` means it never short-circuits either. **[review —
+  pass 3's blocker]** That is true of *both* branches — the table form fixes the symlink
+  bug, not the walk. With `upward = true`, matches come back **deepest level first**, and
+  within a level in the order the name table lists them.
 - **toggleterm** keys terminals by id: `if id and terminals[id] then return
   terminals[id] end` (`toggleterm/terminal.lua:203`), and `shutdown()` →
   `terminals[id] = nil` (`:293-297`). A second module calling
@@ -232,7 +246,7 @@ venv, not a second code path.
 - **`fixtures/`** becomes a real uv project (§10) — `pyproject.toml` + a committed
   `uv.lock`, so `uv sync` there reproduces the exact env every verification step
   runs against, and the uv path gets exercised end to end. The plain-venv path
-  stays covered by verification 11b.
+  stays covered by verification 12.
 
 **uv is NOT used for the debug adapter.** `dap-python.setup('uv')` is a trap — see
 [Alternatives](#alternatives-considered). Mason's `debugpy-adapter` works in every
@@ -282,18 +296,21 @@ module that only stats the filesystem can't do that.
 
 local M = {}
 
--- Mirrors pyright's own root_markers (lspconfig lsp/pyright.lua) so venv.root() and
--- pyright's root_dir agree. .git LAST: in a monorepo the package's own pyproject.toml
--- must win over the repo root, or every package resolves to the top-level venv.
+-- Byte-for-byte lspconfig's own pyright root_markers, so venv.root() and pyright's
+-- root_dir can't disagree. This is a PRIORITY ORDER, not a set: vim.fs.root runs a
+-- full upward walk PER MARKER (fs.lua:493-503), so a pyproject.toml five levels up
+-- beats a .git one level up. That's what keeps a monorepo package on its own venv
+-- instead of the repo-root one -- and .git being last is what makes it work.
 M.root_markers = {
   'pyrightconfig.json', 'pyproject.toml', 'setup.py', 'setup.cfg',
   'requirements.txt', 'Pipfile', '.git',
 }
 
--- Same names, same ORDER as dap-python's own scan (dap-python.lua:118-126). Order is
--- load-bearing: vim.fs.find's table form tests names in sequence, so a repo with both
--- `venv/` and `.venv/` must resolve to whichever dap-python would pick, or <F5> and
--- <leader>nd would debug different interpreters.
+-- The names dap-python scans (dap-python.lua:118-126), in its order. NOT because the
+-- two must agree -- setting resolve_python makes dap's own scan unreachable, so they
+-- CAN'T disagree -- but because this list is what dap would fall back to if python.lua's
+-- pcall ever failed, and because we need SOME deterministic order. Nearest level wins;
+-- within a level, `venv` before `.venv`.
 local VENV_DIRS = { 'venv', '.venv', 'env', '.env' }
 
 -- Positive-only cache: neotest calls the resolver once per DISCOVERED FILE
@@ -306,33 +323,50 @@ function M.root(bufnr)
   return vim.fs.root(bufnr or 0, M.root_markers) or vim.fn.getcwd()
 end
 
---- Never returns nil: a nil pythonPath makes debugpy debug Mason's OWN venv
---- (debugpy adapter/clients.py:326-328) -- an interpreter with none of your deps.
+--- Every venv dir at or above `root`, nearest first. STOP AT $HOME, deliberately:
+--- vim.fs.find's upward walk runs to / otherwise (fs.lua:355-400, no short-circuit
+--- when limit is huge), and a single stray ~/.venv -- one `python3 -m venv .venv` run
+--- in $HOME, ever -- would then silently become the interpreter for EVERY project
+--- without its own venv, for pyright, debugpy and pytest at once. fs.find breaks
+--- BEFORE testing `stop`, so $HOME itself is excluded, which is what we want.
+--- (dap-python never does this: it only tests direct children of its roots.)
+local function venv_dirs(root)
+  return vim.fs.find(VENV_DIRS, {
+    path = root, upward = true, type = 'directory',
+    stop = vim.uv.os_homedir(), limit = math.huge,
+  })
+end
+
+--- Never returns nil OR an empty string: debugpy treats a missing/empty pythonPath as
+--- absent and silently debugs Mason's OWN venv instead (adapter/clients.py:326-328) --
+--- an interpreter with none of your deps.
 ---@param root string|nil defaults to the current buffer's project root
 function M.python(root)
-  -- VIRTUAL_ENV / CONDA_PREFIX first, and WITHOUT stat'ing them: dap-python returns
-  -- them unconditionally (dap-python.lua:99-111) and only consults resolve_python when
-  -- both are unset. Stat'ing here would make us fall through to .venv where dap cannot,
-  -- and the one-answer invariant would break exactly when a stale VIRTUAL_ENV is the bug.
-  -- (One deliberate divergence: dap-python treats VIRTUAL_ENV="" as set -- Lua truthiness
-  -- -- and returns "/bin/python". We ignore an empty value. An empty VIRTUAL_ENV is a
-  -- broken shell env, not a venv.)
+  -- An empty VIRTUAL_ENV is a broken shell env, not a venv -- but dap-python reads it
+  -- with os.getenv and "" is TRUTHY in Lua, so it would return "/bin/python" and never
+  -- consult resolve_python. Ignoring it here would therefore not make dap agree with us;
+  -- it would split the three tools three ways. So NORMALISE it: vim.env writes go through
+  -- os_setenv, which is what dap-python reads.
+  if vim.env.VIRTUAL_ENV == '' then vim.env.VIRTUAL_ENV = nil end
+
+  -- VIRTUAL_ENV / CONDA_PREFIX first, and WITHOUT stat'ing them: dap-python returns them
+  -- unconditionally (dap-python.lua:99-111) and only consults resolve_python when both
+  -- are unset. Stat'ing here would make us fall through to .venv where dap cannot, and
+  -- the one-answer invariant would break exactly when a stale VIRTUAL_ENV is the bug.
   local active = vim.env.VIRTUAL_ENV or vim.env.CONDA_PREFIX
   if active and active ~= '' then return active .. '/bin/python' end
 
   root = root or M.root()
   if hits[root] and vim.uv.fs_stat(hits[root]) then return hits[root] end
 
-  -- A TABLE of names, never a function predicate: vim.fs.find's function branch
-  -- readdirs every ancestor up to / and types entries from scandir, so a SYMLINKED
-  -- .venv reports as 'link' and is silently skipped by type='directory'. The table
-  -- branch fs_stat's each name (following symlinks) in order. See fs.lua:355-381.
-  -- upward: neotest-python roots on a different marker set than we do (no .git, no
-  -- requirements.txt; but mypy.ini and pytest.ini), so a package with only a pytest.ini
-  -- roots THERE while we root at .git -- walking up makes the two converge anyway.
-  for _, dir in ipairs(vim.fs.find(VENV_DIRS, {
-    path = root, upward = true, type = 'directory', limit = math.huge,
-  })) do
+  -- A TABLE of names, never a function predicate: vim.fs.find's function branch types
+  -- entries from scandir, so a SYMLINKED .venv reports as 'link' and is silently skipped
+  -- by type='directory' (and it readdirs each level instead of stat'ing 4 names). The
+  -- table branch fs_stat's each name -- following symlinks -- in order. See fs.lua:355-381.
+  -- Upward, because neotest-python roots on a different marker set than we do (no .git,
+  -- no requirements.txt; but mypy.ini and pytest.ini), and because a uv WORKSPACE keeps
+  -- one .venv at the workspace root while each member has only its own pyproject.toml.
+  for _, dir in ipairs(venv_dirs(root)) do
     local exe = vim.fs.joinpath(dir, 'bin', 'python')
     if vim.uv.fs_stat(exe) then
       hits[root] = exe
@@ -340,30 +374,39 @@ function M.python(root)
     end
   end
 
-  -- Homebrew's 3.12 in a login shell; right for dep-free scripts. NOTE it is
-  -- PATH-dependent: python@3.12 is keg-only and only prepended by .zshrc_config.zsh,
-  -- so a GUI-launched nvim (Neovide/Finder) can resolve /usr/bin/python3 = 3.9, which
-  -- is below debugpy 1.8's >=3.10 floor. Projects with a .venv never reach this line.
-  return vim.fn.exepath('python3')
+  -- Homebrew's 3.12 in a login shell; right for dep-free scripts. exepath returns '' when
+  -- python3 isn't on PATH -- and '' would land us back on Mason's interpreter (above), so
+  -- hand back a bare name and let the spawn fail loudly instead.
+  -- NOTE this line is PATH-dependent: python@3.12 is keg-only and only prepended by
+  -- .zshrc_config.zsh, so a GUI-launched nvim (Neovide/Finder) can resolve
+  -- /usr/bin/python3 = 3.9, below debugpy 1.8's >=3.10 floor. A project with a venv
+  -- never reaches here.
+  local py3 = vim.fn.exepath('python3')
+  return py3 ~= '' and py3 or 'python3'
 end
 
---- The only uv-aware code in the config, and it only NOTIFIES. A uv.lock (or a
---- pyproject) with no .venv means the env was never created: pytest won't exist and
---- pyright will invent missing-import errors. Saying "run uv sync" beats letting the
---- user debug the resolver. Once per root -- FileType fires per buffer, and a WARN per
---- opened file would be noise, not a signal.
+--- The only uv-aware code in the config, and it only NOTIFIES. A uv.lock (or a pyproject)
+--- with NO venv anywhere the resolver looks means the env was never created: pytest won't
+--- exist and pyright will invent missing-import errors. Saying "run uv sync" beats letting
+--- the user debug the resolver.
+--- Gated on venv_dirs(), NOT on a `<root>/.venv` stat: the resolver accepts four names and
+--- walks upward, so a `venv/`-named env, or a uv workspace member inheriting the workspace
+--- root's .venv, is perfectly resolvable -- and a WARN there would be a lie.
+--- Once per root: FileType fires per buffer, and one WARN per opened file is noise.
 local warned = {}
 
 function M.warn_if_unsynced(root)
-  if warned[root] or vim.uv.fs_stat(vim.fs.joinpath(root, '.venv')) then return end
+  if warned[root] or #venv_dirs(root) > 0 then return end
+  local advice
   if vim.uv.fs_stat(vim.fs.joinpath(root, 'uv.lock')) then
-    warned[root] = true
-    vim.notify('No .venv in ' .. root .. ' — run `uv sync`', vim.log.levels.WARN)
+    advice = 'run `uv sync`'
   elseif vim.uv.fs_stat(vim.fs.joinpath(root, 'pyproject.toml')) then
-    warned[root] = true
-    vim.notify('No .venv in ' .. root .. ' — run `uv sync` or `python3 -m venv .venv`',
-      vim.log.levels.WARN)
+    advice = 'run `uv sync` or `python3 -m venv .venv`'
+  else
+    return  -- not a project; a loose script needs no venv
   end
+  warned[root] = true
+  vim.notify('No virtualenv for ' .. root .. ' — ' .. advice, vim.log.levels.WARN)
 end
 
 return M
@@ -502,10 +545,31 @@ reintroduce the bug it fixes], and point `gotargets.lua` at it:
 -- The id registry lives in terminal.lua's comments: 100 = bottom panel,
 -- 1-99 = count-addressable floats, 101 = this. The <C-]> cycle filters on `hidden`,
 -- not id, so this terminal stays in the cycle — deliberately.
+
+local M = {}
+
 local run_term  -- shared across languages; a second run replaces the first
 
-function M.float(cmd, dir)  -- close_on_exit = false: output survives the exit
+--- Run `cmd` in `dir`, replacing whatever ran last.
+function M.float(cmd, dir)
+  local Terminal = require('toggleterm.terminal').Terminal
+  if run_term then run_term:shutdown() end   -- frees id 101 (terminal.lua:293-297)
+  run_term = Terminal:new({
+    id = 101,
+    cmd = cmd,
+    dir = dir,
+    direction = 'float',
+    close_on_exit = false,  -- the program's output survives its exit
+  })
+  run_term:toggle()
+end
+
+return M
 ```
+
+The body is lifted verbatim from `gotargets.lua:62-89` (`run_term` at :62, `run_target`
+at :64-89); `gotargets.lua` keeps only the `go run <import-path>` string and calls
+`runner.float(cmd, root)`.
 
 The only change to shipped behaviour, and it's mechanical.
 
@@ -562,9 +626,10 @@ a reason to hard-code.
 ### 8. `lua/whichkey.lua` — keyword aliases only (no new group, no new keymaps)
 
 Extend the `<leader>sk` search keywords/tags: add `python`/`debugpy`/`pytest`/`venv`
-to `<leader>dc`, `<leader>nd`, `<leader>cR` (lines 102-108) and `'python'` to the
-tag lists at 131-139. `<leader>dR`'s tags stay `{ rust, go }` — Python doesn't
-bind it.
+to `<leader>dc`, `<leader>nd`, `<leader>cR` (lines 102-108), and `'python'` to the
+tag lists for **`<leader>cR` (line 132) and `<leader>nd` (line 139) only**
+[review — 133-138 in that block are diffview keys; a blind "131-139" edit would tag
+them `python`]. `<leader>dR`'s tags stay `{ rust, go }` — Python doesn't bind it.
 
 ### 9. `nvim/.config/nvim/GUIDE.md` — a Python section, and two recipes that stop lying
 
@@ -582,7 +647,7 @@ Per the nested `CLAUDE.md`:
   *remote-plugin host* only [review]; and `<F5>`'s `integratedTerminal` opens a
   plain split alongside the dap-ui dock (knob: `dap.defaults.python.terminal_win_cmd`).
 - `## Contents` TOC row [review]: `- [Python (debugpy + neotest)](#python)` after
-  the Go entry (GUIDE.md:51).
+  the Go entry (**GUIDE.md:50** — :51 is already Neovide).
 - `Architecture` → file-responsibility bullets for `venv.lua`, `python.lua`,
   `runner.lua`; the `Load order` line gets `python` only (the other two are leaves).
 - `Keymap index` → *By prefix*: one row, `` `<leader>cR` (Python ft) `` →
@@ -608,10 +673,28 @@ adapters are deliberately not enumerated in README (`codelldb`/`delve` aren't), 
 `debugpy` isn't either.
 
 `fixtures/` (Go got `go.mod` + `animal_test.go` for exactly this reason):
-- `fixtures/pyproject.toml` — minimal, **no `[build-system]`** (uv then installs
-  only the deps, not the project — `concepts/projects/config`), plus
-  `[dependency-groups] dev = ["pytest"]`. It makes `fixtures/` a resolvable root
-  for neotest, pyright and the resolver. It does **not** select the test runner
+- `fixtures/pyproject.toml` — exactly this, no more:
+
+  ```toml
+  [project]
+  name = "fixtures"
+  version = "0.1.0"
+  requires-python = ">=3.12"   # WITHOUT this, uv locks against the locking machine's
+                               # python and warns — which defeats committing the lock
+
+  [dependency-groups]
+  dev = ["pytest>=8"]          # `dev` is in uv's default-groups, so plain `uv sync` installs it
+  ```
+
+  **No `[build-system]`** — uv then installs only the deps, never the project itself
+  (`concepts/projects/config`), which is what we want (nothing here is a package).
+  `[project]` with a name/version **is** required for uv to treat `fixtures/` as a
+  project at all [review — "minimal" taken literally would have produced a lock that
+  isn't reproducible]. uv reads only `pyproject.toml`, so the `go.mod` and the Mach-O
+  binary sitting next to it are invisible to it.
+
+  The file makes `fixtures/` a resolvable root for neotest, pyright and the resolver.
+  It does **not** select the test runner
   (nothing in neotest-python reads `[tool.pytest.ini_options]`; only *dap-python's*
   `default_runner()` does, and we never call it) [review], and it does **not**
   become ruff's config (ruff keeps walking for a file with `[tool.ruff]`, and there
@@ -693,13 +776,18 @@ live via the `~/.config/nvim` symlink).
 Per-change commits carrying a `Part-of: python debug + test support` trailer:
 
 1. `refactor(nvim): extract the shared run-output float into runner.lua` (runner.lua, gotargets.lua)
-2. `feat: add uv, the project venv manager` (Brewfile, README.md `## Languages`, .gitignore)
-3. `feat(nvim): install debugpy and the Python dap/neotest plugins` (plugins.lua, lsp.lua, lock)
-4. `feat(nvim): resolve the project venv for pyright, debugpy and neotest` (venv.lua, lsp.lua)
-5. `feat(nvim): add python.lua — debugpy adapter + Python keymaps` (python.lua, init.lua)
-6. `feat(nvim): register the neotest-python adapter` (testing.lua)
-7. `feat(fixtures): add a uv-managed pytest project` (fixtures/)
+2. `feat(nvim): install debugpy and the Python dap/neotest plugins` (plugins.lua, lsp.lua, lock)
+3. `feat(nvim): resolve the project venv for pyright, debugpy and neotest` (venv.lua, lsp.lua)
+4. `feat(nvim): add python.lua — debugpy adapter + Python keymaps` (python.lua, init.lua)
+5. `feat(nvim): register the neotest-python adapter` (testing.lua)
+6. `feat(fixtures): add a uv-managed pytest project` (fixtures/, .gitignore)
+7. `feat: add uv, the project venv manager` (Brewfile, README.md `## Languages`)
 8. `docs(nvim): document the Python debug/test stack and the venv convention` (GUIDE.md, whichkey.lua)
+
+The uv/README commit lands **after** the code [review]: it documents "pyright, debugpy
+and neotest all resolve `<project>/.venv/bin/python`", which isn't true until commit 5.
+Commit 2 is inert on its own (neither plugin ships a `plugin/` dir; nothing `packadd`s
+them until 4/5), so no intermediate commit leaves a broken config.
 
 ## Verification
 
@@ -753,6 +841,14 @@ Every check below is really a check of *which interpreter got used*.
 13. **Symlinked venv** (pass 2's blocker — the reason the resolver uses `vim.fs.find`'s
     table form): `mv fixtures/.venv /tmp/fx-venv && ln -s /tmp/fx-venv fixtures/.venv`
     → check 2 still resolves it.
+14. **No `$HOME` hijack** (pass 3's blocker — the reason for `stop`): with
+    `~/.venv` present (`python3 -m venv ~/.venv`), open a `.py` file in a scratch dir
+    under `$HOME` with no venv → `:lua =require('venv').python()` must return
+    **Homebrew's python3**, *not* `~/.venv/bin/python`. Then `rm -rf ~/.venv`.
+15. **No false "unsynced" WARN**: a project whose env is named `venv/` (not `.venv/`),
+    and a uv **workspace member** (member has only `pyproject.toml`; `.venv` and
+    `uv.lock` live at the workspace root) → **no WARN**, and check 2 resolves to the
+    workspace root's venv.
 14. **Broken-plugin path:** rename the nvim-dap-python pack dir → startup WARNs, and
     **Rust/Go debugging plus the rest of `init.lua` still work**.
 
@@ -764,7 +860,16 @@ Every check below is really a check of *which interpreter got used*.
 - **The `pythonPath` freeze trap** (§4): `setup(_, { pythonPath = ... })` looks
   equivalent to hooking `resolve_python` and disables per-launch resolution.
 - **The `vim.fs.find` predicate trap** (§2): the function form looks tidier and
-  silently skips symlinked venvs while readdir'ing every ancestor to `/`. Table form.
+  silently skips symlinked venvs (scandir types them `link`, not `directory`). Table
+  form. Note the table form still walks to `/` — that's what `stop` is for, next.
+- **The unbounded-upward-walk trap** (§2): without `stop`, one stray `~/.venv` — a
+  single `python3 -m venv .venv` run in `$HOME`, ever — becomes the interpreter for
+  **every** project that lacks its own, silently, for pyright *and* debugpy *and*
+  pytest. `stop = vim.uv.os_homedir()`. Do not "simplify" it away.
+- **The resolver's cache can't see a *closer* venv appear** (§2): resolve to a parent
+  `.venv`, then create one at the project root, and the cached parent path still stats
+  fine and keeps winning until restart. Deleting a venv *is* handled (the hit is
+  re-stat'd). Not worth a watcher.
 - **The neotest `python`-as-string trap** (§7): simpler-looking, wrong twice
   (cwd-relative; and only a *function* bypasses the memoization).
 - **A broken interpreter silently downgrades tests to unittest.** `stored_runners`
