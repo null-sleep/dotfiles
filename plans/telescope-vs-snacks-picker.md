@@ -1676,28 +1676,61 @@ Deferred follow-ups from the migration (decided during implementation review,
    **setup ideas**. Worth a proper read now that we're fully on snacks, to lift
    any config/keymap/layout tricks we missed. Overlaps items 2 and 5 — fold
    whatever it turns up into those.
-9. **Re-search *within* a picker's current results (iterated narrowing)** —
-   take the result set as it stands and make it the corpus for the next query,
-   repeatedly. Distinct from `<c-g>`, which [§8](#live-mode-audit) covers:
-   `<c-g>` gives exactly *one* freeze-and-refine round (a live query plus a
-   fuzzy pattern layered on it), and there is no way to bank that combined
-   result and search it again — the next thing you type replaces one of the two
-   queries rather than narrowing what they produced. What's wanted is
-   drill-down: grep `handleRequest`, keep the ~200 hits, then grep *those* for
-   `ctx`, then filter *those* to `!_test`.
+9. **Progressive narrowing — make `<c-g>` universal (a corpus stack).** *(This
+   item was rewritten 2026-07-14; the first draft asked for "freeze the results
+   and filter them," which is what `<c-g>` already does. What follows is the
+   part that's actually missing.)*
 
-   Today's workaround is `<C-q>` (send results to quickfix) and then re-search
-   the quickfix list — lossy and leaves the picker. Sketch of the real thing: a
-   custom action that snapshots `picker:items()` (or `picker:selected()`) and
-   opens a fresh picker over them — `Snacks.picker.pick({ items = snapshot })`
-   for a fuzzy round, or, to re-*grep* rather than re-*match*, feed the
-   snapshot's distinct paths back to `rg` as the search corpus (the `grep`
-   source takes `dirs`; a file list needs either `args` or a custom finder à la
-   `grep_buffers`). Two things to work out: whether the snapshot should be all
-   results or just the multi-selection, and whether narrowing rounds should
-   stack on one picker (a corpus stack, with a key to pop back a level) or just
-   open a new one each time. Check upstream first — snacks may already have a
-   primitive for this, and if it doesn't, this is a plausible feature request.
+   **The gap is not filtering — it's re-anchoring.** In a fixed-list picker
+   you're already fuzzy-filtering the items, and the matcher ANDs
+   space-separated terms, so you narrow by *appending*: `foo`, then `foo bar`,
+   then `foo bar !test`. That works. What you can't do is **bank** a narrowing
+   and start a clean query against what survived. So the wanted primitive is:
+
+   > `<c-g>` = take what's on screen *right now* (the matched subset), make it
+   > the picker's new item set, clear the prompt.
+
+   Repeat to drill down. Note this makes the keybinding's *behavior* uniform
+   even though the mechanism differs: in grep, `<c-g>` already freezes rg's
+   output and hands you an empty fuzzy prompt over it ([§8](#live-mode-audit));
+   in a fixed-list picker there is no tool to freeze, so we freeze the matched
+   subset instead. Same sentence describes both. Every picker gains `<c-g>`.
+
+   **Be honest about the payoff: it is ergonomics, not capability.** For a
+   fixed-list picker, `foo` → `<c-g>` → `bar` lands in nearly the same place as
+   typing `foo bar`. What you gain is a banked query instead of an
+   ever-growing pattern string, a clean prompt, ranking by the *new* term
+   rather than the accumulated one, and repeatability. Worth building for the
+   workflow, not for a missing filter.
+
+   **Sketch.** Override the `toggle_live` action: if `picker.opts.supports_live`,
+   defer to the stock action; otherwise snapshot `picker:items()` (the matched
+   set), swap in a static finder over the snapshot, reset `filter.pattern` to
+   empty, re-find. Do it *in place* so layout, format, preview, multi-select and
+   `confirm` all survive. Push each snapshot on a stack and bind a companion key
+   to pop — without an undo, one stray `<c-g>` traps you in a subset with no way
+   out but reopening the picker. Open questions: what `<leader>sr` (resume)
+   restores; whether the banked queries show in the title; and the one real
+   collision — in **grep**, should a second `<c-g>` toggle back to live (stock)
+   or push a corpus (new)? Those are two different meanings on one key.
+
+   Check upstream first: snacks may have a primitive for this, and if not, it's
+   a plausible feature request.
+10. **Re-grep within the surviving files (tool-side drill-down)** — the one
+    thing item 9 still won't do, split out because it needs the *finder*, not
+    the matcher. Grep `foo` and you hold 200 lines *that contain foo*. Now ask
+    "which of those files also contain `bar`?" — impossible: `bar` sits on a
+    line ripgrep never emitted, and the matcher can only test the strings it was
+    handed ([§8](#live-mode-audit): the finder decides what exists). Same for any
+    second query with real rg semantics — case sensitivity, word boundaries,
+    multiline, `-A`/`-B` context.
+
+    Wanted: collect the distinct paths from the current result set and hand them
+    back to `rg` as its corpus for a fresh query. The `grep` source takes `dirs`;
+    a *file list* needs either `args` or a custom finder along the lines of
+    `grep_buffers`. Decide whether the corpus is all results or just the
+    multi-selection. Today's workaround is `<C-q>` → quickfix → re-search it,
+    which is lossy and leaves the picker.
 
 ## Sources
 
