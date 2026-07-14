@@ -1209,11 +1209,12 @@ back, in Lua. They take **two separate queries, both always applied**, and
   `^prefix`, `suffix$`, `!negate`, `|` OR) and `field:value` filters
   (`file:lua$`; in symbols `kind:class`, `client_name:gopls`).
 
-Grep and symbols start live; files starts fuzzy. **How to tell which you're
-in:** the picker's title reads `Grep 󰐰 LIVE` while live and drops the marker
-in fuzzy mode (stock snacks shows a bare `󰐰`; `picker.lua` spells it out,
-because the mode silently changes what the prompt *means*). The query you
-aren't typing into sits to the left of the prompt.
+Grep and symbols start live; files starts fuzzy. **The title tells you which,
+and whether you have a choice:** `󰐰 LIVE` while live, and a `󰐰 <c-g>` chip
+while fuzzy *in a picker that can go live* (grep and files — `picker.lua` sets
+that chip per-source, since a fixed-list picker would be advertising a `<c-g>`
+that only warns). One or the other, never both. The query you aren't typing
+into sits to the left of the prompt.
 
 Three things follow:
 

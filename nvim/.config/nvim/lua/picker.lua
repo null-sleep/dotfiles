@@ -149,8 +149,28 @@ require('snacks').setup({
       -- Include hidden files/dirs (e.g. .github/) in results. .git/ is
       -- excluded by the finders' defaults; node_modules needs the explicit
       -- exclude (it's only skipped by default when gitignored).
-      files = { hidden = true, exclude = { 'node_modules' } },
-      grep = { hidden = true, exclude = { 'node_modules' } },
+      --
+      -- The `live` toggle is a *chip that shows when live is off* — snacks'
+      -- toggle loop renders a flag when `opts[name] == value`, so `value =
+      -- false` inverts it. It advertises "this picker can go live, <c-g>"
+      -- exactly where that's true and currently isn't, and vanishes when the
+      -- 󰐰 LIVE title marker takes over. Per-source, not global: every
+      -- fixed-list picker also has `live = false`, and a chip there would
+      -- promise a <c-g> that only warns. GUIDE.md → "Whose grammar is it?"
+      files = {
+        hidden = true,
+        exclude = { 'node_modules' },
+        -- `live = false` is load-bearing, not documentation: the files source
+        -- leaves it *unset*, and the toggle loop compares `opts.live == false`
+        -- — nil ~= false, so the chip would never render without this.
+        live = false,
+        toggles = { live = { icon = '󰐰 <c-g>', value = false } },
+      },
+      grep = {
+        hidden = true,
+        exclude = { 'node_modules' },
+        toggles = { live = { icon = '󰐰 <c-g>', value = false } },
+      },
       -- lines (<leader>sb, <leader>s/): the source's own layout (bottom ivy
       -- strip previewing in the main window) beats the global one; the same
       -- function replaces it wholesale, `preview = "main"` included.
