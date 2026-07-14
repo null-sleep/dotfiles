@@ -1,14 +1,27 @@
 # Go debug + test in Neovim (nvim-dap-go + neotest-golang)
 
+> **Read together with [`go-targets-picker.md`](go-targets-picker.md).** That
+> plan is a sub-issue of this one — it closed the run/targets gap this plan
+> deliberately cut, replaced the `<leader>dR` mapping described here, and moved
+> the dap-go setup into `golang.lua`. Neither doc tells the whole story alone,
+> and the live continuation list for **both** plans (code fixes, checks left to
+> run, deferred decisions) is its [Open items](go-targets-picker.md#open-items)
+> section.
+
 > **Status: SHIPPED (2026-07).** Go debugging (nvim-dap-go + delve) and testing
-> (neotest-golang + gotestsum) are in and verified interactively. The *run* story
-> this plan cut was later closed a different way — not by go.nvim, but by the
-> targets picker in [`go-targets-picker.md`](go-targets-picker.md), which also
-> replaced the `<leader>dR` mapping described here and moved the dap-go setup
-> into `golang.lua`. **One verification is still outstanding** — the `-test.run`
+> (neotest-golang + gotestsum) are in and verified interactively. The *run*
+> story this plan cut was later closed by the targets picker — not by go.nvim;
+> see the note above. **One verification is still outstanding** — the `-test.run`
 > state-leak check; see [Verification](#verification). Kept as the decision
 > record: `dap_mode = 'manual'` and `outputMode = 'remote'` are both load-bearing
 > and explained nowhere else.
+> A 2026-07-13 post-ship review of the whole Go stack
+> ([`go-targets-picker.md` → Post-ship review](go-targets-picker.md#post-ship-review))
+> re-flagged that outstanding check (its finding 5) and recorded two drawbacks
+> in this plan's scope: the pcall guards cover load-time failures only (a
+> behavioral break in unpinned nvim-dap-go surfaces uncaught at debug time),
+> and dap-ui closes only on `event_terminated`/`event_exited`, so a
+> disconnect-ended Attach session can leave it open.
 
 > **Scope narrowed (2026-07).** This plan originally proposed a *hybrid* that
 > also added **ray-x/go.nvim** for a run/build/imports/code-action layer
@@ -298,6 +311,7 @@ Per-change commits carrying a `Part-of: go debug + test support` trailer:
 
 Splitting 4 from 5 keeps the move/rename diff reviewable on its own.
 
+<a id="what-actually-shipped"></a>
 ### What actually shipped (2026-07)
 
 Implemented and committed. Deviations from the above, all deliberate:
@@ -355,6 +369,9 @@ accumulating across runs, which means `dap_manual_config` is not being honored a
 a *function* (see §4) and is back to being one shared, mutated table. This is the
 only defect from the review pass that hasn't been confirmed fixed on a real
 session — the fix is proven in a simulated harness, not yet in the editor.
+(Re-flagged as finding 5 of the 2026-07-13 post-ship review,
+[`go-targets-picker.md`](go-targets-picker.md#post-ship-review) — it guards
+against silently debugging the *wrong* test.)
 
 Also still worth doing once: confirm the `t.Log` line (`describing: Rex`) appears
 in the `dap>` REPL pane after continuing a debugged test to completion — that is

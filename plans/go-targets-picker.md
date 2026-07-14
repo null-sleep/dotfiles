@@ -9,6 +9,11 @@
 > is registered *before* the spawn is scheduled. Kept as the decision record —
 > the `go list -e` exit-code trap and delve's `program`-must-be-a-folder contract
 > are the parts worth re-reading before touching this code.
+> A post-ship review (2026-07-13) upheld the design but recorded five open
+> findings and four drawbacks. Everything still to do — the code fixes, the
+> interactive checks not yet run, and the deferred decisions from both plans —
+> is consolidated in [Open items](#open-items) below; the findings' full text
+> lives in [Post-ship review](#post-ship-review).
 
 > Follow-up to [`plans/go-run-debug-test.md`](go-run-debug-test.md), which
 > shipped Go debugging (nvim-dap-go + delve) and testing (neotest-golang). That
@@ -18,6 +23,102 @@
 > **targets**. It also revisits — and reverses — the "no `go run`" decision,
 > because the reason it was cut (a hand-rolled `go run .` can't reach
 > `cmd/foo/`) is exactly what a targets picker fixes.
+
+---
+
+<a id="open-items"></a>
+## Open items
+
+The feature shipped; this is what a returning session should pick up. Full
+rationale for each entry lives where it's linked — nothing is duplicated here.
+
+### Code fixes (from the post-ship review)
+
+Each is a verified defect with a concrete fix in
+[Post-ship review](#post-ship-review); the number is that finding's number.
+
+- [ ] **1 — library-only module gets an ERROR for a normal state**
+  (`pickers/gotargets.lua:171-180`). Split `found == 0`: `code == 0` → WARN "no
+  main packages", close the picker; `code ~= 0` → keep the ERROR + stderr.
+  Most likely to bite a real session. ([finding 1](#post-ship-review))
+- [ ] **2 — abort-race comment overstates the nil-check**
+  (`pickers/gotargets.lua:113-120`). An abort in the one-tick `async:schedule`
+  window still spawns an unwatched `go list`. Add `if async:aborted() then
+  return end` atop the scheduled fn and reword the comment. ([finding 2](#post-ship-review))
+- [ ] **3 — `dap_ok = false` silently unmaps `<leader>dR`**
+  (`golang.lua:41-44`). Map a `vim.notify('Go debugging disabled …')` stub
+  instead of not mapping, per the repo's guard-code-only-keymaps rule.
+  ([finding 3](#post-ship-review))
+- [ ] **4 — `id = 101` comment misstates the `<C-]>` cycle**
+  (`pickers/gotargets.lua:75-79`). `cycle_term` filters on `hidden`, not id
+  range. Either fix the comment (`id = 101` only buys count-address stability)
+  or add `hidden = true`. ([finding 4](#post-ship-review))
+
+### Left to test
+
+No item in [Verification](#verification) has recorded evidence of an
+interactive run; the 2026-07-13 headless load test covers only the config-count
+half of item 5 and that `require('pickers.gotargets')` loads cleanly. Also
+pending from [`go-run-debug-test.md`](go-run-debug-test.md):
+
+- [ ] **`-test.run` state-leak** — debug `TestDescribe`, terminate, then
+  `<leader>nd` in `TestMax`; it must stop in `TestMax`, not leak the old
+  filter. (finding 5; lives in
+  [`go-run-debug-test.md` → Verification](go-run-debug-test.md#verification))
+- [ ] **`t.Log` reaches the `dap>` REPL** — after continuing a debugged test to
+  completion, `describing: Rex` must appear (what `outputMode = 'remote'` buys).
+  ([`go-run-debug-test.md` → Verification](go-run-debug-test.md#verification))
+- [ ] **[V1](#verification)** — enumeration: from a library file, the picker
+  lists exactly the module's `main` packages (no library/test packages).
+- [ ] **[V2](#verification)** — debug a `main` package you're not sitting in
+  (the plan's reason to exist).
+- [ ] **[V3](#verification)** — the debuggee's stdout reaches the `dap>` REPL
+  (proves `outputMode = 'remote'`).
+- [ ] **[V4](#verification)** — `<leader>cR` runs, and the float stays open
+  after the program exits (`close_on_exit = false`); works from a library buffer.
+- [ ] **[V5](#verification)** — cold-start `<F5>` still opens the seven-config
+  picker. (The `#configurations.go == 7` half is confirmed by the headless test.)
+- [ ] **[V6](#verification)** — no `go.mod` → one WARN, no picker, no stack trace.
+- [ ] **[V7](#verification)** — a broken package doesn't hide good targets (the
+  `-e` guard), with the stderr surfaced as a WARN.
+- [ ] **[V8](#verification)** — big module: the picker opens immediately, and
+  `<Esc>` mid-load kills the `go list` subprocess rather than orphaning it.
+- [ ] **[V9](#verification)** — no Rust regression (`<leader>dR`/`<leader>cR`
+  and neotest still work in a Cargo project).
+- [ ] **[V10](#verification)** — clean load: `:messages` / `:Notifications` /
+  `:checkhealth`. (Module require is confirmed headless; the interactive pass is not.)
+
+### Open questions / deferred decisions
+
+Swept from both plans; each is decided-for-now, listed so it isn't rediscovered
+from scratch. Rationale stays where it's linked.
+
+- [ ] **`GOWORK` / multi-module workspaces out of scope** — `vim.fs.root`
+  finds the nearest `go.mod`; a `go.work` spanning modules lists only the
+  buffer's. ([Risks / gotchas](#risks-gotchas))
+- [ ] **No args prompt on either action** — "revisit only if it bites"; args
+  stay on dap-go's Debug (Arguments) and a shell. (see "Notes on the sketch"
+  under [Changes → 1](#change-gotargets))
+- [ ] **Future `kind = 'test'` group** — `ntests` is collected but unused; a
+  ~10-line change if package-level test debug is ever wanted.
+  ([Design decision 3](#decision-main-only);
+  [Alternatives](#alternatives-considered))
+- [ ] **ray-x/go.nvim follow-up** — kept on the books; there's nothing left
+  worth the plugin now that `go run` ships. ([Alternatives](#alternatives-considered);
+  [`go-run-debug-test.md` → Alternatives](go-run-debug-test.md#alternatives-considered))
+- [ ] **dap-ui doesn't close on disconnect** — add `disconnect` to the
+  close-listener list only if it recurs in practice.
+  ([Post-ship review](#post-ship-review), recorded drawbacks)
+- [ ] **`build_flags` config fork** — a future `dap-go.setup({ delve =
+  { build_flags } })` reaches `<F5>` but not `debug_target()`'s table;
+  mitigation is a mirror comment in `debug_target`.
+  ([Post-ship review](#post-ship-review), recorded drawbacks)
+- [ ] **Cite symbols, not line numbers, for unpinned plugins** — nvim-dap-go is
+  tag-less; `dap-go.lua:19`-style citations drift on update.
+  ([Post-ship review](#post-ship-review), recorded drawbacks)
+- [ ] **Startup cost deferred** — the eager Go adapters add ~9-13ms; paying it
+  down belongs with item #7 of `plans/nvim-startup-performance.md`, not here.
+  ([`go-run-debug-test.md` → What actually shipped](go-run-debug-test.md#what-actually-shipped))
 
 ## Context
 
@@ -251,6 +352,7 @@ It also completes the symmetry that motivates this whole plan — Rust has
 `<leader>cR` runnables *and* `<leader>dR` debuggables; giving Go one without the
 other would leave the same "why is this different in Go" papercut, just moved.
 
+<a id="decision-main-only"></a>
 ### 3. Main packages only — tests stay with neotest
 
 **Recommendation: the picker lists `main` packages, nothing else.**
@@ -284,6 +386,9 @@ judgment turns out wrong. Recorded, not built.
   warning. Resolve the root from the **buffer's** directory, not `vim.uv.cwd()`
   — same rule as `pickers/gitstatus.lua:24-27`; this is also what makes
   multi-module repos behave.
+  **Post-ship (finding 1):** the sibling case — *inside* a module that has no
+  `main` package at all (a library/SDK repo) — is mishandled: it fires an ERROR
+  with empty stderr instead of a WARN/INFO. See [Open items](#open-items).
 - **Speed** → **async, no cache.** 0.4-0.6s of blocked UI on a mid-size module
   is already bad; the 2.9s cold case is unusable. The `symbols.lua` async-finder
   pattern opens the picker instantly and streams items in, so the cost is
@@ -330,6 +435,7 @@ being the generic engine, exactly like it is for Rust.
 
 ## Changes
 
+<a id="change-gotargets"></a>
 ### 1. `lua/pickers/gotargets.lua` — new: enumerate + pick + launch
 
 ```lua
@@ -537,6 +643,11 @@ Notes on the sketch:
 - No args prompt on either action (v1). Rust's `<leader>cR` has none either;
   args stay available through dap-go's **Debug (Arguments)** on `<F5>` and
   through a terminal for `go run`. Revisit only if it bites.
+- **Post-ship (finding 2):** the `async:on('abort', …)` handler above does *not*
+  cover an abort that lands in the one-tick `async:schedule` window — the queued
+  callback still spawns an unwatched `go list`. The comment overstates the
+  coverage; the fix is an `async:aborted()` guard atop the scheduled function.
+  See [Open items](#open-items).
 
 ### 2. `lua/golang.lua` — new: the Go language module
 
@@ -586,6 +697,11 @@ vim.api.nvim_create_autocmd('FileType', {
 
 Note the picker is `require`d **inside** the keymap callback, so `go list`, the
 picker, and toggleterm cost nothing until the key is pressed.
+
+> **Post-ship (finding 3):** the `if dap_ok then map('<leader>dR', …)` guard
+> above leaves `<leader>dR` *unmapped* when nvim-dap-go failed to load, so the
+> startup WARN having scrolled away, the key reads as broken. Map a
+> `vim.notify(...)` stub instead of skipping the map. See [Open items](#open-items).
 
 ### 3. `lua/debugging.lua` — hand the Go block to `golang.lua`
 
@@ -649,6 +765,10 @@ No new group, no new prefix — both keys already exist.
 
 ### 6. `GUIDE.md` — four edits
 
+> **Shipped in `edf8334`.** The edit list below is the plan of record for the
+> GUIDE changes; all of it landed. Read GUIDE.md's Go/Debugging sections for the
+> live text — the list stays here as the rationale for *why* each edit was made.
+
 Per `nvim/.config/nvim/CLAUDE.md` (new module → Architecture entry + Load order;
 new keymap → the owning feature's table; keymap ownership = one mapping, one
 table):
@@ -680,8 +800,8 @@ table):
    - The *Common workflows* bullets already describe the configs accurately
      (`Debug` = `${file}`, `Debug Package` = `${fileDirname}`), and the paragraph
      below them already states that none of them can launch a `main` you aren't
-     sitting in, pointing here. Keep both; just delete the forward-reference to
-     this plan once it has shipped.
+     sitting in, pointing here. Both were kept; the now-satisfied forward
+     reference to this plan was dropped when the feature shipped.
    - Rewrite **"Debug a program (not a test)"** around the targets picker:
      `<leader>dR` → pick a `main` package (any package in the module, from any
      buffer) → delve builds and launches it. Keep the seven-config list, but
@@ -768,6 +888,13 @@ Per-change commits with a `Part-of: go targets picker` trailer:
 
 ## Verification
 
+> **Status (2026-07-14):** none of items 1-10 has recorded evidence of an
+> interactive run. The only evidence on the books is the 2026-07-13 headless
+> load test — it confirms the `#require('dap').configurations.go == 7` half of
+> item 5 and that `require('pickers.gotargets')` loads cleanly, nothing else.
+> Everything still to run is tracked in [Open items](#open-items) → "Left to
+> test"; do not read this checklist as done.
+
 Use `fixtures/` (a real single-package module) **and** a `cmd/foo`-style module —
 the second is the whole point and `fixtures/` cannot prove it. Build one under
 `~/src/` (not `/tmp` — neotest-golang's health check flags `/tmp` go.mods on
@@ -812,6 +939,7 @@ macOS) with `cmd/foo`, `cmd/bar`, and an `internal/util` library + test.
 10. **Clean load** — `:messages` / `:Notifications` clean; `:checkhealth` shows no
    new complaints.
 
+<a id="risks-gotchas"></a>
 ## Risks / gotchas
 
 - **`go list` inherits the environment nvim was launched with.** A `GOFLAGS`,
@@ -841,7 +969,11 @@ macOS) with `cmd/foo`, `cmd/bar`, and an `internal/util` library + test.
   running program without asking. That is the intended edit-run loop behavior
   (and matches how most run integrations behave), but it means `<leader>cR` twice
   in a row silently drops the first process. If that bites, switch to a
-  count-addressed terminal id instead of a single shared one.
+  count-addressed terminal id instead of a single shared one. **As shipped**, the
+  run terminal took a fixed `id = 101` — but per **finding 4** (see [Open
+  items](#open-items)) that id does *not* keep it out of the `<C-]>` cycle
+  (`cycle_term` filters on `hidden`, not id range); the in-code comment about the
+  id/`<C-]>` relationship is wrong and needs either a reword or `hidden = true`.
 - **The `format` icon** (`󰟓`, nf-md-language_go) assumes a Nerd Font, which this
   config already requires everywhere (`pickers/symbols.lua:110-138` does the
   same). Fine, but don't put it in a GUIDE table cell — the repo `CLAUDE.md`'s
@@ -906,3 +1038,90 @@ because integrating it is a list of negations (`lsp_cfg = false`,
 gopls, DAP, and formatting. With this plan, its remaining draw — `:GoRun
 ./cmd/foo` — is delivered by 15 lines of toggleterm, with a *picker* instead of a
 typed path. There is nothing left worth the plugin.
+
+---
+
+<a id="post-ship-review"></a>
+## Post-ship review findings (2026-07-13)
+
+A full-stack review after shipping: the config code, the installed plugin
+sources (nvim-dap, nvim-dap-go, snacks' async util, toggleterm), and a
+headless load test (`#dap.configurations.go` → 7, the picker module requires
+cleanly). **The design held** — no findings against the architecture, the
+`-e`/exit-code handling, `outputMode = 'remote'`, or the main-only scope.
+One strength verified in passing that nothing had documented: `dap.run()`
+records `last_run` (`nvim-dap/lua/dap.lua:626`), so **`<leader>dl` correctly
+re-launches a picker-chosen target**.
+
+### Open findings (not yet applied)
+
+1. **A library-only module gets an ERROR for a normal state**
+   (`pickers/gotargets.lua:171-180`). `found == 0` is reported as a real error
+   ("bad module, go missing"), but a module with no `main` package at all — an
+   SDK or library repo — is legitimate; there, `<leader>dR`/`<leader>cR` fires
+   a red ERROR with an empty stderr appended and leaves the empty picker open.
+   Split the cases: `code == 0` and zero mains → WARN/INFO "no main packages
+   in this module" (and close the picker); `code ~= 0` and zero mains → keep
+   the ERROR with stderr. Most likely finding to bite a real session.
+
+2. **The abort-race comment overstates what the nil-check covers**
+   (`pickers/gotargets.lua:113-120`). snacks' async fires `abort` handlers
+   when the coroutine dies, but it does **not** cancel the `vim.schedule`
+   callback queued by `async:schedule()` — an abort landing in that one-tick
+   window runs the handler with `obj == nil`, and the queued callback then
+   spawns `go list` anyway, unwatched. Consequence: a short-lived orphan
+   process; the comment's claim "nothing spawned, nothing to kill" is false.
+   Fix: `if async:aborted() then return end` at the top of the scheduled
+   function, and reword the comment.
+
+3. **`dap_ok = false` silently unmaps `<leader>dR` in Go buffers**
+   (`golang.lua:41-44`). The startup WARN has long scrolled away by the time
+   the key is pressed, and per the repo's own rule (nvim `CLAUDE.md` →
+   guarding code-only keymaps) a silent decline reads as a broken keymap.
+   Map a `vim.notify('Go debugging disabled — nvim-dap-go failed to load')`
+   stub instead of not mapping it.
+
+4. **The `id = 101` comment misstates the `<C-]>` cycle**
+   (`pickers/gotargets.lua:75-79`). `cycle_term` (`terminal.lua:44-48`)
+   filters on `hidden`, not on id range — the bottom panel stays out of the
+   cycle because it is `hidden = true`, and the run terminal (not hidden) is
+   **in** the cycle at any id. Either keep that (arguably useful: cycle back
+   to the program's output) and fix the comment — `id = 101` buys
+   count-address stability and nothing else — or add `hidden = true`.
+   Related, undocumented: `<C-\>`'s open-panel handler closes floats with
+   `t.id ~= 100` (`terminal.lua:103-106`), so opening the bottom panel hides a
+   still-running run float.
+
+5. **The `-test.run` state-leak verification is still outstanding.** It
+   belongs to [`go-run-debug-test.md`](go-run-debug-test.md) (its Verification
+   section), but it guards `dap_manual_config`-as-a-function — i.e. against
+   *silently debugging the wrong test*, a failure that lies. Two minutes in
+   the editor; do it.
+
+### Recorded drawbacks (no action planned)
+
+- **The picker's hand-built config forks from dap-go's config-level knobs.**
+  A future `dap-go.setup({ delve = { build_flags = ... } })` applies to the
+  `<F5>` configs (six of the seven — `Attach` carries no `buildFlags`, and
+  `Debug (Arguments & Build Flags)` prompts for its own) but not to
+  `debug_target()`'s table, so the same breakpoint could build under `<F5>`
+  and fail under `<leader>dR`. dap-go
+  keeps its resolved config in a file-local (`internal_global_config`), so it
+  cannot be inherited; the mitigation is a comment in `debug_target` saying
+  config-level setup options must be mirrored there. Adapter-level options
+  (dlv path, port) are shared automatically — only config-level ones fork.
+- **Upstream line-number citations drift on `vim.pack.update()`.** Comments
+  cite `dap-go.lua:19`, `dap.lua:624`, delve `types.go:78-85`; the lockfile
+  pins those revisions today, but nvim-dap-go is tag-less and tracks main,
+  and the update that breaks something is exactly when the numbers go stale.
+  Prefer symbol names (`default_config.delve.detached`,
+  `LaunchConfig.Program`) over line numbers when citing unpinned plugins.
+- **dap-ui doesn't close on disconnect-ended sessions**
+  (`debugging.lua:28-30` closes on `event_terminated`/`event_exited` only) —
+  an Attach session ended from the delve side can leave the UI open. GUIDE
+  already hedges ("if it ever lingers, `<leader>du` toggles it"); add
+  `disconnect` to the close-listener list if it recurs in practice.
+- **The pcall guard covers load time only.** With nvim-dap-go unpinned, the
+  likelier post-update failure is behavioral (an adapter signature change),
+  which surfaces as an uncaught error mid-`dap.run`. Known and accepted —
+  the guard's coverage ends at `setup()`.
