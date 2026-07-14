@@ -104,6 +104,13 @@ require('snacks').setup({
     -- rustaceanvim runnables, sidekick's prompt library).
     ui_select = true,
     layout = pick_layout,
+    -- Live mode is easy to lose track of, and it silently changes what the
+    -- prompt *means* (the tool's regex vs the fuzzy matcher — see GUIDE.md
+    -- "Whose grammar is it?"). Stock snacks signals it with a bare 󰐰 in the
+    -- title, which reads as decoration; spell it out instead. The title
+    -- re-renders on every <c-g> (toggle_live -> input:set -> update_titles),
+    -- and the icon is empty in fuzzy mode, so presence/absence is the signal.
+    icons = { ui = { live = '󰐰 LIVE ' } },
     matcher = {
       -- Boost results by recency+frequency of use (files/recent/buffers/...).
       -- Persisted store is created on first use under stdpath('data');
