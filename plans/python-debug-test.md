@@ -771,25 +771,142 @@ equivalent) deserves a key.
 nvim paths are under `/Users/dhruv/src/dotfiles/nvim/.config/nvim/` (Stow source;
 live via the `~/.config/nvim` symlink).
 
-## Commits
+## Build order — eight stages, each one testable before the next
 
-Per-change commits carrying a `Part-of: python debug + test support` trailer:
+Ordered so that **every stage can be proven before the next one depends on it**, and so
+that a failure is always attributable to the one file you just touched. That is *not*
+the same as a tidy dependency order: the fixtures come first because nothing downstream
+can be verified without a real venv to resolve to, and the resolver is proven as a pure
+function before any consumer trusts it.
 
-1. `refactor(nvim): extract the shared run-output float into runner.lua` (runner.lua, gotargets.lua)
-2. `feat(nvim): install debugpy and the Python dap/neotest plugins` (plugins.lua, lsp.lua, lock)
-3. `feat(nvim): resolve the project venv for pyright, debugpy and neotest` (venv.lua, lsp.lua)
-4. `feat(nvim): add python.lua — debugpy adapter + Python keymaps` (python.lua, init.lua)
-5. `feat(nvim): register the neotest-python adapter` (testing.lua)
-6. `feat(fixtures): add a uv-managed pytest project` (fixtures/, .gitignore)
-7. `feat: add uv, the project venv manager` (Brewfile, README.md `## Languages`)
-8. `docs(nvim): document the Python debug/test stack and the venv convention` (GUIDE.md, whichkey.lua)
+Each stage is one commit carrying a `Part-of: python debug + test support` trailer.
+Every stage's rollback is `git revert` of that single commit. **If a stage's checkpoint
+fails, stop — do not stack the next stage on top of it.**
 
-The uv/README commit lands **after** the code [review]: it documents "pyright, debugpy
-and neotest all resolve `<project>/.venv/bin/python`", which isn't true until commit 5.
-Commit 2 is inert on its own (neither plugin ships a `plugin/` dir; nothing `packadd`s
-them until 4/5), so no intermediate commit leaves a broken config.
+### Stage 1 — a real Python project to point at (no nvim changes)
 
-## Verification
+`feat(fixtures): add a uv-managed pytest project` — `Brewfile` (+`uv`), `fixtures/`
+(`pyproject.toml`, `test_animal.py`, `uv.lock`), root `.gitignore` (+`.venv/`).
+
+**Checkpoint (all shell, nvim not involved):**
+```bash
+brew install uv
+cd fixtures && uv sync                      # creates fixtures/.venv
+.venv/bin/python -m pytest -q               # tests pass
+.venv/bin/python animal.py                  # the program runs
+.venv/bin/python -c "import pytest; print(pytest.__file__)"   # inside .venv, not brew
+```
+Why first: every later checkpoint is really "did the right interpreter get used", and
+that question is meaningless until a *wrong* answer and a *right* answer both exist.
+
+### Stage 2 — the resolver, alone (`lua/venv.lua`)
+
+`feat(nvim): resolve the project venv for pyright, debugpy and neotest` — new file, **no
+callers yet**. A pure function; test it directly.
+
+**Checkpoint** (`:lua =require('venv').python()` from each context):
+
+| From | Expect |
+|---|---|
+| `fixtures/animal.py` | `…/fixtures/.venv/bin/python` |
+| a `.py` file in a dir with no venv | Homebrew's `python3` |
+| after `mv fixtures/.venv /tmp/fx && ln -s /tmp/fx fixtures/.venv` | still resolves (the symlink check) |
+| a scratch dir under `$HOME`, with `~/.venv` present | Homebrew's `python3` — **not** `~/.venv/bin/python` (the `stop` check) |
+| `VIRTUAL_ENV=/somewhere nvim fixtures/animal.py` | `/somewhere/bin/python` (env wins, by design) |
+
+Plus `:lua require('venv').warn_if_unsynced(vim.fn.getcwd())` in a project with no venv
+(WARNs, names `uv sync`) and in `fixtures/` (silent), and a `venv/`-named env (silent —
+the false-positive pass 3 caught). Clean up `~/.venv` and the symlink afterwards.
+
+### Stage 3 — pyright reads it (`lua/lsp.lua`, `before_init`)
+
+`feat(nvim): point pyright at the project venv`. First consumer, and the one that fixes
+a bug that exists *today* — so it's independently valuable even if the rest is abandoned.
+
+**Checkpoint:** open `fixtures/test_animal.py`, then
+`:lua =vim.lsp.get_clients({ name = 'pyright' })[1].settings.python.pythonPath` → the
+`.venv` path. `import pytest` shows **no** unresolved-import diagnostic. (Before this
+stage, it did — that's the regression test.)
+
+### Stage 4 — the plugins land, inert (`lua/plugins.lua`, `lua/lsp.lua`)
+
+`feat(nvim): install debugpy and the Python dap/neotest plugins` — two `vim.pack` entries
++ `debugpy` in Mason's `ensure_installed` + `nvim-pack-lock.json`.
+
+**Checkpoint:** restart nvim, `:MasonToolsUpdate`, then
+`:lua =vim.fn.exepath('debugpy-adapter')` is non-empty. **Nothing else should have
+changed** — neither plugin ships a `plugin/` dir and nothing `packadd`s them yet, so
+this stage is deliberately a no-op in behaviour. If anything *did* change, that's the
+finding.
+
+### Stage 5 — the shared run float (`lua/runner.lua`, `lua/pickers/gotargets.lua`)
+
+`refactor(nvim): extract the shared run-output float into runner.lua`. Pure refactor,
+and **Go is its test**: existing behaviour is the spec.
+
+**Checkpoint:** in a Go buffer, `<leader>cR` → picker → the program runs in the float and
+its output survives exit. Run it **twice**, picking different targets — the second must
+replace the first, not open a second terminal. `<C-]>` still cycles into it.
+
+### Stage 6 — Python debugging (`lua/python.lua`, `init.lua`)
+
+`feat(nvim): add python.lua — debugpy adapter + Python keymaps`.
+
+**Checkpoint** — this is the payoff stage, so test it properly:
+1. Breakpoint in `fixtures/animal.py`'s `main()`; `<F5>` → pick `file` → **stops on the
+   line**, dap-ui opens, scopes populate, `<F10>`/`<F11>` step, and the program's stdout
+   appears in a terminal.
+2. `<leader>cR` in `animal.py` → the float runs `…/fixtures/.venv/bin/python animal.py`.
+3. **Immediately** `<leader>cR` in a **Go** buffer → it runs the *Go* program (the id-101
+   cross-language check — the bug stage 5 exists to prevent).
+4. Open a `.py` file in a pyproject-having, venv-less dir → one `uv sync` WARN, **once**,
+   not once per file.
+5. Break the plugin (`mv` its pack dir aside), restart → startup WARNs, and **Rust/Go
+   debugging plus the rest of `init.lua` still work**. Restore.
+
+### Stage 7 — Python testing (`lua/testing.lua`)
+
+`feat(nvim): register the neotest-python adapter` + the `discovery.filter_dir`.
+
+**Checkpoint:**
+1. `<leader>nn` in `test_animal.py` → tests run and pass (proves the venv's pytest, not a
+   global one — there *is* no global one, which is why stage 1 mattered).
+2. `<leader>ns` → the summary shows **only** the fixture's tests, nothing from
+   `.venv/**/site-packages` (the `filter_dir` check — without it, pytest's own tests
+   flood the tree).
+3. `<leader>nd` with a breakpoint in a test → stops; `<leader>no` **shows the test's
+   stdout** (the "never add `console` to neotest's dap config" check).
+4. Terminate, then `<leader>nd` on a *different* test → stops in the **second** test, not
+   the first (the state-leak class of bug that bit the Go stack).
+5. `:cd ~`, re-run `<leader>nd` → still passes (neotest hard-codes the debug `cwd` to
+   nvim's cwd; this documents the weak spot rather than fixing it).
+6. Go and Rust tests still run — the global `filter_dir` is ANDed with each adapter's, so
+   it must not have broken them.
+
+### Stage 8 — the fallback path, then the docs
+
+First **prove the plain-venv route** (the promise the whole design rests on — a repo that
+has never heard of uv must work):
+```bash
+rm -rf fixtures/.venv && python3 -m venv fixtures/.venv
+fixtures/.venv/bin/python -m pip install pytest
+```
+Re-run stage 2's first row, stage 3, and stage 7's checks 1 and 3. **Nothing in the config
+should notice.** Then `cd fixtures && uv sync` to restore.
+
+Then `docs(nvim): document the Python debug/test stack and the venv convention` —
+`GUIDE.md` (§9), `README.md` `## Languages` (§0), `whichkey.lua` (§8). The README text
+claims "pyright, debugpy and neotest all resolve `<project>/.venv/bin/python`", which
+only became true at stage 7 — which is why the docs land last [review].
+
+**Checkpoint:** `<leader>sk` and search `python` → the new keys surface with their
+keywords; GUIDE.md's Python section renders (anchors, no broken TOC link).
+
+## Verification — the full pass
+
+The per-stage checkpoints above are what you run *while building*; this is the end-to-end
+sweep to run once everything is in, and again after any later change to `venv.lua`,
+`python.lua` or `testing.lua`. It is a superset of the checkpoints.
 
 Bootstrap (this is §0's README block, executed — the uv route):
 
