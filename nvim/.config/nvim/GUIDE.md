@@ -1222,6 +1222,18 @@ Grep and symbols start live; files starts fuzzy. Three things follow:
   "only `.lua` files" (`lua$` tests the path string), only live `fd` can ask
   for them.
 
+**Worked example (`<leader>sg`).** Type `foo -- -tmd`: ripgrep searches
+markdown only, say 200 match lines. `<c-g>` freezes those 200 — `foo -- -tmd`
+moves to the left of the prompt and keeps applying — and now typing filters
+them in Lua. What it filters *on* is the one thing worth knowing: the matcher
+matches an item's `text`, and a grep item's text is the whole composite
+`path:line:col:matched line`. So `todo` keeps hits whose **path or matched
+line** contains it, not just filenames; `file:todo` scopes the term to the path
+alone; `!test` drops hits with "test" anywhere in that string. Nothing you type
+brings back a `.go` file — rg never emitted one. (In `<leader>sf` the items
+*are* files, so their text is just the path and post-`<c-g>` typing really is
+path filtering.)
+
 Every other picker is a fixed list with nothing to re-query, so `<c-g>` warns
 and no-ops there.
 
