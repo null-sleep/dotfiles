@@ -1182,7 +1182,7 @@ wholesale.
 
 | Keymap | Action |
 |---|---|
-| `<leader>sf` | Find files by name |
+| `<leader>sf` | Find files by name — fuzzy over the file list; `<c-g>` flips it to a live `fd` search (see below) |
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
@@ -1195,16 +1195,26 @@ wholesale.
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 
-**Live vs fuzzy (`<leader>sg` and `<leader>ss`):** these two are *live*
-pickers — every keystroke re-runs the search (ripgrep regex for grep, an LSP
-round-trip for symbols) instead of fuzzy-filtering a fixed list. In grep,
-raw rg flags pass through after ` -- `: `handleRequest -- -tgo -g
-'!*_test.go'` (ripgreprc custom types like `-ttest` work too — see README →
-ripgrep). Press `<c-g>` to freeze the current results into the fuzzy
-matcher: fzf-style operators (`'exact`, `^prefix`, `suffix$`, `!negate`,
-`|` OR) and `field:value` filters (`file:lua$`, and in the symbols picker
-`kind:class`, `client_name:gopls`) work there. Every other picker is fuzzy
-from the start.
+**Live vs fuzzy (`<leader>sg`, `<leader>ss`, `<leader>sf`):** `<c-g>` toggles
+these three. In **live** mode each keystroke re-runs the real search (a rg
+regex for grep, an LSP round-trip for symbols, an `fd` regex for files); in
+**fuzzy** mode the results are frozen and the prompt drives snacks' matcher —
+fzf operators (`'exact`, `^prefix`, `suffix$`, `!negate`, `|` OR) and
+`field:value` filters (`file:lua$`, and in symbols `kind:class`,
+`client_name:gopls`). Grep and symbols start live, files starts fuzzy. Two
+non-obvious bits:
+
+- **Raw tool flags after ` -- ` only work in live mode** — `handleRequest --
+  -tgo -g '!*_test.go'` reaches ripgrep (ripgreprc types like `-ttest` too —
+  see README → ripgrep), `conf -- -e lua` runs `fd -e lua conf`. In fuzzy mode
+  they never reach the tool and are just more text to match. That's the reason
+  to press `<c-g>` in `<leader>sf`: fuzzy can *approximate* "only `.lua`"
+  (`lua$`), only `fd` can ask for it.
+- **The two queries stack** — toggling keeps the one you're leaving (shown left
+  of the prompt) and it keeps filtering, so `<c-g>` refines in both directions.
+
+Every other picker is a fixed list with nothing to re-query, so `<c-g>` warns
+and no-ops there.
 
 **Inside a picker** (press `<C-h>` in any picker for its full live keymap
 list — bindings below are the daily set):
@@ -1225,7 +1235,7 @@ list — bindings below are the daily set):
 | `<C-y>` | Copy the highlighted entry's path to the system clipboard, cwd-relative — the string the list displays, and what `yp` yanks for the open buffer. Closes the picker; no-ops on path-less rows (help tags, keymaps) |
 | `<a-h>` / `<a-i>` | Toggle hidden / ignored files (files and grep; shown as flags in the title) |
 | `<a-p>` / `<a-m>` | Toggle preview / maximize the picker |
-| `<c-g>` | Toggle live ↔ fuzzy (see above) |
+| `<c-g>` | Toggle live ↔ fuzzy — grep, symbols, and files only (see above) |
 | `?` (normal) / `<C-h>` | Show this picker's live keymaps in a popup (`<C-h>` is a custom alias, shadowing the global left-split key while a picker is focused) |
 | `<Esc>` | Close in one press, even from insert mode (custom `cancel` binding; focus returns to the launch window) |
 

@@ -7,11 +7,10 @@
 > `make` dep). Global picker setup lives in `nvim/.config/nvim/lua/picker.lua`;
 > the commit series carries `Part-of: telescope -> snacks.picker migration`
 > trailers. Frecency is on; the `smart` picker was deliberately deferred — see
-> [Post-migration TODO](#post-migration-todo). The snacks **explorer** has since
-> been evaluated separately ([§6](#explorer-eval)): verdict is **keep
-> nvim-tree**, held back by window ergonomics rather than migration cost, and
-> it stays open for reconsideration. The research below is kept as the decision
-> record.
+> [Post-migration TODO](#post-migration-todo). The snacks **explorer** was
+> evaluated separately ([§6](#explorer-eval)) and **declined** — we keep
+> nvim-tree, held back by window ergonomics rather than migration cost. The
+> research below is kept as the decision record.
 
 Research doc comparing our current **telescope** stack against **folke's
 snacks.nvim picker**, with a focus on (1) the search-syntax / file-filter gap
@@ -1525,23 +1524,79 @@ absolute Lua ms are trustworthy (no instrumentation overhead), but it has no UI,
 so it measures none of the C-side cost that is now the suspect. Neither tool can
 see the thing the other is best at; that is why the next test is a feel test.
 
+<a id="live-mode-audit"></a>
+## 8. Live mode (`<c-g>`) — where it actually pays
+
+Resolves TODO item #6. Source-verified against the installed snacks, plus two
+headless probes. **Outcome: one picker gains a real capability (`<leader>sf`),
+it needs no config, and every other picker we bind is a fixed list where live
+mode is meaningless.** The deliverable was a GUIDE.md correction.
+
+### The mechanism (this is the part that was misunderstood)
+
+A snacks filter carries **two** queries, not one:
+
+- `filter.search` — feeds the **finder** (the external tool: `rg`, `fd`, an
+  LSP request).
+- `filter.pattern` — feeds the **matcher** (snacks' in-Lua fzf port).
+
+`opts.live` decides only *which one the prompt box is currently editing*
+(`core/input.lua:36`, `:83-91`, `:197`). `<c-g>` (`toggle_live`,
+`actions.lua:745`) flips that. The other query is **not discarded** — it stays
+in the filter, keeps applying, and is rendered to the left of the prompt
+(`core/input.lua:133`). So live and fuzzy **stack**, and `<c-g>` is
+freeze-then-refine in *both* directions, not a one-way "freeze the results".
+
+The consequence that matters: **` -- <args>` passthrough is live-only.** Both
+`source/grep.lua` and `source/files.lua` build their command by calling
+`Snacks.picker.util.parse(filter.search)` — `filter.search`, never
+`filter.pattern`. In fuzzy mode the prompt writes to `pattern`, `search` stays
+empty, and the flags never reach the tool; they just become more text for the
+matcher to fuzzy-match. Verified headlessly in this repo:
+
+| picker mode | prompt | result |
+|---|---|---|
+| `files`, live (`<c-g>`) | `conf -- -e lua` | runs `fd -e lua conf` → 1 item (`configs.lua`) |
+| `files`, fuzzy (default) | `conf -- -e lua` | fuzzy-matches the string against the whole file list → 137 items |
+| `files`, live + a kept fuzzy pattern | search `conf`, pattern `lua$` | fd returns 6, the matcher filters to 1 — both queries applied |
+
+### Per-picker verdict
+
+Ten built-in sources set `supports_live` (`picker/config/sources.lua`):
+`explorer`, `files`, `gh_issue`, `gh_pr`, `git_grep`, `git_log`, `grep`,
+`grep_buffers`, `grep_word`, `lsp_workspace_symbols`. Note it is
+`lsp_workspace_symbols`, **not** `lsp_symbols` — TODO #6 named the wrong one,
+and the distinction is right: document symbols are a fixed list.
+
+| our picker | source | live? | `<c-g>` verdict |
+|---|---|---|---|
+| `<leader>sg` | `grep` | live by default | already used — toggle to fuzzy-refine an rg result set |
+| `<leader>sf` | `files` | fuzzy by default | **the find.** `<c-g>` makes the prompt an `fd` regex over the path and unlocks ` -- ` args (`-e lua`, `-g '*.go'`, `--changed-within 1d`). Fuzzy can *approximate* "only `.lua`" (`lua$`); only live can *ask* for it |
+| `<leader>ss` | custom (`pickers/symbols.lua`) | live by default | already live + `supports_live` since the migration; freezes the LSP result set for fuzzy refinement |
+| `<leader>sd` | `lsp_symbols` | n/a | fixed list — the LSP request doesn't depend on the query. Correctly has no `supports_live` |
+| `<leader>sb` / `<leader>s/` | `lines` | n/a | fixed list (the buffer's lines) |
+| `<leader>sm`, `<leader>bb`, `<leader>st`, `<leader>sk`, Go targets | custom `pickers/*.lua` | n/a | all static finders — the item set doesn't depend on the prompt, so a re-query would return the same list. **None should set `supports_live`** |
+
+Unbound built-ins that do support live (`git_grep`, `git_log`, `grep_buffers`,
+`grep_word`, `gh_*`, `explorer`) are a separate question — whether to bind
+those pickers at all, not whether to give them live mode. Not pursued here.
+
 <a id="post-migration-todo"></a>
 ## Post-migration TODO
 
 Deferred follow-ups from the migration (decided during implementation review,
 2026-07):
 
-1. **Reconsider switching to the snacks `explorer`** — the evaluation is
-   *done* (see [§6](#explorer-eval)), but the question stays open. Verdict:
-   **keep nvim-tree for now.** Not because the migration is expensive — it's
-   the opposite, it deletes two plugins and shrinks the config
-   ([§6.2](#explorer-cost)) — but because a snacks sidebar is floating windows
-   that `<C-h>`/`<C-l>` can't reach, and it has no open-buffer / modified-file
-   highlighting. Two things would flip it: a focus key that doesn't feel worse
-   than `<C-h>`, or snacks gaining those highlights. To settle it cheaply, bind
-   `Snacks.explorer()` to a spare key (snacks is already loaded, zero plumbing
-   touched) and run both side by side for a week. nvim-tree config is untouched
-   meanwhile.
+1. **~~Reconsider switching to the snacks `explorer`~~ — CLOSED (2026-07-14):
+   keep nvim-tree.** The evaluation ([§6](#explorer-eval)) found the migration
+   *cheap* — it deletes two plugins and shrinks the config
+   ([§6.2](#explorer-cost)) — and declined it anyway, on ergonomics: a snacks
+   sidebar is floating windows that `<C-h>`/`<C-l>` can't reach, and it has no
+   open-buffer / modified-file highlighting. Those are daily-driver
+   regressions, and no amount of config removes them. Decided rather than left
+   open; the side-by-side week wasn't worth spending to re-derive a verdict
+   §6 already reached. Revisit only if snacks ships those highlights or a
+   focus key that beats `<C-h>` — reopen this item then.
 2. **Review snacks' default picker keymaps for inspiration** — the migration
    preserved our keymap vocabulary; snacks ships bindings we don't surface
    (`<a-f>` follow, `<c-r>`-register inserts, `<s-cr>` pick-window, layout
@@ -1551,15 +1606,14 @@ Deferred follow-ups from the migration (decided during implementation review,
    in one list) — tentative `<leader><leader>`, key TBD. Note the conflict:
    `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
    Keymap index), so either pick another key or decide `smart` supersedes it.
-4. **Visual side-by-side of `<leader>sm` against the old telescope look** —
-   three review rounds already landed (status glyph columns + `syntax` diff
-   style; header-stripped `nowrap` preview; real file line numbers in the
-   preview gutter, derived from hunk headers — something telescope never
-   had) and it now reads "much better", but the direct comparison is still
-   owed. Recipe: screenshot the old look from a pre-migration commit
-   (`git stash && git checkout f0ba3e1`, open `<leader>sm`, screenshot,
-   `git checkout main && git stash pop`), then paste both screenshots into
-   a Claude session to diff the remaining details.
+4. **~~Visual side-by-side of `<leader>sm` against the old telescope look~~ —
+   CLOSED (2026-07-14): the picker is good, the comparison isn't owed.** Three
+   review rounds landed (status glyph columns + `syntax` diff style;
+   header-stripped `nowrap` preview; real file line numbers in the preview
+   gutter, derived from hunk headers — something telescope never had) and it
+   reads better than what it replaced. The screenshot diff was only ever a
+   check for regressions nobody has felt in daily use, so it's dropped rather
+   than deferred.
 5. **Look into re-orienting some pickers** — ✅ **done (2026-07).** Every
    picker was compared against the pre-migration telescope screenshots
    (`sf`/`sb`/`sd`/`sm`). Outcome: `sf`/`sg`/`sm`/`sd`/`ss` already matched
@@ -1581,17 +1635,18 @@ Deferred follow-ups from the migration (decided during implementation review,
    itself). The `lines` preview pane is free either way — snacks previews
    a loaded `item.buf` by pointing the preview window at it (no re-read,
    no new treesitter parse).
-6. **Set up `<C-g>` (live mode) on more pickers** — we only ever think of
-   `<c-g>` as the grep live/fuzzy toggle, but it's a *generic* picker action:
-   snacks binds it to `toggle_live` in the picker input
-   (`picker/config/defaults.lua`), and any source can opt in by setting
-   `supports_live`. Ten built-ins already do: `explorer`, `files`, `gh_issue`,
-   `gh_pr`, `git_grep`, `git_log`, `grep`, `grep_buffers`, `grep_word`,
-   `lsp_symbols` (`picker/config/sources.lua`). Worth auditing where else it
-   pays — notably **`files`** (`<leader>sf`, so `<c-g>` flips between fuzzy
-   matching the file list and driving `fd` live) and **`lsp_symbols`**
-   (`<leader>ss`) — and whether our custom `pickers/*.lua` finders could set
-   `supports_live` themselves.
+6. **~~Set up `<C-g>` (live mode) on more pickers~~ — AUDITED (2026-07-14).
+   One picker gains something (`<leader>sf`), it already works, and the fix
+   was documentation.** See [§8](#live-mode-audit) for the mechanism and the
+   per-picker table. Summary: `<c-g>` (`toggle_live`) is a generic action any
+   source opts into with `supports_live`, and of the ten built-ins that set it
+   we bind exactly two — `grep` (live by default) and `files` (fuzzy by
+   default, and the one real find: `<c-g>` there turns the prompt into an `fd`
+   query, which is the *only* way to reach the ` -- <fd args>` passthrough).
+   `<leader>ss` was already live+`supports_live` from the migration.
+   Everything else we bind is a fixed list with nothing to re-query, so no
+   custom picker should set `supports_live`. No config change; GUIDE.md's
+   live-vs-fuzzy note now covers `<leader>sf` and the ` -- `-is-live-only rule.
 7. **~~Profile the sluggish picker scroll~~ — CLOSED (2026-07-14). The answer
    was `<C-d>`/`<C-u>`, and no code changed.** Holding `<C-j>` felt slower than
    telescope did, so this went hunting for the expensive thing. Three suspects,
@@ -1674,6 +1729,16 @@ firsthand, 2026-07-13, and distinct from the previewer read above:
 - fzf-lua: <https://github.com/ibhagwan/fzf-lua> (LSP source:
   `lua/fzf-lua/providers/lsp.lua`)
 - snacks.picker LSP source: `lua/snacks/picker/source/lsp.lua`
+
+Live-mode audit ([§8](#live-mode-audit)) — read firsthand, 2026-07-14:
+
+- snacks: `picker/core/input.lua` (the `search` vs `pattern` split — `:36`,
+  `:83-91`, `:133`, `:197`), `picker/actions.lua:745` (`toggle_live`),
+  `picker/config/defaults.lua:250` (`<c-g>`), `picker/config/sources.lua`
+  (which sources set `supports_live` / `live`), `picker/source/files.lua`
+  (`get_cmd` → `util.parse(filter.search)` — why ` -- ` is live-only)
+- our side: `lua/picker.lua` (sources), `lua/keymaps.lua` (`<leader>s*`),
+  `lua/pickers/symbols.lua` (already `live` + `supports_live`)
 
 Explorer eval ([§6](#explorer-eval)):
 
