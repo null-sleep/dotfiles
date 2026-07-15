@@ -48,6 +48,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Testing (neotest)](#testing)
   - [Rust (rustaceanvim)](#rust)
   - [Go (delve + neotest)](#go)
+  - [Animations](#animations)
   - [Neovide](#neovide)
 
 
@@ -100,6 +101,11 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
+- **`animations.lua`** — Terminal-only Neovide-style animation (gated by
+  `if vim.g.neovide then return end` — the inverse of `neovide.lua`'s guard,
+  since Neovide already animates natively): smear-cursor.nvim (animated
+  cursor trail, `:SmearCursorToggle`) and cinnamon.nvim (`keymaps.basic`
+  animates existing scroll/jump motions)
 - **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, window-edge padding (4px sides / 4px bottom, matching iTerm2's pane margins), plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
 
 ### Plugin loading pattern
@@ -118,7 +124,8 @@ this file after updating plugins to keep versions consistent across machines.
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
 outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
-git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree -> neovide.
+git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree ->
+animations -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
@@ -2642,6 +2649,36 @@ to local mode. neotest injects `program`, `args`, and `cwd` itself.
   very stdout-interleaving mode gotestsum exists to avoid. One restart fixes it
   permanently.
 
+
+## Animations
+
+Neovide-style smooth cursor/scroll animation for terminal nvim. A terminal
+(Ghostty included) has no concept of partial scrolling — it only redraws
+cells from ANSI escapes — so this can't be done at the terminal layer; both
+plugins animate by redrawing real text/extmarks in nvim itself. Setup lives
+in `animations.lua`, gated by `if vim.g.neovide then return end` — the
+inverse of `neovide.lua`'s guard, since Neovide already animates natively
+(see [Neovide](#neovide) below) and running both would double-animate.
+
+- **smear-cursor.nvim** — animated/smeared cursor trail, defaults only.
+  `smear_terminal_mode` defaults `false`, so toggleterm/sidekick terminal
+  buffers are already excluded. `:SmearCursorToggle` disables/re-enables it.
+- **cinnamon.nvim** — animates cursor + window movement (`mode = "cursor"`,
+  the default) for the keys below. `keymaps.basic = true`; `keymaps.extra`
+  (which would also animate raw `h`/`j`/`k`/`l`) is left off — remapping
+  basic motion keys is a bigger behavior change than "add animation" alone.
+
+| Keymap | Action |
+|---|---|
+| `<C-u>` / `<C-d>` | Animated half-window scroll |
+| `<C-b>` / `<C-f>`, `<PageUp>` / `<PageDown>` | Animated page scroll |
+| `{` / `}` | Animated paragraph jump |
+| `n` / `N` / `*` / `#` / `g*` / `g#` | Animated search-result jump |
+| `<C-o>` / `<C-i>` | Animated jumplist navigation |
+
+These are existing native motions re-bound to animated versions, not new
+keys — per the keymap ownership rule, they're documented here only, not in
+the Keymap index.
 
 ## Neovide
 
