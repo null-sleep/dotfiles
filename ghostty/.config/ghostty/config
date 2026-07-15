@@ -38,6 +38,15 @@ quit-after-last-window-closed = true
 # Shift+Enter sends a literal newline — multi-line input in Claude Code / REPLs.
 keybind = shift+enter=text:\n
 
+# macos-option-as-alt above (needed for nvim's <M-...> maps) has a side effect:
+# Ghostty ignores the Alt modifier specifically on arrow keys, so Option+Left/
+# Right stopped doing shell word-jump (it worked in iTerm2's "Option Key Sends
+# = Esc+" preset, which special-cased arrows). Re-declare it explicitly: esc:b
+# / esc:f reproduce zsh's default emacs-mode backward-word/forward-word
+# escapes (`\eb`/`\ef` — zsh here never switches to vi mode, see zsh/.zshrc*).
+keybind = alt+left=esc:b
+keybind = alt+right=esc:f
+
 # Deliberately NOT ported: splits, pane navigation, tab switching, natural-text-
 # editing bindings. The iTerm2 export contains ZERO custom bindings for any of
 # them — Ghostty's macOS defaults (Cmd+D, Cmd+Shift+D, Cmd+[ / Cmd+], Cmd+T,
