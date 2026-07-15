@@ -1,5 +1,11 @@
 # Plan: Migrate iTerm2 → Ghostty (incremental)
 
+> **Status (2026-07-15): fully cut over.** The incremental rollout below
+> played out as planned, Ghostty earned the fallback's removal, and the
+> deferred final cutover (see that section) has now happened — iTerm2 is
+> uninstalled and every reference to it in this repo is gone. The plan is kept
+> verbatim below as the decision record.
+
 ## Context
 
 The repo runs **iTerm2** (primary) + **nvim** on macOS, plus a **kitty** package
@@ -417,7 +423,7 @@ was rejected and why.
     not a Brewfile line**, unless the `mermaid-cli` formula is used instead.
   - `magick` (ImageMagick) for **everything else** — svg, pdf, non-PNG rasters,
     LaTeX/typst math (`snacks/image/init.lua:128-133`). Missing it is a health
-    **ERROR**, not a warning (`init.lua:313-314`), and it is currently in neither
+    **ERROR**, not a warning (`init.lua:325-314`), and it is currently in neither
     the Brewfile nor on this machine. Add `brew "imagemagick"` in the follow-on,
     or accept that only PNG-producing paths (including mermaid) work.
 
@@ -508,19 +514,32 @@ Notes:
 
 ## Deferred — the final iTerm2 cutover
 
-**Not scheduled.** Both terminals run side by side until Ghostty has earned it.
-When it happens, the surface is small and already mapped:
+**Done (2026-07-15).** Ghostty had earned it — the full surface mapped below
+was executed in one pass: `antigen bundle iterm2` dropped from
+`zsh/.zshrc_config.zsh:35`, the stale `(iTerm2)` title comment and the
+`.itermcolors`-profile comment fixed (comment-only, `_set_term_title()` was
+always generic OSC 1/2), `zsh/.local/bin/theme`'s header/help/inline comments
+de-iTerm2-ified, `README.md`'s `## iTerm2` section and the `### One-time
+iTerm2 setup` theme heading removed, `CLAUDE.md`'s `iterm2/` stow-exception
+note dropped, the commented `# cask "iterm2"` Brewfile line removed, the
+`iterm2/` directory (`.itermexport` blob + `.itermcolors` presets) deleted,
+[iterm2-sessions-profiles.md](iterm2-sessions-profiles.md) deleted (moot —
+it was entirely about improving iTerm2's own sync), and **iTerm2.app
+uninstalled from the machine**. iTerm2 is no longer installed, referenced, or
+supported by this repo.
 
-- `zsh/.zshrc_config.zsh:35` — drop `antigen bundle iterm2` (dead weight under
-  Ghostty; **keep it while iTerm2 is still in use**).
-- `zsh/.zshrc_config.zsh:98` — the `(iTerm2)` comment on the title machinery is
+Surface that was mapped and executed:
+
+- `zsh/.zshrc_config.zsh:35` — drop `antigen bundle iterm2`.
+- `zsh/.zshrc_config.zsh:98` — the `(iTerm2)` comment on the title machinery was
   already inaccurate: `_set_term_title()` writes **generic OSC 1/2**, which
-  Ghostty honors. Comment-only fix; no logic change.
-- `zsh/.local/bin/theme:2`, `:39-52`, `:79` — header/help comments name iTerm2
-  explicitly. Comment-only; the script's logic is terminal-agnostic already.
+  Ghostty honors.
+- `zsh/.local/bin/theme:2`, `:39-52`, `:79` — header/help comments named iTerm2
+  explicitly; the script's logic was terminal-agnostic already.
 - `README.md` — the iTerm2 section and the `### One-time iTerm2 setup` theme
   heading.
-- Decide the fate of `iterm2/` (the `.itermexport` blob + `.itermcolors` presets).
+- The fate of `iterm2/` (the `.itermexport` blob + `.itermcolors` presets):
+  **deleted**, not archived — nothing in the repo reads it anymore.
 
 ## Open items
 

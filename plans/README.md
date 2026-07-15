@@ -11,18 +11,16 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Decide the iTerm2 sync approach** — keep the opaque state-export blob
-  or migrate to git-diffable Dynamic Profiles. See the "what to do next" box
-  at the top of [iterm2-sessions-profiles.md](iterm2-sessions-profiles.md).
 - [ ] **Confirm all machines have migrated**, then delete
   [review-remediation-migration.md](review-remediation-migration.md) (it's a
   one-time checklist that says to delete itself once every machine has pulled +
   migrated).
 - [x] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
   that follows macOS light/dark on its own. See [ghostty.md](ghostty.md).
-  *(Shipped 2026-07 — Ghostty is the primary terminal, iTerm2 stays installed as
-  the fallback, and the dead `kitty` package is removed. Both flagged risks came
-  out clean: `Catppuccin Latte` and `Dracula` are Title-Case built-ins.)*
+  *(Shipped 2026-07 — Ghostty is the primary terminal, the dead `kitty` package
+  is removed, and (2026-07-15) iTerm2 itself is fully cut over: uninstalled and
+  every reference to it removed from the repo. Both flagged risks came out
+  clean: `Catppuccin Latte` and `Dracula` are Title-Case built-ins.)*
 - [ ] **Render images + mermaid diagrams in nvim under Ghostty** — [ghostty.md](ghostty.md)
   §6. **PARKED (2026-07-15):** the render pipeline works (native-Rust `mmdr` via
   an `mmdc` shim — no Chromium — gate + `SNACKS_GHOSTTY` + imagemagick all built
@@ -114,8 +112,6 @@ Grouped by state, not priority.
   inject LSP/treesitter type context into Copilot's `didChange` for better ghost text.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
-- [iterm2-sessions-profiles.md](iterm2-sessions-profiles.md) — migrate the
-  opaque iTerm2 state export to a git-diffable Dynamic Profile JSON.
 - [sidekick-window-layout.md](sidekick-window-layout.md) — try the sidekick CLI
   as a right-anchored float overlay vs. the current split; runtime toggle.
 - [terminal-fresh-splits.md](terminal-fresh-splits.md) — decouple fresh-spawn
@@ -147,9 +143,10 @@ Grouped by state, not priority.
   `outputMode = 'remote'` requirement are explained, and it carries the one
   outstanding verification (the `-test.run` state-leak check).
 - [ghostty.md](ghostty.md) — **shipped** (2026-07): Ghostty is the primary
-  terminal (iTerm2 kept as the fallback), and the dead `kitty` package is gone.
-  Kept as the decision record — it carries the iTerm2-export audit that proves
-  there was nothing to port but `shift+enter`, the correction that Ghostty does
+  terminal, the dead `kitty` package is gone, and (2026-07-15) iTerm2 is fully
+  cut over — uninstalled, `iterm2/` deleted, every reference removed. Kept as
+  the decision record — it carries the iTerm2-export audit that proves there
+  was nothing to port but `shift+enter`, the correction that Ghostty does
   **not** unlock neogit's `kitty` graph style (that's a font dependency), and the
   two still-open items: the lost status bar and `ApplePressAndHoldEnabled`. Its
   **§6 inline-images/mermaid follow-on is still unbuilt** — see the TODO above.

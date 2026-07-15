@@ -99,9 +99,8 @@ brew "delphinus/sfmono-square/sfmono-square"  # formula: symlink its .otf into
 #-----------------------------------------------------------------------------
 # GUI apps
 #-----------------------------------------------------------------------------
-cask "ghostty"         # primary terminal; GPU-accelerated and native to macOS.
-                       # Config in ghostty/ (then `stow ghostty`). iTerm2 stays
-                       # installed as the fallback — see the commented block below.
+cask "ghostty"         # terminal; GPU-accelerated and native to macOS.
+                       # Config in ghostty/ (then `stow ghostty`).
 cask "neovide-app"     # Neovim GUI
 cask "typora"          # markdown editor (`typora` shell alias)
 cask "signal"
@@ -125,7 +124,6 @@ brew "docker"
 # Optional / situational — uncomment per machine as needed. The configs for
 # these live in the repo and are stowed only if you opt in (see Setup).
 #-----------------------------------------------------------------------------
-# cask "iterm2"        # fallback terminal (if not already installed); profiles imported in iterm2/
 # brew "zellij"        # terminal multiplexer; config in zellij/     (then `stow zellij`)
 # brew "tmux"          # required by claude-squad
 # brew "claude-squad"  # `cs` AI session manager — plain core formula, no tap (see Claude Squad section)

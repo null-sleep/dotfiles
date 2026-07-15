@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# theme — switch iTerm2, Claude Code, and Neovim between a predefined dark and
-# light theme in one shot. See README → "Unified theme switching".
+# theme — switch Claude Code and Neovim between a predefined dark and light
+# theme in one shot (macOS/Ghostty follow natively). See README →
+# "Unified theme switching".
 #
 # THE PAIR (edit the LIGHT/DARK arrays below to change it)
 #   light → Claude catppuccin-latte · nvim catppuccin-latte · macOS light
@@ -40,16 +41,10 @@
 #   macOS  : osascript sets the system appearance (Dark/Light). This is the hinge
 #            the whole design turns on — everything else either follows it or is
 #            switched alongside it.
-#   iTerm2 : NOT touched by this script at all. iTerm2 (3.4+) natively follows the
-#            macOS appearance: a single profile with "Use separate colors for light
-#            and dark mode" enabled stores two color sets (normal + "...(Dark)")
-#            and iTerm swaps between them itself the instant macOS flips. We point
-#            the light set at the Latte preset and the dark set at Dracula, so
-#            every window — new AND already-open — recolors for free. No escape
-#            codes, no tty enumeration, no daemon. See the README for the one-time
-#            profile setup. (This replaced an earlier approach that wrote the
-#            SetProfile escape code to each session's tty and could not affect
-#            windows opened *after* the switch — iTerm's native feature does.)
+#   Ghostty: NOT touched by this script at all. Its `theme = light:…,dark:…`
+#            config line makes it track the macOS appearance natively,
+#            recoloring every window — new AND already-open — for free. No
+#            escape codes, no tty enumeration, no daemon.
 #   Claude : ~/.claude/themes/active.json is overwritten with the chosen palette.
 #            Claude hot-reloads theme *files* (but NOT the "theme" setting), so
 #            settings.json pins a fixed slug ("theme": "custom:active") and we just
@@ -76,8 +71,8 @@ usage() { echo "usage: theme [dark|light|auto|toggle|follow|watch|status]" >&2; 
 
 help() {
   cat <<'EOF'
-theme — switch iTerm2, Claude Code, and Neovim between a dark and light theme
-in one shot.
+theme — switch Claude Code and Neovim between a dark and light theme in one
+shot (macOS/Ghostty follow natively).
 
 USAGE
   theme [command]
@@ -106,7 +101,7 @@ MODES
                 then re-enable native macOS Auto so it keeps flipping at
                 sunset/sunrise. Claude+nvim follow via the `watch` LaunchAgent.
 
-See README → "Unified theme switching" for the one-time iTerm2/LaunchAgent setup.
+See README → "Unified theme switching" for the LaunchAgent setup.
 EOF
   exit 0
 }
@@ -168,7 +163,7 @@ apply_mode() {
     claude_slug="${LIGHT[0]}"; nvim_variant="${LIGHT[1]}"; macos_dark="${LIGHT[2]}"
   fi
 
-  # 1) macOS appearance — iTerm2 and other appearance-aware apps follow it. Pinning
+  # 1) macOS appearance — Ghostty and other appearance-aware apps follow it. Pinning
   # disables Auto first (osascript only sets the live value; it leaves the Auto
   # schedule armed, which would later re-flip and undo the pin), then sets the
   # fixed Light/Dark value.
@@ -219,7 +214,7 @@ case "$mode" in
     # (or a System Settings → Auto click). So we read what Auto *would* show now
     # from the same sun schedule (macos_scheduled_mode; fall back to the current
     # appearance if it's unreadable) and apply it everywhere with pin=1 — painting
-    # macOS, iTerm, Claude, and nvim to the schedule-correct theme immediately.
+    # macOS, Ghostty, Claude, and nvim to the schedule-correct theme immediately.
     # Then we flip the Auto flag back on. Because the live appearance now already
     # matches the schedule, the next evaluation is a no-op rather than a jarring flip.
     sched="$(macos_scheduled_mode)"; [ -n "$sched" ] || sched="$(macos_appearance_fast)"

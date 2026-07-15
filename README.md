@@ -24,7 +24,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Typora](#typora)
 
 *Terminals & multiplexing*
-- [Ghostty](#ghostty) · [iTerm2](#iterm2) · [Zellij](#zellij)
+- [Ghostty](#ghostty) · [Zellij](#zellij)
 
 *Shell*
 - [ZSH](#zsh) — [zoxide](#directory-jumping-zoxide) · [troubleshooting antigen](#troubleshooting-antigen)
@@ -50,7 +50,7 @@ section below; the rest of this README is reference material for individual tool
    ```bash
    mkdir -p ~/src && git clone https://github.com/null-sleep/dotfiles.git ~/src/dotfiles
    ```
-4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools like iTerm2 are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
+4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
@@ -59,13 +59,12 @@ section below; the rest of this README is reference material for individual tool
 
 ## Fonts
 
-Install these **first** — they are prerequisites for the terminals (Ghostty,
-iTerm2) and editors (nvim, Neovide) configured here. Without a Nerd Font, icons
-and glyphs render as tofu boxes (▯), and iTerm2 won't render the exported
-profiles correctly.
+Install these **first** — they are prerequisites for the terminal (Ghostty)
+and editors (nvim, Neovide) configured here. Without a Nerd Font, icons
+and glyphs render as tofu boxes (▯).
 
 ```bash
-# Hack Nerd Font (used by Ghostty, iTerm2, nvim, Neovide for icons and glyphs)
+# Hack Nerd Font (used by Ghostty, nvim, Neovide for icons and glyphs)
 brew install font-hack-nerd-font
 
 # SF Mono Square (SF Mono patched with Nerd Font glyphs and square CJK characters)
@@ -393,9 +392,9 @@ For the skill only, skip the `setup-theme.sh` step — `git pull`,
 
 One command flips **Claude Code, Neovim, and the macOS system appearance**
 between a predefined dark and light theme at once — live, no restarts. **The
-terminals aren't driven by the script at all**: both Ghostty and iTerm2 follow
-the macOS appearance natively (see below), so flipping the system appearance
-recolors every window — new *and* existing.
+terminal isn't driven by the script at all**: Ghostty follows the macOS
+appearance natively (see below), so flipping the system appearance recolors
+every window — new *and* existing.
 
 ```bash
 theme            # toggle dark/light (pins, like dark/light below)
@@ -434,48 +433,16 @@ The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 
 Ghostty's config carries the light/dark pair in one line —
 `theme = light:Catppuccin Latte,dark:Dracula` — so `stow ghostty` is the entire
-setup. It recolors all windows the moment macOS switches. Same hinge as iTerm2
-below, minus the settings panes.
-
-<a id="one-time-iterm2-setup-single-profile-follows-macos"></a>
-### One-time iTerm2 setup (single profile, follows macOS)
-
-**iTerm2 follows macOS appearance natively** — no script, daemon, or escape
-codes involved. Since 3.4, a profile can store *two* color sets and iTerm swaps
-between them the instant the system switches between Light and Dark mode. We lean
-entirely on that: the `theme` command only flips the macOS appearance (step 1
-below in [How each tool switches live](#how-each-tool-switches-live)), and iTerm
-recolors **every window, new and already-open, by itself**.
-
-So instead of two separate profiles, one profile carries **separate colors for
-light and dark mode**. In **Settings → Profiles → Colors** for your default
-profile:
-
-1. Enable **"Use separate colors for light and dark mode"** (stored as the
-   `Use Separate Colors for Light and Dark Mode` profile key).
-2. With the **Light** mode tab selected: **Color Presets → Import** →
-   `iterm2/catppuccin-latte.itermcolors`, then select it.
-3. With the **Dark** mode tab selected: **Color Presets → Import** →
-   `iterm2/Dracula.itermcolors`, then select it.
-4. Make sure this profile is the default (**Other Actions → Set as Default**).
-
-A second `Default Dark`/`Default Light` profile is then redundant. After this,
-iTerm needs nothing from the `theme` script — it follows `macOS` directly.
+setup. It recolors all windows the moment macOS switches.
 
 ### How each tool switches live
 
 - **macOS** — `osascript` sets the system appearance. This is the hinge the
-  whole design turns on; everything else either follows it (Ghostty, iTerm2) or
-  is switched alongside it (Claude, nvim).
+  whole design turns on; everything else either follows it (Ghostty) or is
+  switched alongside it (Claude, nvim).
 - **Ghostty** — not driven by the script. Its `theme = light:…,dark:…` config
   line (see [Ghostty](#ghostty)) makes it track the macOS appearance natively,
   recoloring every window including ones opened after the switch.
-- **iTerm2** — not driven by the script. Its native per-profile "separate colors
-  for light and dark mode" (see [setup above](#one-time-iterm2-setup-single-profile-follows-macos))
-  reacts to the macOS appearance change on its own, recoloring all windows
-  including ones opened *after* the switch. (An earlier version wrote the
-  `SetProfile` escape code to each open session's tty — that couldn't reach
-  windows that didn't exist yet, which is exactly what the native feature fixes.)
 - **Claude Code** — Claude hot-reloads theme *files* but not the `theme`
   *setting*, so `settings.json` pins the fixed slug `custom:active` and the
   script overwrites `~/.claude/themes/active.json` with the chosen palette.
@@ -496,7 +463,7 @@ control System Events (to set the appearance) — grant it.
 `theme dark|light` *pin* a fixed appearance. `theme auto` (or **System Settings →
 Appearance → Auto**) hands control back to macOS, which then flips its appearance
 **on its own** — dark at sunset, light at sunrise — or via a Control Center
-toggle. iTerm2 follows those native flips automatically, but nothing would tell
+toggle. Ghostty follows those native flips automatically, but nothing would tell
 Claude or nvim. The **theme-follow LaunchAgent** closes that gap: it keeps `theme
 watch` running, which polls the macOS appearance and runs `theme follow` on every
 flip — so Claude + nvim track macOS no matter *who* changed it. This is what makes
@@ -515,7 +482,7 @@ other app's plist would then land in your dotfiles. `--no-folding` makes stow
 create the real directory and link only the plist file.
 
 After this the whole chain is automatic: macOS flips (on a schedule or by hand)
-→ iTerm2 recolors natively, and the follower repaints Claude + nvim to match.
+→ Ghostty recolors natively, and the follower repaints Claude + nvim to match.
 
 - **No Automation prompt, no loop.** `watch`/`follow` read the appearance with
   `defaults read -g AppleInterfaceStyle` (not `osascript`), so the agent runs
@@ -737,10 +704,9 @@ cd ~/src/dotfiles
 stow ghostty
 ```
 
-Settings are ported from the iTerm2 profile: **Hack Nerd Font Mono 14pt**, a
-125×25 window, and a blinking bar cursor. Option is sent as Meta on **both** the
-left and right keys, so nvim's `<M-...>` mappings work (the iTerm2 "Option-as-Meta"
-setup below, but in the config file rather than a settings pane).
+Settings: **Hack Nerd Font Mono 14pt**, a 125×25 window, and a blinking bar
+cursor. Option is sent as Meta on **both** the left and right keys, so nvim's
+`<M-...>` mappings work.
 
 **The theme follows macOS on its own.** One line does it —
 
@@ -748,10 +714,10 @@ setup below, but in the config file rather than a settings pane).
 theme = light:Catppuccin Latte,dark:Dracula
 ```
 
-— which is the same trick the iTerm2 profile uses (see [Unified theme
-switching](#unified-theme-switching)): the `theme` script only flips the macOS
-appearance, and Ghostty recolors every window, new and already-open, by itself.
-Both themes are Ghostty built-ins; nothing is vendored into this repo.
+— see [Unified theme switching](#unified-theme-switching): the `theme` script
+only flips the macOS appearance, and Ghostty recolors every window, new and
+already-open, by itself. Both themes are Ghostty built-ins; nothing is
+vendored into this repo.
 
 **Gotcha — stale app-support config shadows the stowed one.** If Ghostty ignores
 `~/.config/ghostty/config` and shows the wrong theme, check for a legacy file at
@@ -760,8 +726,8 @@ and reload (`Cmd+Shift+,`).
 
 ### Keymaps
 
-These are Ghostty's **macOS defaults** — they match the iTerm2 shortcuts already
-in muscle memory, so the config sets **no keybinds for any of them**.
+These are Ghostty's **macOS defaults**, so the config sets **no keybinds for
+any of them**.
 
 | Shortcut | Action |
 |---|---|
@@ -776,8 +742,7 @@ in muscle memory, so the config sets **no keybinds for any of them**.
 | `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab |
 
 The config adds exactly **one** binding — `Shift+Enter`, which sends a literal
-newline for multi-line input in Claude Code and REPLs. It was the only custom
-keybinding in the entire iTerm2 export.
+newline for multi-line input in Claude Code and REPLs.
 
 ### Commands
 
@@ -786,73 +751,6 @@ keybinding in the entire iTerm2 export.
 | `ghostty +list-themes` | Browse the built-in themes |
 | `ghostty +show-config` | Print the merged config — use it to check for parse errors |
 | `ghostty +show-config --default` | Print every setting's default value |
-
-## iTerm2
-
-Kept as the **fallback terminal**, installed and working side by side with
-[Ghostty](#ghostty). Nothing in this section is required to bootstrap a machine
-any more, but it all still works.
-
-### Setup
-
-Color themes (Dracula, Nord, Catppuccin Latte) and an exported settings snapshot are stored in `iterm2/`.
-
-Settings sync via the tracked export, `iterm2/iTerm2 State.itermexport` — a
-deliberate snapshot, not live folder-sync (which would rewrite an untracked
-plist on every quit and keep the repo perpetually dirty; that plist is
-gitignored as a guard):
-
-- **Export (after deliberately changing settings):** iTerm2 → Settings →
-  General → Settings → **"Export All Settings & Data"**, save over
-  `iterm2/iTerm2 State.itermexport`, commit.
-- **Import (new machine):** same pane → **"Import All Settings & Data"**,
-  pick the file from the cloned repo. Restart iTerm2.
-
-To import color themes manually: **iTerm2 → Settings → Profiles → Colors → Color Presets → Import** and select the `.itermcolors` files.
-
-On a new machine, also run from the **iTerm2** app menu:
-
-- **iTerm2 → Make iTerm2 Default Term** — makes iTerm2 the default terminal app.
-- **iTerm2 → Install Shell Integration** — enables shell integration (command status, marks, `it2` utilities).
-
-### Option-as-Meta
-
-For nvim mappings using `<M-...>` (e.g. `<M-1>`..`<M-9>` to jump to a buffer row in the `<leader>m` buffer picker) to work, iTerm2 needs to send Option as Meta instead of typing special characters (`¡`, `™`, etc.):
-
-**iTerm2 → Settings → Profiles → Keys → General → Left Option key: `Esc+`**
-
-Set Right Option to `Esc+` too if you use it. Verify by pressing `Option+1` in nvim insert mode — it should do nothing (or show as `<M-1>` in `:map`) rather than insert `¡`.
-
-### Panes
-
-**Splitting:**
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+D` | Split vertically (side by side) |
-| `Cmd+Shift+D` | Split horizontally (top/bottom) |
-
-**Switching panes:**
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+[` / `Cmd+]` | Cycle through panes |
-| `Cmd+Option+Arrow` | Move to pane in that direction |
-
-**Tabs:**
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+T` | New tab |
-| `Cmd+W` | Close current pane/tab |
-| `Cmd+1-9` | Jump to tab by number |
-| `Cmd+Left/Right` | Previous/next tab |
-
-**Resizing panes:**
-
-| Shortcut | Action |
-|---|---|
-| `Cmd+Ctrl+Arrow` | Resize pane in that direction |
 
 ## Zellij
 
@@ -983,7 +881,7 @@ So the only per-machine step is `brew install zoxide` (included in the deps abov
 `nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. The script itself is just `exec nvim "$@"` — the routing lives in **flatten.nvim** inside the host editor:
 
 - **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): flatten.nvim intercepts the child nvim and opens the buffer in the parent instance, blocking for `gitcommit`/`gitrebase` buffers so git waits for the edit (see GUIDE.md → Design Decisions → "Nested nvim routes into the parent").
-- **Standalone terminal** (Ghostty, iTerm2, etc.): just a fresh `nvim` process.
+- **Standalone terminal** (Ghostty, etc.): just a fresh `nvim` process.
 
 This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR` caller automatically use your existing nvim session when you're working inside one.
 
@@ -1197,7 +1095,7 @@ New to ripgrep, or want to use it well? See the example-heavy guide at [`docs/ri
 brew install viu
 ```
 
-Terminal image viewer — no config, not a stow package. Renders images (PNG, JPEG, GIF, etc.) directly in terminals with graphics support, including Ghostty and iTerm2: `viu path/to/image.png`.
+Terminal image viewer — no config, not a stow package. Renders images (PNG, JPEG, GIF, etc.) directly in terminals with graphics support, including Ghostty: `viu path/to/image.png`.
 
 ## yknotify
 

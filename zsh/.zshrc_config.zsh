@@ -32,7 +32,6 @@ if [[ -f ~/.antigen/antigen.zsh ]]; then
   antigen bundle brew
   antigen bundle macos
   antigen bundle mise
-  antigen bundle iterm2
   antigen bundle docker
   antigen bundle podman
   antigen bundle kubectl
@@ -65,8 +64,8 @@ fi
 #   • git:   branch (or short SHA when detached) plus a ✗ when the worktree is
 #            dirty — staged, unstaged, OR untracked (matches robbyrussell)
 # Colours below are ANSI *names* (not RGB), so they follow the terminal's active
-# colour scheme (iTerm2 profile / .itermcolors) rather than being hardcoded —
-# switch themes and the prompt recolours. `command git` sidesteps the git
+# colour scheme rather than being hardcoded — switch themes and the prompt
+# recolours. `command git` sidesteps the git
 # aliases/functions defined later; %F{} escapes need no oh-my-zsh colour lib.
 #------------------------------------------------------------------------------
 setopt PROMPT_SUBST
@@ -95,7 +94,7 @@ _zsh_git_prompt() {
 PROMPT='%(?:%F{$PROMPT_COLOR_OK}➜:%F{$PROMPT_COLOR_ERR}➜)%f  %F{$PROMPT_COLOR_DIR}%c%f$(_zsh_git_prompt) '
 
 #------------------------------------------------------------------------------
-# Window/tab title (iTerm2) — defaults to the project name (git toplevel,
+# Window/tab title — defaults to the project name (git toplevel,
 # else cwd basename), manually overridable with `title <name>`; bare `title`
 # reverts to automatic. Mirrors nvim's own auto/override :Title (see
 # nvim/.config/nvim/lua/titling.lua) so shell and editor titles agree — nvim
@@ -197,7 +196,7 @@ if [[ "$TERM_PROGRAM" == "vscode" ]]; then
         export KUBE_EDITOR="code -w"
     fi
 else
-    # Default to nvim for all other terminals (GoLand, iTerm, etc.).
+    # Default to nvim for all other terminals (GoLand, Ghostty, etc.).
     # nvim-editor is a plain `exec nvim "$@"` shim — the reuse-the-parent
     # behavior lives in flatten.nvim inside the HOST nvim: when $EDITOR runs
     # in an nvim-owned terminal, flatten intercepts the child and opens the
