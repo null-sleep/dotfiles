@@ -38,6 +38,9 @@ vim.pack.add(vim.list_extend({
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
+  -- Terminal-only Neovide-style cursor/scroll animation; see animations.lua
+  { src = gh('sphamba/smear-cursor.nvim') },
+  { src = gh('declancm/cinnamon.nvim') },
   -- VS Code / GoLand-style "Peek": a scrollable floating window showing the real
   -- target file at a definition/reference, without moving the main window.
   -- (pcall-requires an optional logger.nvim; falls back to a bundled logger.)

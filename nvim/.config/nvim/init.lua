@@ -26,5 +26,6 @@ require('titling')
 require('whichkey')
 require('autosave')
 require('filetree')
+require('animations')
 require('neovide')
 
