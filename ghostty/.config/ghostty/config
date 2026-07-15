@@ -15,7 +15,7 @@ theme = light:Catppuccin Latte,dark:Dracula
 
 # Window — matches iTerm2 (125x25 cells).
 window-width = 125
-window-height = 25
+window-height = 30
 window-padding-x = 5
 window-padding-y = 5
 
@@ -28,7 +28,7 @@ cursor-style-blink = true
 macos-option-as-alt = true
 
 # iTerm2 had "Unlimited Scrollback". Ghostty has no unlimited — go large.
-scrollback-limit = 100000000
+scrollback-limit = 100000
 
 # iTerm2 had "Prompt Before Closing = No" and "Quit when all windows closed".
 confirm-close-surface = false

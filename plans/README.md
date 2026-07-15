@@ -23,14 +23,14 @@ off or delete them as they land; add new ones freely.
   *(Shipped 2026-07 — Ghostty is the primary terminal, iTerm2 stays installed as
   the fallback, and the dead `kitty` package is removed. Both flagged risks came
   out clean: `Catppuccin Latte` and `Dracula` are Title-Case built-ins.)*
-- [ ] **Render images + mermaid diagrams in nvim under Ghostty** —
-  [ghostty.md](ghostty.md) §6. No new plugin: `snacks.image` already does it, but
-  its doc path **fails open**, so it needs a frontend gate or it will spew
-  kitty-graphics escapes into iTerm2/Neovide. Gate + `image` config +
-  `imagemagick` are built and backend-agnostic. **Mermaid backend is the open
-  question:** official `mmdc` was rejected (pulls a ~1 GB headless Chromium);
-  prototyping the native-Rust **`mmdr`** via an `mmdc` shim (snacks hardcodes the
-  `mmdc` command). See §6 "Decision update" for the renderer comparison.
+- [ ] **Render images + mermaid diagrams in nvim under Ghostty** — [ghostty.md](ghostty.md)
+  §6. **PARKED (2026-07-15):** the render pipeline works (native-Rust `mmdr` via
+  an `mmdc` shim — no Chromium — gate + `SNACKS_GHOSTTY` + imagemagick all built
+  and installed), but inline images are **disabled** (`image.enabled = false`)
+  because terminal-graphics images only draw in the *focused* window, which blanks
+  the diagram whenever the Claude-in-a-split pane is focused. Resume = flip
+  `enabled` back on and decide if that split limitation is acceptable. See §6
+  "PARKED" for the full record + the flatten.nvim testing gotcha.
 - [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
   machine's saved sessions have quit at least once under the fix (self-healing
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in

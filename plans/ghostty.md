@@ -276,6 +276,20 @@ start. (`CLAUDE.md`'s stow list is already handled in §2.)
 Not part of the migration commits — a **separate change once Ghostty is the daily
 driver**. Recorded here because it is the strongest practical reason to switch.
 
+
+```mermaid
+flowchart TD
+    A[iTerm2 primary] --> B[Commit 1: add ghostty package]
+    B --> C[Commit 2: remove dead kitty]
+    C --> D{Daily-drive Ghostty}
+    D -->|status bar gap| E[branch in lualine]
+    D -->|inline diagrams| F{mermaid renderer?}
+    F -->|"mmdc (~1 GB Chromium)"| G[rejected]
+    F -->|"mmdr (~8 MB Rust)"| H[shim into snacks.image]
+    H --> I[this diagram renders]
+```
+
+
 **No new plugin needed.** `snacks.nvim` is already installed and its `image`
 module already renders mermaid natively: it shells out to `mmdc` and even themes
 the diagram to the current background (`snacks/image/init.lua:125`). It is simply
@@ -318,12 +332,67 @@ finding: render-markdown.nvim already renders LaTeX in markdown and its own
 Mermaid does **not** conflict — the two coexist (render-markdown styles the
 source block, snacks draws the diagram).
 
-**Status:** prototyping the `mmdr` shim to judge fidelity on real diagrams before
-committing. If mmdr's output is good enough, ship the whole pipeline; if not,
-mermaid degrades to plain text (graceful — snacks health-warns) until mmdr
-matures, while images/pdf/math still render. **Supersedes the `mmdc`-via-npm
-prerequisite below** — that bullet is left intact as the record of what was
-rejected and why.
+### ⏸️ PARKED (2026-07-15): pipeline works, inline UX unstable in this workflow
+
+Prototyped end to end. **Rendering works** — the `mmdr` shim produces good
+diagrams in both themes (Dracula dark + light), and the whole chain is fast
+(mmdr ~20 ms, magick ~0 ms; the perceived latency is snacks' own async
+scan/transmit, one-time and cached — *far* cheaper than mmdc's ~2–3 s Chromium
+cold start would have been). What's **not** good enough yet is how snacks draws
+the inline image in this specific daily setup, so image rendering is **disabled**
+(`image.enabled = false` in `picker.lua`) until the UX is solved. Everything
+below is kept so resuming is a one-line flip.
+
+**What's installed / committed (kept — do NOT undo when resuming):**
+- `zsh/.local/bin/mmdc` — the shim (stowed; `~/.local/bin` is ahead of homebrew
+  on PATH, so it shadows any real mmdc). Dormant while images are off.
+- `brew "mmdr"` (+ `tap "1jehuang/mmdr"`) and `brew "imagemagick"` in the Brewfile;
+  both installed on this machine.
+- `picker.lua`: `can_render_images()` gate, the `SNACKS_GHOSTTY=1` force-detect,
+  and `image = { enabled = false, math = { enabled = false }, doc = { conceal =
+  false } }`. **To resume: flip `enabled` back to `can_render_images()`.**
+
+**Verified working:** live-probed the running session — `enabled=true`,
+`term=ghostty`, `placeholders=true`, doc path in **inline** mode. The
+`SNACKS_GHOSTTY` fix is real and necessary: snacks' ghostty entry has no env
+fallback (`terminal.lua`), is found only by an async XTVERSION probe, and `env()`
+memoizes the result — lose that race and it caches `placeholders=false`, dropping
+the doc path to `float`/hover so diagrams show once then vanish. Forcing
+`SNACKS_GHOSTTY=1` from `GHOSTTY_RESOURCES_DIR` makes detection deterministic.
+
+**The blockers (why it's parked, in order of severity):**
+1. **Focused-window only — the real blocker.** Terminal-graphics images draw only
+   in the *current* window (snacks `placement.lua` hides them on `WinLeave`).
+   This setup runs **Claude Code in an nvim split beside the docs**, so focusing
+   the Claude pane blanks the diagram in the doc pane constantly. Inherent to the
+   kitty graphics protocol under nvim splits — not a config bug. Single-window
+   reading is stable; split-with-Claude is not.
+2. **conceal flicker (mitigated, unverified).** `doc.conceal` defaults to a
+   function that hides the image when the cursor is on its source lines (to edit
+   it); with `concealcursor=""` that reads as flicker while reading. Set
+   `doc.conceal = false` — believed to fix it but not yet confirmed on a clean
+   restart.
+3. **normal-mode crop vs insert-mode full height.** Observed the image clipped to
+   the ~10 source lines in normal mode but expanding to full height in insert
+   mode — the conceal show/hide cycle recomputing reserved virtual-line height.
+   Likely resolves once #2 (`conceal=false`) is loaded; unverified.
+
+**Testing gotcha that cost a lot of time — read before resuming.** This Claude
+session runs *inside* nvim, so `flatten.nvim` routes any `nvim` launched from a
+shell here into the **already-running** instance, which never re-reads its
+config. Every "restart to test" silently reused the pre-fix instance. **Test in a
+fresh Ghostty tab (`⌘T`, a plain shell not spawned by nvim), or quit the hosting
+nvim entirely** — otherwise the config change under test never actually loads.
+
+**Resume plan:** (1) flip `image.enabled` back on; (2) in a *fresh* Ghostty tab,
+confirm `conceal=false` kills the flicker and the crop in a single window; (3)
+decide whether the focused-window-only limitation is acceptable given the
+Claude-in-split workflow — if not, this may stay parked (the diagrams render fine
+when the doc window is focused; they just don't persist across a split focus
+change). Fidelity/latency are already settled; only the split UX is open.
+
+The `mmdc`-via-npm prerequisite bullet below is left intact as the record of what
+was rejected and why.
 
 - **Which frontends can display an image at all.** snacks' support table
   (`snacks/image/terminal.lua:7-38`):
