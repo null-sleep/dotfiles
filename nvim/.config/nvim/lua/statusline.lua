@@ -46,7 +46,11 @@ require('lualine').setup({
       },
     },
     lualine_c = {
-      { 'branch', cond = function() return vim.g.neovide == true end },
+      -- Always show the git branch. This used to be Neovide-only: in a terminal
+      -- the branch was left off because iTerm2's status bar already showed it,
+      -- so lualine saved the real estate. Under Ghostty (no status bar) the
+      -- terminal needs it here too, so the gate is gone.
+      'branch',
       'diff',
       'diagnostics',
     },
