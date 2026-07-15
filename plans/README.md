@@ -56,6 +56,9 @@ off or delete them as they land; add new ones freely.
   whether it *replaces* either or just adds a third AI surface. Note the costs:
   needs a build step (Rust/Cargo or a prebuilt binary fetch) and its own API
   keys, plus plenary + nui.
+- [ ] **Wire treesitter text objects and navigation** — `af`/`if`, `ac`/`ic`,
+  `aa`/`ia`, `al`/`il` select, plus `]f`/`[f`/`]F`/`[F`/`]k`/`[k` jump. Plugin
+  already installed. See [treesitter-textobjects.md](treesitter-textobjects.md).
 - [ ] **Evaluate [atone.nvim](https://github.com/XXiaoA/atone.nvim)** — a modern
   undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
   bookmarks). We have **no undo-tree plugin at all** today, so this is additive,

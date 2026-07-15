@@ -1,156 +1,281 @@
-# Plan: Tree-sitter text objects (select / move / swap)
+# Treesitter Text Objects & Navigation Implementation Plan
 
-**Status:** research / not started
-**Date:** 2026-07-03
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-## Context
+**Goal:** Wire `nvim-treesitter-textobjects` to add semantic text objects (`af`/`if`, `ac`/`ic`, `aa`/`ia`, `al`/`il`) and `]f`/`[f`/`]k`/`[k` navigation keymaps.
 
-Part of a 3-item plan to port Helix's editing-model gains into this Neovim
-config instead of switching editors (see `~/.claude/plans/i-am-considering-trying-calm-parrot.md`
-for the full Helix-vs-nvim delta). The other two items are **done**:
+**Architecture:** New module `lua/treesitter_textobjects.lua` calls the plugin's `select` and `move` submodules directly (the `main`-branch rewrite dropped the old declarative config style). Registered in `init.lua` beside `treesitter_context.lua` and `structural_select.lua`. Which-key gets entries for `]f`/`[f`/`]k`/`[k` so they appear in the `]`/`[` popup.
 
-1. **This plan** — `nvim-treesitter-textobjects` (select/move/swap).
-2. ~~Sticky scope header~~ — `nvim-treesitter-context`, implemented in
-   `lua/treesitter_context.lua` (commit `a0c67c5`). Also closes the "sticky
-   scroll" gap listed under VS Code in `plans/nvim-backlog.md`.
-3. ~~Structural/incremental selection~~ (Helix `Alt-o`/`Alt-i`) — implemented
-   in `lua/structural_select.lua` (commit `a0c67c5`).
+**Tech Stack:** `nvim-treesitter/nvim-treesitter-textobjects` (already installed, `main` branch, `plugins.lua:13`). `pcall(vim.cmd.packadd, 'nvim-treesitter-textobjects')` already runs in `plugins.lua:289` — no install step needed.
 
-Multiple cursors (the other big VS Code/Helix gap) was explicitly declined —
-not in scope here or elsewhere.
+## Global Constraints
 
-## Problem
+- Plugin is pinned to `main` branch — do not change this; `master` is the frozen old API and is incompatible with this config's treesitter setup.
+- `]c`/`[c` are owned by gitsigns (hunk nav, `git.lua:23,30`) — never use them for class navigation. Use `]k`/`[k` for class jumps.
+- `<leader>a*` namespace is fully owned by AI/sidekick (`keymaps.lua` — `<leader>aa`, `<leader>ai`, `<leader>an`, `<leader>al`, `<leader>ad`, `<leader>ao`, `<leader>at`, `<leader>ap`, `<leader>af`, `<leader>ac`, `<leader>ae`, `<leader>ab`, `<leader>aq`). Parameter swap must use a different prefix.
+- One module per concern — new code goes in `lua/treesitter_textobjects.lua`, not inlined into `plugins.lua` or `init.lua`'s treesitter block.
+- Every keymap must have a `desc` string (surfaces in which-key and `<leader>sk`).
+- Update `GUIDE.md` in the same commit as the implementation (nvim CLAUDE.md rule).
 
-Vim's native text objects are character/pair based: `iw` (inner word), `i(`
-(inside parens), `ip` (paragraph). There's no semantic "a function," "inner
-class body," "a parameter," "a loop" — the things Helix's `mi`/`ma` give you
-for free via tree-sitter. This config already parses every buffer with
-tree-sitter (highlighting, folding, the two features above) but doesn't use
-that tree for text objects yet.
+---
 
-## Goal
+## Shortlist of shortcuts to consider
 
-Add semantic, tree-sitter-driven text objects that compose with every
-existing operator/count (`daf`, `yif`, `caa`, `>if`, `.` to repeat), plus
-move-to-next/prev and parameter-swap — closing the last real editing-model
-gap versus Helix without adopting its selection-first grammar wholesale.
+This is the full design space. The plan below implements the **bold** ones. The rest are listed for future consideration.
 
-## Approach
-
-Install `nvim-treesitter-textobjects`, pinned to the **`main`** branch.
-
-This config's `nvim-treesitter` is already on `main` (the incompatible
-rewrite that dropped the old `require('nvim-treesitter.configs').setup{}`
-module system — see the inline setup in `init.lua` ~216-299). The textobjects
-plugin has a matching `main` branch that is a **compatible** rewrite; its
-`master` branch is frozen for the old config style and will not work here.
-This must not be a plain `gh(...)` add — pin the branch explicitly, same
-pattern as the existing `nvim-treesitter` entry in `plugins.lua`.
-
-Config shape (post-rewrite): `require('nvim-treesitter-textobjects').setup{}`
-plus manual keymaps calling into `.select` / `.move` / `.swap` submodules —
-there's no more declarative `textobjects = { select = {...} }` block.
-
-### Keymap plan
-
-| Action | Keys | Notes |
+| Keys | Captures | Notes |
 |---|---|---|
-| select a/inner **function** | `af` / `if` | signature+body / body only |
-| select a/inner **class** | `ac` / `ic` | |
-| select a/inner **parameter** | `aa` / `ia` | argument in a call/def |
-| select a/inner **loop** | `al` / `il` | |
-| move to next/prev **function** start | `]f` / `[f` | end variants `]F` / `[F` |
-| move to next/prev **class** start | `]k` / `[k` | **not** `]c`/`[c` — gitsigns owns those for hunk nav |
-| swap parameter with next/prev | `<leader>a` / `<leader>A` | needs a `whichkey.lua` group label |
-| peek | — | skipped; `goto-preview` already covers this role |
+| **`af`/`if`** | `@function.outer`/`@function.inner` | Core — select whole function vs. body only |
+| **`ac`/`ic`** | `@class.outer`/`@class.inner` | Core — select whole class vs. body only |
+| **`aa`/`ia`** | `@parameter.outer`/`@parameter.inner` | Argument in a call or definition |
+| **`al`/`il`** | `@loop.outer`/`@loop.inner` | for/while/range loops |
+| **`]f`/`[f`** | `@function.outer` | Jump to next/prev function start |
+| **`]F`/`[F`** | `@function.outer` | Jump to next/prev function end |
+| **`]k`/`[k`** | `@class.outer` | Jump to next/prev class start (`]c`/`[c` taken by gitsigns) |
+| `ai`/`ii` | `@conditional.outer`/`@conditional.inner` | if/else blocks — deferred: `ii` conflicts with insert mode muscle memory |
+| `]a`/`[a` | `@parameter.outer` | Jump between parameters — deferred: `]a`/`[a` owned by aerial |
+| swap next param | `<leader>cA`/`<leader>ca` | Swap parameter with next/prev — deferred: good key TBD, whole `<leader>a*` namespace is taken |
+| `o` (via mini.ai) | `@block.outer` + conditionals + loops | LazyVim's combined `o` text object via `mini.ai` — deferred: needs `mini.ai` dependency |
+| `d` (via mini.ai) | digits/numbers | `mini.ai` only — deferred |
+| `vinq`/`vil`/`val` | next/last variants | `mini.ai` "next/last" modifier — deferred |
 
-`]f`/`[f`/`]k`/`[k` need an entry in `lua/whichkey.lua`'s trigger/description
-list (it only intercepts `<leader>`, `g`, `[`, `]` — same reason gitsigns'
-`]c`/`[c` are registered there). `af`/`if`/etc. are operator-pending text
-objects and need no which-key registration.
+---
 
-### File layout
+## File Map
 
-New module `lua/treesitter_textobjects.lua` (matches the existing
-one-module-per-concern convention — same pattern as the just-added
-`treesitter_context.lua` / `structural_select.lua`), required from `init.lua`
-in the same block as those two. Keep it separate from the inline treesitter
-setup in `init.lua` rather than growing that block further.
+- **Create:** `nvim/.config/nvim/lua/treesitter_textobjects.lua` — all setup, select, and move keymaps
+- **Modify:** `nvim/.config/nvim/lua/init.lua` — add `require('treesitter_textobjects')` in the treesitter block
+- **Modify:** `nvim/.config/nvim/lua/whichkey.lua` — register `]f`/`[f`/`]F`/`[F`/`]k`/`[k` descriptions and search keywords
+- **Modify:** `nvim/.config/nvim/GUIDE.md` — document new keymaps
 
-### Sketch
+---
 
-```lua
--- lua/plugins.lua — add near the existing nvim-treesitter entry
-{ src = gh('nvim-treesitter/nvim-treesitter-textobjects'), version = 'main' },
+## Task 1: Create `treesitter_textobjects.lua` with select and move keymaps
+
+**Files:**
+- Create: `nvim/.config/nvim/lua/treesitter_textobjects.lua`
+
+**Interfaces:**
+- Produces: module that can be `require()`d from `init.lua` with no return value needed
+- Consumes: `nvim-treesitter-textobjects` already packadd'd in `plugins.lua:289`
+
+- [ ] **Step 1: Verify the actual API surface of the installed main-branch plugin**
+
+```bash
+ls ~/.local/share/nvim/site/pack/packer/opt/nvim-treesitter-textobjects/lua/nvim-treesitter-textobjects/
 ```
 
+Expected output: directory listing including `select.lua`, `move.lua`, `swap.lua` (or similar). If the structure differs, adjust the `require()` paths in step 2 accordingly.
+
+- [ ] **Step 2: Create `lua/treesitter_textobjects.lua`**
+
 ```lua
--- lua/treesitter_textobjects.lua (new)
+-- lua/treesitter_textobjects.lua
+-- Semantic text objects and navigation via nvim-treesitter-textobjects.
+-- Plugin is packadd'd in plugins.lua; this module only configures keymaps.
+-- select: x+o modes so operators (d, y, c, >, <) and visual selection both work.
+-- move: n+x+o modes so jumps work in normal, visual-extend, and operator-pending.
+
 require('nvim-treesitter-textobjects').setup({})
 
 local select = require('nvim-treesitter-textobjects.select')
-local move = require('nvim-treesitter-textobjects.move')
-local swap = require('nvim-treesitter-textobjects.swap')
+local move   = require('nvim-treesitter-textobjects.move')
 
--- select
-vim.keymap.set({ 'x', 'o' }, 'af', function() select.select_textobject('@function.outer', 'textobjects') end)
-vim.keymap.set({ 'x', 'o' }, 'if', function() select.select_textobject('@function.inner', 'textobjects') end)
--- ...ac/ic, aa/ia, al/il follow the same shape
+-- ── Text objects (select) ────────────────────────────────────────────────────
+-- Composable with every operator and count: daf, yif, caa, >if, . to repeat.
 
--- move
-vim.keymap.set({ 'n', 'x', 'o' }, ']f', function() move.goto_next_start('@function.outer', 'textobjects') end)
-vim.keymap.set({ 'n', 'x', 'o' }, '[f', function() move.goto_previous_start('@function.outer', 'textobjects') end)
-vim.keymap.set({ 'n', 'x', 'o' }, ']k', function() move.goto_next_start('@class.outer', 'textobjects') end)
-vim.keymap.set({ 'n', 'x', 'o' }, '[k', function() move.goto_previous_start('@class.outer', 'textobjects') end)
+-- function: af = signature+body (outer), if = body only (inner)
+vim.keymap.set({ 'x', 'o' }, 'af',
+  function() select.select_textobject('@function.outer', 'textobjects') end,
+  { desc = 'TS: Select outer function' })
+vim.keymap.set({ 'x', 'o' }, 'if',
+  function() select.select_textobject('@function.inner', 'textobjects') end,
+  { desc = 'TS: Select inner function' })
 
--- swap
-vim.keymap.set('n', '<leader>a', function() swap.swap_next('@parameter.inner') end)
-vim.keymap.set('n', '<leader>A', function() swap.swap_previous('@parameter.inner') end)
+-- class: ac = whole class, ic = body only
+vim.keymap.set({ 'x', 'o' }, 'ac',
+  function() select.select_textobject('@class.outer', 'textobjects') end,
+  { desc = 'TS: Select outer class' })
+vim.keymap.set({ 'x', 'o' }, 'ic',
+  function() select.select_textobject('@class.inner', 'textobjects') end,
+  { desc = 'TS: Select inner class' })
+
+-- parameter/argument: aa = with surrounding comma, ia = value only
+vim.keymap.set({ 'x', 'o' }, 'aa',
+  function() select.select_textobject('@parameter.outer', 'textobjects') end,
+  { desc = 'TS: Select outer parameter' })
+vim.keymap.set({ 'x', 'o' }, 'ia',
+  function() select.select_textobject('@parameter.inner', 'textobjects') end,
+  { desc = 'TS: Select inner parameter' })
+
+-- loop: al = whole loop incl. keyword, il = body only
+vim.keymap.set({ 'x', 'o' }, 'al',
+  function() select.select_textobject('@loop.outer', 'textobjects') end,
+  { desc = 'TS: Select outer loop' })
+vim.keymap.set({ 'x', 'o' }, 'il',
+  function() select.select_textobject('@loop.inner', 'textobjects') end,
+  { desc = 'TS: Select inner loop' })
+
+-- ── Navigation (move) ────────────────────────────────────────────────────────
+-- Note: ]c/[c are owned by gitsigns (hunk nav) — use ]k/[k for classes.
+
+-- function start
+vim.keymap.set({ 'n', 'x', 'o' }, ']f',
+  function() move.goto_next_start('@function.outer', 'textobjects') end,
+  { desc = 'Next: Function start' })
+vim.keymap.set({ 'n', 'x', 'o' }, '[f',
+  function() move.goto_previous_start('@function.outer', 'textobjects') end,
+  { desc = 'Previous: Function start' })
+
+-- function end
+vim.keymap.set({ 'n', 'x', 'o' }, ']F',
+  function() move.goto_next_end('@function.outer', 'textobjects') end,
+  { desc = 'Next: Function end' })
+vim.keymap.set({ 'n', 'x', 'o' }, '[F',
+  function() move.goto_previous_end('@function.outer', 'textobjects') end,
+  { desc = 'Previous: Function end' })
+
+-- class start (]c/[c taken by gitsigns)
+vim.keymap.set({ 'n', 'x', 'o' }, ']k',
+  function() move.goto_next_start('@class.outer', 'textobjects') end,
+  { desc = 'Next: Class start' })
+vim.keymap.set({ 'n', 'x', 'o' }, '[k',
+  function() move.goto_previous_start('@class.outer', 'textobjects') end,
+  { desc = 'Previous: Class start' })
 ```
 
-(Exact API surface should be checked against the installed `main`-branch
-README at implementation time — the module has been iterating.)
+- [ ] **Step 3: Verify the file saved correctly**
 
-## Verification
+```bash
+wc -l nvim/.config/nvim/lua/treesitter_textobjects.lua
+```
 
-1. `:checkhealth nvim-treesitter` — confirm no master/main mismatch (same
-   check used for `nvim-treesitter-context`).
-2. `vaf` / `vif` on a function selects signature+body / body only; `daf`
-   deletes a whole function and undoes cleanly.
-3. `vac`/`vic`, `vaa`/`via`, `val`/`vil` select the expected node on a
-   representative Lua and Go file (two languages already in
-   `ensure_installed`).
-4. `]f` / `[f` jump between function starts in a multi-function file; `]k`
-   / `[k` jump between classes without touching gitsigns' `]c`/`[c`.
-5. `<leader>a` on a parameter inside `foo(a, b, c)` swaps it with the next
-   one; `<leader>A` swaps back.
-6. `<leader>sk` (keybinding picker) shows the new `]f`/`[f`/`]k`/`[k` entries
-   with descriptions, confirming the which-key registration took.
+Expected: ~65 lines.
 
-## LazyVim delta to fold in (from the LazyVim comparison pass)
+---
 
-Folded here from the LazyVim comparison pass (item 2) when the wishlist docs
-were consolidated into `plans/nvim-backlog.md` — LazyVim wires this same plugin
-plus a `mini.ai` layer, and its extras are worth considering when this plan
-lands:
+## Task 2: Wire into `init.lua` and register which-key entries
 
-- **Layer `nvim-mini/mini.ai` on top** for what treesitter-textobjects alone
-  doesn't give: **arguments** (already `aa`/`ia` above), **digits** (`d`),
-  and **next/last variants** (`vinq` = "inside next quotes", `il`/`al` next/
-  last). LazyVim's mini.ai spec adds custom specs for buffer (`ag`/`ig`),
-  digits (`d`), and a treesitter-driven `o` object (blocks/conditionals/loops).
-  Source: `lua/lazyvim/plugins/coding.lua` (mini.ai section).
-- **`ai_whichkey` integration** — LazyVim registers every text object in
-  which-key so pressing `va` pops a menu of what's selectable. Source:
-  `lua/lazyvim/util/mini.lua`.
-- **Wiring pattern reference** — main-branch textobjects needs explicit keymap
-  wiring (no module system), exactly as sketched above. LazyVim's per-FileType
-  buffer-local `select()`/`move()` pattern lives in
-  `lua/lazyvim/plugins/treesitter.lua` if a per-language approach is wanted.
-- Pairs with (does not replace) the existing `<M-o>`/`<M-i>` structural select.
+**Files:**
+- Modify: `nvim/.config/nvim/lua/init.lua`
+- Modify: `nvim/.config/nvim/lua/whichkey.lua`
 
-⚠ **Keymap collision to resolve first:** this plan's `<leader>a` / `<leader>A`
-parameter-swap keys predate the sidekick AI-CLI `<leader>a*` namespace, which
-now owns that prefix. Re-key the swap maps (e.g. `<leader>sw`/`<leader>sW` or a
-`g`-prefixed pair) before implementing — the sketch above is stale on this
-point.
+**Interfaces:**
+- Consumes: `lua/treesitter_textobjects.lua` from Task 1
+
+- [ ] **Step 1: Find the treesitter block in `init.lua`**
+
+```bash
+grep -n "treesitter_context\|structural_select" nvim/.config/nvim/lua/init.lua
+```
+
+Expected: two lines showing `require('treesitter_context')` and `require('structural_select')`. Note the line numbers — add the new require on the line after `structural_select`.
+
+- [ ] **Step 2: Add the require to `init.lua`**
+
+In `init.lua`, after the `require('structural_select')` line, add:
+
+```lua
+require('treesitter_textobjects')
+```
+
+- [ ] **Step 3: Add which-key descriptions for the navigation keys**
+
+In `whichkey.lua`, inside the `wk.add({...})` block, after the `]a`/`[a` aerial entries (lines 53-54), add:
+
+```lua
+  -- Treesitter navigation
+  { ']f', desc = 'Next: Function start' },
+  { '[f', desc = 'Previous: Function start' },
+  { ']F', desc = 'Next: Function end' },
+  { '[F', desc = 'Previous: Function end' },
+  { ']k', desc = 'Next: Class start' },
+  { '[k', desc = 'Previous: Class start' },
+```
+
+- [ ] **Step 4: Add search keywords in whichkey.lua's keywords table**
+
+In `whichkey.lua`, inside the `keywords` table, add:
+
+```lua
+  [']f']  = 'treesitter function navigation jump semantic',
+  ['[f']  = 'treesitter function navigation jump semantic',
+  [']k']  = 'treesitter class navigation jump semantic',
+  ['[k']  = 'treesitter class navigation jump semantic',
+```
+
+---
+
+## Task 3: Verify end-to-end and update GUIDE.md
+
+**Files:**
+- Modify: `nvim/.config/nvim/GUIDE.md`
+
+- [ ] **Step 1: Health check**
+
+Open nvim and run:
+```
+:checkhealth nvim-treesitter
+```
+
+Expected: no errors about `nvim-treesitter-textobjects`. The `main`-branch plugin should report as healthy alongside the main treesitter plugin.
+
+- [ ] **Step 2: Verify text objects on a Lua file**
+
+Open any Lua file with functions (e.g. `lua/keymaps.lua`). In normal mode:
+- `vaf` — should visually select the whole function under cursor (signature + body)
+- `vif` — should select body only (no `function` keyword line)
+- `daf` — delete a function; undo with `u`
+- `vaa` on a function argument — should select the argument including surrounding comma
+- `val` on a loop body — should select the loop
+
+- [ ] **Step 3: Verify navigation on a multi-function file**
+
+In `lua/keymaps.lua`:
+- `]f` — jumps to the next function definition start
+- `[f` — jumps back to the previous one
+- `]F` — jumps to end of next function
+- `]k` / `[k` — in a file with classes (e.g. a Go or Python fixture) jump between class starts
+
+- [ ] **Step 4: Verify which-key popup**
+
+In normal mode, press `]` and wait 300ms. The popup should include:
+- `f` → Next: Function start
+- `F` → Next: Function end
+- `k` → Next: Class start
+
+- [ ] **Step 5: Update GUIDE.md**
+
+In `GUIDE.md`, find the treesitter section (search for `treesitter_context` or `structural_select`). Add a new subsection or extend the existing one with the new keymaps:
+
+```markdown
+### Treesitter text objects
+
+Semantic text objects driven by the AST — compose with every operator and count.
+
+| Keys | Object | Notes |
+|---|---|---|
+| `af`/`if` | Function | outer (signature+body) / inner (body only) |
+| `ac`/`ic` | Class | outer / inner |
+| `aa`/`ia` | Parameter | outer (with comma) / inner (value only) |
+| `al`/`il` | Loop | outer / inner |
+| `]f`/`[f` | Function start | next / previous |
+| `]F`/`[F` | Function end | next / previous |
+| `]k`/`[k` | Class start | next / previous (`]c`/`[c` are gitsigns hunk nav) |
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add nvim/.config/nvim/lua/treesitter_textobjects.lua \
+        nvim/.config/nvim/lua/init.lua \
+        nvim/.config/nvim/lua/whichkey.lua \
+        nvim/.config/nvim/GUIDE.md
+git commit -m "feat(nvim): add treesitter text objects and ]f/[f/]k/[k navigation"
+```
+
+---
+
+## API surface note
+
+The `main`-branch `nvim-treesitter-textobjects` API should be verified at implementation time (Step 1 of Task 1). If the submodule paths differ from the sketch above (e.g. `nvim-treesitter-textobjects.move` vs. `nvim-treesitter-textobjects/move`), adjust the `require()` calls accordingly. The plugin's own README on `main` is the authoritative source.
