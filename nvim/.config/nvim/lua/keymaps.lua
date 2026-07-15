@@ -57,6 +57,21 @@ vim.api.nvim_create_autocmd('CursorMoved', {
 vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
 vim.keymap.set('i', 'jk', '<Esc>', { desc = 'Exit insert mode' })
 
+-- Option+Left/Right word-jump. The terminal (Ghostty/iTerm2, both configured
+-- with macos-option-as-alt for nvim's <M-...> maps) rewrites Option+Arrow
+-- into literal Meta+letter — readline's own word-jump convention (<M-b>/
+-- <M-f> = backward/forward-word) — rather than <M-Left>/<M-Right>; confirmed
+-- via i_CTRL-V capture. Vim's 'b'/'w' are the equivalent motions; <C-o> runs
+-- one Normal-mode command from Insert mode without leaving it. Without this,
+-- <M-f> in Normal mode falls through (via 'ttimeoutlen') to Vim's own 'f' —
+-- "find character", not word-forward — which is why Option-Right looked
+-- broken while Option-Left (falling through to 'b', word-back) looked like
+-- it worked by coincidence.
+vim.keymap.set({ 'n', 'x' }, '<M-b>', 'b', { desc = 'Word: back' })
+vim.keymap.set({ 'n', 'x' }, '<M-f>', 'w', { desc = 'Word: forward' })
+vim.keymap.set('i', '<M-b>', '<C-o>b', { desc = 'Word: back' })
+vim.keymap.set('i', '<M-f>', '<C-o>w', { desc = 'Word: forward' })
+
 -- Yank to system clipboard (dd, x, c stay in Neovim register).
 -- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
 -- honoured — only bare y/Y without a register prefix go to clipboard.
