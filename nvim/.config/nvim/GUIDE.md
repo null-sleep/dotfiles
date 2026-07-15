@@ -62,7 +62,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix windows (skips any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of the window while scrolling. No keymaps; passive display feature
-- **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`<leader><leader>`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
+- **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, `<leader><leader>` smart, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`gb`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
@@ -98,7 +98,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
-- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `<leader><leader>` (keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
+- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`neovide.lua`** — Neovide GUI-only config (gated by `vim.g.neovide`): animation tuning, `option_key_is_meta = 'both'` so `<M-...>` keymaps work, proxy icon, floating corner radius, hide-mouse-when-typing, window-edge padding (4px sides / 4px bottom, matching iTerm2's pane margins), plus `<D-c>`/`<D-v>`/`<D-s>` clipboard/save and `<D-=>`/`<D-->`/`<D-0>` zoom keymaps. Startup-time settings (fork, frame, title-hidden, font) live in `neovide.toml` instead, since Neovide reads them before nvim launches.
 
@@ -348,9 +348,9 @@ conditional pinning that doesn't fit the filetype-list model.)
 
 Note stickybuf only protects the window from being hijacked *by* a foreign
 buffer — it doesn't stop you from deliberately switching *to* a special buffer
-(e.g. via the alternate-buffer register). `<leader><leader>` in `keymaps.lua`
-guards against that separately, using `buffers.is_special()` (see below) to
-skip non-code buffers before jumping.
+(e.g. via the alternate-buffer register). `gb` in `keymaps.lua` guards against
+that separately, using `buffers.is_special()` (see below) to skip non-code
+buffers before jumping.
 
 ### Non-code buffer exceptions need a shared predicate
 
@@ -674,7 +674,8 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<Esc>` (normal mode) | Close any floating windows (hover, peek, diagnostics) and clear search highlights | keymaps.lua |
 | `q` (in help/quickfix windows) | Close the window — buffer-local, auto-mapped; skips any buffer that already binds `q` | autocmds.lua |
 | `:Q` | Quit all (`qa`) | keymaps.lua |
-| `<leader><leader>` | Alternate buffer (skips non-code buffers, see `buffers.lua`) | keymaps.lua |
+| `gb` | Toggle to the alternate buffer (deterministic `<C-^>`, but skips non-code buffers — see `buffers.lua`) | keymaps.lua |
+| `<leader><leader>` | Smart picker (frecency-ranked buffers + recent + files) — see [Picker (snacks.nvim)](#picker-snacks) | keymaps.lua |
 | `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
 | `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
 | `<leader>qq` | Quit all (`:qa`, behind a floating confirm popup — `y` confirms, anything else is No) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
@@ -1182,6 +1183,7 @@ wholesale.
 
 | Keymap | Action |
 |---|---|
+| `<leader><leader>` | Smart picker — buffers + recent + files merged into one frecency-ranked list (`sort_empty`, so it's ranked before you type). The alternate file is flagged `#` and usually near the top, but frecency isn't a deterministic row 1 — for the blind one-key jump-to-previous use `gb` ([Global keymaps](#global-keymaps)) instead |
 | `<leader>sf` | Find files by name — fuzzy over the file list; `<c-g>` flips it to a live `fd` search (see below) |
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |

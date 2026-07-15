@@ -124,7 +124,7 @@ end, { desc = 'LSP: Go to definition (Ctrl+click)' })
 -- buffers.is_special() predicate — see GUIDE.md "Non-code buffer exceptions
 -- need a shared predicate".
 local buffers = require('buffers')
-vim.keymap.set('n', '<leader><leader>', function()
+vim.keymap.set('n', 'gb', function()
   local alt = vim.fn.bufnr('#')
   if alt == -1 or not vim.api.nvim_buf_is_valid(alt) then
     vim.notify('No alternate buffer', vim.log.levels.WARN)
@@ -136,7 +136,15 @@ vim.keymap.set('n', '<leader><leader>', function()
     return
   end
   vim.cmd('buffer #')
-end, { desc = 'Toggle alternate buffer' })
+end, { desc = 'Buffer: toggle alternate' })
+
+-- Frecency-ranked buffers + recent + files in one list (snacks `smart`). The
+-- alternate file is flagged '#' and usually near the top, but frecency blends
+-- frequency with recency so it isn't reliably row 1 — the deterministic
+-- one-key jump-to-previous is `gb` above; this is "take me to something I've
+-- been in lately". See plans/telescope-vs-snacks-picker.md.
+vim.keymap.set('n', '<leader><leader>', function() Snacks.picker.smart() end,
+  { desc = 'Search: Smart (frecency: buffers + recent + files)' })
 vim.keymap.set('n', '<leader>bb', function() require('pickers.buffer').open() end,
   { desc = 'Buffer: Picker' })
 -- Kept as a permanent alias: one keystroke shorter, and predates <leader>bb

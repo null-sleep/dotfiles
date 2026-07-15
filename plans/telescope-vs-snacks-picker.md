@@ -1602,10 +1602,17 @@ Deferred follow-ups from the migration (decided during implementation review,
    (`<a-f>` follow, `<c-r>`-register inserts, `<s-cr>` pick-window, layout
    rotation via `<c-w>HJKL`, ...). Worth a pass over `defaults.lua` /
    `Snacks.picker.picker_actions()` to steal the good ones.
-3. **Bind `Snacks.picker.smart()`** (frecency-ranked buffers + recent + files
-   in one list) — tentative `<leader><leader>`, key TBD. Note the conflict:
-   `<leader><leader>` is currently the alternate-buffer toggle (see GUIDE.md
-   Keymap index), so either pick another key or decide `smart` supersedes it.
+3. **~~Bind `Snacks.picker.smart()`~~ — DONE (2026-07-15).** Bound to
+   `<leader><leader>` (frecency-ranked buffers + recent + files in one list).
+   The conflict noted here — `<leader><leader>` was the alternate-buffer toggle
+   — was resolved by *moving*, not superseding: the toggle went to `gb`
+   (deterministic, one-key, still guarded by `buffers.is_special`), and `smart`
+   took `<leader><leader>`. They're different actions and shouldn't share a key:
+   `gb` is a blind, always-lands-on-previous jump; `smart` is a ranked picker
+   you read and confirm. `smart` flags the alternate file with `#` and usually
+   floats it near the top, but frecency blends frequency with recency so it's
+   not a deterministic row 1 — which is exactly why the blind jump stays its
+   own key. `keymaps.lua` + GUIDE.md (Keymap index, picker Keymaps table).
 4. **~~Visual side-by-side of `<leader>sm` against the old telescope look~~ —
    CLOSED (2026-07-14): the picker is good, the comparison isn't owed.** Three
    review rounds landed (status glyph columns + `syntax` diff style;
