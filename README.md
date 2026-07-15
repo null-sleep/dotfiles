@@ -753,6 +753,11 @@ switching](#unified-theme-switching)): the `theme` script only flips the macOS
 appearance, and Ghostty recolors every window, new and already-open, by itself.
 Both themes are Ghostty built-ins; nothing is vendored into this repo.
 
+**Gotcha — stale app-support config shadows the stowed one.** If Ghostty ignores
+`~/.config/ghostty/config` and shows the wrong theme, check for a legacy file at
+`~/Library/Application Support/com.mitchellh.ghostty/config.ghostty`. Delete it
+and reload (`Cmd+Shift+,`).
+
 ### Keymaps
 
 These are Ghostty's **macOS defaults** — they match the iTerm2 shortcuts already
