@@ -281,6 +281,50 @@ module already renders mermaid natively: it shells out to `mmdc` and even themes
 the diagram to the current background (`snacks/image/init.lua:125`). It is simply
 gated on a terminal this repo doesn't currently run.
 
+### ⚠️ Decision update (2026-07-15): reject `mmdc`, use the Rust `mmdr` renderer
+
+Building this, the `mmdc` mermaid path turned out to cost **~1 GB of disk**: `npm
+i -g @mermaid-js/mermaid-cli` pulls a headless **Chromium** via puppeteer
+(measured on-machine: 549 MB in `~/.cache/puppeteer` + ~403 MB npm package).
+Chromium is only spawned per-render (brief, not resident — no idle RAM), but the
+disk footprint is real and the user rejected it.
+
+**Chromium is not fundamental to mermaid** — it is an artifact of the *official*
+CLI, which drives real browser Mermaid.js through puppeteer. Leaner renderers
+exist (researched 2026-07-15):
+
+| Renderer | How | Chromium | Notes |
+|---|---|---|---|
+| **mmdr** (mermaid-rs-renderer) | native Rust | none | `brew tap 1jehuang/mmdr && brew install mmdr`; SVG + PNG out; ~500x faster; 23 diagram types. Young (v0.3.1, "early dev") — fidelity "may not yet match mermaid-cli in all cases" |
+| mermaidx (Python) | real mermaid.js in an embedded JS engine | none | higher fidelity than mmdr, but Python + JS-engine embed; not a drop-in |
+| kevalin/mermaid.nvim | chafa ASCII/ANSI, separate nvim plugin | none | ASCII-art look, not crisp images |
+| official `mmdc` | browser mermaid.js via puppeteer | **~1 GB** | highest fidelity, rejected on weight |
+
+**Integration catch:** `snacks.image` **hardcodes the mermaid command as `mmdc`**
+(`snacks/image/convert.lua:120-127` — only the *args* are configurable via
+`Snacks.image.config.convert.mermaid`, not the binary). So a leaner renderer
+can't be selected through snacks config. The chosen path is a **`mmdc` shim**: a
+small wrapper on `PATH` named `mmdc` that translates snacks' args and calls
+`mmdr` underneath. This keeps the entire snacks.image + render-markdown pipeline;
+the only new dependency is the tiny native `mmdr` binary instead of Chromium.
+
+**Backend-agnostic parts already built and correct** (independent of the mermaid
+backend, keep them): the frontend gate `can_render_images()` and the `image = {
+enabled = …, math = { enabled = false } }` block in `picker.lua`, plus
+`brew "imagemagick"` (needed for svg/pdf/math and to rasterize mmdr's SVG). Only
+the `mmdc`/Chromium install is rejected. `math = { enabled = false }` is a second
+finding: render-markdown.nvim already renders LaTeX in markdown and its own
+`:checkhealth` recommends disabling snacks' copy so the two don't double-draw.
+Mermaid does **not** conflict — the two coexist (render-markdown styles the
+source block, snacks draws the diagram).
+
+**Status:** prototyping the `mmdr` shim to judge fidelity on real diagrams before
+committing. If mmdr's output is good enough, ship the whole pipeline; if not,
+mermaid degrades to plain text (graceful — snacks health-warns) until mmdr
+matures, while images/pdf/math still render. **Supersedes the `mmdc`-via-npm
+prerequisite below** — that bullet is left intact as the record of what was
+rejected and why.
+
 - **Which frontends can display an image at all.** snacks' support table
   (`snacks/image/terminal.lua:7-38`):
 
