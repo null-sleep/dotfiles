@@ -1195,80 +1195,134 @@ wholesale.
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 
-**Live vs fuzzy — `<c-g>` (`<leader>sg`, `<leader>ss`, `<leader>sf`):** a picker
-is a **finder → matcher** pipeline. The finder shells out (`rg` for grep, `fd`
-for files, an LSP request for symbols); the matcher fuzzy-filters what came
-back, in Lua. They take **two separate queries, both always applied**, and
-`<c-g>` only decides which one the prompt box is typing into:
+<a id="picker-query-syntax"></a>
+### Query syntax: live vs fuzzy
 
-- **live** — the prompt feeds the *finder*, in the tool's own language: an
-  rg/fd regex, plus raw flags after ` -- ` (`handleRequest -- -tgo -g
-  '!*_test.go'`; ripgreprc types like `-ttest` work too — see README →
-  ripgrep). `conf -- -e lua` in `<leader>sf` literally runs `fd -e lua conf`.
-- **fuzzy** — the prompt feeds the *matcher*: fzf operators (`'exact`,
-  `^prefix`, `suffix$`, `!negate`, `|` OR) and `field:value` filters
-  (`file:lua$`; in symbols `kind:class`, `client_name:gopls`).
+Every picker is a **finder → matcher** pipeline. The finder produces the
+candidates — `rg` for grep, `fd` for files, an LSP request for symbols, or just
+a static list (buffers, git status, keymaps). The matcher then fuzzy-filters
+that list in Lua. There are **two separate query slots, both always applied**,
+and the only question is which one your keystrokes go into:
 
-Grep and symbols start live; files starts fuzzy. **The title tells you which,
-and whether you have a choice:** `󰐰 LIVE` while live, and a `󰐰 <c-g>` chip
-while fuzzy *in a picker that can go live* (grep and files — `picker.lua` sets
-that chip per-source, since a fixed-list picker would be advertising a `<c-g>`
-that only warns). One or the other, never both. The query you aren't typing
-into sits to the left of the prompt.
+- **live** — the prompt feeds the *finder*, in that tool's own language.
+- **fuzzy** — the prompt feeds the *matcher* (snacks' fzf-style engine).
 
-Three things follow:
+`<c-g>` toggles between them. Grep and symbols **start live** (their finder
+needs a query — there's no way to hold every line in the repo, or every
+workspace symbol, in memory up front); files **starts fuzzy** (`fd` hands over
+the whole file list at once, and fuzzy-matching a path beats regex-ing it);
+fixed-list pickers are **fuzzy-only** (nothing to re-query, so `<c-g>` just
+warns). The rule in one line: *live when the finder can't give you everything,
+fuzzy when it can.*
 
-- **The query you toggle away from is kept** — it shows to the left of the
-  prompt and keeps filtering. So the two stack, and `<c-g>` narrows in both
-  directions: grep then fuzzy-refine the hits, or fuzzy then add a tool query.
-- **The finder runs first and decides what *exists*; the matcher only decides
-  what you *see*.** No pattern can bring back a result the tool never emitted.
-- **` -- ` flags only reach the tool in live mode**, since only the live query
-  is passed to it; in fuzzy mode they're just literal text for the matcher to
-  chew on. That's the point of `<c-g>` in `<leader>sf`: fuzzy can *approximate*
-  "only `.lua` files" (`lua$` tests the path string), only live `fd` can ask
-  for them.
+**The title tells you where you are.** `󰐰 LIVE` shows while live; a `󰐰 <c-g>`
+chip shows while fuzzy *in a picker that can flip* (grep, files). One or the
+other, never both, and neither in a fixed-list picker. The query you're *not*
+typing into sits to the left of the prompt, still filtering.
 
-**Whose grammar is it?** The prompt is a string handed to somebody, and `<c-g>`
-chooses who — so the same keystrokes mean different things on either side of
-the toggle. A space is the clearest tell:
+Two consequences worth internalizing:
 
-- **the matcher** (any picker, fuzzy) — space is **AND**, each term matched
-  fuzzily (`'foo` for a literal substring); `|` is **OR** and binds tighter, so
-  `dog animal | cat` reads `dog AND (animal OR cat)`.
-- **`rg` / `fd`** (`<leader>sg`, `<leader>sf` live) — the string is a **regex**,
-  so a space is a literal space: `foo bar` matches the *text* "foo bar", not
-  both words. OR is regex alternation, `foo|bar`. AND across a line needs
-  `foo.*bar` — or `<c-g>`, and let the matcher do it.
-- **our symbols finder** (`<leader>ss` live) — a grammar of our own: the first
-  token is the name query sent to the LSP, **the rest filters by file path**.
-  So `animal .go` = symbols named "animal" in Go files.
+- **The finder decides what *exists*; the matcher only decides what you *see*.**
+  No fuzzy pattern brings back a result the tool never emitted. Grep `foo`, and
+  the matcher can only ever narrow those foo-lines — it can't find a line with
+  `bar` on it.
+- **The two queries stack**, so `<c-g>` is freeze-then-refine in both
+  directions: grep, then fuzzy-narrow the hits; or fuzzy-filter files, then flip
+  to `fd` for a real file predicate.
 
-**What the matcher matches against** is the item's `text`, which is usually more
-than the name on screen: a grep item's text is the whole `path:line:col:matched
-line`, and an `<leader>ss` item's is `name kind client_name relpath`. So a bare
-term filters across all of that at once — handy, but use `field:value`
-(`file:`, `kind:`, `client_name:`, `relpath:`) when you need to be exact.
+<a id="picker-and-or"></a>
+### AND, OR, and literals
 
-**Worked examples:**
+The catch is that a space (and `|`) mean **different things in each mode**,
+because the string goes to a different reader. This is the table to keep:
 
-- `<leader>sg` — `foo -- -tmd` greps markdown only, say 200 hits. `<c-g>`
-  freezes them (`foo -- -tmd` moves left of the prompt, still applying) and now
+| goal | fuzzy (matcher) | live grep / files (regex) |
+|---|---|---|
+| A **and** B | `animal dog` (space = AND) | no operator — see below |
+| A **or** B | `animal \| dog` (spaced `\|`) | `animal\|dog` (regex alternation, no spaces) |
+| literal substring | `'animal` (leading quote) | already literal-ish; it's a regex |
+| starts / ends with | `^src` / `.go$` | `^src` / `\.go$` (regex anchors) |
+| exclude | `!test` | `-- -g '!*test*'` or a negative lookahead |
+
+Two traps fall straight out of that table:
+
+- **Fuzzy OR needs the spaces.** `animal | dog` is OR; `animal|dog` (no spaces)
+  is a *single* fuzzy term containing a literal `|`, which matches nothing.
+  Live grep is the reverse — `animal|dog` is the OR, and spaces would be
+  literal. `|` also binds tighter than fuzzy's space-AND, so `dog animal | cat`
+  reads `dog AND (animal OR cat)`.
+- **Fuzzy terms are subsequences, not substrings.** `dog` matches `d`…`o`…`g`
+  scattered across a path, so `.rs` will pull in `Nord.itermcolors`. Quote it —
+  `'dog`, `'.rs` — when you mean the literal.
+
+**AND on one line in live grep** has no regex operator, so pick one:
+
+- **`<c-g>` then a space** — grep the rarer word, freeze, then fuzzy `animal dog`
+  (space = AND) over the frozen lines. Usually the least typing. This is the
+  seam the toggle exists for: rg has no AND, the matcher does.
+- **spell out both orders** — `animal.*dog|dog.*animal`, staying live.
+- **PCRE2 lookahead** — `(?=.*animal)(?=.*dog) -- -P` (the `-P` switches rg to
+  the PCRE2 engine; its default engine has no lookahead and will error). This is
+  the real order-independent AND, and it scales to three+ terms.
+
+(All three are AND *within a line*. "Files containing A somewhere and B
+elsewhere" is a different question grep can't answer in one pass.)
+
+<a id="picker-tool-flags"></a>
+### Live-mode tool flags (` -- `)
+
+In **live** mode only, everything after ` -- ` is passed as raw flags to the
+underlying tool — this is the whole point of flipping `<leader>sf` to live, and
+it's already on in grep. In fuzzy mode these are just more characters for the
+matcher to chew on.
+
+- **grep (`rg`):** `handleRequest -- -tgo` (only Go files), `-tgo -Ttest` (Go
+  **minus** the test type — `-T` is `--type-not`), `-g '!*_test.go'` (exclude
+  glob), `-w` (word boundary), `-s` (case-sensitive), `-F` (literal, not regex).
+  `-ttest`/`-Ttest` and other bundled types come from `ripgreprc` — see
+  [README → ripgrep](../../../README.md) for the full type list and the
+  include-vs-exclude glob gotchas.
+- **files (`fd`):** `conf -- -e lua` runs `fd -e lua conf` (extension `lua`),
+  `-g '*.go'` (glob), `--changed-within 1d`, `-t f` / `-t d` (files vs dirs).
+
+The tell for when you need this: if a query is really a question about the
+*file* rather than its name — "only `.lua`", "changed today", "not a test" —
+that's a live-mode flag, not something fuzzy can express. Fuzzy can only
+*approximate* it (`lua$` tests the path string); `fd`/`rg` can actually ask.
+
+<a id="picker-matcher-text"></a>
+### What the matcher actually matches
+
+The matcher matches an item's `text`, which is usually **more than the name you
+see**: a grep item's text is the whole `path:line:col:matched line`, and an
+`<leader>ss` item's is `name kind client_name relpath`. So a bare fuzzy term
+filters across all of it at once — type `handler` in grep and you keep rows
+whose *path or matched line* contains it. When you need to scope to one field,
+use `field:value`: `file:`, `text:`, and in symbols `kind:` / `client_name:` /
+`relpath:` (e.g. `file:lua$ 'function`, `client_name:gopls kind:method`).
+
+<a id="picker-worked-examples"></a>
+### Worked examples
+
+- **`<leader>sg`** — `foo -- -tmd` greps markdown only, say 200 hits. `<c-g>`
+  freezes them (`foo -- -tmd` moves left of the prompt, still applying); now
   `todo` filters those hits by path *or* matched line, `file:todo` by path
   alone, `!test` drops anything with "test" in the row. No `.go` file can come
   back — rg never emitted one.
-- `<leader>sd` — always fuzzy, so just type: `animal | cat` for either name,
+- **`<leader>sf`** — `animal | dog` (spaced) fuzzy-matches either name in the
+  path. Want actual Go files named ~animal? `<c-g>`, then `animal -- -e go`
+  (name matches `animal` AND extension `go`). `animal|dog` unspaced does nothing
+  in fuzzy mode; it's the *live* OR after `<c-g>`.
+- **`<leader>sd`** — always fuzzy, so just type: `animal | cat` for either name,
   `foo function` for a symbol named ~foo whose kind is function (kind is in the
   item text).
-- `<leader>ss` — `animal gopls` does **not** filter by client; it asks the LSP
-  for "animal" in paths matching "gopls" (see the two-token grammar above). For
-  the client, `<c-g>` first, then `client_name:gopls`. And `animal | cat` is
-  **not expressible at all**: the LSP takes one query, so the frozen set holds
-  only what came back for "animal" — there are no cats in it to OR with. Run
-  the picker twice, or use `<leader>sd` if both live in one file.
-
-Every other picker is a fixed list with nothing to re-query, so `<c-g>` warns
-and no-ops there.
+- **`<leader>ss`** — its live prompt is two tokens by our design: first token is
+  the LSP name query, **the rest filters by file path**. So `animal .go` =
+  symbols named "animal" in Go files, and `animal gopls` does **not** filter by
+  client (it looks for "animal" in paths matching "gopls"). For the client,
+  `<c-g>` then `client_name:gopls`. `animal | cat` is **not expressible**: the
+  LSP answered one query, so the frozen set has no cats to OR with — run it
+  twice, or use `<leader>sd` if both live in one file.
 
 **Inside a picker** (press `<C-h>` in any picker for its full live keymap
 list — bindings below are the daily set):
