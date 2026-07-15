@@ -33,7 +33,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [yknotify](#yknotify)
+- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [viu](#viu) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -1185,6 +1185,14 @@ rg 'TODO' -ttest           # only test files, any language
 ripgrep type globs match the file *name* only, so directory conventions (Rust's `tests/`, Go's `testdata/`) and Rust's inline `#[cfg(test)]` unit tests aren't captured — see the comments in [`ripgrep/.config/ripgrep/ripgreprc`](ripgrep/.config/ripgrep/ripgreprc). List every type (built-in + custom) with `rg --type-list`.
 
 New to ripgrep, or want to use it well? See the example-heavy guide at [`docs/ripgrep.md`](docs/ripgrep.md) — search basics, regex, file types (and defining your own), glob anchoring, and a task cookbook.
+
+## viu
+
+```bash
+brew install viu
+```
+
+Terminal image viewer — no config, not a stow package. Renders images (PNG, JPEG, GIF, etc.) directly in terminals with graphics support, including Ghostty and iTerm2: `viu path/to/image.png`.
 
 ## yknotify
 
