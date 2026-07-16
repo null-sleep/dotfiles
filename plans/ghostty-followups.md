@@ -42,18 +42,15 @@ that `ghostty/.config/ghostty/config` doesn't touch.
 
 # Part 1 — Leftover items from the migration
 
-## 1. Status bar (open, undecided)
+## 1. Status bar — cwd/git resolved via Starship, CPU/mem still open
 
 iTerm2 showed cwd, git branch, CPU, and memory. **Ghostty has no status bar.**
-cwd/branch survive via the zsh prompt + OSC-1/2 window title
-(`zsh/.zshrc_config.zsh:97-130`); CPU/memory don't, and nothing replaces them.
+cwd/branch now survive via the Starship prompt (`## Prompt (Starship)` in
+`README.md`) + OSC-1/2 window title (`zsh/.zshrc_config.zsh:97-130`); CPU/mem
+still don't, and nothing replaces them.
 
 Decide one of:
-- **Accept the loss** — cwd/git were the load-bearing parts; CPU/mem were a
-  glance-at-rarely nice-to-have.
-- **[plans/starship.md](starship.md)** — drafted, not built. Adds contextual
-  language/tool modules + richer git status, but **no CPU/mem module either**
-  — only recovers half this gap.
+- **Accept the loss** — CPU/mem were a glance-at-rarely nice-to-have.
 - **A separate CPU/mem indicator** — not researched. Candidates: a zsh
   `precmd` hook calling `top -l 1` (cheap, adds prompt latency), or a
   menu-bar app (`stats`/iStat-Menus-style, brew-installable).
@@ -304,7 +301,6 @@ Listed so it isn't rediscovered as an open question later.
 | `ghostty/.config/ghostty/config` | whichever of §2.3–2.8 get adopted |
 | `README.md` → `## Ghostty` | document any new keybind/setting, same-change rule per root `CLAUDE.md` |
 | `nvim/.config/nvim/lua/picker.lua` | Part 1 §3 resume, if picked back up |
-| `plans/starship.md` | if Part 1 §1 is resolved by building it |
 
 ## Sources (Part 2 research)
 

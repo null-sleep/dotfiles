@@ -1,13 +1,18 @@
 # Starship prompt — stowed to ~/.config/starship.toml. Init in .zshrc_config.zsh.
-# Renders:  <folder>(<branch|sha><dirty>):   e.g.  dotfiles(main~):
+# Renders:  ❯ <folder>(<branch|sha><dirty>) [gap]   e.g.  ❯ dotfiles(main~) |
 #
 # Colours are ANSI *names* (never hex) so they recolour with the Ghostty theme
 # flip. Top-level `format` is the whitelist — unlisted modules don't render.
 # Literal parens are escaped \( \) (Starship uses ( ) for conditional groups).
+# Trailing space in `format` keeps a gap before the typed command.
 
 add_newline = false
 
-format = "$directory$git_branch$git_commit${custom.git_dirty}$character"
+format = "$character$directory$git_branch$git_commit${custom.git_dirty} "
+
+[character]               # leading ❯ coloured green/red by last exit status
+success_symbol = "[❯](green)"
+error_symbol   = "[❯](red)"
 
 [directory]              # cwd basename, like the old %c
 style = "cyan"
@@ -33,7 +38,3 @@ format = '\([$hash]($style)'
 when = "git rev-parse --is-inside-work-tree"
 command = "git status --porcelain --ignore-submodules 2>/dev/null | grep -q . && printf '~'"
 format = '[$output](red)\)'
-
-[character]              # : coloured green/red by last exit status
-success_symbol = "[:](green)"
-error_symbol   = "[:](red)"

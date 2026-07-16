@@ -883,12 +883,12 @@ The prompt is [Starship](https://starship.rs) — a single Rust binary. Config l
 brew install starship        # included in the Brewfile
 ```
 
-Scope is deliberately lean — **directory + git only**, rendering `<folder>(<branch>):`, e.g. `dotfiles(main~):`:
+Scope is deliberately lean — **directory + git only**, rendering `❯ <folder>(<branch>)`, e.g. `❯ dotfiles(main~)`:
 
+- **`❯`** — green after a success, red after a non-zero exit.
 - **folder** (`cyan`) — the cwd basename, like the old `%c`.
 - **branch** (`purple`) — in parens, no glyph; `main`/`master` shown like any branch. Detached HEAD falls back to the short SHA.
 - **dirty** (`red`) — a single `~` for any staged/unstaged/untracked change, via a `custom.git_dirty` module gated on `git status --porcelain` (one mark for all dirt, not Starship's per-category markers).
-- **`:`** — green after a success, red after a non-zero exit.
 
 No language/tool version modules — the top-level `format` lists only these, so nothing else renders. Colors are ANSI palette **names**, not hex, so the prompt recolors when Ghostty flips light/dark (see [Unified theme switching](#unified-theme-switching)). Tweak it in `zsh/.config/starship.toml`.
 
