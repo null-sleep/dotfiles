@@ -17,10 +17,9 @@
 -- COUNT PREFIX -> RANGE MODE
 --   A count prefix switches the source to snacks' git_diff (base =
 --   'HEAD~N'), matching the `gd N` shell function (git diff HEAD~N) exactly
---   — HEAD~N is always an ancestor of HEAD, so git_diff's `--merge-base`
---   resolves to it directly. Bare <leader>sm is unaffected. Range mode adds
---   a commit-hash column: blank if no range commit touched the file, plain
---   hash if one did, hash+`~` (modified color) if it's also still dirty.
+--   — HEAD~N is always an ancestor of HEAD, so `--merge-base` resolves to
+--   it directly. Bare <leader>sm is unaffected. Range mode also adds a
+--   per-file commit-hash column (see format() below).
 
 local common = require('pickers.common')
 
@@ -65,8 +64,8 @@ local function render_diff_lines(ctx, lines)
   return ret
 end
 
--- Range mode only: newest commit in range..HEAD that touched each file (one
--- `git show --name-only` per commit — N is small, whatever the user typed).
+-- Range mode: newest commit that touched each file (one `git show` call per
+-- commit — N is small, whatever the user typed).
 local function commits_by_file(git_root, range_base)
   local hashes = vim.fn.systemlist({ 'git', '-C', git_root, 'log', '--format=%h', range_base .. '..HEAD' })
   local map = {}
@@ -79,8 +78,7 @@ local function commits_by_file(git_root, range_base)
   return map
 end
 
--- Range mode only: files with changes not yet committed, so a file touched
--- by a range commit AND still dirty can be flagged (see format() below).
+-- Range mode: currently-dirty files, to flag ones also touched by a commit.
 local function dirty_file_set(git_root)
   local out = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
   local set = {}
@@ -199,11 +197,8 @@ function M.open()
       ret[#ret + 1] = { Snacks.picker.util.align(x and x.icon or ' ', 2), x and x.hl }
       ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
       if range_base then
-        -- Which commit last touched this file, if any: blank when the file
-        -- is purely uncommitted (no commit in range touched it); dimmed when
-        -- cleanly committed (nothing more to see here); a trailing `~` in
-        -- the louder commit color when it's also still dirty on top — that
-        -- combination is the one worth catching your eye.
+        -- Commit hash column: blank if no range commit touched the file,
+        -- dimmed if cleanly committed, louder + `~` if also still dirty.
         local hash = commit_for_file[item.file]
         local text, hl = '', nil
         if hash and dirty_files[item.file] then
