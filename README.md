@@ -705,8 +705,11 @@ stow ghostty
 ```
 
 Settings: **Hack Nerd Font Mono 14pt**, a 125×25 window, and a blinking bar
-cursor. Option is sent as Meta on **both** the left and right keys, so nvim's
-`<M-...>` mappings work.
+cursor. Option is sent as Meta on **both** left and right keys, so nvim's
+`<M-...>` mappings work. Tabs sit in the titlebar row next to the traffic
+lights (`macos-titlebar-style = tabs`), and window layout is restored on every
+relaunch (`window-save-state = always`) — see
+[ghostty-followups.md](plans/ghostty-followups.md) §2.4/§2.8.
 
 **The theme follows macOS on its own.** One line does it —
 

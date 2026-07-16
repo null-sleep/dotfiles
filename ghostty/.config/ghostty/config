@@ -1,52 +1,48 @@
-# Ghostty — the primary terminal. Stowed to ~/.config/ghostty/config.
-#
-# Ported from the iTerm2 profile (iterm2/iTerm2 State.itermexport), not from the
-# old kitty.conf. iTerm2 stays installed as the fallback; nothing here touches it.
+# Ghostty — the only terminal now. Stowed to ~/.config/ghostty/config.
+# Ported from the old iTerm2 profile; iTerm2 itself was cut over and
+# uninstalled 2026-07-15 — see plans/ghostty-followups.md.
 
-# Font — matches the iTerm2 profile (HackNFM-Regular 14).
+# Font — matches the old iTerm2 profile (HackNFM-Regular 14).
 font-family = Hack Nerd Font Mono
 font-size = 14
 
-# Theme — follows macOS appearance natively, exactly like the iTerm2 dual
-# light/dark profile ("Use Separate Colors for Light and Dark Mode"). Both names
-# are Ghostty built-ins; `ghostty +list-themes` prints them in this Title Case.
-# The `theme` script only has to flip macOS — Ghostty recolors on its own.
+# Follows macOS light/dark natively. Both names are Ghostty built-ins
+# (`ghostty +list-themes` prints this Title Case) — the `theme` script only
+# flips macOS, Ghostty recolors itself.
 theme = light:Catppuccin Latte,dark:Dracula
 
-# Window — matches iTerm2 (125x25 cells).
+# Window — matches the old iTerm2 profile (125x25 cells).
 window-width = 125
 window-height = 30
 window-padding-x = 5
 window-padding-y = 5
 
-# Cursor — matches iTerm2 (bar, blinking).
+# Restore window/tab/split layout on relaunch, not just via macOS's own
+# "reopen windows" toggle. See plans/ghostty-followups.md § 2.4.
+window-save-state = always
+
+# Tabs live in the titlebar row next to the traffic lights — no separate
+# title-text strip. See plans/ghostty-followups.md § 2.8.
+macos-titlebar-style = tabs
+
+# Cursor — matches the old iTerm2 profile (bar, blinking).
 cursor-style = bar
 cursor-style-blink = true
 
-# Option-as-Meta on BOTH left and right, so nvim <M-...> mappings work.
-# (iTerm2: "Option Key Sends = Esc+" and "Right Option Key Sends = Esc+".)
+# Option-as-Meta on both sides, so nvim's <M-...> mappings work.
 macos-option-as-alt = true
 
-# iTerm2 had "Unlimited Scrollback". Ghostty has no unlimited — go large.
+# No true "unlimited" scrollback option — go large instead.
 scrollback-limit = 100000
 
-# iTerm2 had "Prompt Before Closing = No" and "Quit when all windows closed".
 confirm-close-surface = false
 quit-after-last-window-closed = true
 
-# The ONLY custom keybinding in the entire iTerm2 export (GlobalKeyMap):
-# Shift+Enter sends a literal newline — multi-line input in Claude Code / REPLs.
+# Only custom keybinding ported from iTerm2: literal newline for multi-line
+# input in Claude Code / REPLs.
 keybind = shift+enter=text:\n
 
-# Ghostty already ships `alt+arrow_left=esc:b` / `alt+arrow_right=esc:f` as
-# built-in defaults (`ghostty +show-config --default`) — shell Option+Arrow
-# word-jump needs no config here. (Option+Arrow breaking specifically inside
-# terminal nvim, despite that, turned out to be a separate nvim-side issue —
-# see keymaps.lua's <M-b>/<M-f> mappings.)
-#
-# Deliberately NOT ported: splits, pane navigation, tab switching, natural-text-
-# editing bindings. The iTerm2 export contains ZERO custom bindings for any of
-# them — Ghostty's macOS defaults (Cmd+D, Cmd+Shift+D, Cmd+[ / Cmd+], Cmd+T,
-# Cmd+1-9, and the natural-text-editing set) already match what was in use.
-# The audible bell is already silent by default (bell-features has no-audio).
-# Shell integration is auto-detected; no setting needed.
+# Everything else — splits, tabs, pane nav, word-jump, natural-text-editing —
+# is a Ghostty macOS default and needs no config here; the iTerm2 export had
+# no custom bindings for any of it. (Option+Arrow breaking specifically inside
+# terminal nvim was a separate nvim-side issue — see keymaps.lua's <M-b>/<M-f>.)

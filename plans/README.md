@@ -16,19 +16,21 @@ off or delete them as they land; add new ones freely.
   one-time checklist that says to delete itself once every machine has pulled +
   migrated).
 - [x] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
-  that follows macOS light/dark on its own. See [ghostty.md](ghostty.md).
-  *(Shipped 2026-07 — Ghostty is the primary terminal, the dead `kitty` package
-  is removed, and (2026-07-15) iTerm2 itself is fully cut over: uninstalled and
-  every reference to it removed from the repo. Both flagged risks came out
-  clean: `Catppuccin Latte` and `Dracula` are Title-Case built-ins.)*
-- [ ] **Render images + mermaid diagrams in nvim under Ghostty** — [ghostty.md](ghostty.md)
-  §6. **PARKED (2026-07-15):** the render pipeline works (native-Rust `mmdr` via
-  an `mmdc` shim — no Chromium — gate + `SNACKS_GHOSTTY` + imagemagick all built
-  and installed), but inline images are **disabled** (`image.enabled = false`)
-  because terminal-graphics images only draw in the *focused* window, which blanks
-  the diagram whenever the Claude-in-a-split pane is focused. Resume = flip
-  `enabled` back on and decide if that split limitation is acceptable. See §6
-  "PARKED" for the full record + the flatten.nvim testing gotcha.
+  that follows macOS light/dark on its own. *(Shipped 2026-07 — Ghostty is the
+  primary terminal, the dead `kitty` package is removed, and (2026-07-15)
+  iTerm2 itself is fully cut over: uninstalled and every reference to it
+  removed from the repo. Both flagged risks came out clean: `Catppuccin Latte`
+  and `Dracula` are Title-Case built-ins. Leftover items + unused-feature
+  eval moved to [ghostty-followups.md](ghostty-followups.md).)*
+- [ ] **Render images + mermaid diagrams in nvim under Ghostty** —
+  [ghostty-followups.md](ghostty-followups.md) Part 1 §3. **PARKED
+  (2026-07-15):** the render pipeline works (native-Rust `mmdr` via an `mmdc`
+  shim — no Chromium — gate + `SNACKS_GHOSTTY` + imagemagick all built and
+  installed), but inline images are **disabled** (`image.enabled = false`)
+  because terminal-graphics images only draw in the *focused* window, which
+  blanks the diagram whenever the Claude-in-a-split pane is focused. Resume =
+  flip `enabled` back on and decide if that split limitation is acceptable.
+  See Part 1 §3 for the full record + the flatten.nvim testing gotcha.
 - [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
   machine's saved sessions have quit at least once under the fix (self-healing
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
@@ -120,6 +122,11 @@ Grouped by state, not priority.
 - [unified-sidebar-panel.md](unified-sidebar-panel.md) — edgy.nvim-style unified
   stacked edgebar (tree + git + outline + terminal); the narrower
   file-tree↔outline mutual-exclusion already shipped (see GUIDE.md).
+- [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted
+  `ghostty.md` migration plan. Two leftover open items (status bar,
+  `ApplePressAndHoldEnabled`) + the parked inline-mermaid resume plan, plus a
+  researched list of Ghostty 1.3 features (command palette, quick terminal,
+  split zoom, `window-save-state`, shaders, …) not yet used in the config.
 
 ## Backlog
 
@@ -142,14 +149,6 @@ Grouped by state, not priority.
   as the decision record — it's where the `dap_mode = 'manual'` trap and the
   `outputMode = 'remote'` requirement are explained, and it carries the one
   outstanding verification (the `-test.run` state-leak check).
-- [ghostty.md](ghostty.md) — **shipped** (2026-07): Ghostty is the primary
-  terminal, the dead `kitty` package is gone, and (2026-07-15) iTerm2 is fully
-  cut over — uninstalled, `iterm2/` deleted, every reference removed. Kept as
-  the decision record — it carries the iTerm2-export audit that proves there
-  was nothing to port but `shift+enter`, the correction that Ghostty does
-  **not** unlock neogit's `kitty` graph style (that's a font dependency), and the
-  two still-open items: the lost status bar and `ApplePressAndHoldEnabled`. Its
-  **§6 inline-images/mermaid follow-on is still unbuilt** — see the TODO above.
 - [go-targets-picker.md](go-targets-picker.md) — **shipped** (2026-07):
   `<leader>dR`/`<leader>cR` debug/run any `main` package in the module via an
   async `go list`. Kept for the `go list -e` exit-code trap and delve's
