@@ -27,7 +27,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Ghostty](#ghostty) · [Zellij](#zellij)
 
 *Shell*
-- [ZSH](#zsh) — [zoxide](#directory-jumping-zoxide) · [troubleshooting antigen](#troubleshooting-antigen)
+- [ZSH](#zsh) — [prompt (Starship)](#prompt-starship) · [zoxide](#directory-jumping-zoxide) · [troubleshooting antigen](#troubleshooting-antigen)
 
 *Version control*
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
@@ -143,7 +143,8 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 
 | Check | Expected |
 |---|---|
-| Open a new shell | Prompt renders `➜ <dir> git:(<branch>) ✗`, not the macOS `… %` default |
+| Open a new shell | [Starship](#prompt-starship) prompt renders `<dir>(<branch>):`, not the macOS `… %` default |
+| `command -v starship` | resolves (prompt falls back to a hint if missing) |
 | `z foo` / `zi` | jumps by frecency / opens an fzf picker ([zoxide](#directory-jumping-zoxide)) |
 | `command -v rg fd fzf zoxide direnv stow` | all resolve |
 | `python3 --version` | 3.12.x (not the system 3.9) |
@@ -155,7 +156,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
 
-If the prompt shows the macOS default instead of `➜`, see [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
+If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
 ## Languages
 
@@ -443,6 +444,11 @@ setup. It recolors all windows the moment macOS switches.
 - **Ghostty** — not driven by the script. Its `theme = light:…,dark:…` config
   line (see [Ghostty](#ghostty)) makes it track the macOS appearance natively,
   recoloring every window including ones opened after the switch.
+- **Shell prompt (Starship)** — not driven by the script either. It rides on
+  Ghostty's palette swap: the prompt is styled with ANSI color *names*, which
+  the terminal resolves against its active 16-color scheme, so the next prompt
+  after a theme flip recolors on its own. No `theme`-script change needed. (See
+  [Prompt (Starship)](#prompt-starship).)
 - **Claude Code** — Claude hot-reloads theme *files* but not the `theme`
   *setting*, so `settings.json` pins the fixed slug `custom:active` and the
   script overwrites `~/.claude/themes/active.json` with the chosen palette.
@@ -868,6 +874,24 @@ echo 'source ~/.zshrc_config.zsh' >> ~/.zshrc
 
 Open a new shell. On the first launch antigen clones every bundle (takes ~20s) and writes a cached loader to `~/.antigen/init.zsh`. Subsequent launches just source the cache.
 
+<a id="prompt-starship"></a>
+### Prompt (Starship)
+
+The prompt is [Starship](https://starship.rs) — a single Rust binary. Config lives in `zsh/.config/starship.toml`; `stow zsh` links it to `~/.config/starship.toml` (Starship's default path, so no `STARSHIP_CONFIG` needed). `.zshrc_config.zsh` runs `eval "$(starship init zsh)"` behind a `command -v starship` guard, so if the binary is missing the shell prints a one-line hint instead of breaking.
+
+```bash
+brew install starship        # included in the Brewfile
+```
+
+Scope is deliberately lean — **directory + git only**, rendering `<folder>(<branch>):`, e.g. `dotfiles(main~):`:
+
+- **folder** (`cyan`) — the cwd basename, like the old `%c`.
+- **branch** (`purple`) — in parens, no glyph; `main`/`master` shown like any branch. Detached HEAD falls back to the short SHA.
+- **dirty** (`red`) — a single `~` for any staged/unstaged/untracked change, via a `custom.git_dirty` module gated on `git status --porcelain` (one mark for all dirt, not Starship's per-category markers).
+- **`:`** — green after a success, red after a non-zero exit.
+
+No language/tool version modules — the top-level `format` lists only these, so nothing else renders. Colors are ANSI palette **names**, not hex, so the prompt recolors when Ghostty flips light/dark (see [Unified theme switching](#unified-theme-switching)). Tweak it in `zsh/.config/starship.toml`.
+
 <a id="directory-jumping-zoxide"></a>
 ### Directory jumping (zoxide)
 
@@ -935,7 +959,7 @@ rm -f ~/.antigen/init.zsh ~/.antigen/init.zsh.zwc
 exec zsh   # antigen re-clones oh-my-zsh for real
 ```
 
-Note: the shell **prompt** does not depend on any of this — it's defined self-contained in `.zshrc_config.zsh` (the `_zsh_git_prompt` function + `PROMPT`), so it renders `➜ <dir> git:(<branch>) ✗` even if oh-my-zsh fails to load. Recolor it via the `PROMPT_COLOR_*` palette there.
+Note: the shell **prompt** does not depend on any of this — it's [Starship](#prompt-starship), initialized in `.zshrc_config.zsh` behind a `command -v starship` guard, so it renders `<dir>(<branch>):` even if oh-my-zsh fails to load (and prints a hint if `starship` itself isn't installed). Restyle it in `~/.config/starship.toml`.
 
 ## Git
 

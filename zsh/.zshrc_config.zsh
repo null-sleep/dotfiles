@@ -57,41 +57,16 @@ else
 fi
 
 #------------------------------------------------------------------------------
-# Prompt — self-contained, no oh-my-zsh theme dependency.
-# Renders like:  ➜  <dir> git:(<branch>) ✗
-#   • arrow: green on success, red after a non-zero exit  ( %(?...) )
-#   • %c:    basename of the current directory
-#   • git:   branch (or short SHA when detached) plus a ✗ when the worktree is
-#            dirty — staged, unstaged, OR untracked (matches robbyrussell)
-# Colours below are ANSI *names* (not RGB), so they follow the terminal's active
-# colour scheme rather than being hardcoded — switch themes and the prompt
-# recolours. `command git` sidesteps the git
-# aliases/functions defined later; %F{} escapes need no oh-my-zsh colour lib.
+# Prompt — Starship (https://starship.rs). Config in ~/.config/starship.toml
+# (stowed from zsh/.config/starship.toml). Styled with ANSI colour *names* so
+# it recolours automatically when the `theme` script flips light/dark, same as
+# the old hand-rolled prompt did.
 #------------------------------------------------------------------------------
-setopt PROMPT_SUBST
-
-# Prompt palette — recolour the whole prompt by editing these in one place.
-PROMPT_COLOR_OK=green       # arrow — last command succeeded
-PROMPT_COLOR_ERR=red        # arrow — last command failed
-PROMPT_COLOR_DIR=cyan       # current directory
-PROMPT_COLOR_GIT=blue       # git:( … ) wrapper
-PROMPT_COLOR_BRANCH=red     # branch name / short SHA
-PROMPT_COLOR_DIRTY=yellow   # ✗ dirty marker
-
-_zsh_git_prompt() {
-  local ref
-  ref=$(command git symbolic-ref --quiet --short HEAD 2>/dev/null) \
-    || ref=$(command git rev-parse --short HEAD 2>/dev/null) \
-    || return 0
-  # Dirty = any staged, unstaged, or untracked change (git status --porcelain),
-  # matching robbyrussell's default dirty semantics.
-  local dirty=''
-  [[ -n $(command git status --porcelain --ignore-submodules 2>/dev/null) ]] \
-    && dirty=" %F{$PROMPT_COLOR_DIRTY}✗%f"
-  print -rn -- " %F{$PROMPT_COLOR_GIT}git:(%F{$PROMPT_COLOR_BRANCH}${ref}%F{$PROMPT_COLOR_GIT})%f${dirty}"
-}
-
-PROMPT='%(?:%F{$PROMPT_COLOR_OK}➜:%F{$PROMPT_COLOR_ERR}➜)%f  %F{$PROMPT_COLOR_DIR}%c%f$(_zsh_git_prompt) '
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+else
+  echo "starship not found. Run: brew install starship"
+fi
 
 #------------------------------------------------------------------------------
 # Window/tab title — defaults to the project name (git toplevel,

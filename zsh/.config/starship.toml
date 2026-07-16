@@ -1,0 +1,39 @@
+# Starship prompt — stowed to ~/.config/starship.toml. Init in .zshrc_config.zsh.
+# Renders:  <folder>(<branch|sha><dirty>):   e.g.  dotfiles(main~):
+#
+# Colours are ANSI *names* (never hex) so they recolour with the Ghostty theme
+# flip. Top-level `format` is the whitelist — unlisted modules don't render.
+# Literal parens are escaped \( \) (Starship uses ( ) for conditional groups).
+
+add_newline = false
+
+format = "$directory$git_branch$git_commit${custom.git_dirty}$character"
+
+[directory]              # cwd basename, like the old %c
+style = "cyan"
+truncation_length = 1
+truncate_to_repo = false
+truncation_symbol = ""   # basename only, never "…/dotfiles"
+format = "[$path]($style)"
+
+[git_branch]             # (branch — no glyph; main/master shown like any branch
+style = "purple"
+only_attached = true     # detached HEAD -> git_commit shows the SHA, not "HEAD"
+format = '\([$branch]($style)'
+
+[git_commit]             # (sha — short SHA when HEAD is detached
+only_detached = true
+style = "purple"
+format = '\([$hash]($style)'
+
+# Red ~ for any dirt, then ")". `when` gates on being in a repo (so ")" shows
+# when clean); `command` prints ~ only when dirty. One mark for all dirt, vs
+# git_status's per-category markers. ~2 git calls/prompt, like the old prompt.
+[custom.git_dirty]
+when = "git rev-parse --is-inside-work-tree"
+command = "git status --porcelain --ignore-submodules 2>/dev/null | grep -q . && printf '~'"
+format = '[$output](red)\)'
+
+[character]              # : coloured green/red by last exit status
+success_symbol = "[:](green)"
+error_symbol   = "[:](red)"

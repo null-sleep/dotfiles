@@ -34,6 +34,7 @@ brew "ripgrep"         # rg — nvim snacks picker live-grep
 brew "fd"              # fast find — nvim snacks picker file finding
 brew "zoxide"          # z / zi directory jumping
 brew "direnv"          # per-directory environment
+brew "starship"        # zsh prompt; config in zsh/.config/starship.toml (stowed)
 brew "coreutils"       # provides gtimeout, used by claude-nvim
 brew "jq"              # used by claude/setup-*.sh (macOS 15+ ships one too)
 

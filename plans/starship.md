@@ -4,39 +4,44 @@
 
 Today the shell prompt is a **hand-rolled zsh function** in
 `zsh/.zshrc_config.zsh:82-95` (`_zsh_git_prompt` + `PROMPT`), rendering
-`➜  <dir> git:(<branch>) ✗`. It surfaces only three things: exit status (the
+`➜  <dir> git:(<branch>) ✗`. It surfaces three things: exit status (the
 red/green arrow), the cwd basename (`%c`), and git branch + a single dirty
 marker. Two properties matter and must be preserved:
 
 1. **Auto-recolor on theme switch.** The palette uses ANSI color *names*
-   (`green`, `cyan`, `blue`…), so the prompt recolors for free when the
-   `theme` script (`zsh/.local/bin/theme`) flips macOS/Ghostty/iTerm2 between
-   Catppuccin-Latte (light) and Dracula (dark). This is documented at
-   `README.md:1032` and in `## Unified theme switching`.
+   (`green`, `cyan`, `blue`…), which emit the basic ANSI SGR codes rather than
+   truecolor — so the terminal resolves them against its *active* 16-color
+   palette. The `theme` script (`zsh/.local/bin/theme`) flips macOS light/dark;
+   Ghostty follows natively via `theme = light:Catppuccin Latte,dark:Dracula`
+   (`ghostty/.config/ghostty/config:12`), swapping its ANSI palette, so the
+   next prompt render recolors with no shell restart. **This only holds while
+   the config uses color names, never hex** — hex would emit truecolor and stop
+   tracking the theme. Documented at `README.md:1032` and in
+   `## Unified theme switching`.
 2. **Self-contained.** The prompt renders even if antigen/oh-my-zsh fails to
    load (comment at `zsh/.zshrc_config.zsh:60-71`).
 
-**Why Starship, and the benefits:**
+**Why Starship (at this scope):**
 
-- **Contextual language/tool signal.** The stack has go, node, rust, python,
-  elixir, docker/podman/colima, kubernetes, aws, direnv, mise — every one has
-  a first-class Starship module. Modules render *only when you're in a
-  relevant project*, so plain dirs stay as minimal as today, but a Rust repo
-  shows the toolchain version, a k8s context shows the cluster, etc. The
-  current prompt shows none of this.
-- **Richer git for free.** Starship's `git_status`/`git_state` add
-  ahead/behind counts, staged vs unstaged, stash, and merge/rebase/cherry-pick
-  state — the current prompt collapses all of that into one `✗`.
-- **`cmd_duration`** — slow commands annotate themselves with elapsed time.
-- **Performance / robustness.** Rust, with a `command_timeout` (default
-  500 ms) and bounded git scanning, so it won't stall the prompt in a huge
-  repo the way the current synchronous `git status --porcelain` can.
-- **Maintainability.** Declarative TOML instead of hand-rolled zsh + manual
-  `%F{}` escape juggling.
+- **Cleaner git.** Drops the `git:(…)` robbyrussell wrapper's `git:` prefix for
+  a compact `(branch)`, and branch/SHA detection comes from Starship's git2
+  modules (no subprocess) instead of hand-rolled `symbolic-ref`/`rev-parse`.
+- **Robustness.** Rust, with a `command_timeout` (default 500 ms) bounding every
+  command — including the one `git status` the dirty marker runs — so a
+  pathological repo degrades (marker just doesn't show) instead of hanging.
+- **Maintainability & headroom.** Declarative TOML instead of hand-rolled zsh +
+  manual `%F{}` escape juggling, and trivially extensible later (see
+  `## Optional additions`) without touching `.zshrc`.
 
-Scope chosen: **minimal + contextual** — match today's clean single-line look,
-add high-signal modules that appear only when relevant. Auto-recolor is
-preserved by styling the Starship config with ANSI palette names, not hex.
+Scope chosen: **minimal — folder + git.** The line is
+`<folder>(<branch|sha><dirty>):` — e.g. `dotfiles(main~):`. It's the cwd
+basename, the branch in parens (`main`/`master` shown like any other branch —
+no `ignore_branches` trick; a short SHA when HEAD is detached), a red `~` when
+the worktree is dirty, and a trailing `:` prompt symbol colored green/red by
+the last exit status. **No language/tool version modules** (go/node/rust/python/
+elixir/docker/k8s/aws are explicitly out). Every color is an ANSI palette *name*
+(`cyan`, `purple`, `red`, `green`) — never hardcoded hex — so the whole prompt
+recolors when Ghostty flips light/dark.
 
 ## Changes
 
@@ -82,70 +87,86 @@ Lives inside the existing `zsh` stow package (no new package, no new README
 Part-2 top-level section). `stow zsh` links it to `~/.config/starship.toml`,
 Starship's default config path — no `STARSHIP_CONFIG` env var needed.
 
-Design — reproduce `➜  <dir> git:(<branch>) ✗` and add contextual modules,
-all styled with **ANSI color names** to keep auto-recolor. Starting point (to
-iterate on during implementation):
+Design — a compact single line, `<folder>(<branch|sha><dirty>):`, e.g.
+`dotfiles(main~):`. Folder butts against the branch in parens (no `git:`
+prefix, no glyph); a short SHA replaces the branch when HEAD is detached; a red
+`~` marks a dirty worktree; the trailing `:` is colored green/red by exit
+status. Styled with **ANSI color names** for auto-recolor. The top-level
+`format` is the whitelist (unlisted modules don't render), and literal parens
+are escaped `\(` `\)` since Starship uses `( )` for conditional groups.
 
 ```toml
-# Single line; arrow-first like robbyrussell, cursor after the git/module seg.
-format = """
-$character\
-$directory\
-$git_branch$git_status$git_state\
-$golang$nodejs$rust$python$elixir\
-$docker_context$kubernetes$aws\
-$cmd_duration """
-
 add_newline = false
 
-[character]              # the ➜ arrow, colored by last exit status
-success_symbol = "[➜](green)"
-error_symbol   = "[➜](red)"
+# <folder>(<branch|sha><dirty>):   — only these modules render
+format = "$directory$git_branch$git_commit${custom.git_dirty}$character"
 
-[directory]              # basename only, like the old %c
+[directory]              # cwd basename, like the old %c
 style = "cyan"
 truncation_length = 1
 truncate_to_repo = false
-format = " [$path]($style) "
+truncation_symbol = ""   # basename only — never "…/dotfiles" on deep paths
+format = "[$path]($style)"
 
-[git_branch]             # git:(branch) — blue wrapper, red branch
-style = "red"
-format = "[git:(](blue)[$branch]($style)[)](blue)"
+[git_branch]             # (branch — open paren + name, no glyph, no leading space
+style = "purple"
+only_attached = true     # hide in detached HEAD so git_commit shows the SHA, not "HEAD"
+format = '\([$branch]($style)'
+# no `ignore_branches` — main and master are shown like any other branch
 
-[git_status]             # ✗ when dirty, plus ahead/behind/stash extras
-style = "yellow"
-format = "[$all_status$ahead_behind]($style)"
-conflicted = "✗"
-modified = "✗"
-untracked = "✗"
-staged = "✗"
+[git_commit]             # (sha — short SHA when HEAD is detached (old prompt's fallback)
+only_detached = true     # (default) shown only when NOT on a branch
+style = "purple"
+format = '\([$hash]($style)'
 
-# Language modules: contextual, only render inside a matching project.
-[golang]  format = "[ $version](cyan) "
-[nodejs]  format = "[ $version](green) "
-[rust]    format = "[ $version](red) "
-[python]  format = "[ $version](yellow) "
-[elixir]  format = "[ $version](purple) "
+# Red ~ when the worktree is dirty (any staged / unstaged / untracked change),
+# then the closing paren. `when` gates on being inside a repo so ")" shows even
+# when clean; `command` prints ~ only when dirty. Collapses ALL dirt to one mark,
+# where Starship's built-in git_status would emit one marker per change-category.
+[custom.git_dirty]
+when = "git rev-parse --is-inside-work-tree"
+command = "git status --porcelain --ignore-submodules 2>/dev/null | grep -q . && printf '~'"
+format = '[$output](red)\)'
 
-[docker_context] format = "[ $context](blue) "
-[kubernetes]     disabled = false          # off by default in Starship
-[aws]            format = "[ $profile]($style) "
-
-[cmd_duration]
-min_time = 2000
-format = "[took $duration](yellow) "
+[character]              # : prompt symbol, coloured green/red by last exit status
+success_symbol = "[:](green)"
+error_symbol   = "[:](red)"
 ```
 
-Styles use bare ANSI names (`green`, `cyan`, `red`, `blue`, `yellow`,
-`purple`) that map to the terminal's active 16-color palette → recolors on
-theme switch. Explicitly **no hex** anywhere.
+Renders:
+
+| State | Render |
+|---|---|
+| Plain dir | `Documents:` |
+| Clean repo | `dotfiles(main):` |
+| Default branch | `dotfiles(master):` |
+| Dirty worktree (any # of change-types) | `dotfiles(main~):` |
+| Detached HEAD | `dotfiles(a1b2c3d):` |
+| Detached + dirty | `dotfiles(a1b2c3d~):` |
+| After a failed command | the trailing `:` turns red |
+
+In a repo, `git_branch`/`git_commit` supply the opening `(` (they're mutually
+exclusive — branch when attached, SHA when detached) and `custom.git_dirty`
+supplies the closing `)`; outside a repo all three are empty, so plain dirs stay
+`Documents:` with no stray parens.
+
+**Trade-off vs. built-in `git_status`.** The custom module gives one dirty mark
+for any dirt (vs `git_status`'s per-category `~~`), but costs a `git rev-parse`
++ `git status --porcelain` per prompt — like the old hand-rolled prompt, and
+bounded by `command_timeout`. Swap back to native `git_status` (libgit2, no
+subprocess) if a huge repo ever drags.
+
+**Theme colors.** `cyan`/`purple`/`red`/`green` are ANSI palette *names*, not
+hex — the terminal resolves them against its active scheme (Dracula cyan
+`#8be9fd`, Latte `#179299`), so the prompt recolors on the Ghostty theme flip.
+Hex would emit truecolor and break that.
 
 ### 4. `README.md` — document it (same-change rule)
 
 - New `### Prompt (Starship)` subsection under `## ZSH` (before
   `### Troubleshooting antigen` at `:1013`): what it is, that config lives in
   `zsh/.config/starship.toml`, `brew install starship`, and that `stow zsh`
-  links the config. One line on the modules that appear contextually.
+  links the config. One line: directory + git only, ANSI-name styling.
 - Revise the note at `README.md:1032` — the prompt is now Starship, not
   `_zsh_git_prompt`; point at `~/.config/starship.toml` and note ANSI-name
   styling still drives the light/dark recolor.
@@ -157,23 +178,63 @@ theme switch. Explicitly **no hex** anywhere.
   add a short entry: Starship recolors via ANSI palette names, so the `theme`
   script needs no change.
 
+## Optional additions (decide before implementing)
+
+Cheap, low-noise things that fit the "folder + branch" spirit without adding
+language versions. The base includes the exit-status `❯` and a single `✗` dirty
+marker (`custom.git_dirty`), but deliberately **no ahead/behind or stash**. Pick
+any subset below; each is a few TOML lines.
+
+**Recommended — richer git, still one line, zero noise when idle:**
+
+- **Ahead/behind + stash.** The single-✗ base drops these (they lived in the
+  native `git_status` we swapped out). To get them back without reintroducing
+  `✗✗`, add a `git_status` module with the dirty categories left empty and only
+  `$ahead_behind` (+ optional `stashed = "*"`) in its `format`, then insert
+  `$git_status` in the top-level `format`. Surfaces `⇡2⇣1 *1` only when relevant.
+- **`git_state`** — shows `REBASING 1/3`, `MERGING`, `CHERRY-PICKING` etc.
+  during an in-progress operation. Renders *only* mid-operation, so it's
+  invisible day-to-day but saves confusion when a rebase is half-done.
+- **`cmd_duration`** — annotates commands slower than a threshold with their
+  elapsed time (`took 4s`). `min_time = 2000` keeps fast commands clean.
+
+**Taste calls (a real choice, not a clear win):**
+
+- **Directory scope.** Keep today's basename-only (`dotfiles`), or switch to
+  repo-relative (`truncate_to_repo = true`, drop `truncation_length`) to show
+  `dotfiles/nvim/lua` — more orientation in deep trees, at the cost of the
+  ultra-minimal look.
+- **Blank line between prompts** (`add_newline = true`) — visual breathing room
+  between commands. Divisive; easy to try and revert.
+- **direnv / mise env indicator.** Given the direnv+mise setup, a subtle marker
+  when a project env is active (`$direnv`, off by default) confirms the env
+  loaded. Low signal most of the time.
+- **`$jobs`** — shows a count when background jobs are suspended/running.
+
+Suggested default: fold in the three **Recommended** items (they never add
+noise), leave the taste calls for a follow-up once the base prompt feels right.
+
 ## Verification
 
 1. `brew bundle --file=Brewfile` (or `brew install starship`) — installs it.
 2. `stow -R zsh` — re-links, creating `~/.config/starship.toml`; confirm the
    symlink: `readlink ~/.config/starship.toml`.
-3. `exec zsh` — prompt renders `➜  <dir> git:(<branch>)` with dirty marker.
-4. Exit-status color: run `false` then check the arrow is red; run `true` then
-   check it's green.
-5. Contextual modules: `cd` into the repo's `fixtures/` per-language demo dirs
-   (rust/go/node/python/elixir) and confirm each toolchain version appears; in
-   a plain dir confirm the prompt stays minimal (no modules).
-6. Auto-recolor: run `theme light` then `theme dark` and confirm the prompt
+3. `exec zsh` — in a repo the prompt renders `<folder>(<branch>):`. Dirty the
+   worktree and confirm a red `~` appears before the `)`.
+4. Exit-status color: run `false` then check the trailing `:` is red; run `true`
+   then check it's green.
+5. Default branch shown: on a `main`/`master` checkout, confirm the branch name
+   still appears (it isn't hidden).
+6. Detached HEAD: `git checkout HEAD~1` (then `git switch -` to undo) — confirm
+   the short SHA shows via `git_commit`, not `(HEAD)`.
+7. Minimal in plain dirs: `cd` into a non-git directory and confirm only
+   `<folder>:` shows (no parens).
+8. Auto-recolor: run `theme light` then `theme dark` and confirm the prompt
    recolors without restarting the shell.
-7. Titles intact: `cd` between a git repo and a plain dir, confirm the terminal
+9. Titles intact: `cd` between a git repo and a plain dir, confirm the terminal
    tab title still updates (`_update_term_title` unaffected); `title foo` still
    overrides.
-8. Startup cost sane: `time zsh -i -c exit` before/after — Starship's init adds
+10. Startup cost sane: `time zsh -i -c exit` before/after — Starship's init adds
    little; flag if it regresses noticeably.
 
 ## Rollback
