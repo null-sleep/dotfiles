@@ -1,5 +1,5 @@
 # Starship prompt — stowed to ~/.config/starship.toml. Init in .zshrc_config.zsh.
-# Renders:  ❯ <folder>(<branch|sha><dirty>) [gap]   e.g.  ❯ dotfiles(main~) |
+# Renders:  [duration] ❯ <folder>(<branch|sha><dirty>) [gap]   e.g.  12s ❯ dotfiles(main~) |
 #
 # Colours are ANSI *names* (never hex) so they recolour with the Ghostty theme
 # flip. Top-level `format` is the whitelist — unlisted modules don't render.
@@ -8,7 +8,10 @@
 
 add_newline = false
 
-format = "$character$directory$git_branch$git_commit${custom.git_dirty} "
+format = "$cmd_duration$character$directory$git_branch$git_commit${custom.git_dirty} "
+
+[cmd_duration]           # elapsed time for the last command, shown once >2s
+format = "[$duration](yellow) "
 
 [character]               # leading ❯ coloured green/red by last exit status
 success_symbol = "[❯](green)"
