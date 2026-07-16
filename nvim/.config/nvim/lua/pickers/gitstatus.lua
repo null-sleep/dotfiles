@@ -200,14 +200,15 @@ function M.open()
       ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
       if range_base then
         -- Which commit last touched this file, if any: blank when the file
-        -- is purely uncommitted (no commit in range touched it); a trailing
-        -- `~` in the modified color when it's also still dirty on top.
+        -- is purely uncommitted (no commit in range touched it); dimmed when
+        -- cleanly committed (nothing more to see here); a trailing `~` in
+        -- the modified color when it's also still dirty on top.
         local hash = commit_for_file[item.file]
         local text, hl = '', nil
         if hash and dirty_files[item.file] then
           text, hl = hash .. '~', 'SnacksPickerGitStatusModified'
         elseif hash then
-          text, hl = hash, 'SnacksPickerGitCommit'
+          text, hl = hash, 'SnacksPickerDimmed'
         end
         ret[#ret + 1] = { Snacks.picker.util.align(text, 8), hl }
       end
