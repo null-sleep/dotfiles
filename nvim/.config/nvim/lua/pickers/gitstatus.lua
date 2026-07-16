@@ -18,7 +18,9 @@
 --   A count prefix switches the source to snacks' git_diff (base =
 --   'HEAD~N'), matching the `gd N` shell function (git diff HEAD~N) exactly
 --   — HEAD~N is always an ancestor of HEAD, so git_diff's `--merge-base`
---   resolves to it directly. Bare <leader>sm is unaffected.
+--   resolves to it directly. Bare <leader>sm is unaffected. Range mode adds
+--   a commit-hash column: blank if no range commit touched the file, plain
+--   hash if one did, hash+`~` (modified color) if it's also still dirty.
 
 local common = require('pickers.common')
 
@@ -63,6 +65,35 @@ local function render_diff_lines(ctx, lines)
   return ret
 end
 
+-- Range mode only: newest commit in range..HEAD that touched each file (one
+-- `git show --name-only` per commit — N is small, whatever the user typed).
+local function commits_by_file(git_root, range_base)
+  local hashes = vim.fn.systemlist({ 'git', '-C', git_root, 'log', '--format=%h', range_base .. '..HEAD' })
+  local map = {}
+  for _, hash in ipairs(hashes) do
+    local files = vim.fn.systemlist({ 'git', '-C', git_root, 'show', '--format=', '--name-only', hash })
+    for _, f in ipairs(files) do
+      if f ~= '' and not map[f] then map[f] = hash end
+    end
+  end
+  return map
+end
+
+-- Range mode only: files with changes not yet committed, so a file touched
+-- by a range commit AND still dirty can be flagged (see format() below).
+local function dirty_file_set(git_root)
+  local out = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
+  local set = {}
+  for _, line in ipairs(out) do
+    local file = line:match('^..%s+(.+)$')
+    if file then
+      local _, renamed_to = file:match('^(.-) %-> (.+)$')
+      set[renamed_to or file] = true
+    end
+  end
+  return set
+end
+
 function M.open()
   -- Resolve git toplevel from the current buffer's directory, not nvim's cwd
   -- (same as yank.lua) — editing a file outside the cwd's repo must show THAT
@@ -79,6 +110,7 @@ function M.open()
   -- A count prefix (5<leader>sm) switches into range mode; see header comment.
   local n = vim.v.count
   local range_base = n > 0 and ('HEAD~%d'):format(n) or nil
+  local commit_for_file, dirty_files  -- populated below in range mode only
 
   if range_base then
     -- Same --merge-base flag git_diff itself uses. Exit 0 = no changes,
@@ -92,6 +124,8 @@ function M.open()
       vim.notify('Invalid range: fewer than ' .. n .. ' commits, or bad ref', vim.log.levels.WARN)
       return
     end
+    commit_for_file = commits_by_file(git_root, range_base)
+    dirty_files = dirty_file_set(git_root)
   else
     -- Clean repo → notify instead of opening an empty picker. Checked
     -- synchronously up front (git status is fast at this repo's scale) rather
@@ -164,6 +198,19 @@ function M.open()
       local x, y = GIT_ABBREV[status:sub(1, 1)], GIT_ABBREV[status:sub(2, 2)]
       ret[#ret + 1] = { Snacks.picker.util.align(x and x.icon or ' ', 2), x and x.hl }
       ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
+      if range_base then
+        -- Which commit last touched this file, if any: blank when the file
+        -- is purely uncommitted (no commit in range touched it); a trailing
+        -- `~` in the modified color when it's also still dirty on top.
+        local hash = commit_for_file[item.file]
+        local text, hl = '', nil
+        if hash and dirty_files[item.file] then
+          text, hl = hash .. '~', 'SnacksPickerGitStatusModified'
+        elseif hash then
+          text, hl = hash, 'SnacksPickerGitCommit'
+        end
+        ret[#ret + 1] = { Snacks.picker.util.align(text, 8), hl }
+      end
       vim.list_extend(ret, Snacks.picker.format.filename(item, picker))
       return ret
     end,

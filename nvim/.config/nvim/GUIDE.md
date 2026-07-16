@@ -2012,7 +2012,10 @@ slightly different question:
   — the `<leader>sm` git-status picker, count-prefixed (`4<leader>sm`):
   exact `gd N` semantics (`git diff HEAD~4`), in the same numbered-row
   file list + diff preview as `<leader>sm`'s normal mode. Bare `<leader>sm`
-  keeps today's uncommitted-only view; no prompt-for-N fallback here.
+  keeps today's uncommitted-only view; no prompt-for-N fallback here. Each
+  row also shows the newest commit in range that touched that file (blank
+  if none did — i.e. the file is only dirty, not committed); a trailing
+  `~` means it's also still dirty on top of that commit.
 - **"Walk me through each commit"** — `:DiffviewFileHistory --range=HEAD~4..HEAD`:
   a genuine git-log browser (commit list panel). No shell equivalent today.
   Keymap: `4<leader>vh` (count prefix) or bare `<leader>vh` (prompts for N).
