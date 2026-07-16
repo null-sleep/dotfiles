@@ -202,11 +202,12 @@ function M.open()
         -- Which commit last touched this file, if any: blank when the file
         -- is purely uncommitted (no commit in range touched it); dimmed when
         -- cleanly committed (nothing more to see here); a trailing `~` in
-        -- the modified color when it's also still dirty on top.
+        -- the louder commit color when it's also still dirty on top — that
+        -- combination is the one worth catching your eye.
         local hash = commit_for_file[item.file]
         local text, hl = '', nil
         if hash and dirty_files[item.file] then
-          text, hl = hash .. '~', 'SnacksPickerGitStatusModified'
+          text, hl = hash .. '~', 'SnacksPickerGitCommit'
         elseif hash then
           text, hl = hash, 'SnacksPickerDimmed'
         end
