@@ -68,7 +68,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
-- **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker
+- **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
@@ -1199,7 +1199,7 @@ wholesale.
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer — starts empty until you type, like grep; line numbers use grep's file-name highlight |
 | `<leader>so` | Recent files |
-| `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
+| `<leader>sm` | Modified files (git status; `<Tab>` stages/unstages; count prefix = last N commits + uncommitted) — see [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns. Coverage gotchas: after a session restore only the LSPs of *visited* files join the fan-out ([Session](#session)), and servers match declaration names only — `impl` blocks and fields show up in `<leader>sd`, never here |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
@@ -1365,7 +1365,7 @@ list — bindings below are the daily set):
 
 **Per-picker notes:**
 - `<leader>bb`/`<leader>m` (buffer picker) — Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
-- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker); the list refreshes in place.
+- `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker); the list refreshes in place. Count-prefix it for a last-N-commits range mode — see [Reviewing diffs (diffview.nvim)](#reviewing-diffs) → "Past N commits".
 
 **Tips:**
 - Both file search and live grep include hidden files/directories (e.g. `.github/`); `.git/` and `node_modules/` are excluded (source opts in `picker.lua`).
@@ -1886,7 +1886,8 @@ section below for the full set of review workflows.
   `<leader>tb` toggle the inline current-line blame annotation,
   `]c`/`[c` hunk nav.
 - **Git-status picker** (`<leader>sm`, snacks) — quick jump to a changed
-  file with a diff preview.
+  file with a diff preview; count-prefix it (`5<leader>sm`) for a last-N-commits
+  range mode — see [Reviewing diffs (diffview.nvim)](#reviewing-diffs) → "Past N commits".
 - **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
 
@@ -1997,13 +1998,21 @@ Difference (a...b)** → supply `origin/main` and `HEAD` via the prompts.
 
 ### 3. Past N commits (less common)
 
-Two different questions, two different commands:
+Three ways to ask "what changed over the last N commits," each answering a
+slightly different question:
 
-- **"What changed, total?"** — `:DiffviewOpen HEAD~4..HEAD` (two-dot): one
-  squashed diff across the range, browsed file-by-file like flows 1 & 2.
-  Closest match to the `gd`/`gds` shell functions. Note `HEAD~4` alone (no
-  `..`) diffs your *working tree* against that single rev, not a range.
-  Keymap: `4<leader>vn` (count prefix) or bare `<leader>vn` (prompts for N).
+- **"What changed, total?" (commit history only)** — `:DiffviewOpen
+  HEAD~4..HEAD` (two-dot): one squashed diff across the range, browsed
+  file-by-file like flows 1 & 2. Two-dot means both sides are commits —
+  **uncommitted changes are not included**, unlike the `gd` shell function.
+  Note `HEAD~4` alone (no `..`) diffs your *working tree* against that
+  single rev, not a range. Keymap: `4<leader>vn` (count prefix) or bare
+  `<leader>vn` (prompts for N).
+- **"What changed, total — including anything I haven't committed yet?"**
+  — the `<leader>sm` git-status picker, count-prefixed (`4<leader>sm`):
+  exact `gd N` semantics (`git diff HEAD~4`), in the same numbered-row
+  file list + diff preview as `<leader>sm`'s normal mode. Bare `<leader>sm`
+  keeps today's uncommitted-only view; no prompt-for-N fallback here.
 - **"Walk me through each commit"** — `:DiffviewFileHistory --range=HEAD~4..HEAD`:
   a genuine git-log browser (commit list panel). No shell equivalent today.
   Keymap: `4<leader>vh` (count prefix) or bare `<leader>vh` (prompts for N).

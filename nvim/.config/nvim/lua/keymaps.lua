@@ -12,7 +12,7 @@ vim.keymap.set('n', '<leader>sr', function() Snacks.picker.resume() end, { desc 
 vim.keymap.set('n', '<leader>s/', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sb', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })
 vim.keymap.set('n', '<leader>sm', function() require('pickers.gitstatus').open() end,
-  { desc = 'Search: Modified files' })
+  { desc = 'Search: Modified files (count = last N commits)' })
 vim.keymap.set('n', '<leader>ss', function() require('pickers.symbols').workspace() end,
   { desc = 'Search: Symbols (workspace)' })
 vim.keymap.set('n', '<leader>sd', function() require('pickers.symbols').document() end,

@@ -2,6 +2,7 @@
 --
 -- USAGE
 --   require('pickers.gitstatus').open()        (bound to <leader>sm)
+--   count-prefixed, e.g. 5<leader>sm            (last 5 commits, see below)
 --
 -- WHY A CUSTOM WRAPPER
 --   snacks' builtin git_status covers the hard parts (staging toggle on
@@ -12,10 +13,55 @@
 --
 --   Row indices are item.idx (finder order); a staging toggle re-runs the
 --   finder and indices reset.
+--
+-- COUNT PREFIX -> RANGE MODE
+--   A count prefix switches the source to snacks' git_diff (base =
+--   'HEAD~N'), matching the `gd N` shell function (git diff HEAD~N) exactly
+--   — HEAD~N is always an ancestor of HEAD, so git_diff's `--merge-base`
+--   resolves to it directly. Bare <leader>sm is unaffected.
 
 local common = require('pickers.common')
 
 local M = {}
+
+-- Shared by both preview paths below: drop everything before the first `@@`
+-- hunk header (positionally, not by pattern — a body line may legitimately
+-- start with `---`, e.g. a deleted lua comment) and compute real file line
+-- numbers for the gutter (see M.statuscol) by walking hunk headers.
+local function render_diff_lines(ctx, lines)
+  local start = 1
+  for i, l in ipairs(lines) do
+    if l:find('^@@') then
+      start = i
+      break
+    end
+  end
+  local nums, new_lnum, width = {}, nil, 0
+  for i = start, #lines do
+    local l = lines[i]
+    local hunk_start = l:match('^@@ %-%d+[^+]*%+(%d+)')
+    local n = ''
+    if hunk_start then
+      new_lnum = tonumber(hunk_start)
+    elseif new_lnum and l:sub(1, 1) ~= '-' and l:sub(1, 1) ~= '\\' then
+      n = tostring(new_lnum)
+      new_lnum = new_lnum + 1
+    end
+    nums[#nums + 1] = n
+    width = math.max(width, #n)
+  end
+  for i, n in ipairs(nums) do
+    nums[i] = (' '):rep(width - #n) .. n
+  end
+  ctx.item.preview = {
+    text = table.concat(lines, '\n', start),
+    ft = 'diff',
+    loc = false,
+  }
+  local ret = Snacks.picker.preview.preview(ctx)
+  vim.b[ctx.buf].diff_lnums = nums
+  return ret
+end
 
 function M.open()
   -- Resolve git toplevel from the current buffer's directory, not nvim's cwd
@@ -30,13 +76,31 @@ function M.open()
     return
   end
 
-  -- Clean repo → notify instead of opening an empty picker. Checked
-  -- synchronously up front (git status is fast at this repo's scale) rather
-  -- than racing the picker's async finder for an emptiness check.
-  local changes = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
-  if vim.v.shell_error == 0 and #changes == 0 then
-    vim.notify('No changes found', vim.log.levels.INFO)
-    return
+  -- A count prefix (5<leader>sm) switches into range mode; see header comment.
+  local n = vim.v.count
+  local range_base = n > 0 and ('HEAD~%d'):format(n) or nil
+
+  if range_base then
+    -- Same --merge-base flag git_diff itself uses. Exit 0 = no changes,
+    -- 1 = changes, else = bad ref (e.g. fewer than N commits exist).
+    vim.fn.system({ 'git', '-C', git_root, 'diff', '--quiet', '--merge-base', range_base })
+    local code = vim.v.shell_error
+    if code == 0 then
+      vim.notify('No changes in the last ' .. n .. ' commit(s)', vim.log.levels.INFO)
+      return
+    elseif code ~= 1 then
+      vim.notify('Invalid range: fewer than ' .. n .. ' commits, or bad ref', vim.log.levels.WARN)
+      return
+    end
+  else
+    -- Clean repo → notify instead of opening an empty picker. Checked
+    -- synchronously up front (git status is fast at this repo's scale) rather
+    -- than racing the picker's async finder for an emptiness check.
+    local changes = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
+    if vim.v.shell_error == 0 and #changes == 0 then
+      vim.notify('No changes found', vim.log.levels.INFO)
+      return
+    end
   end
 
   local qp_actions, qp_keys = common.quick_pick_actions()
@@ -53,17 +117,17 @@ function M.open()
     ['?'] = { icon = '?', hl = 'SnacksPickerGitStatusUntracked' },
   }
 
-  return Snacks.picker.git_status({
+  local picker_opts = {
     cwd = git_root,
     actions = qp_actions,
     -- Custom diff preview: classic full-width diff coloring (the 'fancy'
     -- default draws per-file chip boxes that break in a short pane) and no
-    -- per-file header — the preview is already scoped to one file, so
-    -- everything before the first `@@` hunk is dropped *positionally* (a
-    -- body line may legitimately start with `---`, e.g. a deleted lua
-    -- comment, so pattern-filtering would corrupt it). Untracked/added
-    -- files show the file itself.
+    -- per-file header. Untracked/added files show the file itself. Range
+    -- mode already has the full diff text as item.diff — no re-shelling.
     preview = function(ctx)
+      if range_base then
+        return render_diff_lines(ctx, vim.split(ctx.item.diff or '', '\n', { plain = true }))
+      end
       if (ctx.item.status or ''):find('^[A?]') then
         local ret = Snacks.picker.preview.file(ctx)
         if ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
@@ -78,42 +142,7 @@ function M.open()
         args[#args + 1] = '--cached'  -- staged changes
       end
       vim.list_extend(args, { '--', ctx.item.file })
-      local lines = vim.fn.systemlist(args)
-      local start = 1
-      for i, l in ipairs(lines) do
-        if l:find('^@@') then
-          start = i
-          break
-        end
-      end
-      -- Real file line numbers for the gutter (see M.statuscol): walk the
-      -- hunk headers, numbering context/added lines with their new-file
-      -- line; deletions, headers, and `\ No newline` markers get a blank.
-      local nums, new_lnum, width = {}, nil, 0
-      for i = start, #lines do
-        local l = lines[i]
-        local hunk_start = l:match('^@@ %-%d+[^+]*%+(%d+)')
-        local n = ''
-        if hunk_start then
-          new_lnum = tonumber(hunk_start)
-        elseif new_lnum and l:sub(1, 1) ~= '-' and l:sub(1, 1) ~= '\\' then
-          n = tostring(new_lnum)
-          new_lnum = new_lnum + 1
-        end
-        nums[#nums + 1] = n
-        width = math.max(width, #n)
-      end
-      for i, n in ipairs(nums) do
-        nums[i] = (' '):rep(width - #n) .. n
-      end
-      ctx.item.preview = {
-        text = table.concat(lines, '\n', start),
-        ft = 'diff',
-        loc = false,
-      }
-      local ret = Snacks.picker.preview.preview(ctx)
-      vim.b[ctx.buf].diff_lnums = nums
-      return ret
+      return render_diff_lines(ctx, vim.fn.systemlist(args))
     end,
     -- Plain filename colors — the two status-icon columns already carry the
     -- state, and the old picker didn't recolor paths either.
@@ -122,7 +151,16 @@ function M.open()
       local ret = {}  ---@type snacks.picker.Highlight[]
       ret[#ret + 1] = { Snacks.picker.util.align(tostring(item.idx), 2), 'SnacksPickerBufNr' }
       ret[#ret + 1] = { ' ' }
-      local status = item.status or '  '
+      local status = item.status
+      if not status and item.block then
+        -- git_diff items carry no XY porcelain code; derive one the same
+        -- way snacks' own format.git_status() does, in column 2 (unstaged)
+        -- to match a normal-mode unstaged file's column.
+        local b = item.block
+        local letter = b.new and 'A' or b.delete and 'D' or b.rename and 'R' or b.copy and 'C' or 'M'
+        status = ' ' .. letter
+      end
+      status = status or '  '
       local x, y = GIT_ABBREV[status:sub(1, 1)], GIT_ABBREV[status:sub(2, 2)]
       ret[#ret + 1] = { Snacks.picker.util.align(x and x.icon or ' ', 2), x and x.hl }
       ret[#ret + 1] = { Snacks.picker.util.align(y and y.icon or ' ', 2), y and y.hl }
@@ -146,7 +184,14 @@ function M.open()
         },
       },
     },
-  })
+  }
+
+  if range_base then
+    picker_opts.base = range_base
+    picker_opts.group = true
+    return Snacks.picker.git_diff(picker_opts)
+  end
+  return Snacks.picker.git_status(picker_opts)
 end
 
 -- statuscolumn callback for the diff preview window: renders the real
