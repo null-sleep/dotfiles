@@ -22,6 +22,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Neovim](#neovim)
 - [Neovide](#neovide)
 - [Typora](#typora)
+- [RustRover](#rustrover)
 
 *Terminals & multiplexing*
 - [Ghostty](#ghostty) · [Zellij](#zellij)
@@ -697,6 +698,18 @@ Two ways to open a file in it:
 - **Shell:** `typora notes.md` — alias for `open -a Typora` (in `.zshrc_config.zsh`).
 - **Neovim:** `<leader>uo` (or `:Typora`) — documented in
   `nvim/.config/nvim/GUIDE.md` → Keymap index → Global keymaps.
+
+## RustRover
+
+JetBrains' Rust IDE — used for Rust work that benefits from a full IDE
+(debugger, refactoring tools) beyond what nvim's LSP setup covers.
+
+```bash
+brew install --cask rustrover
+```
+
+No stow-managed config: IDE settings live in JetBrains' own config
+directory, not this repo.
 
 ## Ghostty
 

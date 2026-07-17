@@ -104,6 +104,7 @@ cask "ghostty"         # terminal; GPU-accelerated and native to macOS.
                        # Config in ghostty/ (then `stow ghostty`).
 cask "neovide-app"     # Neovim GUI
 cask "typora"          # markdown editor (`typora` shell alias)
+cask "rustrover"       # JetBrains Rust IDE
 cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
