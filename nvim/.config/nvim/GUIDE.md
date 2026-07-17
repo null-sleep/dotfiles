@@ -696,6 +696,8 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
 | `<M-b>` / `<M-f>` | Word back / forward — Option+Left/Right, which the terminal sends as literal Meta+b/Meta+f (see keymaps.lua comment) | keymaps.lua |
+| `<M-BS>` (insert mode) | Delete word left — Option+Backspace, sent as Meta+Backspace by the terminal | keymaps.lua |
+| `<M-d>` (insert mode) | Delete word forward — Option+D, readline convention | keymaps.lua |
 | `<M-a>` (in any picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
 
 Toggling a comment has no dedicated `<leader>t*` map — use nvim's native

@@ -71,6 +71,8 @@ vim.keymap.set({ 'n', 'x' }, '<M-b>', 'b', { desc = 'Word: back' })
 vim.keymap.set({ 'n', 'x' }, '<M-f>', 'w', { desc = 'Word: forward' })
 vim.keymap.set('i', '<M-b>', '<C-o>b', { desc = 'Word: back' })
 vim.keymap.set('i', '<M-f>', '<C-o>w', { desc = 'Word: forward' })
+vim.keymap.set('i', '<M-BS>', '<C-w>', { desc = 'Word: delete back' })
+vim.keymap.set('i', '<M-d>', '<C-o>dw', { desc = 'Word: delete forward' })
 
 -- Yank to system clipboard (dd, x, c stay in Neovim register).
 -- Uses expr mapping so that explicit register prefixes ("a, "b, etc.) are
