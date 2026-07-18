@@ -136,6 +136,14 @@ require('snacks').setup({
       -- sqlite via the system libsqlite3, with a plain-file fallback.
       frecency = true,
     },
+    -- Surface the frecency-adjusted score as a prefix column in every
+    -- picker's list (list.lua only reads this when scores is truthy, so it's
+    -- free otherwise) — makes the ranking above legible/tunable instead of
+    -- a black box. Off by default (didn't like the look of the column); flip
+    -- to true to debug frecency ranking again.
+    debug = {
+      scores = false,
+    },
     actions = {
       confirm = confirm_and_scroll,
       send_to_sidekick = send_to_sidekick,

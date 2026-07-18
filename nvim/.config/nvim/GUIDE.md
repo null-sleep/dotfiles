@@ -1405,6 +1405,7 @@ list — bindings below are the daily set):
 **Tips:**
 - Both file search and live grep include hidden files/directories (e.g. `.github/`); `.git/` and `node_modules/` are excluded (source opts in `picker.lua`).
 - Frecency ranking is on: files you open often (and recently) float toward the top of file-ish pickers. The store lives under `stdpath('data')`; delete it to reset.
+- Each row's score can be shown as a leading number via `picker.lua`'s `debug.scores` (off by default) — flip it to `true` to make the frecency boost above visible when tuning it.
 - `<leader>sr` reopens the last picker with query and results intact — useful when you close it and want to get back.
 - In the files picker, pasting `path:12:4` jumps to that line/column on `<CR>` (`file:line:col` prompt syntax).
 
