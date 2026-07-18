@@ -346,8 +346,18 @@ vim.api.nvim_create_autocmd('FileType', {
         end
       end
     end
-    vim.keymap.set('n', '<C-u>', send_to_claude('\27[5~'), { buffer = args.buf })
-    vim.keymap.set('n', '<C-d>', send_to_claude('\27[6~'), { buffer = args.buf })
+    vim.keymap.set('n', '<C-u>', send_to_claude('\27[5~'),
+      { buffer = args.buf, desc = 'AI: Scroll Claude TUI up' })
+    vim.keymap.set('n', '<C-d>', send_to_claude('\27[6~'),
+      { buffer = args.buf, desc = 'AI: Scroll Claude TUI down' })
+
+    -- u in normal mode: forward Ctrl+_ (0x1F), Claude Code's chat:undo — vim's
+    -- own undo can only throw E21 here (terminal buffers are unmodifiable).
+    -- Caveats: 0x1F is the DEFAULT chat:undo binding (rebindable in
+    -- ~/.claude/keybindings.json), and it only means undo while Claude's input
+    -- box has focus — mid-stream/dialog states may no-op it.
+    vim.keymap.set('n', 'u', send_to_claude('\31'),
+      { buffer = args.buf, desc = 'AI: Undo prompt input (sends Ctrl+_)' })
   end,
 })
 
