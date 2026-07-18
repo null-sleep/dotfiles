@@ -2407,6 +2407,34 @@ session — starting cold from it relies on rustaceanvim's auto-loaded configs
 `<leader>nd` debugs the nearest test through nvim-dap (breakpoints honored).
 See [Testing](#testing) for the full keymap table and the adapter list.
 
+### Structural search & replace (SSR)
+
+`<leader>cs` prompts for a query and runs rust-analyzer's own semantic SSR
+(`experimental/ssr` over LSP) across the whole workspace. Syntax:
+`<search> ==>> <replace>`, with `$name` placeholders matching any AST node —
+e.g. `foo($a, $b) ==>> ($a).foo($b)`. Unlike a purely syntactic tool
+(ast-grep, treesitter query search), paths in the pattern must **resolve** —
+it only rewrites code that actually resolves to the matched item, and it
+auto-inserts `*`/`&`/`&mut` to mirror autoderef/autoref. Run it from visual
+mode to scope the rewrite to the selection instead of the whole workspace.
+
+No query argument is passed from the keymap — rustaceanvim's `ssr` command
+already falls back to `vim.ui.input` when called with none
+(`rustaceanvim/commands/ssr.lua`), so `<leader>cs` is a thin wrapper around
+`:RustLsp ssr`.
+
+### Batch-fixing clippy lints
+
+`<leader>cF` runs `cargo clippy --fix --workspace --allow-dirty
+--allow-staged` in a floating terminal (fixed id 102, same convention as
+`terminal.lua`'s bottom panel (100) and the Go run terminal in
+`pickers/gotargets.lua` (101)) from the nearest `Cargo.toml`'s directory.
+This applies every lint rustc marks `Applicability::MachineApplicable`
+across the whole workspace in one pass — it skips ambiguous or
+semantics-changing suggestions, which still need a manual look. `checkOnSave`
+(clippy) already reports diagnostics workspace-wide as you edit; this is the
+batch-apply half of that loop.
+
 ### Keymaps
 
 **Rust actions** (buffer-local, `rust` filetype only — from `rust.lua`):
@@ -2418,6 +2446,8 @@ See [Testing](#testing) for the full keymap table and the adapter list.
 | `<leader>cR` | Runnables — run a binary/target |
 | `<leader>cm` | Expand macro under cursor |
 | `<leader>cC` | Open the crate's `Cargo.toml` |
+| `<leader>cs` | Structural search & replace (SSR) — prompts for a query |
+| `<leader>cF` | Batch-fix clippy lints across the whole workspace |
 | `<leader>dR` | Debuggables — start a Rust debug session |
 | `grx` | Run/Debug codelens under cursor (native codelens, now functional) |
 

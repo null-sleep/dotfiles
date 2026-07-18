@@ -64,6 +64,8 @@ vim.g.rustaceanvim = {
 
 vim.cmd.packadd('rustaceanvim')
 
+local clippy_fix_term -- reused across runs; a second run replaces the first
+
 -- Rust-specific keymaps (buffer-local, rust filetype only). These are :RustLsp
 -- actions plain LSP can't provide. K and <leader>ca override the global LSP maps
 -- from lsp.lua with richer rustaceanvim variants — but only in Rust buffers.
@@ -80,5 +82,37 @@ vim.api.nvim_create_autocmd('FileType', {
     map('<leader>cm', function() vim.cmd.RustLsp('expandMacro') end,          'Rust: Expand macro')
     map('<leader>cC', function() vim.cmd.RustLsp('openCargo') end,            'Rust: Open Cargo.toml')
     map('<leader>dR', function() vim.cmd.RustLsp('debuggables') end,          'Debug: Rust debuggables')
+
+    -- rust-analyzer's own semantic SSR (experimental/ssr), whole-workspace and
+    -- name-resolution-aware — not just AST-shape matching. No query arg: the
+    -- 'ssr' command's impl (rustaceanvim/commands/ssr.lua) already prompts via
+    -- vim.ui.input when called with none. See plans/rustrover-nvim-parity.md
+    -- §1 — this was the "already there, just needs wiring" RustRover-parity item.
+    map('<leader>cs', function() vim.cmd.RustLsp('ssr') end, 'Rust: Structural search & replace (SSR)')
+
+    -- Batch-apply every machine-applicable clippy fix across the whole
+    -- workspace in one shot (rustc's Applicability::MachineApplicable set —
+    -- ambiguous/semantics-changing suggestions are skipped, same as running it
+    -- by hand). See plans/rustrover-nvim-parity.md §1. Fixed high id, same
+    -- convention as terminal.lua (100) / gotargets.lua's run terminal (101).
+    map('<leader>cF', function()
+      local root = vim.fs.root(0, { 'Cargo.toml' })
+      if not root then
+        vim.notify('No Cargo.toml found up the tree', vim.log.levels.WARN)
+        return
+      end
+      local Terminal = require('toggleterm.terminal').Terminal
+      if clippy_fix_term then
+        clippy_fix_term:shutdown()
+      end
+      clippy_fix_term = Terminal:new({
+        id = 102,
+        cmd = 'cargo clippy --fix --workspace --allow-dirty --allow-staged',
+        dir = root,
+        direction = 'float',
+        close_on_exit = false,
+      })
+      clippy_fix_term:toggle()
+    end, 'Rust: Batch-fix clippy lints (workspace)')
   end,
 })
