@@ -454,6 +454,20 @@ GUIDE.md "Large files".
   toggle `<leader>tg`). No action.
 - ✅ **Next-edit prediction** — shipped via sidekick.nvim's Copilot-LSP NES
   (not `blink-edit.nvim`, which the TODO note pointed at). No action.
+- **Sidekick CLI: force terminal mode on plain window-nav re-entry** —
+  toggleterm now always reopens in terminal mode (`persist_mode = false` in
+  `terminal.lua`, 2026-07-18), but sidekick.nvim has no equivalent config flag:
+  it hardcodes a `self.normal_mode` field, restored on its own internal
+  `WinEnter` autocmd (`sidekick/cli/terminal.lua`). Commands routed through
+  `ai.lua` (`<leader>aa`, `<M-]>`/`<M-[>`, `<M-l>`) already force insert via
+  `terminal:focus()`, so this only matters for a plain window-nav jump
+  (`<C-w>w`, mouse click) straight into an already-open sidekick split.
+  Fix sketch: in the `SidekickCliAttach` handler (`ai.lua`), register a
+  second, buffer-local `WinEnter` autocmd on `term.bufnr` that unconditionally
+  calls `vim.cmd.startinsert()` — since `SidekickCliAttach` fires after
+  `terminal:start()` has already registered sidekick's own `WinEnter` handler,
+  ours registers later and runs after it on the same event, so it wins. Not
+  yet applied/tested; low priority since the common paths already work.
 
 ## See dedicated specs
 

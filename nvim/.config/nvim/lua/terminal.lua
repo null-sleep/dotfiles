@@ -20,8 +20,11 @@ require('toggleterm').setup({
   shade_terminals = false, -- float border already provides visual separation
   start_in_insert = true,
   close_on_exit = true,
-  -- persist_mode = true (default): remembers whether you were in insert or normal
-  -- mode when you hid the terminal, and restores that mode on re-open.
+  -- persist_mode = false (default is true): don't remember whether you were in
+  -- insert or normal mode when the terminal was hidden — always reopen in
+  -- terminal mode (start_in_insert above), so switching back never strands you
+  -- in normal mode reading old scrollback instead of a live prompt.
+  persist_mode = false,
   --
   -- persist_size = true (default): remembers split dimensions across hides.
   -- Only relevant if you use direction = 'horizontal' or 'vertical'.
