@@ -2410,8 +2410,14 @@ See [Testing](#testing) for the full keymap table and the adapter list.
 <a id="structural-search-replace-ssr"></a>
 ### Structural search & replace (SSR)
 
-`<leader>cs` prompts for a query and runs rust-analyzer's own semantic SSR
-(`experimental/ssr` over LSP) across the whole workspace. Syntax:
+Semantic, project-wide find-and-replace for Rust — no plugin to install,
+it's rust-analyzer's own SSR feature (`experimental/ssr` over LSP),
+`<leader>cs` just wires a keymap to it. The key advantage over plain
+regex/grep: it's **name-resolution-aware**, so a pattern only rewrites code
+that actually resolves to the item you meant, not just anything that looks
+the same by shape (see the UFCS example below).
+
+`<leader>cs` prompts for a query and rewrites the whole workspace. Syntax:
 `<search> ==>> <replace>`. Run it from visual mode to scope the rewrite to
 the selection instead of the whole workspace.
 
@@ -2460,6 +2466,9 @@ already falls back to `vim.ui.input` when called with none
 `:RustLsp ssr`.
 
 ### Batch-fixing clippy lints
+
+Fixes clippy lints across the **entire workspace in one shot**, instead of
+fixing diagnostics one at a time as you happen to visit each file.
 
 `<leader>cF` runs `cargo clippy --fix --workspace --allow-dirty
 --allow-staged` in a floating terminal (fixed id 102, same convention as
