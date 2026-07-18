@@ -142,7 +142,8 @@ end
 -- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
 -- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
 -- exiting terminal mode. Removed; <C-]> cycles next and wraps around, so
--- repeated presses reach every terminal.
+-- repeated presses reach every float terminal (the bottom panel opts out —
+-- see the id == 100 guard below).
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling/switching',
@@ -151,15 +152,22 @@ vim.api.nvim_create_autocmd('TermOpen', {
     if vim.bo.filetype == 'sidekick_terminal' then return end
     local opts = { buffer = 0 }
     utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
-    vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
-    vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
-    -- <M-n>/<M-l> deliberately mirror the sidekick CLI's own session keys
-    -- (ai.lua:319-336) for muscle-memory symmetry, though each is buffer-local
-    -- to its own terminal kind so neither clashes.
-    vim.keymap.set('t', '<M-n>', new_term, opts)
-    vim.keymap.set('n', '<M-n>', new_term, opts)
-    vim.keymap.set('t', '<M-l>', '<cmd>TermSelect<CR>', opts)
-    vim.keymap.set('n', '<M-l>', '<cmd>TermSelect<CR>', opts)
+    -- Cycle/new/select are float-pool concepts — skip them in the bottom
+    -- panel (id 100), which is deliberately a single dedicated terminal, not
+    -- a member of the pool. Without this guard, <C-]> inside the panel would
+    -- find no matching id in cycle_term's terms list (get_all() excludes
+    -- hidden terminals) and swap two unrelated background floats instead.
+    if vim.b.toggle_number ~= 100 then
+      vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
+      vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
+      -- <M-n>/<M-l> deliberately mirror the sidekick CLI's own session keys
+      -- (ai.lua:319-336) for muscle-memory symmetry, though each is buffer-local
+      -- to its own terminal kind so neither clashes.
+      vim.keymap.set('t', '<M-n>', new_term, opts)
+      vim.keymap.set('n', '<M-n>', new_term, opts)
+      vim.keymap.set('t', '<M-l>', '<cmd>TermSelect<CR>', opts)
+      vim.keymap.set('n', '<M-l>', '<cmd>TermSelect<CR>', opts)
+    end
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
     -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal
     -- that transmits Shift+Enter distinctly (iTerm2 requires CSI u enabled).

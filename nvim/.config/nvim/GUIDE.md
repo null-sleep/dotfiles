@@ -85,7 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal, `<M-n>` new auto-numbered terminal, `<M-l>` `:TermSelect` picker)
+- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<C-]>` cycle next float, `<M-n>` new auto-numbered float, `<M-l>` `:TermSelect` picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -1736,9 +1736,9 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `<C-/>` (also `<C-_>`, same physical chord — see Tips) | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
 | `<Esc>` / `jj` / `jk` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
-| `<C-]>` (in terminal) | Cycle to next terminal (wraps, so repeated presses reach every terminal) |
-| `<M-n>` (in terminal) | Open a new auto-numbered terminal (lowest free id) |
-| `<M-l>` (in terminal) | `:TermSelect` picker — jump to any open terminal |
+| `<C-]>` (in a float terminal) | Cycle to next float (wraps, so repeated presses reach every float) |
+| `<M-n>` (in a float terminal) | Open a new auto-numbered float (lowest free id) |
+| `<M-l>` (in a float terminal) | `:TermSelect` picker — jump to any open terminal |
 
 **Tips:**
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>`
@@ -1749,14 +1749,18 @@ that persists state across hides, plus a VS Code-style bottom panel.
   Neovim receives `<C-_>` for this physical keypress inside terminal mode,
   and `<C-/>` from normal mode / the GUI — binding both means the toggle
   works regardless of which byte arrives.
-- **Cycle between terminals**: `<C-]>` cycles to the next open terminal and
-  wraps around. Works in both terminal and normal mode within the terminal
+- **Cycle between terminals**: `<C-]>` cycles to the next open float and
+  wraps around. Works in both terminal and normal mode within a float
   buffer. (There is deliberately no cycle-previous key — `<C-[>` is the same
   keycode as `<Esc>` and shadowed it.)
 - **Open a new terminal in place**: `<M-n>` opens the lowest free id in the
-  1-99 pool without leaving the terminal buffer.
+  1-99 pool without leaving the float buffer.
 - **Switch between terminals**: `<M-l>` (or `:TermSelect` directly) opens a
   picker over all open terminals.
+- **`<C-]>`/`<M-n>`/`<M-l>` are float-only**: the bottom panel is deliberately
+  a single dedicated terminal, not a member of the float pool, so none of
+  these three bind inside it — only `<Esc>`/`jj`/`jk`, `<C-h/j/k/l>`, and
+  `<S-CR>` do.
 - **`<M-n>`/`<M-l>` mirror the sidekick CLI**: they deliberately match the
   [AI (sidekick.nvim)](#ai-sidekick)'s own `<M-n>`/`<M-l>` session keys for
   muscle-memory symmetry — each is buffer-local to its own terminal kind, so
