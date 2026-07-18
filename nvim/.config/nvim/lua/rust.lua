@@ -138,11 +138,12 @@ end
 -- Neovim never times out a pending LSP request or flushes a hung server's
 -- callback, so RELOAD_TIMEOUT force-resets state (+ warns) if rust-analyzer
 -- hangs; `resolved` keeps the real response and the timeout mutually exclusive.
-local RELOAD_TIMEOUT = 30000 -- ms; a bare timer, so generous costs nothing
+local RELOAD_TIMEOUT = 30000 -- ms; cancelled on completion, so generous costs nothing
 local function reload(opts)
   opts = opts or {}
   in_flight = true
   local resolved = false
+  local timer = assert(vim.uv.new_timer())
   if not opts.silent then
     vim.notify('Reloading Cargo workspace…')
   end
@@ -151,6 +152,8 @@ local function reload(opts)
       return
     end
     resolved = true
+    timer:stop()
+    timer:close()
     in_flight = false
     last_reload = vim.uv.now()
     if not timed_out then
@@ -167,9 +170,11 @@ local function reload(opts)
   end
   -- Armed BEFORE the request call, so a synchronous throw from
   -- any_buf_request still resets in_flight instead of sticking forever.
-  vim.defer_fn(function()
+  -- schedule_wrap keeps finish() (and its timer:close()) on the main loop,
+  -- off the timer's own fast-context callback.
+  timer:start(RELOAD_TIMEOUT, 0, vim.schedule_wrap(function()
     finish(nil, true)
-  end, RELOAD_TIMEOUT)
+  end))
   require('rustaceanvim.rust_analyzer').any_buf_request('rust-analyzer/reloadWorkspace', nil, function(err)
     finish(err, false)
   end)
