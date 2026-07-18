@@ -59,13 +59,16 @@ local function debug_target(item, root)
   }, { filetype = 'go' })
 end
 
--- Fixed high id, outside the 1-99 pool reserved for count-addressable bottom
--- terminals (2<C-/>, 3<C-/>): without an explicit id, toggleterm hands out the
--- lowest free integer, so this float would collide with that pool and its id
--- would shift between runs (shutdown() frees it again). terminal.lua's
--- <M-]>/<M-[> cycle filters to ids < 100, so this float is excluded from that
--- rotation. Shutdown-recreate-toggle behavior is shared with rust.lua's
--- clippy-fix terminal — see utils.lua's float_terminal_action.
+-- Fixed high id, same convention as terminal.lua's bottom panel (id = 100):
+-- without an explicit id, toggleterm hands out the lowest free integer, so
+-- this terminal would collide with the 1-99 pool reserved for
+-- count-addressable floats (2<C-\>, 3<C-\>) — and its id would shift between
+-- runs, since shutdown() frees it again. That is ALL the id buys: the
+-- <C-]> cycle filters on `hidden`, not id, so this (non-hidden) terminal
+-- stays in the cycle — deliberately; cycling back to the program's output is
+-- useful. Shutdown-then-recreate-then-toggle (and never killing a still-live
+-- run on re-press) is shared with rust.lua's clippy-fix terminal — see
+-- utils.lua's float_terminal_action.
 local run_target = require('utils').float_terminal_action(101, function(item, root)
   -- `go run <import-path>` from the module root reaches any main package in the
   -- module, from any buffer — which is exactly what a hand-rolled `go run .`
