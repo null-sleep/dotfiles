@@ -86,12 +86,11 @@ end)
 -- K and <leader>ca override the global LSP maps from lsp.lua — but only in
 -- Rust buffers.
 --
--- Triggered on LspAttach (filtered by filetype, not FileType, and not the
--- attaching client): lsp.lua's LspAttach handler rebinds these same keys on
--- every attach, and two clients attach here — rust-analyzer, then copilot
--- moments later. rust.lua loads after lsp.lua (Load order), so this autocmd
--- always registers, and fires, after lsp.lua's — the last write, on every
--- attach. See Design Decisions → "Rust keymaps fire on LspAttach, not FileType".
+-- Fires on LspAttach, filtered by buffer filetype (not FileType, not the
+-- client name): lsp.lua rebinds these same keys on every attach, and two
+-- clients attach here — rust-analyzer, then copilot. rust.lua loads after
+-- lsp.lua (Load order), so this always registers, and fires, last. Full
+-- story: Design Decisions → "Rust keymaps fire on LspAttach, not FileType".
 vim.api.nvim_create_autocmd('LspAttach', {
   group = vim.api.nvim_create_augroup('UserRustKeys', { clear = true }),
   callback = function(ev)
