@@ -82,18 +82,32 @@ local clippy_fix_action = require('utils').float_terminal_action(102, function()
   return { cmd = 'cargo clippy --fix --workspace --allow-dirty --allow-staged', dir = root }
 end)
 
--- Rust-specific keymaps (buffer-local, rust filetype only). These are :RustLsp
--- actions plain LSP can't provide. K and <leader>ca override the global LSP maps
--- from lsp.lua with richer rustaceanvim variants — but only in Rust buffers.
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'rust',
+-- Rust-specific keymaps. These are :RustLsp actions plain LSP can't provide;
+-- K and <leader>ca override the global LSP maps from lsp.lua — but only in
+-- Rust buffers.
+--
+-- Triggered on LspAttach (filtered by filetype, not FileType, and not the
+-- attaching client): lsp.lua's LspAttach handler rebinds these same keys on
+-- every attach, and two clients attach here — rust-analyzer, then copilot
+-- moments later. rust.lua loads after lsp.lua (Load order), so this autocmd
+-- always registers, and fires, after lsp.lua's — the last write, on every
+-- attach. See Design Decisions → "Rust keymaps fire on LspAttach, not FileType".
+vim.api.nvim_create_autocmd('LspAttach', {
   group = vim.api.nvim_create_augroup('UserRustKeys', { clear = true }),
   callback = function(ev)
+    if vim.bo[ev.buf].filetype ~= 'rust' then
+      return
+    end
     local map = function(lhs, rhs, desc)
       vim.keymap.set('n', lhs, rhs, { buffer = ev.buf, desc = desc })
     end
     map('K',          function() vim.cmd.RustLsp({ 'hover', 'actions' }) end, 'Rust: Hover actions')
     map('<leader>ca', function() vim.cmd.RustLsp('codeAction') end,           'Rust: Code action (grouped)')
+    -- actions-preview can't render rustaceanvim's grouped list (two separate
+    -- pickers over the same request) — Rust keeps both keys instead of one.
+    -- See plans/rustrover-nvim-parity.md §2.
+    map('<leader>cp', function() require('actions-preview').code_actions() end,
+      'Rust: Code action preview (diff, ungrouped)')
     map('<leader>cR', function() vim.cmd.RustLsp('runnables') end,            'Rust: Runnables (run)')
     map('<leader>cm', function() vim.cmd.RustLsp('expandMacro') end,          'Rust: Expand macro')
     map('<leader>cC', function() vim.cmd.RustLsp('openCargo') end,            'Rust: Open Cargo.toml')

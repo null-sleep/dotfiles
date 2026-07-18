@@ -72,8 +72,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
-- **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
-- **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps on `FileType rust` (`<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions)
+- **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
+- **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach` (filtered to the buffer's filetype, not the FileType event — see "Rust keymaps fire on LspAttach, not FileType" below) — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
 - **`golang.lua`** — Go's language module, the mirror of `rust.lua`: pcall-guarded `nvim-dap-go` setup (the delve adapter + seven `dap.configurations.go` launch configs) plus buffer-local `FileType go` keymaps (`<leader>dR` debug targets, `<leader>cR` run targets). Named `golang.lua`, not `go.lua` — `require('go')` is ray-x/go.nvim's own module name, so taking it would shadow that plugin (same rule as `debugging.lua`-not-`dap.lua`)
 - **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a toggleterm float
@@ -620,6 +620,24 @@ future upstream tool can reintroduce this. It leaves sidekick's tool launcher
 (formerly `<leader>as`) with nothing `<leader>aa` doesn't do, so that keymap is
 gone; restore it alongside a name in `cli.tools` to run a second tool.
 
+### Rust keymaps fire on LspAttach, not FileType
+
+`rust.lua`'s overrides (`K`, `<leader>ca`, etc.) used to be set on
+`FileType == 'rust'` — silently broken, since `lsp.lua`'s `LspAttach`
+handler rebinds the same keys on **every** attaching client, and a Rust
+buffer gets attached to by *two* clients (rust-analyzer, then copilot
+moments later), both after `FileType` already fired. The global handler was
+always the last write; Rust's richer variants got clobbered back to plain
+LSP defaults every time, undetected until the actions-preview.nvim work
+below surfaced it.
+
+Fixed by triggering on `LspAttach` instead, filtered on
+`vim.bo[buf].filetype == 'rust'` — not the client's name, since a
+rust-analyzer-only filter would still lose to copilot's later attach.
+`init.lua` requires `lsp` before `rust` (Load order), and same-event
+autocmds fire in registration order, so this handler always runs — and
+wins — after lsp.lua's, on every attach.
+
 
 ## Keymap index
 
@@ -744,12 +762,18 @@ the quickfix list.
 
 **Hover, actions & diagnostics:**
 
+`<leader>ca`/`gra` route through `aznhe21/actions-preview.nvim`
+(`backend = { 'snacks' }`, `lsp.lua`) instead of plain
+`vim.lsp.buf.code_action` — picking an action shows a diff before applying
+it. A global upgrade for every language; Rust is the one exception with its
+own key — see [Rust](#rust) → Keymaps for why.
+
 | Keymap | Action |
 |---|---|
 | `K` | Hover — docs/type/signature float (not the source; use peek for that) |
 | `<C-s>` (normal + insert) | Signature help |
 | `<leader>th` | Toggle auto-hover on CursorHold |
-| `<leader>ca` / `gra` | Code action |
+| `<leader>ca` / `gra` | Code action (diff preview) |
 | `grn` | Rename symbol |
 | `grt` | Go to type definition (same as `gy`, without the picker) |
 | `grx` | Run codelens under cursor |
@@ -2488,6 +2512,15 @@ file partially rewritten. It only shuts down and starts a fresh run once the
 previous one has actually exited (`utils.lua`'s `float_terminal_action`,
 shared with the Go run terminal in `pickers/gotargets.lua`).
 
+### Code action preview
+
+`<leader>ca` and `<leader>cp` are two different UIs over the same
+rust-analyzer actions, not a redundant pair: `actions-preview.nvim` (every
+other language's `<leader>ca`, see [LSP](#lsp) → Keymaps) can't render
+rustaceanvim's grouped-by-kind list — they're separate pickers with no hook
+to compose. Use `<leader>ca` for the grouped picker, `<leader>cp` when a
+diff preview matters more than grouping.
+
 ### Keymaps
 
 **Rust actions** (buffer-local, `rust` filetype only — from `rust.lua`):
@@ -2496,6 +2529,7 @@ shared with the Go run terminal in `pickers/gotargets.lua`).
 |---|---|
 | `K` | Rust hover actions (richer than plain LSP hover) |
 | `<leader>ca` | Code action (rustaceanvim grouped variant) |
+| `<leader>cp` | Code action preview — flat list, diff shown before applying |
 | `<leader>cR` | Runnables — run a binary/target |
 | `<leader>cm` | Expand macro under cursor |
 | `<leader>cC` | Open the crate's `Cargo.toml` |

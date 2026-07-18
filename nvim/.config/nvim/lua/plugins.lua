@@ -45,6 +45,9 @@ vim.pack.add(vim.list_extend({
   -- target file at a definition/reference, without moving the main window.
   -- (pcall-requires an optional logger.nvim; falls back to a bundled logger.)
   { src = gh('rmagatti/goto-preview') },
+  -- Diff preview before a code action applies. No version tags upstream —
+  -- left unpinned, same as nvim-dap-go below.
+  { src = gh('aznhe21/actions-preview.nvim') },
   -- Zed/VS Code-style outline sidebar: collapsible symbol tree for the current
   -- buffer, treesitter-first so it works with no LSP attached.
   { src = gh('stevearc/aerial.nvim') },

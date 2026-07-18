@@ -90,6 +90,15 @@ require('goto-preview').setup({
   default_mappings = false,  -- we define our own below (under <leader>p)
 })
 
+-- actions-preview: diff-preview before a code action applies, instead of
+-- vim.lsp.buf.code_action's apply-immediately default. backend pinned to
+-- snacks (this config's picker) to skip two failed require probes for
+-- telescope/mini.pick, which aren't installed. See plans/rustrover-nvim-parity.md §2.
+vim.cmd.packadd('actions-preview.nvim')
+require('actions-preview').setup({
+  backend = { 'snacks' },
+})
+
 -- LspAttach: buffer-local keymaps and features applied when any LSP server
 -- attaches. Runs once per client-buffer pair, no per-server base config needed.
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -262,14 +271,14 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Rename intentionally has no <leader>r map: nvim 0.11+ core already binds
     -- grn (rename) alongside gra/grr/gri/grt/grx, so a <leader>rn alias would
     -- just duplicate a built-in for the cost of an entire top-level leader group.
-    map({'n','x'}, '<leader>ca', vim.lsp.buf.code_action,     'LSP: Code action')
+    map({'n','x'}, '<leader>ca', require('actions-preview').code_actions, 'LSP: Code action (diff preview)')
 
     -- Re-bind the core defaults we keep (same functions, unchanged behavior) purely
     -- to give them a desc: nvim sets them without one, so which-key and <leader>sk
     -- label them with their raw callee ("vim.lsp.buf.rename()") and file them under
     -- no group — worst for exactly the keys this config tells you to reach for.
     map('n', 'grn',        vim.lsp.buf.rename,          'LSP: Rename symbol')
-    map({'n','x'}, 'gra',  vim.lsp.buf.code_action,     'LSP: Code action')
+    map({'n','x'}, 'gra',  require('actions-preview').code_actions, 'LSP: Code action (diff preview)')
     map('n', 'grt',        vim.lsp.buf.type_definition, 'LSP: Go to type definition')
     map('n', 'grx',        vim.lsp.codelens.run,        'LSP: Run codelens')
     map('n', 'gO',         vim.lsp.buf.document_symbol, 'LSP: Document symbols')
