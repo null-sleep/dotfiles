@@ -72,8 +72,10 @@ require('sidekick').setup({
     picker = 'snacks',
     win = {
       layout = 'right',  -- CLI opens as a right split; switch to 'float' if preferred
-      -- global scrolloff=10 pins terminal view to bottom; 0 lets it scroll freely
-      wo = { scrolloff = 0 },
+      -- Zero both, same as filetree.lua/outline.lua's panels (GUIDE.md
+      -- "Panels stop at their last entry") — the dead-space fix itself is
+      -- the WinScrolled clamp in autocmds.lua.
+      wo = { scrolloff = 0, sidescrolloff = 0 },
       -- In-window CLI keymaps (merged over sidekick's defaults).
       -- <C-\> is intentionally NOT bound here so it falls through to the global
       -- toggleterm mapping, allowing toggleterm floats to be opened from sidekick.

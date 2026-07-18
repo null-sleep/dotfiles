@@ -137,28 +137,23 @@ vim.api.nvim_create_autocmd('QuitPre', {
   end,
 })
 
--- Don't let the list panels scroll off their own content — a file tree showing
--- three files and twenty blank rows (or scrolled right until the names are gone
--- entirely) is just dead space. This is the fix for that symptom; scrolloff/
--- sidescrolloff are NOT (a common misreading, and one this config already shipped
--- once as a no-op). Those two only pad the view around the CURSOR: they have no
--- effect at EOF, and they don't constrain the view at all when it's scrolled
--- directly — a trackpad <ScrollWheelDown>/<ScrollWheelRight> moves topline/leftcol
--- without moving the cursor. Nothing but clamping the view stops that, on either
--- axis.
+-- Don't let list panels scroll off their own content into dead space.
+-- scrolloff/sidescrolloff do NOT fix this — no effect at EOF, and a mouse
+-- scroll moves topline/leftcol without moving the cursor (a past commit
+-- shipped that as a no-op fix: 38a7c0a, reverted). Clamping the view is the
+-- only thing that works.
 --
--- Its own list, deliberately not buffers.lua's `sidebar_filetypes` — which today
--- holds these same two entries but answers "is this a docked sidebar" (for the
--- quit-when-only-sidebars handler above). Registering a future panel there
--- shouldn't silently opt it into scroll clamping. Same reasoning the module
--- header gives for keeping autosave/statusline lists separate.
+-- sidekick_terminal hits the same symptom: its terminal-mode view always
+-- follows live PTY output, but normal/visual mode freezes that into a
+-- regular buffer view, leaving dead space if the render is short/narrow.
 --
--- Both panels are nowrap, so screen rows map 1:1 to lines and the last legal
--- topline is a simple subtraction. Horizontally, the widest line is measured in
--- display cells (strdisplaywidth — the tree is full of multi-cell devicons) and
--- compared against the window's text area, which is the window width minus
--- `textoff` (sign/fold/number columns).
-local clamped_panels = { NvimTree = true, aerial = true }
+-- Own filetype list, not buffers.lua's `sidebar_filetypes` (that answers "is
+-- this a docked sidebar" for the quit handler above — a future panel
+-- shouldn't be silently opted into clamping via that list).
+--
+-- All three are nowrap, so screen rows map 1:1 to lines. Width is measured in
+-- display cells (strdisplaywidth, for multi-cell devicons).
+local clamped_panels = { NvimTree = true, aerial = true, sidekick_terminal = true }
 
 vim.api.nvim_create_autocmd('WinScrolled', {
   group = augroup,
@@ -196,6 +191,56 @@ vim.api.nvim_create_autocmd('WinScrolled', {
       end
 
       if restore then vim.fn.winrestview(view) end
+    end)
+  end,
+})
+
+-- Regular buffers get a softer version: cap overscroll past the last line to
+-- ~30% of window height instead of clamping to zero (unlike a panel, you
+-- still want to pull the last line away from the bottom edge near EOF).
+--
+-- Wrap-aware, unlike the panel clamp: this config wraps by default, so
+-- topline can't be found with simple arithmetic — screenpos() gives the last
+-- line's real on-screen row, found by search (decrementing topline via
+-- winrestview() and rechecking).
+--
+-- Must use winrestview(), not a scroll command like <C-y>: cursor-relative
+-- scrolling is constrained by the global scrolloff=10, which silently capped
+-- an earlier <C-y> version short of its target (cursor was on the last
+-- line). winrestview() sets topline directly and ignores scrolloff.
+--
+-- Scoped to real files: buftype == '' excludes quickfix/help/nofile;
+-- is_special() excludes terminal/prompt/panels (those have the clamp above).
+vim.api.nvim_create_autocmd('WinScrolled', {
+  group = augroup,
+  desc = 'Regular buffers: cap overscroll past the last line to ~30% of window height',
+  callback = function(args)
+    local win = tonumber(args.match)
+    if not win or not vim.api.nvim_win_is_valid(win) then return end
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].buftype ~= '' or buffers.is_special(buf) then return end
+    vim.api.nvim_win_call(win, function()
+      local last_line = vim.api.nvim_buf_line_count(buf)
+      local info = vim.fn.getwininfo(win)[1]
+      local min_row = info.height - math.floor(info.height * 0.3)
+
+      local function last_line_row()
+        local pos = vim.fn.screenpos(win, last_line, 1)
+        if pos.row == 0 then return nil end
+        return pos.row - info.winrow + 1
+      end
+
+      local row = last_line_row()
+      if not row or row >= min_row then return end -- not visible yet, or already within bounds
+
+      local view = vim.fn.winsaveview()
+      -- Bounded by view.topline itself: each step is one line closer to 1,
+      -- so this always terminates without a separate iteration cap.
+      while row and row < min_row and view.topline > 1 do
+        view.topline = view.topline - 1
+        vim.fn.winrestview(view)
+        row = last_line_row()
+      end
     end)
   end,
 })

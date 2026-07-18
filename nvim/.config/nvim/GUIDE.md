@@ -433,25 +433,36 @@ keymap file, so the check lives directly in both `outline.lua` and
 
 ### Panels stop at their last entry
 
-The file tree and outline are lists, not documents: scrolling a 19-entry tree
-until three files sit at the top and twenty blank rows fill the rest is just
-dead space. Two separate mechanisms are needed, and conflating them cost this
-config a commit that did nothing at all (`38a7c0a`, since reverted):
+The file tree, outline, and sidekick CLI panel are lists, not documents:
+scrolling until the last entry sits at the top and the rest of the window is
+blank is just dead space (sidekick hits it once its terminal-mode view
+freezes into a regular buffer in normal/visual mode). `scrolloff`/
+`sidescrolloff` do NOT fix this — no effect at EOF, and don't apply to a mouse
+scroll at all (a past commit shipped that as a no-op: `38a7c0a`, reverted).
+The `WinScrolled` handler in `autocmds.lua` clamps `topline`/`leftcol`
+directly instead, via its own `clamped_panels` filetype list (kept separate
+from `buffers.lua`'s `sidebar_filetypes`, which answers a different question
+for the quit handler). scrolloff/sidescrolloff are still useful for their
+actual job — padding around the cursor — which is why they're zeroed per
+panel (see the next section for the trap in *how*).
 
-**`scrolloff` does not stop scrolling past the last line.** It has no effect at
-EOF — dead rows below the last entry are identical with `scrolloff` at 0 and at
-10. The only thing that stops it is clamping the view, which is what the
-`WinScrolled` handler in `autocmds.lua` does: it pins `topline` to at most
-`line_count - winheight + 1`, so the last entry can never rise above the bottom
-row. It keeps its own two-entry filetype list rather than reusing
-`buffers.lua`'s `sidebar_filetypes` — that list answers "is this a docked
-sidebar" for the quit handler, and registering a future panel there shouldn't
-silently opt it into scroll clamping.
+### Regular buffers cap overscroll instead of clamping it to zero
 
-**What `scrolloff`/`sidescrolloff` *do* fix** is the padding: `sidescrolloff = 8`
-leaves phantom columns to the right of the longest filename, and `scrolloff = 10`
-pulls the list out from under the cursor near the panel edges. Both are set to
-`0` per panel — see the next section for the trap in *how*.
+Ordinary code buffers get a softer version in a second `WinScrolled` handler:
+capped at ~30% of window height of blank rows below the last line, instead of
+Vim's default (scrollable up to the last line at the very top row) — you
+still want to pull the last line away from the bottom edge near EOF, just not
+that far. Two gotchas vs. the panel version:
+
+- This config wraps by default, so `topline` arithmetic doesn't hold (a
+  wrapped line spans multiple screen rows). `screenpos()` gives the last
+  line's real on-screen row directly; the target `topline` is found by
+  search (decrement + recheck) instead.
+- Correct via `winrestview()`, not a scroll command like `<C-y>` — the first
+  version used `<C-y>` and it silently undershot the target, because
+  cursor-relative scrolling is constrained by the global `scrolloff = 10`
+  whenever the cursor sits on the last line. `winrestview()` sets `topline`
+  directly and ignores `scrolloff`.
 
 ### Window options for a panel must be set by window id
 
