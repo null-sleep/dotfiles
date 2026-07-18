@@ -11,7 +11,8 @@ font-size = 14
 # flips macOS, Ghostty recolors itself.
 theme = light:Catppuccin Latte,dark:Dracula
 
-# Window — matches the old iTerm2 profile (125x25 cells).
+# Window — started from the old iTerm2 profile (125x25), since tuned:
+# slightly larger, tighter padding.
 window-width = 130
 window-height = 33
 window-padding-x = 2
@@ -33,7 +34,7 @@ adjust-cursor-thickness = 2
 
 # Hide the mouse pointer as soon as typing starts; it reappears on any
 # mouse movement/click.
-mouse-hide-while-typing = false
+mouse-hide-while-typing = true
 
 # Option-as-Meta on both sides, so nvim's <M-...> mappings work.
 macos-option-as-alt = true
