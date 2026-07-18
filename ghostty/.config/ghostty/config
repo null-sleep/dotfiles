@@ -25,9 +25,11 @@ window-save-state = always
 # title-text strip. See plans/ghostty-followups.md § 2.8.
 macos-titlebar-style = tabs
 
-# Cursor — matches the old iTerm2 profile (bar, blinking).
+# Cursor — matches the old iTerm2 profile (bar, blinking). Default bar
+# thickness reads as too thin; widen it.
 cursor-style = bar
 cursor-style-blink = true
+adjust-cursor-thickness = 2
 
 # Hide the mouse pointer as soon as typing starts; it reappears on any
 # mouse movement/click.
