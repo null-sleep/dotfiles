@@ -67,6 +67,19 @@ off or delete them as they land; add new ones freely.
   undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
   bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
   not a swap — worth a look purely on "can I see and navigate my edit history".
+- [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
+  existing mini.* family (mini.surround is already in use). Would unblock the
+  `o`/`d`/next-last text objects that
+  [treesitter-textobjects.md](treesitter-textobjects.md) defers on needing it
+  (§ LazyVim delta table).
+- [ ] **Evaluate [grug-far.nvim](https://github.com/MagicDuck/grug-far.nvim)** —
+  already the top pick for multibuffer-style search & replace in
+  [nvim-backlog.md](nvim-backlog.md) (Zed gap analysis); not yet installed.
+- [ ] **Evaluate [flash.nvim](https://github.com/folke/flash.nvim)** — labeled
+  jump motion, already scoped in [nvim-backlog.md](nvim-backlog.md) ("Editing
+  power & motions"): `s` labeled jump, `S` treesitter-node select, `r`/`R`
+  remote in operator-pending. Known conflicts noted there (`s` = core
+  substitute, `S` overlaps the hand-built structural select).
 - [ ] **Build the Python debug/test stack** — spec'd and twice-reviewed in
   [python-debug-test.md](python-debug-test.md). Two follow-on decisions it
   deliberately leaves open: (1) **what is a Python "run target"?** — the
