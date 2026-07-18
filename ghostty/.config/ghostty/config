@@ -19,6 +19,10 @@ window-padding-y = 5
 
 # Restore window/tab/split layout on relaunch, not just via macOS's own
 # "reopen windows" toggle. See plans/ghostty-followups.md § 2.4.
+#
+# Gotcha: also caches the quick terminal's frame, silently overriding
+# quick-terminal-size below. To resize it: `never`, relaunch, summon at the
+# new size, then `always` and relaunch again to bake in the frame.
 window-save-state = always
 
 # Tabs live in the titlebar row next to the traffic lights — no separate
@@ -57,6 +61,16 @@ copy-on-select = clipboard
 # Only custom keybinding ported from iTerm2: literal newline for multi-line
 # input in Claude Code / REPLs.
 keybind = shift+enter=text:\n
+
+# Quick Terminal — global drop-down summonable from any app. The in-nvim
+# bottom terminal is separate, on <C-/> (nvim/.config/nvim/lua/terminal.lua).
+# 1Password's own Cmd+\ (Quick Access) must be disabled to avoid a clash.
+# quick-terminal-size is <height>,<width> when centered on a landscape screen.
+# Not applying? See the window-save-state gotcha above.
+# See plans/ghostty-followups.md § 2.3.
+keybind = global:cmd+backslash=toggle_quick_terminal
+quick-terminal-position = center
+quick-terminal-size = 60%,60%
 
 # Everything else — splits, tabs, pane nav, word-jump, natural-text-editing —
 # is a Ghostty macOS default and needs no config here; the iTerm2 export had
