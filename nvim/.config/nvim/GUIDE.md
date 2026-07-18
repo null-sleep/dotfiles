@@ -2407,16 +2407,52 @@ session — starting cold from it relies on rustaceanvim's auto-loaded configs
 `<leader>nd` debugs the nearest test through nvim-dap (breakpoints honored).
 See [Testing](#testing) for the full keymap table and the adapter list.
 
+<a id="structural-search-replace-ssr"></a>
 ### Structural search & replace (SSR)
 
 `<leader>cs` prompts for a query and runs rust-analyzer's own semantic SSR
 (`experimental/ssr` over LSP) across the whole workspace. Syntax:
-`<search> ==>> <replace>`, with `$name` placeholders matching any AST node —
-e.g. `foo($a, $b) ==>> ($a).foo($b)`. Unlike a purely syntactic tool
-(ast-grep, treesitter query search), paths in the pattern must **resolve** —
-it only rewrites code that actually resolves to the matched item, and it
-auto-inserts `*`/`&`/`&mut` to mirror autoderef/autoref. Run it from visual
-mode to scope the rewrite to the selection instead of the whole workspace.
+`<search> ==>> <replace>`. Run it from visual mode to scope the rewrite to
+the selection instead of the whole workspace.
+
+**Placeholders.** `$name` matches — and captures — a whole AST node: an
+**expression, type, path, pattern, or item**, so a placeholder works in type
+position (`Option<$t>`) and pattern position (`Some($x)`), not just in
+expressions. Reference the same `$name` on the replace side to reuse the
+captured text. Constrain a placeholder by writing it as
+`${name:constraint}` — the constraints are `kind(literal)` (match only a
+literal, e.g. `42` or `"s"`) and `not(...)` (negate another constraint), so
+`${x:not(kind(literal))}` matches any argument that isn't a literal. There is
+**no** linear-pattern rule: repeating a placeholder does not require the two
+occurrences to be equal — each binds independently and the last write wins,
+so `$a == $a` matches any `x == y`, not just `x == x`.
+
+**Examples** (pass the whole `<search> ==>> <replace>` string at the prompt):
+
+- `foo($a, $b) ==>> ($a).foo($b)` — free function to method form:
+  `foo(x, y)` becomes `(x).foo(y)`.
+- `Foo{a: $a, b: $b} ==>> Foo::new($a, $b)` — struct literal to constructor;
+  it matches by field *name*, so `Foo{b: 2, a: 1}` still rewrites correctly to
+  `Foo::new(1, 2)`.
+- `Result<(), $a> ==>> Option<$a>` — rewrites in type position:
+  a signature `-> Result<(), Vec<Error>>` becomes `-> Option<Vec<Error>>`.
+- `Foo::do_stuff($a, $b)` — an inherent method written in UFCS form also
+  matches ordinary method-call syntax: it matches `f.do_stuff(2)` (where
+  `f: Foo`), but **not** `b.do_stuff(1)` even though `Bar` has an
+  identically-named `do_stuff` — the payoff of name resolution over a
+  purely syntactic match. Drives a rewrite the same way as the other
+  examples here; shown as a match to keep the receiver-type distinction visible.
+- `try_!($a) ==>> $a?` — rewrites *inside* a macro invocation:
+  `try_!(read(buf))` becomes `read(buf)?`. Within a macro call a placeholder
+  matches tokens up to the next literal token in the pattern.
+
+Unlike a purely syntactic tool (ast-grep, treesitter query search), paths in
+the pattern must **resolve** — SSR only rewrites code that actually resolves
+to the matched item (hence the UFCS example above discriminates by type), and
+it auto-inserts `*`/`&`/`&mut` in the replacement to mirror autoderef/autoref
+when the rewrite changes reference-ness. Inherent method calls are best
+written in UFCS form (`Type::method($self, $arg)`) so the pattern resolves
+unambiguously.
 
 No query argument is passed from the keymap — rustaceanvim's `ssr` command
 already falls back to `vim.ui.input` when called with none
