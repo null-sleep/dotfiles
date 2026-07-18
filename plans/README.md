@@ -110,6 +110,11 @@ Grouped by state, not priority.
   select/move/swap text objects (`af`/`if`/`ac`/…), plus a LazyVim mini.ai delta.
 - [quickfix-improvements.md](quickfix-improvements.md) — quicker.nvim / nvim-bqf
   for a real, prunable quickfix panel.
+- [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
+  edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
+  coverage/diagram tooling) can be closed in the existing rustaceanvim setup,
+  and which gaps (Cargo.toml-aware rename, move-with-import-fixup, data
+  breakpoints, memory view) are genuinely protocol-level.
 - [copilot-context-enrichment.md](copilot-context-enrichment.md) — experimental:
   inject LSP/treesitter type context into Copilot's `didChange` for better ghost text.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
