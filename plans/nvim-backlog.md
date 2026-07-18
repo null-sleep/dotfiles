@@ -294,7 +294,12 @@ inventory).
   nothing here can surround existing text (nvim-autopairs only *inserts*
   pairs). `nvim-mini/mini.surround` fits the existing mini.* family; use the
   `gs`-prefixed keyset (`gsa`/`gsd`/`gsr`/`gsf`/`gsh`) — it keeps `s` free in
-  case flash lands there. Alt: `kylechui/nvim-surround` (`ys`/`cs`/`ds`).
+  case flash lands there. LazyVim's recipes page ("Change surround mappings",
+  <https://www.lazyvim.org/configuration/recipes>) has the exact `mappings`
+  table for this remap (add/delete/find/find_left/highlight/replace/
+  update_n_lines → `gsa`/`gsd`/`gsf`/`gsF`/`gsh`/`gsr`/`gsn`) — LazyVim does it
+  for the same reason (freeing `s` for flash.nvim), so it's a proven reference
+  implementation. Alt: `kylechui/nvim-surround` (`ys`/`cs`/`ds`).
 - **Labeled jump motion → `folke/flash.nvim`** — no long-range motion story
   today. `s` labeled jump, `S` treesitter-node select, `r`/`R` remote in
   operator-pending, `<c-s>` toggle during `/`. Conflict: `s` = core substitute

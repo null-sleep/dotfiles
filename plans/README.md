@@ -68,7 +68,9 @@ off or delete them as they land; add new ones freely.
   bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
   not a swap — worth a look purely on "can I see and navigate my edit history".
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
-  existing mini.* family (mini.surround is already in use). Would unblock the
+  existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
+  itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not
+  installed). Would unblock the
   `o`/`d`/next-last text objects that
   [treesitter-textobjects.md](treesitter-textobjects.md) defers on needing it
   (§ LazyVim delta table).
