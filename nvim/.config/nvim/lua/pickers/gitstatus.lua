@@ -66,6 +66,11 @@ end
 
 -- Range mode: newest commit that touched each file (one `git show` call per
 -- commit — N is small, whatever the user typed).
+--
+-- Known edge: `git show --format= --name-only` prints no file list for merge
+-- commits (combined-diff semantics, no -m/--first-parent), so a file changed
+-- only via a merge gets a blank hash column. Accepted — this repo's workflow
+-- commits to main directly, so merges are rare.
 local function commits_by_file(git_root, range_base)
   local hashes = vim.fn.systemlist({ 'git', '-C', git_root, 'log', '--format=%h', range_base .. '..HEAD' })
   local map = {}
@@ -79,6 +84,11 @@ local function commits_by_file(git_root, range_base)
 end
 
 -- Range mode: currently-dirty files, to flag ones also touched by a commit.
+--
+-- Known edge: git C-quotes paths containing special/non-ASCII characters in
+-- porcelain output (`"pa\th"`), and nothing here unquotes them — such a file's
+-- key never matches item.file, so it silently misses the `~` dirty flag.
+-- Accepted for the same rarity reason as the merge-commit edge above.
 local function dirty_file_set(git_root)
   local out = vim.fn.systemlist({ 'git', '-C', git_root, 'status', '--porcelain', '-uall' })
   local set = {}
