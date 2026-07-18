@@ -1,4 +1,5 @@
--- Disable unused providers to suppress checkhealth warnings
+-- Disable unused providers to suppress checkhealth warnings. This is the
+-- legacy :python3/pynvim remote-plugin provider, unrelated to pyright (LSP).
 vim.g.loaded_python3_provider = 0
 
 local opt = vim.opt
