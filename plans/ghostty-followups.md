@@ -227,32 +227,23 @@ Temporarily maximizes the focused split without closing others
 nvim+Claude split workflow (Part 1 §3): zoom in on whichever pane needs
 attention, zoom back out.
 
-## 2.3 Quick Terminal — adopted (2026-07-18)
+## 2.3 Quick Terminal — needs one keybind to enable
 
-Global drop-down terminal, summonable from any app. iTerm2 never had this
-configured (`Has Hotkey = False`), so it's new territory, not a port.
-Replaces nvim's old `<C-\>` floating terminal — nvim's own terminal is now
-bottom-split only, on `<C-/>` (see `nvim/.config/nvim/lua/terminal.lua`).
+Global drop-down/quake-style terminal, summonable from any app. iTerm2 never
+had this configured (`Has Hotkey = False`), so it's new territory, not a port.
+Needs a `global:`-prefixed keybind to register system-wide:
 
 ```ini
-keybind = global:cmd+backslash=toggle_quick_terminal
-quick-terminal-position = center
-quick-terminal-size = 60%,60%
+keybind = global:cmd+backquote=toggle_quick_terminal
 ```
 
-Adopted `cmd+backslash` / `center`, not this doc's originally proposed
-`cmd+backquote` / top-default — matches the old `<C-\>` muscle memory, and
-1Password's own `Cmd+\` (Quick Access) needed disabling anyway. `center`
-positions relative to the **screen**, never the window (no anchor-window
-concept — it works with zero Ghostty windows open). `size = 60%,60%` reads as
-a large panel rather than a full-screen takeover. `quick-terminal-screen`,
-`-animation-duration`, `-autohide` stay default.
+Tunable alongside it (all at defaults, none set): `quick-terminal-position`
+(`top`), `quick-terminal-animation-duration` (`0.2s`), `quick-terminal-autohide`
+(`true`).
 
-**Gotcha:** `window-save-state = always` (§2.4) has no separate
-quick-terminal scope — it also caches this window's frame, silently
-overriding `quick-terminal-size`/`-position` on later edits. To resize: set
-it to `never`, relaunch, summon at the new size, then `always` and relaunch
-again to bake in the frame.
+Tried 2026-07-18 (`cmd+backslash` / `center`, replacing nvim's `<C-\>` float)
+and reverted the same week — went back to nvim's `<C-\>` floating terminal +
+`<C-/>` bottom panel instead (`nvim/.config/nvim/lua/terminal.lua`).
 
 ## 2.4 `window-save-state` — adopted (2026-07-15)
 
@@ -264,9 +255,6 @@ sessions here.
 ```ini
 window-save-state = always
 ```
-
-No per-window-type scope exists (no `quick-terminal-save-state` key) — see
-§2.3's gotcha for the interaction and fix procedure.
 
 ## 2.5 Background opacity + blur — declined (2026-07-15)
 

@@ -100,7 +100,7 @@ global map are expected and NOT a finding — e.g. Rust's buffer-local `K` and
 `<leader>ca` overriding the LSP ones). Maintain an allowlist of documented,
 intentional aliases so they don't get flagged as accidental duplicates:
 `<leader>s/` / `<leader>sb` (both current-buffer fuzzy find), `<leader>bd` /
-mini.bufremove close-buffer conventions, the `` <C-`> ``/`<C-_>`/`<C-/>`
+mini.bufremove close-buffer conventions, the `<C-_>`/`<C-/>`
 terminal-toggle family, `<leader>ai` / `<C-.>` (CLI focus fallback), and
 `<leader>bb` / `<leader>m` (buffer picker alias). A duplicate lhs not on this
 list is a real finding.

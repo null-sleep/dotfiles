@@ -780,35 +780,8 @@ any of them**.
 | `Cmd+1-9` | Jump to tab by number |
 | `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab |
 
-The config adds exactly **two** bindings: `Shift+Enter`, which sends a literal
-newline for multi-line input in Claude Code and REPLs, and `Cmd+\`, which
-opens the quick terminal (below).
-
-### Quick terminal
-
-`Cmd+\` summons a centered, global drop-down terminal from any app —
-Ghostty's native `toggle_quick_terminal`, on a `global:`-prefixed keybind so
-it works system-wide. (nvim's own terminal is separate — a bottom split on
-`<C-/>`, see [GUIDE.md → Terminal](nvim/.config/nvim/GUIDE.md#terminal).)
-
-```ini
-keybind = global:cmd+backslash=toggle_quick_terminal
-quick-terminal-position = center
-quick-terminal-size = 60%,60%
-```
-
-Always centered on the **screen**, not the window — there's no anchor window
-concept (it works with zero Ghostty windows open), so no window-relative
-option exists. `size` is `<height>,<width>` when centered on a landscape screen.
-
-Two one-time setup steps: macOS prompts for **Accessibility** permission on
-first use of a `global:` keybind; and if 1Password is installed, disable its
-own `Cmd+\` (Quick Access), which claims the same shortcut.
-
-**Gotcha — `window-save-state = always` caches this window's frame**, silently
-overriding later `quick-terminal-size`/`-position` edits. To resize: set it to
-`never`, relaunch, summon at the new size, then set it back to `always` and
-relaunch once more to bake in the frame.
+The config adds exactly **one** binding — `Shift+Enter`, which sends a literal
+newline for multi-line input in Claude Code and REPLs.
 
 ### Commands
 
