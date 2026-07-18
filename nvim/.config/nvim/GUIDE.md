@@ -85,7 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode, `<leader>Tt` discoverable alias; VS Code-style bottom panel (dedicated horizontal terminal, `<C-`>` / `<C-/>` / `<leader>Tb`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
+- **`terminal.lua`** — toggleterm.nvim: bottom terminal (horizontal split), `<C-/>`/`<C-_>` toggles the last-used instance (count = `N<C-/>` targets #N), pre-warmed; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<M-]>`/`<M-[>` cycle terminals, `<M-n>` new auto-numbered, `<M-l>` `:TermSelect` picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -171,7 +171,7 @@ this table in the same change.
 | Fires at | Task | Owner |
 |----------|------|-------|
 | 2000ms, then every 2s | First all-buffer `checktime` sweep, then steady poll | `configs.lua` |
-| 2000ms | Shell pre-warms (toggleterm float + bottom panel) | `terminal.lua` |
+| 2000ms | Shell pre-warms (bottom terminal) | `terminal.lua` |
 | 3000ms, restore-aware | Claude CLI pre-warm (sidekick) | `ai.lua` |
 | 5000ms | Neovim update check (`brew info` spawn) | `configs.lua` |
 | 30000ms | mason-tool-installer daily update check (`start_delay`) | `lsp.lua` |
@@ -673,7 +673,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
 | `<leader>s*` | Search / pickers (snacks) | keymaps.lua, `pickers/*.lua` | [Picker (snacks.nvim)](#picker-snacks) → Keymaps |
-| `<C-\>`, `<leader>T*` | Terminal (toggleterm) — own prefix so gitsigns/LSP buffer-local `<leader>t*` toggles can't shadow it | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
+| `<C-/>` (also `<C-_>`) | Terminal (toggleterm) — bottom terminal toggle, last-used or `N<C-/>` | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
@@ -890,9 +890,9 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   WezTerm, Ghostty). macOS Terminal.app and some other terminals do not
   transmit `<C-.>` — use `<leader>ai` as a cross-terminal fallback.
 
-- **Shift+Enter → newline in terminals** — inside `<C-\>` / `<leader>Tt`
-  terminals (and the bottom panel), `<S-CR>` sends a linefeed so CLIs like
-  Claude/Codex insert a newline instead of submitting (`terminal.lua`).
+- **Shift+Enter → newline in terminals** — inside `<C-/>` bottom terminals,
+  `<S-CR>` sends a linefeed so CLIs like Claude/Codex insert a newline instead
+  of submitting (`terminal.lua`).
   This only works if the terminal transmits Shift+Enter distinctly via CSI u.
   **In iTerm2**, enable *Settings → Profiles → Keys → General → "Report
   modifiers using CSI u"*. kitty, WezTerm, Ghostty and Neovide do it natively;
@@ -1716,30 +1716,54 @@ shared predicate" and "File tree and outline swap into each other".
 <a id="terminal"></a>
 ## Terminal (toggleterm.nvim)
 
-Setup lives in `terminal.lua`. A togglable floating terminal (85% of window)
-that persists state across hides, plus a VS Code-style bottom panel.
+Setup lives in `terminal.lua`. A togglable bottom terminal (horizontal split,
+~30% of window height) that persists state across hides. For a floating,
+system-wide terminal, use Ghostty's native quick terminal (`Cmd+\`) — see the
+[Ghostty](../../../README.md#ghostty) README section.
 
 ### Keymaps
 
 | Keymap | Action |
 |---|---|
-| `<C-\>` | Toggle floating terminal (normal, insert, or terminal mode) |
-| `<leader>Tt` | Toggle floating terminal (discoverable via which-key) |
-| `<leader>Th` / `<leader>Tv` | Open a horizontal / vertical split terminal |
-| `` <C-`> `` / `<C-/>` / `<leader>Tb` | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
+| `<C-/>` (also `<C-_>`, same physical chord — see Tips) | Toggle the **last-used** bottom terminal (normal, insert, or terminal mode) |
+| `N<C-/>` | Open/toggle terminal #N specifically, and re-pin it as last-used |
 | `<Esc>` / `jj` / `jk` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
-| `<C-]>` (in terminal) | Cycle to next terminal (wraps, so repeated presses reach every terminal) |
+| `<M-]>` / `<M-[>` (in terminal) | Cycle to next / previous terminal (wraps) |
+| `<M-n>` (in terminal) | Open a new auto-numbered terminal (lowest free id) |
+| `<M-l>` (in terminal) | `:TermSelect` picker — jump to any open terminal |
 
 **Tips:**
-- **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>` sends EOF to the shell and closes it entirely — faster than typing `exit`.
-- **Multiple terminals**: prefix `<C-\>` with a count — `2<C-\>` opens terminal #2, `3<C-\>` opens #3. Each is independent.
-- **Cycle between terminals**: `<C-]>` cycles to the next open terminal and wraps around. Works in both terminal and normal mode within the terminal buffer. (There is deliberately no cycle-previous key — `<C-[>` is the same keycode as `<Esc>` and shadowed it.)
-- **Switch between terminals**: `:TermSelect` opens a picker over all open terminals.
-- **Run a command**: `:TermExec cmd="make test"` — runs the command in terminal #1 and returns focus to your buffer.
-- **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a split instead of a float for that toggle.
-- **`<Esc>` caveat**: the `<Esc>` mapping exits terminal mode in all terminal buffers. TUI programs opened inside the terminal (e.g. `vim`, `htop`, `fzf`) also need `<Esc>` for their own UI — use `<C-\><C-n>` manually in those cases, or add a filetype guard in `terminal.lua`.
-- **`<S-CR>` sends a literal newline** instead of submitting, inside these terminals and the bottom panel — see [LSP](#lsp) → Things to watch out for, "Shift+Enter → newline in terminals" for the CSI-u terminal requirement.
+- **Last-used, not "always #1"**: a bare `<C-/>` reopens whichever terminal
+  you last opened, cycled to, or focused — not always terminal #1. A count
+  overrides and re-pins the target (`2<C-/>` → #2, and #2 becomes "last-used"
+  until you switch again).
+- **Two encodings, one chord**: `<C-/>` and `<C-_>` are bound identically.
+  Neovim receives `<C-_>` for this physical keypress inside terminal mode,
+  and `<C-/>` from normal mode / the GUI — binding both means the toggle
+  works regardless of which byte arrives.
+- **Hide vs close**: `<C-/>` hides the terminal (state persists). `<C-d>`
+  sends EOF to the shell and closes it entirely — faster than typing `exit`.
+- **Cycle between terminals**: `<M-]>` / `<M-[>` cycle next/previous and wrap
+  around, in both terminal and normal mode within the terminal buffer. These
+  deliberately mirror the [AI (sidekick.nvim)](#ai-sidekick)'s own `<M-]>`/`<M-[>`
+  session-cycle keys (muscle-memory symmetry — each is buffer-local, so they
+  never clash). The cycle only sweeps ids below 100, so the transient
+  go-run/clippy-fix floats never get pulled into it.
+- **Open a new terminal in place**: `<M-n>` opens the lowest free id in the
+  1-99 pool without leaving the terminal buffer — the bottom-terminal analog
+  of the sidekick's `<M-n>` new-session key.
+- **Switch between terminals**: `<M-l>` (or `:TermSelect` directly) opens a
+  picker over all open terminals.
+- **Run a command**: `:TermExec cmd="make test"` — runs the command in
+  terminal #1 and returns focus to your buffer.
+- **`<Esc>` caveat**: the `<Esc>` mapping exits terminal mode in all terminal
+  buffers. TUI programs opened inside the terminal (e.g. `vim`, `htop`,
+  `fzf`) also need `<Esc>` for their own UI — use `<C-\><C-n>` manually in
+  those cases, or add a filetype guard in `terminal.lua`.
+- **`<S-CR>` sends a literal newline** instead of submitting, inside these
+  terminals — see [LSP](#lsp) → Things to watch out for, "Shift+Enter →
+  newline in terminals" for the CSI-u terminal requirement.
 
 
 <a id="scratch-buffers"></a>
@@ -2445,7 +2469,7 @@ it would also hide genuine "can't find your Cargo.toml" errors in real projects)
   terminal split. Workspace-aware (rust-analyzer picks the right `-p` package).
 - **`grx`** on the `fn main` line — runs the `▶ Run` codelens directly.
 - **`:RustLsp run`** — re-run the *last* runnable (fast edit-run loop).
-- Or just a terminal: `<leader>Tb`, then `cargo run -p <crate>`.
+- Or just a terminal: `<C-/>`, then `cargo run -p <crate>`.
 
 ### Debugging entry point
 
@@ -2532,9 +2556,9 @@ Fixes clippy lints across the **entire workspace in one shot**, instead of
 fixing diagnostics one at a time as you happen to visit each file.
 
 `<leader>cF` runs `cargo clippy --fix --workspace --allow-dirty
---allow-staged` in a floating terminal (fixed id 102, same convention as
-`terminal.lua`'s bottom panel (100) and the Go run terminal in
-`pickers/gotargets.lua` (101)) from the nearest `Cargo.toml`'s directory.
+--allow-staged` in a floating terminal (fixed id 102, outside the 1-99 pool
+`terminal.lua`'s bottom terminals use, same convention as the Go run terminal
+in `pickers/gotargets.lua` (101)) from the nearest `Cargo.toml`'s directory.
 This applies every lint rustc marks `Applicability::MachineApplicable`
 across the whole workspace in one pass — it skips ambiguous or
 semantics-changing suggestions, which still need a manual look. `checkOnSave`
@@ -2733,7 +2757,7 @@ exit (`close_on_exit = false`), so the program's output stays on screen after
 it finishes.
 
 **It passes no arguments.** `<leader>cR` runs the package bare. For a program
-that needs argv, open a terminal (`<leader>Tb`) and run `go run ./cmd/foo -flag`
+that needs argv, open a terminal (`<C-/>`) and run `go run ./cmd/foo -flag`
 yourself — or, if you want to *debug* it with arguments, use `<F5>` →
 **Debug (Arguments)**, which prompts.
 
