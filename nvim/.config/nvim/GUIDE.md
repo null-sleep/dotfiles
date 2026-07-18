@@ -2242,7 +2242,24 @@ the next stop. It registers its own `nvim-dap` listeners and needs no
 adapter/configuration, so it works for any language with a treesitter
 `locals` query (Rust and Go both have one). This is unrelated to the LSP
 *diagnostic* virtual text toggled by `<leader>td` — that's a different
-feature entirely.
+feature entirely. Set up with defaults (bare `setup()`) — the plugin's own
+defaults already fit: `virt_text_pos = 'inline'` places the value right after
+the identifier rather than at end-of-line, `only_first_definition = true`
+annotates a multi-line `let` chain once on its first line (not on every
+continuation line), and `clear_on_continue = false` leaves values visible
+(greyed) between stops instead of clearing them.
+
+Its highlight groups are theme-driven, not `setup()` options:
+`NvimDapVirtualText` (linked to `Comment`) for a normal value,
+`NvimDapVirtualTextChanged` (linked to `DiagnosticVirtualTextWarn`) for a
+value that just changed, `NvimDapVirtualTextError` (linked to
+`DiagnosticVirtualTextError`) for an eval error (e.g. an optimized-out
+variable). **Known interaction to watch**: on the currently-stopped line, this
+`Comment`-colored text renders on top of the `DapStopped` sign's `Visual`
+line highlight (above) — legible in the themes tested so far, but if a future
+theme makes it hard to read, override `NvimDapVirtualText` with
+`vim.api.nvim_set_hl` in `debugging.lua` rather than changing the sign's
+highlight.
 
 ### Language support
 
