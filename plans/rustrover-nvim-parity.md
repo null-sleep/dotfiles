@@ -1,7 +1,8 @@
 # RustRover → nvim parity research
 
-**Status:** partially shipped (2026-07-17) — SSR + batch clippy-fix keymaps
-landed; everything else below still research / not started.
+**Status:** partially shipped (2026-07-17) — SSR, batch clippy-fix, and the
+actions-preview.nvim diff-preview code actions landed; everything else
+below still research / not started.
 **Date:** 2026-07-17
 
 Follow-up to installing RustRover ([README → RustRover](../README.md#rustrover))
@@ -90,7 +91,7 @@ the diagnostics already exist, there's just no panel surfacing them yet.
   is the de-facto bulk tool for Rust specifically, and covers the common
   case.
 
-### 2. Extract/inline refactors — mostly there, add a preview UI
+### 2. Extract/inline refactors — mostly there, add a preview UI — SHIPPED 2026-07-17
 
 rust-analyzer exposes almost all of these as LSP code actions already:
 `extract_function`, `extract_variable`, `extract_constant`, `extract_module`,
@@ -101,14 +102,26 @@ appear in visual mode, which is why they can look "missing.") `:RustLsp
 codeAction` (already in `rust.lua`) renders rust-analyzer's *grouped*
 assists, which plain `vim.lsp.buf.code_action` can't.
 
-What's missing is RustRover's diff-preview-before-apply. Add:
+What's missing is RustRover's diff-preview-before-apply.
 
-- [`aznhe21/actions-preview.nvim`](https://github.com/aznhe21/actions-preview.nvim) —
-  diff preview of any code action (snacks/telescope/mini backend). Best fit
-  alongside the existing `:RustLsp codeAction` keymap.
-- Alternative: [`rachartier/tiny-code-action.nvim`](https://github.com/rachartier/tiny-code-action.nvim) —
-  picker respecting `refactor.extract`/`refactor.inline` kinds, with preview.
-- (`nvim-code-action-menu` is unmaintained — skip it.)
+**Shipped** as [`aznhe21/actions-preview.nvim`](https://github.com/aznhe21/actions-preview.nvim)
+(`backend = { 'snacks' }`, `lsp.lua`) — global `<leader>ca`/`gra` now show a
+diff before applying. It can't render rustaceanvim's grouped picker, so Rust
+keeps both: `<leader>ca` for the grouped picker, `<leader>cp` (new) for the
+flat list with a preview. See GUIDE.md → LSP and → Rust → "Code action preview".
+
+Along the way, review surfaced a real latent bug this depended on:
+`rust.lua`'s overrides were set on `FileType`, but `lsp.lua`'s `LspAttach`
+handler rebinds the same keys on every attach, and a Rust buffer attaches
+*two* clients (rust-analyzer, then copilot) — both after `FileType` already
+fired. The global handler always won, silently reverting Rust's `K`/
+`<leader>ca` to plain LSP defaults. Fixed by moving the trigger to
+`LspAttach` itself. See GUIDE.md → Design Decisions → "Rust keymaps fire on
+LspAttach, not FileType".
+
+(Alternative not taken: [`rachartier/tiny-code-action.nvim`](https://github.com/rachartier/tiny-code-action.nvim)
+— picker respecting `refactor.extract`/`refactor.inline` kinds, with
+preview. `nvim-code-action-menu` is unmaintained — skip it.)
 
 There is **no first-class "change signature"** assist in rust-analyzer
 (only add-parameter-ish helpers) — see genuine gaps below.
@@ -180,8 +193,8 @@ Suggested order, cheapest/highest-value first:
 
 1. ~~`:RustLsp ssr` — zero install, just start using it.~~ **Shipped
    2026-07-17** as `<leader>cs`.
-2. `actions-preview.nvim` — diff preview on top of the existing
-   `:RustLsp codeAction` keymap.
+2. ~~`actions-preview.nvim` — diff preview on the code-action flow.~~
+   **Shipped 2026-07-17** as global `<leader>ca`/`gra` + Rust's `<leader>cp`.
 3. ~~Wire a `cargo clippy --fix --workspace` keymap.~~ **Shipped 2026-07-17**
    as `<leader>cF`. `workspace-diagnostics.nvim` + `trouble.nvim` (the
    project-wide diagnostics *panel* half) is still open.
