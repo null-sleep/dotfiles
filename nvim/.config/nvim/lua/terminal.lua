@@ -62,6 +62,17 @@ local function cycle_term(direction)
   terms[next_idx]:open()
 end
 
+-- Open a new auto-numbered terminal: lowest free id in the 1-99 pool.
+-- Capped at 99 so an exhausted pool never climbs into the bottom panel's
+-- id (100) or the go-run/clippy-fix floats' ids (101/102).
+local function new_term()
+  local used = {}
+  for _, t in ipairs(require('toggleterm.terminal').get_all(true)) do used[t.id] = true end
+  local n = 1
+  while used[n] and n < 99 do n = n + 1 end
+  vim.cmd(n .. 'ToggleTerm')
+end
+
 -- VS Code–style bottom panel: a dedicated horizontal terminal. hidden = true
 -- keeps it out of the count-addressable :ToggleTerm list, so it never collides
 -- with the float terminals.
@@ -134,7 +145,7 @@ end
 -- repeated presses reach every terminal.
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
-  desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
+  desc = 'Terminal keymaps: Esc, split navigation, terminal cycling/switching',
   callback = function()
     -- Skip sidekick CLI buffers — sidekick manages its own keymaps.
     if vim.bo.filetype == 'sidekick_terminal' then return end
@@ -142,6 +153,13 @@ vim.api.nvim_create_autocmd('TermOpen', {
     utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
     vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
     vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
+    -- <M-n>/<M-l> deliberately mirror the sidekick CLI's own session keys
+    -- (ai.lua:319-336) for muscle-memory symmetry, though each is buffer-local
+    -- to its own terminal kind so neither clashes.
+    vim.keymap.set('t', '<M-n>', new_term, opts)
+    vim.keymap.set('n', '<M-n>', new_term, opts)
+    vim.keymap.set('t', '<M-l>', '<cmd>TermSelect<CR>', opts)
+    vim.keymap.set('n', '<M-l>', '<cmd>TermSelect<CR>', opts)
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
     -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal
     -- that transmits Shift+Enter distinctly (iTerm2 requires CSI u enabled).

@@ -1737,6 +1737,8 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `<Esc>` / `jj` / `jk` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
 | `<C-]>` (in terminal) | Cycle to next terminal (wraps, so repeated presses reach every terminal) |
+| `<M-n>` (in terminal) | Open a new auto-numbered terminal (lowest free id) |
+| `<M-l>` (in terminal) | `:TermSelect` picker — jump to any open terminal |
 
 **Tips:**
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>`
@@ -1751,8 +1753,14 @@ that persists state across hides, plus a VS Code-style bottom panel.
   wraps around. Works in both terminal and normal mode within the terminal
   buffer. (There is deliberately no cycle-previous key — `<C-[>` is the same
   keycode as `<Esc>` and shadowed it.)
-- **Switch between terminals**: `:TermSelect` opens a picker over all open
-  terminals.
+- **Open a new terminal in place**: `<M-n>` opens the lowest free id in the
+  1-99 pool without leaving the terminal buffer.
+- **Switch between terminals**: `<M-l>` (or `:TermSelect` directly) opens a
+  picker over all open terminals.
+- **`<M-n>`/`<M-l>` mirror the sidekick CLI**: they deliberately match the
+  [AI (sidekick.nvim)](#ai-sidekick)'s own `<M-n>`/`<M-l>` session keys for
+  muscle-memory symmetry — each is buffer-local to its own terminal kind, so
+  neither clashes.
 - **Run a command**: `:TermExec cmd="make test"` — runs the command in
   terminal #1 and returns focus to your buffer.
 - **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a
