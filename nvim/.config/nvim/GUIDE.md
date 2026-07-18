@@ -2546,6 +2546,18 @@ rustaceanvim's grouped-by-kind list — they're separate pickers with no hook
 to compose. Use `<leader>ca` for the grouped picker, `<leader>cp` when a
 diff preview matters more than grouping.
 
+### Automatic workspace reload
+
+rust-analyzer occasionally shows **stale diagnostics** after a crate-graph
+change with no in-buffer edit to trigger reanalysis (branch switch,
+pull/rebase, `Cargo.toml`/`Cargo.lock` edit) — an upstream limitation, not a
+config bug. `rust.lua` auto-fires `:RustLsp reloadWorkspace` on focus/
+terminal-leave when something relevant changed (session-wide, not
+buffer-local — a backgrounded rust buffer can still trigger it), throttled
+and self-healing if rust-analyzer hangs. See the comments above
+`current_signature()`/`reload()` for the mechanics; `<leader>cw` (below) is
+the manual, on-demand fallback.
+
 ### Keymaps
 
 **Rust actions** (buffer-local, `rust` filetype only — from `rust.lua`):
@@ -2560,6 +2572,7 @@ diff preview matters more than grouping.
 | `<leader>cC` | Open the crate's `Cargo.toml` |
 | `<leader>cs` | Structural search & replace (SSR) — prompts for a query |
 | `<leader>cF` | Batch-fix clippy lints across the whole workspace |
+| `<leader>cw` | Reload workspace — fixes stale diagnostics (see Automatic workspace reload above) |
 | `<leader>dR` | Debuggables — start a Rust debug session |
 | `grx` | Run/Debug codelens under cursor (native codelens, now functional) |
 
@@ -2568,6 +2581,8 @@ The global Debug and Test keymap tables live in
 
 ### Troubleshooting
 
+- **Stale diagnostics**: press `<leader>cw` (usually auto-fires on its own —
+  see Automatic workspace reload above).
 - **Debug session dies instantly** (Apple Silicon): codelldb is found on `PATH`
   so rustaceanvim uses the plain-command adapter without explicitly pairing
   `liblldb.dylib`. If `:messages` shows a liblldb error, replace `dap = {}` in

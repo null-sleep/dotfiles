@@ -64,6 +64,145 @@ vim.g.rustaceanvim = {
 
 vim.cmd.packadd('rustaceanvim')
 
+-- Auto-reload workaround for rust-analyzer's stale-diagnostics gap. See
+-- GUIDE.md "Automatic workspace reload".
+local RELOAD_COOLDOWN = 5000 -- ms; cooldown starts when a reload FINISHES
+local last_sig, last_reload, in_flight = '', 0, false
+
+-- logs/HEAD, not .git/HEAD (which only moves on a branch switch, missing a
+-- same-branch pull/rebase/commit). Handles .git-as-a-file via its gitdir: line.
+local function git_head_log_path(root)
+  local git_root = vim.fs.root(root, '.git')
+  if not git_root then
+    return nil
+  end
+  local dotgit = git_root .. '/.git'
+  local stat = vim.uv.fs_stat(dotgit)
+  if not stat then
+    return nil
+  end
+  if stat.type == 'directory' then
+    return dotgit .. '/logs/HEAD'
+  end
+  -- .git is a file: read its "gitdir: <path>" pointer.
+  local fd = io.open(dotgit, 'r')
+  if not fd then
+    return nil
+  end
+  local line = fd:read('*l')
+  fd:close()
+  local gitdir = line and line:match('^gitdir:%s*(.+)$')
+  if not gitdir then
+    return nil
+  end
+  if not vim.startswith(gitdir, '/') then
+    gitdir = git_root .. '/' .. gitdir
+  end
+  return gitdir .. '/logs/HEAD'
+end
+
+-- '' = nothing to watch (no client, or a standalone .rs file). Combines
+-- every attached client's root, but reload() only dispatches to one — a
+-- multi-workspace reload can land on the wrong project (<leader>cw there
+-- directly is the fallback).
+local function current_signature()
+  local clients = vim.lsp.get_clients({ name = 'rust-analyzer' })
+  if #clients == 0 then
+    return ''
+  end
+  local parts, seen_roots = {}, {}
+  for _, client in ipairs(clients) do
+    local root = client.config.root_dir
+    if root and not seen_roots[root] then
+      seen_roots[root] = true
+      for _, rel in ipairs({ 'Cargo.toml', 'Cargo.lock' }) do
+        local stat = vim.uv.fs_stat(root .. '/' .. rel)
+        if stat then
+          table.insert(parts, stat.mtime.sec .. '.' .. stat.mtime.nsec)
+        end
+      end
+      local head_log = git_head_log_path(root)
+      local head_stat = head_log and vim.uv.fs_stat(head_log)
+      if head_stat then
+        table.insert(parts, head_stat.mtime.sec .. '.' .. head_stat.mtime.nsec)
+      end
+    end
+  end
+  return table.concat(parts, '|')
+end
+
+-- Shared by <leader>cw and the autocmd below, so a manual reload also feeds
+-- the throttle (keyed on completion, not dispatch — "5s" means 5s after the
+-- last reload finished).
+--
+-- Neovim never times out a pending LSP request or flushes a hung server's
+-- callback, so RELOAD_TIMEOUT force-resets state (+ warns) if rust-analyzer
+-- hangs; `resolved` keeps the real response and the timeout mutually exclusive.
+local RELOAD_TIMEOUT = 30000 -- ms; a bare timer, so generous costs nothing
+local function reload(opts)
+  opts = opts or {}
+  in_flight = true
+  local resolved = false
+  if not opts.silent then
+    vim.notify('Reloading Cargo workspace…')
+  end
+  local function finish(err, timed_out)
+    if resolved then
+      return
+    end
+    resolved = true
+    in_flight = false
+    last_reload = vim.uv.now()
+    if not timed_out then
+      -- Only on a REAL completion — on timeout nothing was actually
+      -- reloaded, so leaving last_sig stale makes the next event retry.
+      last_sig = current_signature()
+    end
+    if timed_out then
+      -- Surfaced even on the silent auto path — a hang is worth knowing about.
+      vim.notify('Cargo workspace reload timed out — rust-analyzer may be unresponsive', vim.log.levels.WARN)
+    elseif not opts.silent then
+      vim.notify(err and tostring(err) or 'Cargo workspace reloaded', err and vim.log.levels.ERROR or vim.log.levels.INFO)
+    end
+  end
+  -- Armed BEFORE the request call, so a synchronous throw from
+  -- any_buf_request still resets in_flight instead of sticking forever.
+  vim.defer_fn(function()
+    finish(nil, true)
+  end, RELOAD_TIMEOUT)
+  require('rustaceanvim.rust_analyzer').any_buf_request('rust-analyzer/reloadWorkspace', nil, function(err)
+    finish(err, false)
+  end)
+end
+
+-- Same events as configs.lua's checktime — leaving an embedded terminal is
+-- the dominant trigger (git/cargo run there, not under FocusGained). Global,
+-- not buffer-local; current_signature() no-ops when no client is attached.
+vim.api.nvim_create_autocmd({ 'FocusGained', 'TermClose', 'TermLeave' }, {
+  group = vim.api.nvim_create_augroup('UserRustReload', { clear = true }),
+  desc = 'Auto-reload rust-analyzer workspace when the crate graph changed',
+  callback = function()
+    local sig = current_signature()
+    if sig == '' then
+      return -- no rust-analyzer client attached
+    end
+    if last_sig == '' then
+      -- First observation since attach: adopt as baseline, don't reload.
+      last_sig = sig
+      return
+    end
+    if sig == last_sig or in_flight then
+      return
+    end
+    if vim.uv.now() - last_reload < RELOAD_COOLDOWN then
+      -- Cooling down; don't update last_sig so the next event past the
+      -- cooldown still sees this change and fires.
+      return
+    end
+    reload({ silent = true })
+  end,
+})
+
 -- Batch-apply every machine-applicable clippy fix across the whole workspace
 -- in one shot (rustc's Applicability::MachineApplicable set — ambiguous/
 -- semantics-changing suggestions are skipped, same as running it by hand).
@@ -110,6 +249,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('<leader>cR', function() vim.cmd.RustLsp('runnables') end,            'Rust: Runnables (run)')
     map('<leader>cm', function() vim.cmd.RustLsp('expandMacro') end,          'Rust: Expand macro')
     map('<leader>cC', function() vim.cmd.RustLsp('openCargo') end,            'Rust: Open Cargo.toml')
+    -- Manual escape hatch: bypasses the automatic reload's gate/cooldown above.
+    map('<leader>cw', function() reload({ silent = false }) end,             'Rust: Reload workspace (re-run cargo metadata)')
     map('<leader>dR', function() vim.cmd.RustLsp('debuggables') end,          'Debug: Rust debuggables')
 
     -- rust-analyzer's own semantic SSR (experimental/ssr), whole-workspace and

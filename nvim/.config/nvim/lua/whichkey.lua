@@ -106,6 +106,7 @@ local keywords = {
   ['<leader>nd'] = 'neotest debug test dap nearest go delve rust',
   ['<leader>ns'] = 'neotest summary test tree panel',
   ['<leader>cR'] = 'run rust runnables cargo rustaceanvim go targets packages main picker',
+  ['<leader>cw'] = 'reload workspace rust cargo metadata rust-analyzer stale diagnostics fix refresh',
   ['<leader>pd'] = 'peek definition popup float goto-preview vscode',
   ['<leader>pt'] = 'peek type definition popup float goto-preview',
   ['<leader>pi'] = 'peek implementation popup float goto-preview',
