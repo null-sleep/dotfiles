@@ -83,7 +83,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, Copilot/NES activity, lsp_status, location), powerline separators, global statusline. The Copilot/NES indicator (in `lualine_x`, left of `lsp_status`) reads `sidekick.status.get()` — hidden when idle, robot glyph while the Copilot LSP is busy (NES requests flow through it), red on error
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
-- **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>g*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
+- **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: bottom terminal (horizontal split), `<C-/>`/`<C-_>` toggles the last-used instance (count = `N<C-/>` targets #N), pre-warmed; TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<M-]>`/`<M-[>` cycle terminals, `<M-n>` new auto-numbered, `<M-l>` `:TermSelect` picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
@@ -678,7 +678,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
-| `<leader>g*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
+| `<leader>G*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
 | `<leader>a*`, `<C-.>`, `<Tab>` | AI (sidekick CLI + NES) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
 | `<leader>c*` (Rust ft), `K` (Rust ft) | Rust actions | rust.lua | [Rust](#rust) → Keymaps |
@@ -709,7 +709,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `q` (in help/quickfix windows) | Close the window — buffer-local, auto-mapped; skips any buffer that already binds `q` | autocmds.lua |
 | `:Q` | Quit all (`qa`) | keymaps.lua |
 | `gb` | Toggle to the alternate buffer (deterministic `<C-^>`, but skips non-code buffers — see `buffers.lua`) | keymaps.lua |
-| `<leader><leader>` | Smart picker (frecency-ranked buffers + recent + files) — see [Picker (snacks.nvim)](#picker-snacks) | keymaps.lua |
+| `<leader><leader>` | Smart picker (frecency-ranked buffers + recent + files, cwd-scoped) — see [Picker (snacks.nvim)](#picker-snacks) | keymaps.lua |
 | `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
 | `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
 | `<leader>qq` | Quit all (`:qa`, behind a floating confirm popup — `y` confirms, anything else is No) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
@@ -1226,7 +1226,7 @@ wholesale.
 
 | Keymap | Action |
 |---|---|
-| `<leader><leader>` | Smart picker — buffers + recent + files merged into one frecency-ranked list (`sort_empty`, so it's ranked before you type). The alternate file is flagged `#` and usually near the top, but frecency isn't a deterministic row 1 — for the blind one-key jump-to-previous use `gb` ([Global keymaps](#global-keymaps)) instead |
+| `<leader><leader>` | Smart picker — buffers + recent + files merged into one frecency-ranked list (`sort_empty`, so it's ranked before you type), scoped to the cwd so files from unrelated repos don't show up. The alternate file is flagged `#` and usually near the top, but frecency isn't a deterministic row 1 — for the blind one-key jump-to-previous use `gb` ([Global keymaps](#global-keymaps)) instead |
 | `<leader>sf` | Find files by name — fuzzy over the file list; `<c-g>` flips it to a live `fd` search (see below) |
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
@@ -1881,26 +1881,26 @@ under a descriptive, non-colliding name.
 
 | Keymap | Opens | ≈ shell alias | Then press |
 |---|---|---|---|
-| `<leader>gg` | Neogit status | — | — |
-| `<leader>gc` | Commit popup | `gc` | `c` to commit |
-| `<leader>gp` | Push popup | `gp` | `p` (pushRemote) / `u` (upstream) |
-| `<leader>gu` | Pull popup | `gu` | `p` / `u` similarly |
-| `<leader>gl` | Log popup | `gl` | `l` for current branch log |
-| `<leader>gd` | Diff popup | `gd` | pick what to diff against |
-| `<leader>gb` | Branch popup | `gcb` / `gnb` | `b` checkout / `c` create / `x` delete |
-| `<leader>gr` | Rebase popup | `grb` | pick target (onto branch, interactive, ...) |
-| `<leader>gw` | Worktree popup | `gw` | `c` create / `d` delete / etc. |
+| `<leader>Gg` | Neogit status | — | — |
+| `<leader>Gc` | Commit popup | `gc` | `c` to commit |
+| `<leader>Gp` | Push popup | `gp` | `p` (pushRemote) / `u` (upstream) |
+| `<leader>Gu` | Pull popup | `gu` | `p` / `u` similarly |
+| `<leader>Gl` | Log popup | `gl` | `l` for current branch log |
+| `<leader>Gd` | Diff popup | `gd` | pick what to diff against |
+| `<leader>Gb` | Branch popup | `gcb` / `gnb` | `b` checkout / `c` create / `x` delete |
+| `<leader>Gr` | Rebase popup | `grb` | pick target (onto branch, interactive, ...) |
+| `<leader>Gw` | Worktree popup | `gw` | `c` create / `d` delete / etc. |
 
 **These are only mnemonic parallels, not equivalent actions.** Every alias
-above runs its git command immediately; every `<leader>g*` mapping opens a
+above runs its git command immediately; every `<leader>G*` mapping opens a
 **popup** — Magit's core UX — landing on a menu of related sub-actions
-rather than executing anything. `<leader>gp` does not push by itself; it
+rather than executing anything. `<leader>Gp` does not push by itself; it
 opens the push menu, and you press a letter (shown in the popup) to push.
 The upside: the popup surfaces flags your aliases hardcode (e.g. the push
 popup offers force-with-lease inline, matching `gpf`, without a separate
 keymap).
 
-A `kind='floating'` variant and a `<leader>gG` floating opener are written
+A `kind='floating'` variant and a `<leader>GG` floating opener are written
 but commented out in `gitui.lua`; uncomment to switch the default tab-page
 dashboard for a floating overlay.
 
@@ -1924,7 +1924,7 @@ reachable from here:
 
 ### Commit flow + GPG signing
 
-Committing (`c` then `c` in the commit popup, or `<leader>gc`) opens a real
+Committing (`c` then `c` in the commit popup, or `<leader>Gc`) opens a real
 **`gitcommit`-filetype buffer** — the existing `git.lua` FileType maps and
 signing flow apply unchanged: `<leader>w` confirms (write + close),
 `<leader>x` aborts (`:cq`). If this ever fights the flow, `commit_editor.kind`
@@ -1948,7 +1948,7 @@ section below for the full set of review workflows.
 - **Git-status picker** (`<leader>sm`, snacks) — quick jump to a changed
   file with a diff preview; count-prefix it (`5<leader>sm`) for a last-N-commits
   range mode — see [Reviewing diffs (diffview.nvim)](#reviewing-diffs) → "Past N commits".
-- **Neogit** (`<leader>gg`) — full staging/commit/branch/rebase/worktree
+- **Neogit** (`<leader>Gg`) — full staging/commit/branch/rebase/worktree
   operations from one dashboard.
 
 **Gutter sign legend** (gitsigns):
@@ -1982,7 +1982,7 @@ and `plugin/diffview.lua` registers all commands and default keymaps
 unconditionally on load. Everything below works with zero extra config.
 
 `gitui.lua` also binds direct entry points under `<leader>v` ("Diffview"),
-kept as its own which-key group rather than folded into Neogit's `<leader>g*`
+kept as its own which-key group rather than folded into Neogit's `<leader>G*`
 so the two tools stay visually distinct:
 
 | Keymap | Opens |
@@ -2029,7 +2029,7 @@ panel; writing an index buffer (`:w`) updates the index directly.
 | `<CR>` / `o` | Open entry's diff | `X` | Restore entry (discard) |
 | `<leader>e` | Focus file panel | `R` | Refresh file list |
 
-Neogit shortcut: `<leader>gg` → `d` → `u` (unstaged only) / `s` (staged
+Neogit shortcut: `<leader>Gg` → `d` → `u` (unstaged only) / `s` (staged
 only) / `w` (worktree — both sections, equivalent to the bare command above).
 
 ### 2. A branch you checked out to review (PR review)
@@ -2053,7 +2053,7 @@ Append `--imply-local` to swap the `HEAD` side for your real local files
 (live LSP) while still diffing against the merge-base on the other side.
 `<leader>vp` doesn't append this — type the full command when you need it.
 
-Neogit shortcut: `<leader>gg` → `d` → `r` (range) → choose **2. Symmetric
+Neogit shortcut: `<leader>Gg` → `d` → `r` (range) → choose **2. Symmetric
 Difference (a...b)** → supply `origin/main` and `HEAD` via the prompts.
 
 ### 3. Past N commits (less common)

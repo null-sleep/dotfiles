@@ -31,7 +31,7 @@ require('neogit').setup({
   },
 })
 
--- <leader>g maps — mnemonics mirror the zsh git aliases (~/.zshrc_config.zsh) so
+-- <leader>G maps — mnemonics mirror the zsh git aliases (~/.zshrc_config.zsh) so
 -- muscle memory transfers: gc/gp/gu/gl/gd/gb/gr/gw. open({}) opens the status
 -- buffer; open({ '<popup>' }) opens a popup directly (verified against Neogit
 -- source: the name is used verbatim as the neogit.popups.<name> module — no
@@ -39,20 +39,20 @@ require('neogit').setup({
 local function nmap(lhs, arg, desc)
   vim.keymap.set('n', lhs, function() require('neogit').open(arg) end, { desc = desc })
 end
-nmap('<leader>gg', {},             'Git: Neogit status')
-nmap('<leader>gc', { 'commit' },   'Git: commit')     -- ≈ gc
-nmap('<leader>gp', { 'push' },     'Git: push')       -- ≈ gp
-nmap('<leader>gu', { 'pull' },     'Git: pull')       -- ≈ gu (shell: gu=pull, gp=push)
-nmap('<leader>gl', { 'log' },      'Git: log')        -- ≈ gl
-nmap('<leader>gd', { 'diff' },     'Git: diff')       -- ≈ gd
-nmap('<leader>gb', { 'branch' },   'Git: branch')     -- ≈ gcb / gnb
-nmap('<leader>gr', { 'rebase' },   'Git: rebase')     -- ≈ grb
-nmap('<leader>gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
+nmap('<leader>Gg', {},             'Git: Neogit status')
+nmap('<leader>Gc', { 'commit' },   'Git: commit')     -- ≈ gc
+nmap('<leader>Gp', { 'push' },     'Git: push')       -- ≈ gp
+nmap('<leader>Gu', { 'pull' },     'Git: pull')       -- ≈ gu (shell: gu=pull, gp=push)
+nmap('<leader>Gl', { 'log' },      'Git: log')        -- ≈ gl
+nmap('<leader>Gd', { 'diff' },     'Git: diff')       -- ≈ gd
+nmap('<leader>Gb', { 'branch' },   'Git: branch')     -- ≈ gcb / gnb
+nmap('<leader>Gr', { 'rebase' },   'Git: rebase')     -- ≈ grb
+nmap('<leader>Gw', { 'worktree' }, 'Git: worktree')   -- ≈ gw
 
 -- Mirrors <leader>vq (diffview close, below). Neogit's status buffer already
 -- closes on plain 'q'; this is just the leader-namespaced equivalent so both
 -- git views close the same way.
-vim.keymap.set('n', '<leader>gq', function() require('neogit').close() end,
+vim.keymap.set('n', '<leader>Gq', function() require('neogit').close() end,
   { desc = 'Git: close status' })
 
 -- Not mapped but reachable by one keystroke inside the status buffer:
@@ -60,11 +60,11 @@ vim.keymap.set('n', '<leader>gq', function() require('neogit').close() end,
 
 -- ALT (disabled): open the status buffer in a floating overlay without changing
 -- the default tab binding. open() accepts a per-call `kind` (verified vs source).
--- Uncomment to enable a floating opener alongside <leader>gg.
--- nmap('<leader>gG', { kind = 'floating' }, 'Git: status (floating)')
+-- Uncomment to enable a floating opener alongside <leader>Gg.
+-- nmap('<leader>GG', { kind = 'floating' }, 'Git: status (floating)')
 
 -- <leader>v maps — diffview.nvim direct entry points, kept in their own group
--- rather than folded into <leader>g* so Neogit's popups and diffview's views
+-- rather than folded into <leader>G* so Neogit's popups and diffview's views
 -- stay visually distinct in which-key. require('diffview') is safe to call
 -- top-level here: packadd('diffview.nvim') already ran above.
 --
@@ -73,7 +73,7 @@ vim.keymap.set('n', '<leader>gq', function() require('neogit').close() end,
 -- diff2_horizontal (side-by-side) and diff2_vertical (stacked) — same as the
 -- default g<C-x>, just easier to reach; there's no unified pane to cycle to.
 -- For an actual inline unified diff, expand a file in the Neogit status buffer
--- (<leader>gg, then <tab> on a file) instead — that's independent of diffview.
+-- (<leader>Gg, then <tab> on a file) instead — that's independent of diffview.
 local dv = require('diffview')
 
 -- Remote-tracking base ref, e.g. 'origin/main' — never hardcode 'main'.

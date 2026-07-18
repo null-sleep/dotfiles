@@ -155,13 +155,14 @@ vim.keymap.set('n', 'gb', function()
   vim.cmd('buffer #')
 end, { desc = 'Buffer: toggle alternate' })
 
--- Frecency-ranked buffers + recent + files in one list (snacks `smart`). The
+-- Frecency-ranked buffers + recent + files in one list (snacks `smart`),
+-- scoped to the cwd so it doesn't surface files from unrelated repos. The
 -- alternate file is flagged '#' and usually near the top, but frecency blends
 -- frequency with recency so it isn't reliably row 1 — the deterministic
 -- one-key jump-to-previous is `gb` above; this is "take me to something I've
 -- been in lately". See plans/telescope-vs-snacks-picker.md.
-vim.keymap.set('n', '<leader><leader>', function() Snacks.picker.smart() end,
-  { desc = 'Search: Smart (frecency: buffers + recent + files)' })
+vim.keymap.set('n', '<leader><leader>', function() Snacks.picker.smart({ filter = { cwd = true } }) end,
+  { desc = 'Search: Smart (frecency: buffers + recent + files, cwd-scoped)' })
 vim.keymap.set('n', '<leader>bb', function() require('pickers.buffer').open() end,
   { desc = 'Buffer: Picker' })
 -- Kept as a permanent alias: one keystroke shorter, and predates <leader>bb

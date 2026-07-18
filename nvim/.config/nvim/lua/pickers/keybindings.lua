@@ -303,7 +303,7 @@ local function build_results()
 
   -- Keys first so the fuzzy matcher prioritizes the keybinding itself. which-key
   -- names the leader key <Space>, so also search the <leader> spelling this
-  -- config documents — otherwise "<leader>gg" finds nothing. Display stays
+  -- config documents — otherwise "<leader>Gg" finds nothing. Display stays
   -- <Space>: confirm() feeds item.keys to nvim_replace_termcodes, which doesn't
   -- expand <leader>.
   for _, r in ipairs(results) do
