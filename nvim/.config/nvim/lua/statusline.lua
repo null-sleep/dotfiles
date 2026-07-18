@@ -1,13 +1,18 @@
 vim.cmd.packadd('lualine.nvim')
 
+-- Round powerline caps (Nerd Font) for the statusline's outer edges only —
+-- see the mode/location components below. `left` bulges right (trailing
+-- edge), `right` bulges left (leading edge).
+local round_left = ''
+local round_right = ''
+
 require('lualine').setup({
   options = {
     -- 'auto' reads the active colorscheme's highlight groups — no manual
     -- theme changes needed when switching themes in themes.lua.
     theme = 'auto',
 
-    -- Powerline-style separators (require a Nerd Font).
-    -- Replace with { left = '', right = '' } for no separators (flat style).
+    -- Flat: no separators between sections/components.
     section_separators    = { left = '', right = '' },
     component_separators  = { left = '', right = '' },
 
@@ -22,7 +27,10 @@ require('lualine').setup({
   },
 
   sections = {
-    lualine_a = { 'mode' },
+    lualine_a = {
+      -- Rounds the statusline's outer-left edge.
+      { 'mode', separator = { left = round_right } },
+    },
     lualine_b = {
       {
         'filename',
@@ -91,7 +99,10 @@ require('lualine').setup({
       },
     },
     lualine_y = { 'searchcount', 'progress' },
-    lualine_z = { 'location' },
+    lualine_z = {
+      -- Rounds the statusline's outer-right edge.
+      { 'location', separator = { right = round_left } },
+    },
   },
 
   inactive_sections = {
