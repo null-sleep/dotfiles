@@ -74,7 +74,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
-- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
+- **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-dap-virtual-text + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), inline variable values during a session, breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
 - **`golang.lua`** — Go's language module, the mirror of `rust.lua`: pcall-guarded `nvim-dap-go` setup (the delve adapter + seven `dap.configurations.go` launch configs) plus buffer-local `FileType go` keymaps (`<leader>dR` debug targets, `<leader>cR` run targets). Named `golang.lua`, not `go.lua` — `require('go')` is ray-x/go.nvim's own module name, so taking it would shadow that plugin (same rule as `debugging.lua`-not-`dap.lua`)
 - **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a toggleterm float
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
@@ -2218,12 +2218,13 @@ mechanism (`virt_text_pos='inline'`).
 <a id="debugging"></a>
 ## Debugging (nvim-dap)
 
-nvim-dap + nvim-dap-ui: the shared debug engine and its docked UI (scopes,
-call stack, breakpoints, watches, REPL), wired in `debugging.lua`. nvim-dap
-itself registers **no adapters or configurations** — every language's debug
-support comes from something else declaring them (see the language-support
-table below). `debugging.lua` only owns the generic engine, the UI, the
-signs, and the global keymaps.
+nvim-dap + nvim-dap-ui + nvim-dap-virtual-text: the shared debug engine, its
+docked UI (scopes, call stack, breakpoints, watches, REPL), and inline
+variable values, wired in `debugging.lua`. nvim-dap itself registers **no
+adapters or configurations** — every language's debug support comes from
+something else declaring them (see the language-support table below).
+`debugging.lua` only owns the generic engine, the UI, the signs, and the
+global keymaps.
 
 ### UI and signs
 
@@ -2233,6 +2234,15 @@ for `launch`/`attach`/`event_terminated`/`event_exited`). Breakpoint and
 stopped-line signs reuse theme-styled diagnostic highlights: `●`
 (`DapBreakpoint`, `DiagnosticError`) marks a breakpoint, `▶` (`DapStopped`,
 `DiagnosticWarn` + `Visual` line highlight) marks the current stopped line.
+
+nvim-dap-virtual-text shows each in-scope variable's current value inline on
+its source line while stopped (e.g. ` = 42`), so you read state in the code
+buffer instead of the Scopes pane; changed values highlight differently on
+the next stop. It registers its own `nvim-dap` listeners and needs no
+adapter/configuration, so it works for any language with a treesitter
+`locals` query (Rust and Go both have one). This is unrelated to the LSP
+*diagnostic* virtual text toggled by `<leader>td` — that's a different
+feature entirely.
 
 ### Language support
 

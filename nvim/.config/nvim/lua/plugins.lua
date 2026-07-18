@@ -82,6 +82,7 @@ vim.pack.add(vim.list_extend({
   { src = gh('mrcjkb/rustaceanvim'), version = vim.version.range('^9') },
   { src = gh('mfussenegger/nvim-dap') },
   { src = gh('rcarriga/nvim-dap-ui') },
+  { src = gh('theHamsta/nvim-dap-virtual-text') },
   { src = gh('nvim-neotest/nvim-nio') },
   { src = gh('nvim-neotest/neotest') },
   -- nvim-dap-go publishes no git tags at all, so it cannot be pinned; leave it bare.

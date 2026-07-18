@@ -15,10 +15,17 @@
 vim.cmd.packadd('nvim-nio')
 vim.cmd.packadd('nvim-dap')
 vim.cmd.packadd('nvim-dap-ui')
+vim.cmd.packadd('nvim-dap-virtual-text')
 
 local dap, dapui = require('dap'), require('dapui')
 
 dapui.setup()
+
+-- Inline variable values on their source line during a session (theHamsta/
+-- nvim-dap-virtual-text). Hooks nvim-dap's event listeners itself; defaults
+-- are good (inline placement on 0.10+, highlight changed vars). Distinct from
+-- LSP diagnostic virtual text (<leader>td) — unrelated feature.
+require('nvim-dap-virtual-text').setup()
 
 -- Auto open/close the UI with the debug session. dap.listeners.before[event]
 -- auto-vivifies the subtable; the `.dapui` key just namespaces our listener.
