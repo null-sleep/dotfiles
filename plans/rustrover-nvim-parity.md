@@ -186,14 +186,17 @@ Suggested order, cheapest/highest-value first:
    as `<leader>cF`. `workspace-diagnostics.nvim` + `trouble.nvim` (the
    project-wide diagnostics *panel* half) is still open.
 4. `nvim-dap-virtual-text` (or evaluate switching to `nvim-dap-view`).
-5. `kulala.nvim` — HTTP client, cleanest win of the bundled-tooling set.
-6. `vim-dadbod` + `vim-dadbod-ui` — only if DB work is frequent enough to
-   justify it.
+5. ~~`kulala.nvim` — HTTP client.~~ Moved to `plans/README.md` → "As-needed
+   toolkit" (2026-07-17) — a known-good option, install it when there's an
+   actual API to poke at, not on a schedule.
+6. ~~`vim-dadbod` + `vim-dadbod-ui` — DB client.~~ Same move, same reason —
+   "As-needed toolkit," install when DB work actually gets frequent.
 7. `nvim-coverage` + `cargo-llvm-cov` — only if coverage-driven work comes
    up.
-8. Dependency-diagram shell one-liner (`cargo modules dependencies | dot
-   -Tsvg`) — lowest priority, Graphviz is a new external dependency for a
-   rarely-needed view.
+
+**Dropped (2026-07-17):** dependency/type diagrams (`cargo-modules`/
+`cargo-depgraph` → Graphviz `dot` → `snacks.image`) — not wanted. Row kept
+in the table above only as a research record.
 
 Each would need its own `GUIDE.md` section per this repo's nvim `CLAUDE.md`
 conventions (Architecture entry, keymap table, Design Decisions note if

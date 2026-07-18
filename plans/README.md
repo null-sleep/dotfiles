@@ -141,6 +141,25 @@ Grouped by state, not priority.
   (consolidated from the Zed/VS Code/JetBrains gap analyses + the LazyVim /
   LunarVim comparison passes + the old TODO wishlist).
 
+## As-needed toolkit — known-good options, not scheduled work
+
+Not active, not backlogged, not parked-with-a-trigger — these are researched,
+ready-to-install answers to a need that hasn't shown up yet. No revival
+condition to watch for; just reach for one when the matching need is
+actually real. Detail for each lives in
+[rustrover-nvim-parity.md](rustrover-nvim-parity.md) → "Bundled tooling".
+
+- **HTTP client** — `kulala.nvim`. Write requests in a plain `.http` file,
+  run one with a keybinding, see status/headers/body in a response pane —
+  no separate Postman/Insomnia app. Targets 100% compatibility with
+  JetBrains' own `.http` format, so the same request files work in RustRover
+  too. Reach for this when there's an actual API to poke at during
+  development.
+- **DB client** — `vim-dadbod` + `vim-dadbod-ui`. Connection tree, saved
+  queries, execute-SQL-in-a-buffer. Reach for this when a project's DB work
+  gets frequent enough that a terminal `psql`/`sqlite3` session stops being
+  enough.
+
 ## Parked / reference — deliberate holds and design records
 
 - [nvim-startup-performance.md](nvim-startup-performance.md) — Phase 1 landed and
