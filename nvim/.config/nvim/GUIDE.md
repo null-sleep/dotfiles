@@ -71,7 +71,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
-- **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
+- **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-dap-virtual-text + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), inline variable values during a session, breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
@@ -999,15 +999,15 @@ Completion engine written in Rust, set up in `completion.lua`. Sources:
 LSP, file paths, snippets, buffer words. Ghost text is disabled — Copilot's
 inline completion (`textDocument/inlineCompletion`) supplies its own; see
 [AI (sidekick.nvim)](#ai-sidekick) → NES vs Copilot inline completion for how
-`<Tab>` arbitrates between the completion menu, Copilot ghost text, and a
-literal tab.
+`<Tab>` arbitrates between the completion menu, Copilot ghost text, snippet
+placeholder jumps, and a literal tab.
 
 ### Keymaps (inside the completion menu)
 
 | Key | Action |
 |---|---|
 | `<Tab>` | Next item (see the AI section for the full priority chain when Copilot ghost text is also showing) |
-| `<S-Tab>` | Previous item |
+| `<S-Tab>` | Previous item (or previous snippet placeholder when a snippet is active) |
 | `<CR>` | Accept selected item (falls back to normal Enter) |
 | `<C-u>` / `<C-d>` | Scroll documentation popup up / down |
 | `<C-space>` | Manually trigger completion |
@@ -2205,7 +2205,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 
 | Keymap | Action |
 |---|---|
-| `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → literal Tab (matches VS Code/Zed) |
+| `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → snippet placeholder jump → literal Tab (matches VS Code/Zed) |
 | `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
 | `<leader>ta` | Toggle all AI completions globally (inline ghost text + NES) |
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |

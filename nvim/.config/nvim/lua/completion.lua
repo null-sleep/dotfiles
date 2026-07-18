@@ -6,7 +6,13 @@ require('blink.cmp').setup({
     -- Tab priority (matches VS Code / Zed): completion menu wins over ghost text.
     -- 1. select_next: if blink menu is open, navigate it
     -- 2. inline completion: if Copilot ghost text is showing, accept it
-    -- 3. fallback: literal Tab
+    -- 3. snippet_forward: if a snippet session is active, jump to next placeholder
+    -- 4. fallback: literal Tab
+    --
+    -- snippet_forward/backward are explicit even though fallback alone worked
+    -- (it reached Neovim's default snippet-aware <Tab> from _defaults.lua) —
+    -- explicit entries don't silently break if blink's fallback resolution or
+    -- the core default mapping changes. Per LazyVim's supertab recipe.
     ['<Tab>']     = {
       'select_next',
       function()
@@ -17,9 +23,10 @@ require('blink.cmp').setup({
           return true
         end
       end,
+      'snippet_forward',
       'fallback',
     },
-    ['<S-Tab>']   = { 'select_prev', 'fallback' },
+    ['<S-Tab>']   = { 'select_prev', 'snippet_backward', 'fallback' },
     ['<CR>']      = { 'accept', 'fallback' },
     ['<C-u>']     = { 'scroll_documentation_up', 'fallback' },
     ['<C-d>']     = { 'scroll_documentation_down', 'fallback' },
