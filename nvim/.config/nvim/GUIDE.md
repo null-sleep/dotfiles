@@ -674,7 +674,7 @@ get you there, plus the *defined in* file for a quick source jump.
 |---|---|---|---|
 | `<leader>s*` | Search / pickers (snacks) | keymaps.lua, `pickers/*.lua` | [Picker (snacks.nvim)](#picker-snacks) → Keymaps |
 | `<C-/>` (also `<C-_>`) | Terminal (toggleterm) — bottom terminal toggle, last-used or `N<C-/>` | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
-| `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr` | LSP goto / peek floats | lsp.lua | [LSP](#lsp) → Keymaps |
+| `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr`/`gai`/`gao` | LSP goto / peek floats / call hierarchy | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
@@ -768,6 +768,14 @@ load) — a single result still jumps straight there (via the pickers'
 server resolving to several targets (e.g. a trait method with multiple
 impls, or a type with several bounds) shows a picker instead of dumping into
 the quickfix list.
+
+**Call hierarchy:** `gai` (calls incoming — who calls this) / `gao` (calls
+outgoing — what this calls) open `Snacks.picker.lsp_incoming_calls()` /
+`lsp_outgoing_calls()`. `a` is from "calls" (`c` was already taken by
+comment.nvim's `gc`). No `vim.lsp.buf` fallback exists for call hierarchy, so
+unlike the other `g*` maps above these are skipped entirely (not bound) when
+snacks fails to load; gated on `textDocument/prepareCallHierarchy` support
+(rust-analyzer and gopls both implement it).
 
 **Hover, actions & diagnostics:**
 
@@ -1229,6 +1237,7 @@ wholesale.
 | `<leader><leader>` | Smart picker — buffers + recent + files merged into one frecency-ranked list (`sort_empty`, so it's ranked before you type), scoped to the cwd so files from unrelated repos don't show up. The alternate file is flagged `#` and usually near the top, but frecency isn't a deterministic row 1 — for the blind one-key jump-to-previous use `gb` ([Global keymaps](#global-keymaps)) instead |
 | `<leader>sf` | Find files by name — fuzzy over the file list; `<c-g>` flips it to a live `fd` search (see below) |
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
+| `<leader>sw` (normal + visual) | Grep the word under the cursor, or the visual selection — exact match (`--word-regexp`, not fuzzy/live), jumps straight to usages without the `sg`-then-type step |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |

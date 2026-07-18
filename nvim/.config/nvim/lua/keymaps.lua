@@ -7,6 +7,11 @@
 -- the prompt buffers results into the fuzzy matcher (fzf-style operators).
 vim.keymap.set('n', '<leader>sf', function() Snacks.picker.files() end, { desc = 'Search: Files' })
 vim.keymap.set('n', '<leader>sg', function() Snacks.picker.grep() end,  { desc = 'Search: Grep' })
+-- <leader>sw greps the word under the cursor (visual: the selection) —
+-- picker:word() covers both — with --word-regexp, so it's not fuzzy: an
+-- exact-match jump straight to every real usage, skipping the sg-then-type step.
+vim.keymap.set({ 'n', 'x' }, '<leader>sw', function() Snacks.picker.grep_word() end,
+  { desc = 'Search: Grep word under cursor' })
 vim.keymap.set('n', '<leader>sh', function() Snacks.picker.help() end,  { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', function() Snacks.picker.resume() end, { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })

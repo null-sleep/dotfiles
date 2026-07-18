@@ -295,6 +295,14 @@ vim.api.nvim_create_autocmd('LspAttach', {
     if client:supports_method('textDocument/implementation') then
       map('n', 'gri', ok and function() Snacks.picker.lsp_implementations() end or vim.lsp.buf.implementation, 'LSP: Go to implementation')
     end
+    -- gai/gao: call hierarchy (who calls this / what does this call). 'a' from
+    -- "calls" (LazyVim's mnemonic) — 'c' was already taken by comment.nvim's gc.
+    -- rust-analyzer and gopls both support this. Not guarded behind `ok`: no
+    -- vim.lsp.buf fallback exists for call hierarchy, so skip entirely without snacks.
+    if ok and client:supports_method('textDocument/prepareCallHierarchy') then
+      map('n', 'gai', function() Snacks.picker.lsp_incoming_calls() end, 'LSP: Calls incoming')
+      map('n', 'gao', function() Snacks.picker.lsp_outgoing_calls() end, 'LSP: Calls outgoing')
+    end
   end,
 })
 
