@@ -49,7 +49,7 @@ end
 -- but toggle (show/hide) an already-running one instead of killing it.
 --
 -- `id` must be a fixed high id, per terminal.lua's convention: numbers
--- 1-99 are reserved for count-addressable float terminals (2<C-\>, 3<C-\>),
+-- 1-99 are reserved for count-addressable bottom terminals (2<C-/>, 3<C-/>),
 -- so anything reused across invocations needs a high, stable id of its own.
 -- `get_spec(...)` is called fresh on every run that actually needs one (not
 -- while a previous run is still live) and must return a toggleterm Terminal

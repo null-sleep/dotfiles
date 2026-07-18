@@ -3,13 +3,12 @@ vim.cmd.packadd('toggleterm.nvim')
 local utils = require('utils')
 
 require('toggleterm').setup({
-  -- <C-\> toggles the terminal from normal, insert, or terminal mode.
-  -- Prefix with a count to open a specific terminal instance: 2<C-\>, 3<C-\>, etc.
-  open_mapping = [[<c-\>]],
-  direction = 'float',
+  direction = 'horizontal',
   float_opts = {
     border = 'curved',
-    -- Functions instead of fixed numbers so the float adapts to window resizing.
+    -- Functions, not fixed numbers, so the float tracks window resizing. Only
+    -- the go-run/clippy-fix floats use these (gotargets.lua, rust.lua); the
+    -- bottom terminals are always horizontal.
     width = function()
       return math.floor(vim.o.columns * 0.85)
     end,
@@ -20,35 +19,26 @@ require('toggleterm').setup({
   shade_terminals = false, -- float border already provides visual separation
   start_in_insert = true,
   close_on_exit = true,
-  -- persist_mode = false (default is true): don't remember whether you were in
-  -- insert or normal mode when the terminal was hidden — always reopen in
-  -- terminal mode (start_in_insert above), so switching back never strands you
-  -- in normal mode reading old scrollback instead of a live prompt.
+  -- Always reopen in terminal mode (with start_in_insert) rather than restoring
+  -- the mode a terminal was hidden in, so toggling back never strands you in
+  -- normal mode on old scrollback instead of a live prompt.
   persist_mode = false,
-  --
-  -- persist_size = true (default): remembers split dimensions across hides.
-  -- Only relevant if you use direction = 'horizontal' or 'vertical'.
-  --
-  -- autochdir = false (default): set to true to make the terminal cwd follow
-  -- the current buffer's directory — useful for multi-project Neovim sessions.
-  --
-  -- size: ignored for float direction, but used by <leader>Th and <leader>Tv
-  -- which override direction per-invocation. Function form lets us vary by direction.
-  size = function(term)
-    if term.direction == 'horizontal' then return math.floor(vim.o.lines * 0.3) end
-    if term.direction == 'vertical'   then return math.floor(vim.o.columns * 0.4) end
+  size = function()
+    return math.floor(vim.o.lines * 0.3)
   end,
 })
 
--- Cycle through open toggleterm instances. Closes the current terminal and
--- opens the next/previous one (wraps around). Reads vim.b.toggle_number
--- (set by toggleterm on each terminal buffer) to find the current position
--- in the sorted terminal list.
+-- The bottom terminal <C-/> targets: the last one opened, cycled, or focused.
+-- Starts at 1 (the pre-warmed shell). A count on <C-/> overrides and re-pins it.
+local last_term_id = 1
+
+-- Close the current bottom terminal and open the next/previous one (wraps).
+-- Filtered to ids < 100 so the cycle never sweeps in the go-run (id 101) or
+-- clippy-fix (id 102) floats — those aren't hidden and belong to their own
+-- toggles, not this rotation.
 local function cycle_term(direction)
   local terminal = require('toggleterm.terminal')
-  -- get_all() without `true` omits hidden terminals, so the bottom panel
-  -- (id 100, hidden = true) stays out of the float cycle.
-  local terms = terminal.get_all()
+  local terms = vim.tbl_filter(function(t) return t.id < 100 end, terminal.get_all())
   if #terms <= 1 then return end
   local current_id = vim.b.toggle_number
   local current_idx = 1
@@ -58,88 +48,71 @@ local function cycle_term(direction)
   local next_idx = ((current_idx - 1 + direction) % #terms) + 1
   terms[current_idx]:close()
   terms[next_idx]:open()
+  last_term_id = terms[next_idx].id
 end
 
--- VS Code–style bottom panel: a dedicated horizontal terminal. hidden = true
--- keeps it out of the count-addressable :ToggleTerm list, so it never collides
--- with the float terminals.
-local bottom_panel_keys = { '<C-`>', '<C-_>', '<C-/>' }
-local bottom_term
-local toggle_bottom_term -- forward-declared for the on_open closure below
-
--- Single source of truth for the panel terminal: lazily created and shared by
--- the toggle keymaps and the startup pre-warm, so the pre-warm can't clobber a
--- terminal the user already opened during the startup window.
-local function ensure_bottom_term()
-  if not bottom_term then
-    bottom_term = require('toggleterm.terminal').Terminal:new({
-      id = 100,  -- high fixed ID keeps 1–99 free for count-addressable float terminals
-      direction = 'horizontal',
-      hidden = true,
-      on_open = function(term)
-        -- Buffer-local terminal-mode toggle: pressing the key inside the panel
-        -- hides it, without shadowing <C-/> etc. in the float / sidekick CLI.
-        for _, lhs in ipairs(bottom_panel_keys) do
-          vim.keymap.set('t', lhs, toggle_bottom_term, { buffer = term.bufnr })
-        end
-      end,
-    })
-  end
-  return bottom_term
+local function toggle_term()
+  local id = vim.v.count > 0 and vim.v.count or last_term_id
+  last_term_id = id
+  vim.cmd(id .. 'ToggleTerm')
+end
+-- <C-/> and <C-_> are bound identically: Neovim receives <C-_> for this physical
+-- chord in terminal mode, <C-/> from normal mode / the GUI.
+for _, lhs in ipairs({ '<C-/>', '<C-_>' }) do
+  vim.keymap.set({ 'n', 'i', 't' }, lhs, toggle_term,
+    { desc = 'Terminal: toggle bottom (last-used, or #N with a count)' })
 end
 
-function toggle_bottom_term()
-  local term = ensure_bottom_term()
-  if term:is_open() then
-    term:close()
-    return
-  end
-
-  -- Opening the panel (a horizontal split) while a float terminal is open or
-  -- focused breaks in two ways, both rooted in toggleterm's split machinery:
-  --   1. open_split's find_open_windows() matches *any* toggleterm window, so it
-  --      grabs the open float and splits it instead of the editor (Image #3).
-  --   2. is_split() calls ui.is_float(self.window); for the pre-warmed panel
-  --      self.window is nil, and win_gettype(nil) falls back to the *current*
-  --      window — the float popup — so is_split() is false and opener() raises
-  --      "Invalid terminal direction" (Image #4).
-  -- Close any open float terminals (skip the panel itself, id 100) and make sure
-  -- focus lands on a normal window, so the panel opens as a clean bottom split.
-  for _, t in ipairs(require('toggleterm.terminal').get_all(true)) do
-    if t.id ~= 100 and t:is_open() and t:is_float() then
-      t:close()
-    end
-  end
-  if vim.fn.win_gettype() == 'popup' then
-    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-      if vim.fn.win_gettype(win) == '' then
-        vim.api.nvim_set_current_win(win)
-        break
-      end
-    end
-  end
-
-  -- Pass the height explicitly so the panel is always ~30% of the screen,
-  -- ignoring any oversized value persist_size cached from an earlier broken
-  -- open (which is what made the panel balloon to 70-90%, Image #2).
-  term:open(math.floor(vim.o.lines * 0.3))
-end
+-- Re-pin last_term_id whenever a bottom terminal is (re-)focused directly (<C-w>
+-- nav, mouse click), not just via toggle/cycle. Clamped to the 1-99 pool so
+-- focusing a go-run/clippy-fix float (ids 101/102, also filetype toggleterm)
+-- can't hijack the last-used target and make a bare <C-/> reopen a transient
+-- float instead of your last shell.
+vim.api.nvim_create_autocmd({ 'BufEnter', 'WinEnter' }, {
+  group = vim.api.nvim_create_augroup('UserTermFocus', { clear = true }),
+  pattern = '*',
+  desc = 'Terminal: track last-focused bottom terminal for <C-/>',
+  callback = function()
+    if vim.bo.filetype ~= 'toggleterm' then return end
+    local n = vim.b.toggle_number
+    if n and n < 100 then last_term_id = n end
+  end,
+})
 
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
--- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
--- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
--- exiting terminal mode. Removed; <C-]> cycles next and wraps around, so
--- repeated presses reach every terminal.
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
-  desc = 'Terminal keymaps: Esc, split navigation, terminal cycling',
+  desc = 'Terminal keymaps: Esc, split navigation, terminal cycling/switching',
   callback = function()
     -- Skip sidekick CLI buffers — sidekick manages its own keymaps.
     if vim.bo.filetype == 'sidekick_terminal' then return end
     local opts = { buffer = 0 }
     utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
-    vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
-    vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
+
+    -- <M-]>/<M-[>/<M-n>/<M-l> deliberately mirror the sidekick CLI's own
+    -- session keys (ai.lua:313-336) for muscle-memory symmetry, though each
+    -- is buffer-local to its own terminal kind so neither clashes.
+    vim.keymap.set('t', '<M-]>', function() cycle_term(1) end, opts)
+    vim.keymap.set('n', '<M-]>', function() cycle_term(1) end, opts)
+    vim.keymap.set('t', '<M-[>', function() cycle_term(-1) end, opts)
+    vim.keymap.set('n', '<M-[>', function() cycle_term(-1) end, opts)
+
+    local function new_term()
+      local used = {}
+      for _, t in ipairs(require('toggleterm.terminal').get_all(true)) do used[t.id] = true end
+      local n = 1
+      -- Capped at 99: an exhausted 1-99 pool must not climb into the
+      -- go-run/clippy floats' ids (101/102).
+      while used[n] and n < 99 do n = n + 1 end
+      last_term_id = n
+      vim.cmd(n .. 'ToggleTerm')
+    end
+    vim.keymap.set('t', '<M-n>', new_term, opts)
+    vim.keymap.set('n', '<M-n>', new_term, opts)
+
+    vim.keymap.set('t', '<M-l>', '<cmd>TermSelect<CR>', opts)
+    vim.keymap.set('n', '<M-l>', '<cmd>TermSelect<CR>', opts)
+
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
     -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal
     -- that transmits Shift+Enter distinctly (iTerm2 requires CSI u enabled).
@@ -149,47 +122,16 @@ vim.api.nvim_create_autocmd('TermOpen', {
   end,
 })
 
--- Terminal keymaps live under their own <leader>T prefix, NOT <leader>t:
--- gitsigns (<leader>tb, buffer-local blame toggle) and lsp.lua (<leader>th,
--- buffer-local hover toggle) attach to nearly every buffer, and buffer-local
--- maps always shadow globals — <leader>t* terminal keys were unreachable in
--- practice. <leader>t stays the pure Toggle namespace.
-vim.keymap.set('n', '<leader>Tt', '<cmd>ToggleTerm<CR>', { desc = 'Terminal: Float' })
-vim.keymap.set('n', '<leader>Th', '<cmd>ToggleTerm direction=horizontal<CR>', { desc = 'Terminal: Horizontal split' })
-vim.keymap.set('n', '<leader>Tv', '<cmd>ToggleTerm direction=vertical<CR>',   { desc = 'Terminal: Vertical split' })
-
--- VS Code–style bottom terminal panel. Triggers cover every environment:
---   <C-`>  works in Neovide + kitty (kitty keyboard protocol)
---   <C-/>  Neovim sees <C-_> in terminals / <C-/> in GUI — reliable in iTerm2 too
---   <leader>Tb  universal fallback (also shown in which-key)
--- Bound in normal, insert, and terminal mode so it works from sidekick/float
--- terminals too. The hide-from-within bind is buffer-local (set in on_open
--- above) and overrides this global mapping inside the bottom panel itself.
-for _, lhs in ipairs(bottom_panel_keys) do
-  vim.keymap.set({ 'n', 'i', 't' }, lhs, toggle_bottom_term, { desc = 'Terminal: Bottom panel' })
-end
-vim.keymap.set('n', '<leader>Tb', toggle_bottom_term, { desc = 'Terminal: Bottom panel' })
-
--- Pre-warm: spawn the shell into a hidden buffer so the first <C-\> /
--- <leader>Tt opens an already-running terminal instead of paying ~50–200ms
--- of shell startup. Toggleterm's Terminal:spawn() creates the buffer and
--- runs termopen without opening a window — no flicker, no monkey-patching
--- (unlike the sidekick pre-warm in ai.lua, where start() always opens a
--- visible window). :ToggleTerm with no args toggles the lowest-id terminal,
--- so spawning id=1 here is what <C-\> attaches to on first press.
---
--- Fired at 2000ms (before ai.lua's claude pre-warm at 3000ms) so the two
--- spawns don't land together on a <leader>qs restore window. Terminal:spawn()
--- isn't idempotent, so guard each terminal in case the user got there first
--- during the 2s wait: <C-\> within that window pays one cold spawn, which is
--- an accepted trade-off.
+-- Pre-warm: spawn the shell into a hidden buffer so the first <C-/> opens an
+-- already-running terminal instead of paying ~50-200ms of shell startup.
+-- Terminal:spawn() runs termopen without opening a window (no flicker). Bare
+-- :ToggleTerm toggles the lowest-id terminal, so id=1 is what <C-/> attaches to.
+-- Fired at 2000ms, before ai.lua's claude pre-warm (3000ms), so the two spawns
+-- don't collide on a <leader>qs restore. spawn() isn't idempotent — the get(1)
+-- guard covers a <C-/> during the 2s wait (which pays one cold spawn).
 vim.defer_fn(function()
   if not utils.has_ui() then return end -- headless: skip so spawned shells don't keep nvim alive
   if not require('toggleterm.terminal').get(1, true) then
     require('toggleterm.terminal').Terminal:new({ id = 1 }):spawn()
-  end
-  local bottom = ensure_bottom_term()
-  if not (bottom.bufnr and vim.api.nvim_buf_is_valid(bottom.bufnr)) then
-    bottom:spawn() -- pre-warm the panel too, sharing the one instance
   end
 end, 2000)

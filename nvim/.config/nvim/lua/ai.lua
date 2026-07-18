@@ -76,10 +76,8 @@ require('sidekick').setup({
       -- "Panels stop at their last entry") — the dead-space fix itself is
       -- the WinScrolled clamp in autocmds.lua.
       wo = { scrolloff = 0, sidescrolloff = 0 },
-      -- In-window CLI keymaps (merged over sidekick's defaults).
-      -- <C-\> is intentionally NOT bound here so it falls through to the global
-      -- toggleterm mapping, allowing toggleterm floats to be opened from sidekick.
-      -- Use <leader>aa to hide sidekick.
+      -- Empty: don't shadow the global <C-/> toggleterm mapping, so the bottom
+      -- terminal stays reachable from inside sidekick. (<leader>aa hides sidekick.)
       keys = {},
       -- Pre-warm hook: while __sidekick_prewarm is set, swap this instance's
       -- open_win for one that creates a hidden float instead of a visible
@@ -296,16 +294,6 @@ vim.api.nvim_create_autocmd('FileType', {
   callback = function(args)
     utils.term_nav_keymaps(args.buf, { esc = false })
 
-    -- <C-\> opens the toggleterm float from the sidekick CLI. Needed because
-    -- toggleterm's terminal-mode toggle is buffer-local to its own terminals, so
-    -- in this (sidekick) terminal there's otherwise no <C-\> mapping at all. The
-    -- normal-mode global toggleterm mapping already handles <count><C-\>; from
-    -- terminal mode a count isn't possible (digits go to Claude), so it opens the
-    -- default float. v:count1 still lets a normal-mode count flow through here.
-    vim.keymap.set({ 't', 'n' }, [[<C-\>]], function()
-      vim.cmd(vim.v.count1 .. 'ToggleTerm')
-    end, { buffer = args.buf, desc = 'Open toggleterm float' })
-
     -- Session switching in place (single-window model), without leaving terminal
     -- mode (vs jj/jk then <leader>al): <M-]>/<M-[> cycle next/prev (nvim's ]/[
     -- next/prev idiom), <C-]> toggles the last-used session (a raw control byte,
@@ -320,12 +308,10 @@ vim.api.nvim_create_autocmd('FileType', {
       { buffer = args.buf, desc = 'AI: New CLI session (auto-numbered)' })
 
     -- <M-a> hides the panel in place (the <leader>aa toggle) without first
-    -- escaping terminal mode via jj/jk — the common "stash the chat" action.
-    -- toggle_active targets M.active, which the WinEnter stamp keeps equal to
-    -- the focused session, so this hides the one you're in. Kill stays on the
-    -- deliberate <leader>ad path (confirm-guarded) — no fast in-panel teardown.
-    -- (Buffer-local to this CLI terminal; doesn't clash with the global
-    -- <M-a> send-to-sidekick picker action, which lives in picker windows.)
+    -- escaping terminal mode via jj/jk. toggle_active targets M.active, which
+    -- the WinEnter stamp keeps equal to the focused session, so this hides the
+    -- one you're in. Buffer-local, so it doesn't clash with the global <M-a>
+    -- send-to-sidekick picker action. Kill stays on the deliberate <leader>ad.
     vim.keymap.set({ 't', 'n' }, '<M-a>', function() require('ai').toggle_active() end,
       { buffer = args.buf, desc = 'AI: Hide CLI panel (toggle)' })
 
