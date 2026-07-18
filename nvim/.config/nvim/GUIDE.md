@@ -85,7 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal)
+- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits, `<C-]>` cycle next terminal, `<M-n>` new auto-numbered terminal, `<M-l>` `:TermSelect` picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -2565,8 +2565,9 @@ fixing diagnostics one at a time as you happen to visit each file.
 
 `<leader>cF` runs `cargo clippy --fix --workspace --allow-dirty
 --allow-staged` in a floating terminal (fixed id 102, outside the 1-99 pool
-`terminal.lua`'s bottom terminals use, same convention as the Go run terminal
-in `pickers/gotargets.lua` (101)) from the nearest `Cargo.toml`'s directory.
+`terminal.lua`'s count-addressable float terminals use, same convention as
+the Go run terminal in `pickers/gotargets.lua` (101)) from the nearest
+`Cargo.toml`'s directory.
 This applies every lint rustc marks `Applicability::MachineApplicable`
 across the whole workspace in one pass — it skips ambiguous or
 semantics-changing suggestions, which still need a manual look. `checkOnSave`
