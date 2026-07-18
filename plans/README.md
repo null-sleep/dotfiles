@@ -98,7 +98,7 @@ Grouped by state, not priority.
   interactive buffer picker.
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
-  coverage/diagram tooling) can be closed in the existing rustaceanvim setup.
+  coverage tooling) can be closed in the existing rustaceanvim setup.
   SSR (`<leader>cs`) and batch clippy-fix (`<leader>cF`) shipped 2026-07-17;
   the rest (refactor preview, debugger visuals, bundled tooling, and the
   genuinely protocol-level gaps — Cargo.toml-aware rename,

@@ -152,11 +152,13 @@ To close the visual gap:
 | HTTP client | [`kulala.nvim`](https://github.com/mistweaverco/kulala.nvim) | **Full parity** — explicitly targets 100% compatibility with JetBrains' `.http` file format; `.http` files move between nvim and RustRover unmodified. Supersedes the largely-unmaintained `rest.nvim`. |
 | DB client | [`vim-dadbod`](https://github.com/tpope/vim-dadbod) + [`vim-dadbod-ui`](https://github.com/kristijanhusak/vim-dadbod-ui) + `vim-dadbod-completion` | Mostly there — connection tree, saved queries, execute-in-buffer. Result grid/row-editing plainer than DataGrip-in-RustRover; no ER diagrams. |
 | Code coverage | [`andythigpen/nvim-coverage`](https://github.com/andythigpen/nvim-coverage) | Mostly there via `cargo llvm-cov --lcov --output-path lcov.info` → `:Coverage`. Manual regenerate-then-load loop, not a live "run with coverage" button. (`mr-u0b0dy/crazy-coverage.nvim` is a newer alternative that explicitly advertises Rust/tarpaulin/llvm-cov support if `nvim-coverage` has friction.) |
-| Dependency/type diagrams | `cargo-modules` or `cargo-depgraph` → Graphviz `dot` → `snacks.image` | Partial — both tools emit **Graphviz DOT, not Mermaid**, so this bypasses the existing `mmdr` shim; needs Graphviz's `dot` installed separately (`cargo modules dependencies \| dot -Tsvg > deps.svg`, then let snacks.image's imagemagick backend render the SVG inline). No good generator exists for trait/type-*hierarchy* diagrams specifically — closest substitute is rust-analyzer's LSP call-hierarchy as a text tree, not a rendered diagram. |
 
 Rough total: ~4 plugins (dadbod trio counts as one install unit, kulala,
-nvim-coverage) + 2-3 cargo subcommands + Graphviz, maybe 40-60 lines of
-`vim.pack.add` + config.
+nvim-coverage) + `cargo-llvm-cov`, maybe 30-40 lines of `vim.pack.add` +
+config.
+
+Dependency/type diagrams (`cargo-modules`/`cargo-depgraph` → Graphviz `dot`
+→ `snacks.image`) were researched here too — not wanted, dropped entirely.
 
 ---
 
@@ -207,10 +209,6 @@ Suggested order, cheapest/highest-value first:
 7. `nvim-coverage` + `cargo-llvm-cov` — only if coverage-driven work comes
    up.
 
-**Dropped (2026-07-17):** dependency/type diagrams (`cargo-modules`/
-`cargo-depgraph` → Graphviz `dot` → `snacks.image`) — not wanted. Row kept
-in the table above only as a research record.
-
 Each would need its own `GUIDE.md` section per this repo's nvim `CLAUDE.md`
 conventions (Architecture entry, keymap table, Design Decisions note if
-there's a non-obvious gotcha like the DOT-vs-Mermaid mismatch above).
+there's a non-obvious gotcha).
