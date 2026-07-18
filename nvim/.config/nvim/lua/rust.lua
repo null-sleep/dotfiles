@@ -64,7 +64,23 @@ vim.g.rustaceanvim = {
 
 vim.cmd.packadd('rustaceanvim')
 
-local clippy_fix_term -- reused across runs; a second run replaces the first
+-- Batch-apply every machine-applicable clippy fix across the whole workspace
+-- in one shot (rustc's Applicability::MachineApplicable set — ambiguous/
+-- semantics-changing suggestions are skipped, same as running it by hand).
+-- See plans/rustrover-nvim-parity.md §1. Fixed id 102 (see utils.lua's
+-- float_terminal_action — same convention as terminal.lua (100) /
+-- gotargets.lua's run terminal (101)); it also guarantees a re-press never
+-- kills a fix still in progress, which matters here since --fix rewrites
+-- source files on disk (unlike gotargets.lua's `go run`, which has no
+-- on-disk side effects to corrupt).
+local clippy_fix_action = require('utils').float_terminal_action(102, function()
+  local root = vim.fs.root(0, { 'Cargo.toml' })
+  if not root then
+    vim.notify('No Cargo.toml found up the tree', vim.log.levels.WARN)
+    return nil
+  end
+  return { cmd = 'cargo clippy --fix --workspace --allow-dirty --allow-staged', dir = root }
+end)
 
 -- Rust-specific keymaps (buffer-local, rust filetype only). These are :RustLsp
 -- actions plain LSP can't provide. K and <leader>ca override the global LSP maps
@@ -90,29 +106,15 @@ vim.api.nvim_create_autocmd('FileType', {
     -- §1 — this was the "already there, just needs wiring" RustRover-parity item.
     map('<leader>cs', function() vim.cmd.RustLsp('ssr') end, 'Rust: Structural search & replace (SSR)')
 
-    -- Batch-apply every machine-applicable clippy fix across the whole
-    -- workspace in one shot (rustc's Applicability::MachineApplicable set —
-    -- ambiguous/semantics-changing suggestions are skipped, same as running it
-    -- by hand). See plans/rustrover-nvim-parity.md §1. Fixed high id, same
-    -- convention as terminal.lua (100) / gotargets.lua's run terminal (101).
-    map('<leader>cF', function()
-      local root = vim.fs.root(0, { 'Cargo.toml' })
-      if not root then
-        vim.notify('No Cargo.toml found up the tree', vim.log.levels.WARN)
-        return
-      end
-      local Terminal = require('toggleterm.terminal').Terminal
-      if clippy_fix_term then
-        clippy_fix_term:shutdown()
-      end
-      clippy_fix_term = Terminal:new({
-        id = 102,
-        cmd = 'cargo clippy --fix --workspace --allow-dirty --allow-staged',
-        dir = root,
-        direction = 'float',
-        close_on_exit = false,
-      })
-      clippy_fix_term:toggle()
-    end, 'Rust: Batch-fix clippy lints (workspace)')
+    -- Visual-mode counterpart, scoped to the selection (rustaceanvim's
+    -- ssr_visual): needs the command string form, NOT a Lua function — Vim
+    -- auto-prepends the '<,'> range when ':' is pressed from Visual mode
+    -- (:help v_:), which is what makes :RustLsp see opts.range and dispatch
+    -- to ssr_visual instead of the whole-workspace ssr. A Lua-function rhs
+    -- (like the normal-mode map above) has no such range to forward.
+    vim.keymap.set('x', '<leader>cs', ':RustLsp ssr<CR>',
+      { buffer = ev.buf, desc = 'Rust: Structural search & replace (SSR, selection)' })
+
+    map('<leader>cF', clippy_fix_action, 'Rust: Batch-fix clippy lints (workspace)')
   end,
 })

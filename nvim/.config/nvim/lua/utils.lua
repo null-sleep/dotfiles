@@ -44,6 +44,52 @@ function M.term_nav_keymaps(buf, opts)
   vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], o)
 end
 
+-- Build a keymap action that runs a shell command in a reusable floating
+-- toggleterm terminal: shutdown-then-recreate-then-toggle on a fresh run,
+-- but toggle (show/hide) an already-running one instead of killing it.
+--
+-- `id` must be a fixed high id, per terminal.lua's convention: numbers
+-- 1-99 are reserved for count-addressable float terminals (2<C-\>, 3<C-\>),
+-- so anything reused across invocations needs a high, stable id of its own.
+-- `get_spec(...)` is called fresh on every run that actually needs one (not
+-- while a previous run is still live) and must return a toggleterm Terminal
+-- spec table (cmd/dir/etc.), or nil to abort (e.g. no project root found).
+-- Any extra args passed to the returned action are forwarded to get_spec —
+-- gotargets.lua's picker needs this to pass the just-selected item/root in.
+--
+-- Why the running-job check: naively shutdown()-ing on every call kills
+-- whatever is still running in the terminal. Harmless for `go run` (no
+-- on-disk side effects), but genuinely dangerous for something like
+-- `cargo clippy --fix`, which rewrites source files on disk — an abrupt
+-- kill mid-write can leave a file partially rewritten.
+---@param id integer
+---@param get_spec fun(...): table?
+---@return fun(...)
+function M.float_terminal_action(id, get_spec)
+  local term
+  return function(...)
+    if term and term.job_id and vim.fn.jobwait({ term.job_id }, 0)[1] == -1 then
+      term:toggle()
+      return
+    end
+    local spec = get_spec(...)
+    if not spec then
+      return
+    end
+    local Terminal = require('toggleterm.terminal').Terminal
+    if term then
+      term:shutdown()
+    end
+    spec.id = id
+    spec.direction = spec.direction or 'float'
+    if spec.close_on_exit == nil then
+      spec.close_on_exit = false
+    end
+    term = Terminal:new(spec)
+    term:toggle()
+  end
+end
+
 -- Floating yes/no confirm for destructive keymaps (<leader>qq quit-all,
 -- <leader>ad kill CLI session).
 --

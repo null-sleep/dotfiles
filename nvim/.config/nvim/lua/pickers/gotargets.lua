@@ -59,34 +59,23 @@ local function debug_target(item, root)
   }, { filetype = 'go' })
 end
 
-local run_term -- reused across runs; a second run replaces the first
-
-local function run_target(item, root)
-  local Terminal = require('toggleterm.terminal').Terminal
-  if run_term then
-    run_term:shutdown()
-  end
+-- Fixed high id, same convention as terminal.lua's bottom panel (id = 100):
+-- without an explicit id, toggleterm hands out the lowest free integer, so
+-- this terminal would collide with the 1-99 pool reserved for
+-- count-addressable floats (2<C-\>, 3<C-\>) — and its id would shift between
+-- runs, since shutdown() frees it again. That is ALL the id buys: the
+-- <C-]> cycle filters on `hidden`, not id, so this (non-hidden) terminal
+-- stays in the cycle — deliberately; cycling back to the program's output is
+-- useful. Shutdown-then-recreate-then-toggle (and never killing a still-live
+-- run on re-press) is shared with rust.lua's clippy-fix terminal — see
+-- utils.lua's float_terminal_action.
+local run_target = require('utils').float_terminal_action(101, function(item, root)
   -- `go run <import-path>` from the module root reaches any main package in the
   -- module, from any buffer — which is exactly what a hand-rolled `go run .`
   -- could not do (plans/go-run-debug-test.md, Alternatives).
   -- close_on_exit = false so the program's output survives its exit.
-  run_term = Terminal:new({
-    -- Fixed high id, same convention as terminal.lua's bottom panel (id = 100):
-    -- without an explicit id, toggleterm hands out the lowest free integer, so
-    -- this terminal would collide with the 1-99 pool reserved for
-    -- count-addressable floats (2<C-\>, 3<C-\>) — and its id would shift
-    -- between runs, since shutdown() frees it again. That is ALL the id buys:
-    -- the <C-]> cycle filters on `hidden`, not id, so this (non-hidden)
-    -- terminal stays in the cycle — deliberately; cycling back to the
-    -- program's output is useful.
-    id = 101,
-    cmd = 'go run ' .. vim.fn.shellescape(item.importpath),
-    dir = root,
-    direction = 'float',
-    close_on_exit = false,
-  })
-  run_term:toggle()
-end
+  return { cmd = 'go run ' .. vim.fn.shellescape(item.importpath), dir = root, close_on_exit = false }
+end)
 
 --- @param mode 'debug'|'run'
 function M.open(mode)

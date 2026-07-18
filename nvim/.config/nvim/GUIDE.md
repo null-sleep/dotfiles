@@ -98,7 +98,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No)
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`animations.lua`** — Terminal-only Neovide-style animation (gated by
@@ -2470,6 +2470,14 @@ across the whole workspace in one pass — it skips ambiguous or
 semantics-changing suggestions, which still need a manual look. `checkOnSave`
 (clippy) already reports diagnostics workspace-wide as you edit; this is the
 batch-apply half of that loop.
+
+Re-pressing `<leader>cF` while a fix is still running just toggles the
+terminal's visibility instead of restarting it — deliberately: `--fix`
+rewrites source files on disk, so killing it mid-write (the naive
+shutdown-and-recreate a second press would otherwise do) risks leaving a
+file partially rewritten. It only shuts down and starts a fresh run once the
+previous one has actually exited (`utils.lua`'s `float_terminal_action`,
+shared with the Go run terminal in `pickers/gotargets.lua`).
 
 ### Keymaps
 
