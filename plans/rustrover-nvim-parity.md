@@ -1,14 +1,15 @@
 # RustRover → nvim parity research
 
-**Status:** research / not started
+**Status:** partially shipped (2026-07-17) — SSR + batch clippy-fix keymaps
+landed; everything else below still research / not started.
 **Date:** 2026-07-17
 
 Follow-up to installing RustRover ([README → RustRover](../README.md#rustrover))
 and comparing it against this repo's existing Rust setup (`rustaceanvim` +
 `rust-analyzer`, see `nvim/.config/nvim/lua/rust.lua`). Five parallel research
 passes (one per capability area) on how much of RustRover's edge can be
-closed in Neovim, and what's a genuine, protocol-level gap. Nothing here has
-been implemented yet.
+closed in Neovim, and what's a genuine, protocol-level gap. Most of it is
+still just research — see the Status line above for what's shipped.
 
 ---
 
@@ -33,7 +34,7 @@ Already in this config:
 
 ## Findings by area
 
-### 1. Already there, just needs wiring
+### 1. Already there, just needs wiring — SHIPPED 2026-07-17
 
 **Structural search & replace.** rust-analyzer ships its own semantic SSR
 over LSP (`rust-analyzer/ssr`), and rustaceanvim already exposes it:
@@ -47,6 +48,11 @@ Whole-workspace in normal mode, selection-scoped in visual mode. It's
 resolve, so in one respect it's stronger than RustRover's SSR. This is a
 config/muscle-memory gap, not an ecosystem one; no new plugin required.
 
+**Shipped as `<leader>cs`** in `rust.lua` — a thin wrapper around `:RustLsp
+ssr` with no query arg (rustaceanvim's own `ssr` command already falls back
+to `vim.ui.input` when called with none). See GUIDE.md → Rust → "Structural
+search & replace (SSR)".
+
 Runners-up if a syntactic (not resolution-aware) or multi-language tool is
 ever wanted: `ast-grep` (`sg`) via `ast-grep-lsp` + `MagicDuck/grug-far.nvim`
 for a find/replace UI, or `cshuaimin/ssr.nvim` as a treesitter-only
@@ -57,11 +63,17 @@ fallback (its own docs say prefer the LSP version when available).
 RustRover's "fix all in project" — it applies every `Applicability::
 MachineApplicable` suggestion across the whole workspace in one shot (skips
 ambiguous/semantics-changing fixes, which need eyeballing anyway).
+
+**Shipped as `<leader>cF`** in `rust.lua` — runs the command above in a
+floating terminal (fixed id 102) from the nearest `Cargo.toml`'s directory.
+See GUIDE.md → Rust → "Batch-fixing clippy lints".
+
 Separately, rust-analyzer's `checkOnSave` already runs `cargo clippy
 --workspace` and publishes diagnostics for the **whole project**, not just
 open buffers (flycheck is workspace-scoped by design, confirmed via
 [rust-analyzer#12882](https://github.com/rust-lang/rust-analyzer/issues/12882)) —
 the diagnostics already exist, there's just no panel surfacing them yet.
+**Not shipped** — still open if a project-wide diagnostics panel is wanted:
 
 - Add [`artemave/workspace-diagnostics.nvim`](https://github.com/artemave/workspace-diagnostics.nvim)
   to force-load every project file so diagnostics populate for unopened
@@ -166,12 +178,13 @@ edge here:
 
 Suggested order, cheapest/highest-value first:
 
-1. `:RustLsp ssr` — zero install, just start using it; maybe add a
-   `<leader>c` keymap prompting for a pattern.
+1. ~~`:RustLsp ssr` — zero install, just start using it.~~ **Shipped
+   2026-07-17** as `<leader>cs`.
 2. `actions-preview.nvim` — diff preview on top of the existing
    `:RustLsp codeAction` keymap.
-3. `workspace-diagnostics.nvim` + `trouble.nvim` — project-wide diagnostics
-   panel; also wire a `cargo clippy --fix --workspace` keymap.
+3. ~~Wire a `cargo clippy --fix --workspace` keymap.~~ **Shipped 2026-07-17**
+   as `<leader>cF`. `workspace-diagnostics.nvim` + `trouble.nvim` (the
+   project-wide diagnostics *panel* half) is still open.
 4. `nvim-dap-virtual-text` (or evaluate switching to `nvim-dap-view`).
 5. `kulala.nvim` — HTTP client, cleanest win of the bundled-tooling set.
 6. `vim-dadbod` + `vim-dadbod-ui` — only if DB work is frequent enough to
