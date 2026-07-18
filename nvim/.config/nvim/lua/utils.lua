@@ -69,6 +69,16 @@ function M.float_terminal_action(id, get_spec)
   local term
   return function(...)
     if term and term.job_id and vim.fn.jobwait({ term.job_id }, 0)[1] == -1 then
+      -- Args present = the caller passed a fresh selection (gotargets' picker),
+      -- which is being dropped in favor of the live run — say so, or the keymap
+      -- reads as broken. Argless = a bare keymap re-press (clippy's <leader>cF;
+      -- Neovim invokes keymap callbacks with no args), where toggling
+      -- visibility is the whole point — stay silent. If a future caller
+      -- doesn't fit this split, don't overload arg-count further.
+      if select('#', ...) > 0 then
+        vim.notify('Previous run still live — showing it instead; exit it to start a new run',
+          vim.log.levels.INFO)
+      end
       term:toggle()
       return
     end

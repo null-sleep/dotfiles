@@ -98,7 +98,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it)
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`animations.lua`** — Terminal-only Neovide-style animation (gated by
@@ -2584,7 +2584,9 @@ rewrites source files on disk, so killing it mid-write (the naive
 shutdown-and-recreate a second press would otherwise do) risks leaving a
 file partially rewritten. It only shuts down and starts a fresh run once the
 previous one has actually exited (`utils.lua`'s `float_terminal_action`,
-shared with the Go run terminal in `pickers/gotargets.lua`).
+shared with the Go run terminal in `pickers/gotargets.lua` — which notifies
+when it drops a fresh selection this way; a bare re-press here stays silent,
+since toggling visibility is the point).
 
 ### Code action preview
 
@@ -2763,11 +2765,17 @@ exactly that gap.
 runnables*; pick a `main` package and it runs `go run <import-path>` in a
 float terminal (toggleterm) from the module root — reaching any main package
 in the module, from any buffer, including a library file (the case a
-hand-rolled `go run .` could never serve). The terminal is reused: a second
-`<leader>cR` shuts down the running one first rather than stacking terminals,
-so it silently replaces whatever was still running. It does **not** close on
-exit (`close_on_exit = false`), so the program's output stays on screen after
-it finishes.
+hand-rolled `go run .` could never serve). The terminal is reused, never
+stacked — but what a second `<leader>cR` does depends on whether the previous
+run is still alive. Still running (say, a server): your new selection is
+**not** launched — the existing terminal is toggled back into view with a
+notify saying so; exit the running program first to actually start the new
+one (deliberate, via `utils.lua`'s `float_terminal_action` — the same
+no-kill guard that protects Rust's clippy `--fix` from being killed
+mid-write). Already exited: the old terminal is shut down and the new
+selection runs in a fresh one. It does **not** close on exit
+(`close_on_exit = false`), so the program's output stays on screen after it
+finishes.
 
 **It passes no arguments.** `<leader>cR` runs the package bare. For a program
 that needs argv, open a terminal (`<C-/>`) and run `go run ./cmd/foo -flag`
