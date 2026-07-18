@@ -275,7 +275,7 @@ vim.api.nvim_create_autocmd('PackChanged', {
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',
   'rust', 'elixir', 'kotlin', 'markdown', 'json', 'yaml', 'ini', 'graphql',
-  'html', 'css', 'bash', 'vim', 'toml', 'make', 'xml', 'just',
+  'html', 'css', 'bash', 'vim', 'toml', 'make', 'xml', 'just', 'diff',
 }
 
 pcall(function()
