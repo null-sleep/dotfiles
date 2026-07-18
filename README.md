@@ -22,7 +22,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Neovim](#neovim)
 - [Neovide](#neovide)
 - [Typora](#typora)
-- [RustRover](#rustrover)
+- [RustRover](#rustrover) — [Claude Code plugin](#claude-code-plugin)
 
 *Terminals & multiplexing*
 - [Ghostty](#ghostty) · [Zellij](#zellij)
@@ -710,6 +710,23 @@ brew install --cask rustrover
 
 No stow-managed config: IDE settings live in JetBrains' own config
 directory, not this repo.
+
+### Claude Code plugin
+
+The [Claude Code plugin (beta)](https://plugins.jetbrains.com/plugin/27310-claude-code-beta-)
+bridges RustRover to the `claude` CLI already installed via this repo's
+Brewfile — `Cmd+Esc` quick launch, diffs shown in RustRover's own diff
+viewer, current selection/open file and inspection diagnostics shared with
+Claude automatically, `Cmd+Option+K` to insert `@file#L1-99` references.
+
+```bash
+rustrover installPlugins com.anthropic.code.plugin   # requires RustRover to be quit first
+```
+
+`com.anthropic.code.plugin` is the plugin's internal xmlId (not the
+`27310` marketplace URL id — that one is rejected by `installPlugins`).
+Restart RustRover after installing. Not stow-managed, same reasoning as
+the rest of RustRover's config above.
 
 ## Ghostty
 
