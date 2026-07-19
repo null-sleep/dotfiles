@@ -1,5 +1,9 @@
 # Multiple Claude sessions in sidekick (no mux, dynamic — not hardcoded)
 
+> **Status:** shipped; shrunk to reference core + runbook 2026-07-18. The
+> Implementation and Verification sections were removed — shipped code in
+> `ai.lua` is the source of truth (see the Implementation stub below).
+
 ## Goal
 
 Run several independent `claude` CLI sessions in one nvim instance and switch
@@ -144,11 +148,11 @@ Two consequences:
    sidekick's event timing. The pre-warm float is `focusable = false` and
    never entered, so it never pollutes tracking.
 2. **The existing comment on the promote-to-full-height autocmd in `ai.lua`
-   is wrong** ("SidekickCliAttach fires on every show path … covers internal
-   re-shows"). Fix the comment in this change. Empirically re-shows land
-   full-height today without re-promotion (hide/show toggling works now, and
-   attach never re-fires), so no functional change — but verification step 10
-   re-checks this under session switching.
+   was wrong** ("SidekickCliAttach fires on every show path … covers internal
+   re-shows"); fixed as part of this change. Empirically re-shows land
+   full-height without re-promotion (hide/show toggling works, and attach
+   never re-fires), so no functional change — verified under session
+   switching at ship time.
 
 ### With 2+ attached sessions, every unfiltered keymap pops a picker
 
@@ -254,13 +258,13 @@ shape — a nil index, or a visible disambiguation picker. The exception is the
 **`sidekick_cli` WinEnter stamp**: if upstream stops stamping CLI windows,
 active-tracking silently stalls and sends mis-route to a stale `M.active` with
 no error. Two guards for the silent cases: a load-time `notify(ERROR)` on the
-clone shape (impl 1e) surfaces a preset-shape break at startup without hard-
-erroring (an `assert` would throw before `ai.lua`'s `return M` and take every
-AI keymap down over a formatting-only regression), and the `SidekickCliAttach`
-handler carries a `notify`-once tripwire (impl 1c) — "first attach but no
-`sidekick_cli` window stamp → warn loud once" — so a future upstream change
-that drops the stamp surfaces immediately instead of silently mis-routing
-sends. Verification step 4 exercises the same stamp at implement-time.
+clone shape (shipped in `ai.lua`) surfaces a preset-shape break at startup
+without hard-erroring (an `assert` would throw before `ai.lua`'s `return M`
+and take every AI keymap down over a formatting-only regression), and the
+`SidekickCliAttach` handler carries a `notify`-once tripwire (also in
+`ai.lua`) — "first attach but no `sidekick_cli` window stamp → warn loud
+once" — so a future upstream change that drops the stamp surfaces immediately
+instead of silently mis-routing sends.
 Worth keeping in perspective: `ai.lua` **already** operates at this coupling
 level (the pre-warm hook overrides `term.open_win` and reads
 `terminal.get`/the session stamp), so this is more of the same surface, not a
@@ -348,430 +352,22 @@ documentation anchors, not runtime dependencies — they drift, they don't break
   entry and orphan the old job. Names of 13–15 chars keep only 1–3 hex chars
   of hash (weakened, not gone). Mitigated by the `new_session` length warning;
   fully correct behavior needs the mux-style identity rework, out of scope.
+- **Upstream self-exit edge: a fast exit can leave a corpse.** `terminal.lua`'s
+  `close()` suppresses teardown when the process exits within ~500ms of last
+  activity — or errors within ~3s — leaving a "started" session with a dead
+  job and **no** detach event, so the sweep never runs and `<leader>aa`
+  toggles a corpse. Normal self-exit (type `exit` after interacting) tears
+  down cleanly: the name leaves the launcher and `<leader>aa` falls back to
+  #1 without silently respawning. If `claude` exits that fast, interact with
+  it once before typing `exit` — don't misdiagnose the corpse as this
+  design's bug.
 
 ## Implementation
 
-### 1. `nvim/.config/nvim/lua/ai.lua`
-
-**a. Export a module table** with race-safe method stubs (so keymaps can reach
-the helpers even on the first-launch packadd race, where the real definitions
-below never run). Currently the file returns nothing and early-`return`s on the
-race. Change to:
-
-```lua
--- top of file, before the packadd pcall:
-local M = { active = 'claude', _dynamic = {} }
-
--- Stub the public methods so a keypress during the first-launch packadd race
--- notifies instead of throwing "attempt to call a nil value". The real
--- definitions below overwrite these once sidekick has loaded.
-local function not_ready()
-  vim.notify('sidekick.nvim still loading — retry after restart', vim.log.levels.WARN)
-end
-M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
-  not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
-...
-local ok = pcall(vim.cmd.packadd, 'sidekick.nvim')
-if not ok then return M end            -- was: return end
-...
--- very end of file:
-return M
-```
-
-`active` defaults to `'claude'` so everything works before any session is
-entered; `_dynamic` maps names we registered → `'registered' | 'started'`
-(only these are ever removed from `cli.tools`).
-
-**b. Track the active session on WinEnter** (new autocmd in the existing
-`UserSidekick` augroup). Sidekick stamps CLI windows at open
-(terminal.lua:385); the pre-warm float is never entered, so no pre-warm guard
-is needed:
-
-```lua
-vim.api.nvim_create_autocmd('WinEnter', {
-  group = augroup,
-  desc = 'Sidekick: track active CLI session',
-  callback = function()
-    local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-    if tool and tool.name then M.active = tool.name end
-  end,
-})
-```
-
-**c. Fix + extend the `SidekickCliAttach` autocmd.** Two edits to the existing
-promote-to-full-height handler:
-
-- **Correct the stale comment**: the event fires once per session lifetime
-  (first attach; emit at session/init.lua:194 behind the already-attached
-  early return at :171) — it does *not* fire on re-shows. Promotion of the
-  first show is all it has ever done; re-shows land full-height on their own
-  (verification step 10 re-checks).
-- **Flip `_dynamic` to `'started'`** so the detach sweep knows the spawn
-  completed (reuse the `terminal.get` call already there).
-- **Stamp tripwire.** WinEnter tracking (part b) reads the `sidekick_cli`
-  window var sidekick stamps at open (terminal.lua:385). That stamp is the one
-  internal whose loss fails *silently* — if upstream stops setting it, WinEnter
-  never updates `M.active` and sends mis-route to a stale session with no error
-  (see "The internals this leans on"). A first attach means a CLI window just
-  opened, so the stamp *should* be present; if it isn't, notify once per nvim
-  run. Verification step 4 also covers this at implement-time — the tripwire is
-  the backstop for a *future* upstream change we won't re-verify against.
-
-```lua
-if _G.__sidekick_prewarm then return end
-local term = require('sidekick.cli.terminal').get(args.data.id)
-if term and term.tool and M._dynamic[term.tool.name] == 'registered' then
-  M._dynamic[term.tool.name] = 'started'
-end
--- Silent-surface tripwire: on the first attach where the expected window
--- stamp is missing, warn loud once — active-session tracking is broken.
-if not _G.__sidekick_stamp_ok and term and term.win
-   and vim.api.nvim_win_is_valid(term.win)
-   and vim.w[term.win].sidekick_cli == nil then
-  vim.notify('sidekick: CLI window stamp (sidekick_cli) missing — active-session tracking is broken, sends may mis-route',
-    vim.log.levels.ERROR)
-  _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
-end
-local layout = require('sidekick.config').cli.win.layout
-local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
-if not side then return end
-if term then utils.promote_to_full_height(term.win, side) end
-```
-
-**d. The detach sweep** (new autocmd; the event is emitted post-removal via
-`vim.schedule`, so `State.get` reads post-detach state here):
-
-```lua
-vim.api.nvim_create_autocmd('User', {
-  group = augroup,
-  pattern = 'SidekickCliDetach',
-  desc = 'Sidekick: GC dynamic tool names, reset active session',
-  callback = function()
-    local State = require('sidekick.cli.state')
-    -- Sweep names with no running session. 'started' names GC once their
-    -- session is gone. A 'registered' name normally stays (its first attach
-    -- may be in flight — a few scheduled hops), BUT a spawn that never
-    -- attaches (missing binary, jobstart failure) would otherwise leak the
-    -- name forever and M.active would keep auto-respawning a failing terminal
-    -- under it. So also forget a 'registered' name once it has neither a
-    -- started session nor a terminal — the terminal check preserves genuinely
-    -- in-flight spawns.
-    for name, phase in pairs(M._dynamic) do
-      if #State.get({ name = name, started = true }) == 0
-         and (phase == 'started' or #State.get({ name = name, terminal = true }) == 0) then
-        M._forget(name)
-      end
-    end
-    -- Active session died (self-exit, <C-d>, <leader>ad) → fall back to #1.
-    if M.active ~= 'claude' and #State.get({ name = M.active, started = true }) == 0 then
-      M.active = 'claude'
-    end
-  end,
-})
-```
-
-(Removing the *current* key during `pairs` is safe in Lua; `_forget` only ever
-removes the name it's given.)
-
-**e. Add the helpers** (place after the `setup{}` block; these overwrite the
-stubs from part a):
-
-```lua
--- Warn loud at load if upstream reshapes the claude preset: the clone in
--- create_session silently drops format/resume/continue otherwise (see "clone
--- the preset"), so context sends to sessions 2+ would quietly degrade to raw
--- text with no error. A red ERROR notify surfaces that at startup — but does
--- NOT hard-error: an assert here would throw before this file's `return M`,
--- so require('ai') would fail and take *every* AI keymap down over what is
--- only a formatting regression on extra sessions. Notify-and-continue keeps
--- the keymaps live; the fault stays contained.
-if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' then
-  vim.notify('sidekick: claude preset reshaped — dynamic-session clone will drop format; sends to sessions 2+ may lose context formatting',
-    vim.log.levels.ERROR)
-end
-
-function M._next_auto_name()
-  local tools = require('sidekick.config').cli.tools
-  local n = 2
-  while tools['claude ' .. n] do n = n + 1 end
-  return 'claude ' .. n
-end
-
--- Register a dynamic claude tool (if new) and show it. Re-registering an
--- existing name is a no-op → labels re-attach (see "Labels are reusable").
--- show (not toggle): re-entering the label of a *visible* session must
--- focus it, not hide it. show auto-starts unstarted registered names via
--- the same select-auto path (state.lua:159).
-local function create_session(name)
-  local cfg = require('sidekick.config')
-  if not cfg.cli.tools[name] then
-    -- Clone claude's resolved preset (cmd + format + resume/continue), not a
-    -- bare { cmd = {'claude'} } — see plan "clone the preset".
-    cfg.cli.tools[name] = vim.deepcopy(require('sidekick.cli.tool').get('claude').config)
-    M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
-  end
-  M.active = name  -- eager; WinEnter confirms once the window is entered
-  require('sidekick.cli').show({ name = name, focus = true })
-end
-
--- Drop a dynamically-registered name from cli.tools. Never touches built-ins
--- (claude/copilot/…) — only names we added via create_session.
-function M._forget(name)
-  if not M._dynamic[name] then return end
-  require('sidekick.config').cli.tools[name] = nil
-  M._dynamic[name] = nil
-  if M.active == name then M.active = 'claude' end
-end
-
-function M.new_session()
-  vim.ui.input({ prompt = 'New Claude session (blank = auto): ' }, function(input)
-    if input == nil then return end                       -- <Esc> cancels
-    local name = input ~= '' and ('claude: ' .. input) or M._next_auto_name()
-    if #name >= 16 then
-      -- sid's cwd-hash slice is empty at >=16 chars (session/init.lua:107):
-      -- reusing this label from another project dir in this nvim run would
-      -- silently reattach to this session. Warn, don't reject.
-      vim.notify(('Long label (%d chars): reusing "%s" from another project dir will reattach to this session'):format(#name, name),
-        vim.log.levels.WARN)
-    end
-    create_session(name)
-  end)
-end
-
-function M.toggle_active()
-  require('sidekick.cli').toggle({ name = M.active, focus = true })
-end
-
--- <leader>ad target: tear down the active session specifically (avoids the
--- unfiltered cli.close() → disambiguation-picker behaviour with 2+ sessions).
--- Reset M.active synchronously (cli.close is async — two scheduled hops); the
--- detach sweep still GCs the dynamic name after close's detach event fires.
-function M.kill_active()
-  local name = M.active
-  M.active = 'claude'
-  require('sidekick.cli').close({ name = name })
-end
-
--- Routing wrappers: every send/focus targets the active session, so a second
--- running session never turns sends into a pick-a-target flow (state.lua:165).
--- Normalize a bare string like cli.send does, so a stray send('{selection}')
--- can't blow up tbl_extend.
-function M.send(opts)
-  opts = type(opts) == 'string' and { msg = opts } or opts or {}
-  require('sidekick.cli').send(vim.tbl_extend('force', opts, { name = M.active }))
-end
-
-function M.focus()
-  require('sidekick.cli').focus({ name = M.active })
-end
-
--- <leader>al: custom telescope picker over running sidekick sessions.
--- <CR> shows/focuses (making it active); <C-d> tears down the highlighted one.
-function M.switch()
-  local cli            = require('sidekick.cli')
-  local State          = require('sidekick.cli.state')
-  local pickers        = require('telescope.pickers')
-  local finders        = require('telescope.finders')
-  local conf           = require('telescope.config').values
-  local actions        = require('telescope.actions')
-  local action_state   = require('telescope.actions.state')
-
-  local function finder()
-    return finders.new_table({
-      results = State.get({ started = true }),      -- running sessions only
-      entry_maker = function(s)
-        local name = s.tool.name
-        -- cwd in the display: same-named sessions in two cwds are otherwise
-        -- indistinguishable (see Known edges).
-        local cwd = s.session and vim.fn.fnamemodify(s.session.cwd, ':~') or ''
-        return { value = s, display = name .. '  ' .. cwd, ordinal = name .. ' ' .. cwd }
-      end,
-    })
-  end
-
-  pickers.new({}, {
-    prompt_title = 'Sidekick sessions',
-    finder = finder(),
-    sorter = conf.generic_sorter({}),
-    attach_mappings = function(bufnr, map)
-      actions.select_default:replace(function()
-        local entry = action_state.get_selected_entry()
-        actions.close(bufnr)
-        if entry then
-          M.active = entry.value.tool.name  -- eager; WinEnter confirms on focus
-          cli.show({ name = entry.value.tool.name, focus = true })
-        end
-      end)
-      map({ 'i', 'n' }, '<C-d>', function(pbuf)
-        local entry = action_state.get_selected_entry()
-        if not entry then return end
-        local name = entry.value.tool.name
-        -- Synchronous teardown: State.detach → terminal:close() removes the
-        -- session inline (only the Detach *event* is scheduled), so the
-        -- refresh below reads post-kill state. cli.close() would be two
-        -- vim.schedule hops too late (state.lua:145,148) and refresh would
-        -- show the killed entry.
-        --
-        -- Reset active + GC the name synchronously here too, not only in the
-        -- detach sweep: the sweep is scheduled, and a send landing in the gap
-        -- before it runs would re-route to this dead-but-still-registered name
-        -- → select({auto=true}) → a *fresh* session respawns under it (the
-        -- exact surprise the sweep exists to prevent). _forget is a no-op on
-        -- built-ins, so <C-d> on the default `claude` won't unregister it.
-        if M.active == name then M.active = 'claude' end
-        State.detach(entry.value)
-        M._forget(name)
-        action_state.get_current_picker(pbuf):refresh(finder(), { reset_prompt = false })
-      end)
-      return true
-    end,
-  }):find()
-end
-```
-
-Note: `State.get` (state.lua:69) is public and returns `sidekick.cli.State`
-objects whose `.tool.name` is the session name and whose lazy metatable
-resolves `terminal`/`attached` at access time, so `State.detach(entry.value)`
-works on entries captured at finder time.
-
-### 2. `nvim/.config/nvim/lua/keymaps.lua`
-
-Replace the current hardcoded `<leader>aa` (keymaps.lua:308), add two
-bindings, re-point `<leader>ad` (keymaps.lua:319) at `kill_active`, and
-**re-point every unfiltered sidekick call at the `ai` wrappers** —
-`<C-.>`/`<leader>ai` (:303-306), the send keys (:331-355), and `<leader>ao`
-(:323). `<leader>al`/`<leader>an` are free (`a`-prefix keys in use:
-a,i,s,d,o,t,p,f,c,e,b,q). Keep `<leader>as` (`select()`) as the full **tool
-launcher** — it needs no routing (it *chooses* a target) and WinEnter tracking
-makes whatever it launches/focuses the active session.
-
-```lua
-vim.keymap.set({ 'n', 't', 'i', 'x' }, '<C-.>',
-  function() require('ai').focus() end, { desc = 'AI: Focus active CLI' })
-vim.keymap.set('n', '<leader>ai',
-  function() require('ai').focus() end, { desc = 'AI: Focus active CLI (fallback for <C-.>)' })
-
-vim.keymap.set('n', '<leader>aa',
-  function() require('ai').toggle_active() end,
-  { desc = 'AI: Toggle active CLI session' })
-vim.keymap.set('n', '<leader>an',
-  function() require('ai').new_session() end,
-  { desc = 'AI: New Claude session' })
-vim.keymap.set('n', '<leader>al',
-  function() require('ai').switch() end,
-  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
-```
-
-Update the existing `<leader>ad` block (keep its confirm popup):
-
-```lua
-vim.keymap.set('n', '<leader>ad', function()
-  require('utils').confirm('Kill active CLI session? (Tears down the terminal and session state)',
-    function() require('ai').kill_active() end)
-end, { desc = 'AI: Kill active CLI session' })
-```
-
-Sends become `require('ai').send({ msg = '{this}' })` etc. (same table
-arguments as today, just the module swapped). `<leader>ao` keeps sidekick's
-prompt picker but routes the chosen prompt through the wrapper (the default
-callback is an unfiltered `cli.send` — cli/init.lua:62):
-
-```lua
-vim.keymap.set('n', '<leader>ao', function()
-  require('sidekick.cli').prompt({ cb = function(_, text)
-    if text then require('ai').send({ text = text }) end
-  end })
-end, { desc = 'AI: Select prompt' })
-```
-
-### 3. `nvim/.config/nvim/lua/plugins.lua` — `<M-a>` picker send
-
-`plugins.lua:412`'s `send_to_sidekick` calls `require('sidekick.cli').send`
-directly — swap for `require('ai').send({ msg = table.concat(refs, ' ') })`
-so picker sends target the active session too.
-
-### 4. `nvim/.config/nvim/GUIDE.md` — same change (repo rule)
-
-Per the nested `nvim/.config/nvim/CLAUDE.md` ("Update GUIDE.md in the same
-change"), update the `## AI (sidekick.nvim)` section (`GUIDE.md:1609`):
-
-- **Rewrite the stale single-session prose at `GUIDE.md:1630-1633`.** It
-  currently reads "opens Claude in a terminal split. `<leader>aa` toggles
-  Claude … `<leader>as` switches to a different CLI tool. `<leader>ad` tears
-  down the session entirely." Replace with the multi-session model, leading
-  with the **active session** concept: the CLI session whose window you last
-  entered (default `claude`); `<leader>aa` toggles it, `<leader>ad` kills it,
-  and **all send keys, `<leader>ao`, `<M-a>`, and `<C-.>`/`<leader>ai` target
-  it** — with several sessions running, sends never ask which one.
-  `<leader>an` spawns a new session (blank = auto-numbered, label = reusable
-  named session); `<leader>al` opens a telescope picker to **switch** (`<CR>`,
-  which also makes it active) or **kill** (`<C-d>`) running sessions;
-  `<leader>as` stays the **tool launcher** (start Copilot/Gemini/etc.),
-  distinct from `<leader>al`.
-- **Update the keymap table** (`GUIDE.md:1635-1653`): reword the
-  `<C-.>`/`<leader>ai` rows to "Focus **active** CLI"; change the `<leader>aa`
-  row to "Toggle active CLI session"; add `<leader>an` ("New Claude session —
-  blank prompt = auto-numbered, label = named/reusable") and `<leader>al`
-  ("Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (telescope)");
-  reword `<leader>as` to "**Launch** a CLI tool (copilot, gemini, …)" so it
-  reads as distinct from `<leader>al`; reword `<leader>ad` to "Kill **active**
-  CLI session …". The send-key rows keep their action text (their *target* is
-  covered once in the prose — don't repeat "active session" in every row).
-  Feature-specific keys stay in this table, not the Keymap index ("Keymap
-  ownership rule").
-- **Add a short prose note** (near the rewritten block): sessions are keyed by
-  `(tool name, cwd)`; extra sessions are dynamically-registered tool names
-  cloned from the `claude` preset; only `claude` #1 is pre-warmed; killed
-  names are auto-unregistered (detach sweep) and re-creating one starts a
-  fresh conversation; long labels (≥16 chars) trigger a warning about
-  cross-cwd identity; nothing persists across restart without mux.
-- No new module and no `init.lua` `require()` change → no `Architecture` /
-  `Load order` edit needed. `<leader>al`/`<leader>an` start no new prefix
-  family (still `a`), so the *By prefix* table is unchanged. `## AI
-  (sidekick.nvim)` already carries an explicit anchor and isn't being renamed
-  → no anchor-hygiene action.
-
-## Verification
-
-1. `<leader>aa` → pre-warmed `claude` shows. `<leader>an` → Enter → `claude 2`
-   opens as a second independent session, focused. `<leader>an` → type `tests`
-   → `claude: tests` opens.
-2. `<leader>an` → type `tests` **again** while `claude: tests` is *visible* →
-   it stays visible and gains focus (show-not-toggle: must not hide).
-3. `<leader>al` → picker lists running sessions with their cwd; `<CR>`
-   switches to the highlighted one **and** a following `<leader>at` sends to
-   it (active followed the switch). `<C-d>` tears one down and it disappears
-   from the list **immediately** (same keypress — no stale entry); a moment
-   later it's gone from `<leader>as`'s launcher too (sweep GC'd it). Kill the
-   built-in `claude` via `<C-d>` and confirm `claude` is still in the launcher
-   (built-ins never GC'd).
-4. Active follows window entry: `<C-w>w` (or click) into `claude 2`'s window,
-   move back to a code window, `<leader>aa` → toggles `claude 2`. Switch to
-   #1 via `<leader>al`, `<leader>aa` → toggles #1.
-5. With two sessions running, `<leader>at`/`<leader>ap`/`<C-.>`/`<leader>ao`/
-   `<M-a>` act on the active session directly — **no disambiguation picker**.
-6. `<leader>ad` → confirm popup → kills the active session; afterwards
-   `<leader>aa` toggles `claude` #1 (sweep reset `active`), and the killed
-   dynamic name is gone from the launcher.
-7. Self-exit: type `exit` inside `claude 2` → its name leaves the launcher and
-   `<leader>aa` toggles #1 — it must **not** silently respawn a fresh
-   `claude 2`. (Upstream edge, not a regression: `terminal.lua`'s `close()`
-   suppresses teardown when the process exits within ~500ms of last activity
-   — or errors within ~3s — leaving a "started" session with a dead job and
-   **no** detach event, so the sweep never runs and `<leader>aa` toggles a
-   corpse. If `claude` exits that fast, interact with it once before typing
-   `exit` and retry; don't misdiagnose it as this change's bug.)
-8. `<leader>an` with a ≥16-char label → warning notification, session still
-   opens and works.
-9. Confirm each session is a distinct process (`:!pgrep -fl claude` shows N).
-10. Hide/re-show and picker-switching keep every CLI full-height at the right
-    edge (re-checks the promotion-on-reshow assumption now that the attach
-    event is known to fire only once per session).
-11. Context formatting survives the clone: with `claude 2` active, visually
-    select code and `<leader>at` (or send a `{file}` ref via `<leader>af`) →
-    `claude 2` receives a claude-friendly `@file#Lx-y`-style reference, **not**
-    raw pasted text. This is the one behavior the "clone the preset" work
-    exists to preserve, and nothing else in this list exercises it.
+Shipped in `ai.lua` — code is the source of truth (the shipped picker is
+snacks-based `indexed_select`, not the telescope picker specced here; see git
+history for the original spec, along with the verification checklist and the
+keymaps/plugins/GUIDE.md edit plan).
 
 ## Performance — the shell-out session backends
 
@@ -852,16 +448,6 @@ env -u NVIM nvim --headless \
   answer: `vim.uv` threads get a separate Lua state with no `vim.api`, and the
   work is a subprocess anyway — only `:wait()` blocks.
 
-## Out of scope / follow-ups
-
-- **Persistence across nvim restart** → that's the mux backend
-  (`cli.mux.enabled = true`, `backend = 'zellij'`); it interacts heavily with
-  the pre-warm/stickybuf/`sidekick_terminal` machinery and is a separate
-  decision. See `plans/sidekick-windowless-prewarm.md`.
-- **Pre-warming sessions 2+** (the cold-start on first open of extras).
-- (The auto-GC of `cli.tools` that used to sit here is now the v1 detach
-  sweep — see Design decisions.)
-
 ## Still consider — fixed pre-named pool (rejected for now, revisit if the
 dynamic approach frets)
 
@@ -899,15 +485,15 @@ parts prove more annoying than a fixed cap.
   "active = the session in use" literally true across tools. (If `<leader>aa`
   toggling a non-claude tool ever feels wrong in practice, revisit — it's a
   one-line filter in the WinEnter callback.)
-- **Strictly claude-only switch picker.** `<leader>al`'s custom telescope
-  picker lists all *in-nvim* running sidekick sessions (the `started` filter),
-  not just `claude*`. Now that the picker is hand-rolled (for `<C-d>` delete),
+- **Strictly claude-only switch picker.** `<leader>al`'s custom picker lists
+  all *in-nvim* running sidekick sessions (the `started` filter), not just
+  `claude*`. Now that the picker is hand-rolled (for `<C-d>` delete),
   claude-only would be a trivial `tool.name:match('^claude')`, but the user
   confirmed all-sessions is fine. See "What the switcher does NOT show" for why
   external sessions don't leak in the zellij setup.
 - **Hanging `<C-d>` off sidekick's `select()`.** Not possible — `select()` is
   `vim.ui.select` with no action hooks (see "The switch picker"); the custom
-  telescope picker is the reason `<leader>al` doesn't reuse `select()`.
+  picker is the reason `<leader>al` doesn't reuse `select()`.
 - **`cli.close()` in the `<C-d>` handler.** Two `vim.schedule` hops late for a
   same-tick `picker:refresh` (see "`<C-d>` teardown must be synchronous");
   `State.detach(entry.value)` is the synchronous equivalent. `<leader>ad`
