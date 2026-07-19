@@ -42,7 +42,8 @@ second, then the two integration edits.
    with the log become trivial.
 3. **Future, kept in mind but not solved here in detail**: reconciliation ("which
    keymaps do I never use?"), usage counts surfaced in pickers, weekly trend
-   summaries, suggestion engines.
+   summaries, suggestion engines, multi-machine sync (see
+   [Future: multi-machine sync](#future-multi-machine-sync)).
 
 Scope: all explicitly mapped keys — `<leader>`, `<C->`, `<M->`, `<S->`, `yp`, `zg`,
 etc. Native unmapped motions (`j`, `w`) are out of scope.
@@ -353,6 +354,43 @@ Sketches only — kept in mind during design, not implemented here.
   inverse-usage — surfaces forgotten keymaps. Stretch goal.
 - **`kmap-top` shell alias**: `jq -r '"\(.m) \(.lhs)"' keymap_usage.log | sort | uniq
   -c | sort -rn | head -30`.
+
+---
+
+<a id="future-multi-machine-sync"></a>
+## Future: multi-machine sync
+
+Not yet implemented; captured here so the ideation isn't lost. The user works on two
+machines (work laptop, personal laptop) and wants usage on one to count toward the
+aggregate seen on the other, and vice versa. Sync is allowed to be occasional or
+incomplete — hobby project, not a correctness-critical system — which opens up
+simpler options than a proper CRDT.
+
+Two viable shapes, in increasing order of infra:
+
+1. **File-sync the append-log itself.** Each machine keeps its own
+   `keymap_usage.<hostname>.log`, synced via an existing trusted transport — most
+   likely this dotfiles repo's git, since that's already the cross-machine sync
+   mechanism in use. Never sync a single shared file two machines write concurrently;
+   each machine's log stays local and distinct, and synced logs are unioned at read
+   time (`cat *.log | jq ...`, or a `sort -u`-style merge). No conflict is possible
+   since log lines are append-only and independently keyed by machine. Zero new
+   infra, and it slots directly under the existing NDJSON design — the "merge" is
+   `cat`+`jq`, not new code. Downside: sync is manual/periodic (a commit+pull, maybe
+   hooked into shell startup) rather than continuous.
+2. **Remote store as source of truth.** Each machine writes usage events (or
+   increments) directly to a hosted DB when online, instead of (or alongside) the
+   local log. **Turso/libSQL embedded replicas** fit best: local SQLite for
+   fast/offline writes, transparent background sync to a remote libSQL server, no
+   custom queueing code to write. A lighter alternative is a plain HTTP endpoint
+   (e.g. a Cloudflare Worker + D1) that each machine POSTs events to — simpler client
+   code, but an event fired while offline is just lost rather than queued, an
+   acceptable trade given the project doesn't need complete data.
+
+**Recommendation**: start with option 1 (git-synced per-machine logs, merged at read
+time) if/when sync is implemented — zero new infra, reuses the existing NDJSON
+append-log design as-is. Revisit option 2 (Turso) only if continuous/near-real-time
+sync across machines becomes worth the added dependency.
 
 ---
 
