@@ -59,6 +59,11 @@ copy-on-select = clipboard
 # input in Claude Code / REPLs.
 keybind = shift+enter=text:\n
 
+# Test drive: system-wide show/hide for all Ghostty windows (not the
+# quick-terminal dropdown). Needs macOS Accessibility permission granted to
+# Ghostty on first load — see `global:` in `ghostty +show-config --docs`.
+keybind = global:super+ctrl+t=toggle_visibility
+
 # Everything else — splits, tabs, pane nav, word-jump, natural-text-editing —
 # is a Ghostty macOS default and needs no config here; the iTerm2 export had
 # no custom bindings for any of it. (Option+Arrow breaking specifically inside
