@@ -103,6 +103,10 @@ require('sidekick').setup({
     },
     -- mux: leave disabled. Enable with backend = 'tmux' or 'zellij' if you want
     -- sessions to persist across nvim restarts.
+    -- Claude-native @file#L context refs — overrides sidekick's built-in
+    -- position/function/class renderers (Config.cli.context is checked before
+    -- built-ins, context/init.lua M.fn). See lua/ai_context.lua for why.
+    context = require('ai_context').overrides,
   },
   nes = {
     -- defaults are good: enabled = true, debounce = 100, diff.inline = 'words'
