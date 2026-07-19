@@ -28,6 +28,18 @@ off or delete them as they land; add new ones freely.
   - [ ] **Saved picker searches** - when you search something save that somewhere
      so you can easily re-run it later. This is a feature that I want to add to the
      picker plugin.
+- [ ] **Review snacks' default picker keymaps for inspiration** — hoisted from
+  [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md)'s
+  post-migration TODO (#2) when that doc was shrunk (2026-07-18).
+- [ ] **Mine linkarzu's snacks-picker post for setup ideas** — hoisted from the
+  same post-migration TODO (#8).
+- [ ] **Make `<leader>ab` an interactive buffer-picker send** — see the
+  re-sketched second half of
+  [sidekick-af-ac-context-fix.md](sidekick-af-ac-context-fix.md) (the original
+  telescope mechanism was pruned; re-spec against snacks at build time).
+- [ ] **Finish large-file protection's deferred per-subsystem guards**
+  (gitsigns / satellite / auto-save / sidekick NES + `:LargeFileRestore`) —
+  see [large-file-protection.md](large-file-protection.md) → TODO.
 - [ ] **Finish verifying Go debug/test** — two interactive checks never closed.
   (1) The `-test.run` **state-leak**: `<leader>nd` on `TestDescribe`, terminate,
   then `<leader>nd` on `TestMax` — the second session must stop in `TestMax`, not
@@ -64,7 +76,7 @@ off or delete them as they land; add new ones freely.
   installed). Would unblock the
   `o`/`d`/next-last text objects that
   [treesitter-textobjects.md](treesitter-textobjects.md) defers on needing it
-  (§ LazyVim delta table).
+  (its "Shortlist of shortcuts to consider" table).
 - [ ] **Evaluate [claudecode.nvim](https://github.com/coder/claudecode.nvim)** —
   implements the Claude Code IDE protocol (what `/ide` and the VS Code
   extension speak). Why: it adds what sidekick's terminal embedding can't —
@@ -80,7 +92,7 @@ off or delete them as they land; add new ones freely.
   power & motions"): `s` labeled jump, `S` treesitter-node select, `r`/`R`
   remote in operator-pending. Known conflicts noted there (`s` = core
   substitute, `S` overlaps the hand-built structural select).
-- [ ] **Build the Python debug/test stack** — spec'd and twice-reviewed in
+- [ ] **Build the Python debug/test stack** — spec'd and thrice-reviewed in
   [python-debug-test.md](python-debug-test.md). Two follow-on decisions it
   deliberately leaves open: (1) **what is a Python "run target"?** — the
   `pickers/pytargets.lua` analogue of `go list` (`__main__` scripts?
@@ -94,12 +106,6 @@ Grouped by state, not priority.
 
 ## Active — outstanding work with momentum
 
-- [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md) — the single
-  tracking doc for the picker effort, now **migrated** (telescope removed,
-  snacks.picker everywhere, 2026-07): research + swap assessment, the removed
-  `filter.lua` spec, the symbols-picker eval, the nvim-tree vs snacks-explorer
-  eval (§6 — verdict: keep nvim-tree, but reconsider), and the post-migration
-  TODOs.
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
   done / is idle (pipeline first, UI later).
@@ -107,8 +113,9 @@ Grouped by state, not priority.
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.
 - [sidekick-af-ac-context-fix.md](sidekick-af-ac-context-fix.md) — fix the
-  `<leader>af`/`<leader>ac` context column bug and make `<leader>ab` an
-  interactive buffer picker.
+  `<leader>af`/`<leader>ac` context column bug (land-ready spec); the
+  `<leader>ab` buffer-picker half was re-sketched against snacks 2026-07-18
+  (see the TODO above).
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.
@@ -123,7 +130,7 @@ Grouped by state, not priority.
   + debugpy) and testing (neotest-python), the Rust/Go stacks' missing sibling —
   plus the venv convention neither of them needed (`uv` creates it,
   `<project>/.venv` is the contract, one resolver feeds pyright + debugpy +
-  neotest). Twice adversarially reviewed; the targets picker is deferred.
+  neotest). Three times adversarially reviewed; the targets picker is deferred.
 - [harpoon2.md](harpoon2.md) — persistent, ordered per-project file bookmarks
   (`<leader>1`–`<leader>5`).
 - [treesitter-textobjects.md](treesitter-textobjects.md) — semantic
@@ -134,14 +141,6 @@ Grouped by state, not priority.
   inject LSP/treesitter type context into Copilot's `didChange` for better ghost text.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
-- [sidekick-window-layout.md](sidekick-window-layout.md) — try the sidekick CLI
-  as a right-anchored float overlay vs. the current split; runtime toggle.
-- [terminal-fresh-splits.md](terminal-fresh-splits.md) — decouple fresh-spawn
-  split terminals from the pre-warmed float (they currently share id=1 and stomp
-  its `direction`).
-- [unified-sidebar-panel.md](unified-sidebar-panel.md) — edgy.nvim-style unified
-  stacked edgebar (tree + git + outline + terminal); the narrower
-  file-tree↔outline mutual-exclusion already shipped (see GUIDE.md).
 - [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted
   `ghostty.md` migration plan. Two leftover open items (status bar,
   `ApplePressAndHoldEnabled`) + the parked inline-mermaid resume plan, plus a
@@ -152,7 +151,16 @@ Grouped by state, not priority.
 
 - [nvim-backlog.md](nvim-backlog.md) — the single Neovim enhancement backlog
   (consolidated from the Zed/VS Code/JetBrains gap analyses + the LazyVim /
-  LunarVim comparison passes + the old TODO wishlist).
+  LunarVim comparison passes + the old TODO wishlist; 2026-07-18 it also
+  absorbed the edgy.nvim unified-edgebar research, the sidekick split↔float
+  toggle sketch, and keymap-tracker's Track C2/C3 promotion candidates).
+- [dap-breakpoint-persistence.md](dap-breakpoint-persistence.md) — research:
+  persist nvim-dap breakpoints across restarts (plugin pair vs an ~80-line
+  DIY, git-root-keyed); read harpoon2's storage model before deciding.
+- [git-worktree-nvim-plugin.md](git-worktree-nvim-plugin.md) — research:
+  worktree-switching plugins vs plain `cd` + fresh nvim; narrowed to
+  do-nothing / Juksuu / afonsofrancof. Reach for it if worktree switching
+  gets frequent.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
@@ -177,8 +185,20 @@ actually real. Detail for each lives in
 
 - [nvim-startup-performance.md](nvim-startup-performance.md) — Phase 1 landed and
   verified; Phase 2 parked for good with a documented revival trigger.
-- [keymap-tracker.md](keymap-tracker.md) — deferred keymap-usage-tracker research
-  (Neovim/which-key internals) + the parked Track C ergonomics backlog.
+- [keymap-tracker.md](keymap-tracker.md) — keymap-usage-tracker spec, parked
+  (shrunk 2026-07-18 to the buildable two-primitive core + condensed findings;
+  the internals deep-dives live in git history, and Track C2/C3's promotion
+  candidates moved to nvim-backlog.md → Editing power & motions).
+- [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md) — **shipped**
+  (telescope removed, snacks.picker everywhere, 2026-07; shrunk to its
+  decision-record core 2026-07-18). Keeps §6 (explorer verdict + reopen
+  conditions), §7 (scroll-perf kernels + the open intermittent-hang residual),
+  §8 (live-mode audit), and two open design TODOs (#9 corpus-stack `<c-g>`,
+  #10 re-grep surviving files).
+- [large-file-protection.md](large-file-protection.md) — **shipped**
+  (snacks.bigfile, 2026-07-13); kept for the filetype-rename mechanism,
+  threshold rationale, and the still-open per-subsystem guards (see the TODO
+  list above).
 - [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md) —
   **shipped**; kept as the design reference the event-pipeline plan cites. Also
   carries the **sidekick performance runbook** — start there if nvim hangs on
