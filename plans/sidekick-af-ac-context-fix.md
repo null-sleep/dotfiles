@@ -209,85 +209,19 @@ documented there, and this doesn't add a new `require()`.
 
 ## Also: `<leader>ab` becomes an interactive buffer picker
 
-### Context
+*(Rewritten 2026-07-18: the original spec here was written against telescope,
+which has since been removed — the telescope mechanism details live in git
+history. Re-spec against snacks at build time.)*
 
-Today `<leader>ab` (`keymaps.lua:360-362`) unconditionally sends *every*
-open buffer via sidekick's `{buffers}` context. Wanted instead: open a
-telescope picker so you can choose which open buffers to share, kept small
-(this is a quick "pick a few files" action, not the full buffer switcher —
-don't want a large window for it).
+Goal: `<leader>ab` currently bulk-sends `{buffers}` (every open buffer) to the
+CLI; make it open an interactive buffer picker instead, so you choose which
+buffers to send.
 
-### Key finding: the "send" mechanism already exists, for free
-
-`plugins.lua:392-414` already defines a **global telescope default mapping**,
-`<M-a>` (`send_to_sidekick`), wired into telescope's `defaults.mappings` —
-i.e. it's active in *every* telescope picker unless a picker's own
-`attach_mappings` overrides that key. It reads the picker's current
-multi-selection (falling back to the entry under cursor), builds
-space-separated `path`/`path:lnum` refs, and sends them via
-`require('ai').send({ msg = ... })`. This is the exact mechanism GUIDE.md's
-keymap table already documents as `<M-a>` (in picker) → "Send picker
-selection(s) to CLI".
-
-`pickers/buffer.lua` (the existing `<leader>bb`/`<leader>m` buffer picker,
-built on `telescope.builtin.buffers`) only overrides `<C-d>` and the
-`<M-1>..<M-9>` quick-pick in its `attach_mappings` — it never touches
-`<M-a>`, so the global send-to-sidekick mapping already works inside it
-today. **No new "send" code is needed** — just point `<leader>ab` at this
-picker instead of at sidekick's bulk `{buffers}` send, and multi-select
-(`<Tab>`) + `<M-a>` does the rest.
-
-Note this changes the exact text shape sent to the AI: today's `{buffers}`
-send is a markdown bullet list (`- @path`, one per line, via sidekick's own
-`Loc.get(kind="file")`); the `<M-a>` path instead sends one line of
-space-separated `path`/`path:lnum` refs (`send_to_sidekick` in
-`plugins.lua`). Both are equally parseable context for me — just flagging
-the format changes.
-
-### Approach
-
-1. **`pickers/buffer.lua`** — give `M.open()` an optional `opts` param,
-   merged (`vim.tbl_deep_extend('force', defaults, opts)`) into the
-   `builtin.buffers({...})` call, so callers can override `layout_config`/
-   `previewer` without duplicating the picker. `<leader>bb`/`<leader>m` keep
-   calling `M.open()` with no args (unchanged, full-size picker with
-   preview).
-
-2. **`keymaps.lua`** — change `<leader>ab`'s handler (currently
-   `require('ai').send({ msg = '{buffers}' })`) to:
-   ```lua
-   function() require('pickers.buffer').open({
-     layout_config = { height = 0.3 },
-     previewer = false,
-   }) end,
-   { desc = 'AI: Pick open buffers to send' }
-   ```
-   Small (`height = 0.3`) and preview-off, since this is "pick file names to
-   attach," not "browse buffer contents" — keeps it compact per your ask.
-   `<CR>` still does the picker's normal jump-to-buffer; `<Tab>` multi-selects;
-   `<M-a>` sends the selection (or, with nothing multi-selected, just the
-   entry under cursor) to the active CLI session.
-
-### Doc updates
-
-- `GUIDE.md`'s AI keymap table (~line 1670): change the `<leader>ab` row
-  from "Send list of open buffers" to something like "Pick open buffers to
-  send (telescope; `<Tab>` multi-select, `<M-a>` to send, `<CR>` jumps to
-  buffer as usual)".
-- The prose paragraph right after the table (~line 1674-1678, already being
-  edited for the af/ac fix above) gets one more sentence noting `ab` now
-  routes through `pickers.buffer` + the existing global `<M-a>` send
-  mapping, rather than sidekick's own `{buffers}` context.
-
-### Verification
-
-1. Open a few files, press `<leader>ab` — confirm a compact picker opens
-   (no preview pane, noticeably shorter than `<leader>bb`'s).
-2. `<Tab>` to multi-select 2-3 buffers, `<M-a>` — confirm exactly those
-   paths land in the sidekick prompt bar, not all open buffers.
-3. With no multi-selection, `<M-a>` on the entry under the cursor — confirm
-   it sends just that one buffer.
-4. `<leader>bb`/`<leader>m` still open the original full-size picker with
-   preview — confirm unaffected.
-5. `<CR>` inside the `ab` picker still jumps to the selected buffer (normal
-   picker behavior, unchanged).
+Snacks-world sketch: the send mechanism already exists for free — `picker.lua`'s
+global `<M-a>` `send_to_sidekick` action sends the current/multi-selected picker
+items to the active CLI as `path:line` refs, and works in every snacks picker
+including `pickers/buffer.lua` (`<leader>bb`/`<leader>m`). So `<leader>ab` can
+simply open the buffer picker (possibly with a hint that `<M-a>`/`<Tab>`+`<M-a>`
+sends), or open it with a confirm that routes to `send_to_sidekick` instead of
+jumping. Decide which at build time; update GUIDE.md's `<leader>ab` row to
+match.
