@@ -74,6 +74,13 @@ off or delete them as they land; add new ones freely.
   `o`/`d`/next-last text objects that
   [treesitter-textobjects.md](treesitter-textobjects.md) defers on needing it
   (§ LazyVim delta table).
+- [ ] **Evaluate [claudecode.nvim](https://github.com/coder/claudecode.nvim)** —
+  implements the Claude Code IDE protocol (what `/ide` and the VS Code
+  extension speak). Why: it adds what sidekick's terminal embedding can't —
+  Claude's proposed edits arrive as **native nvim diffs** to accept/reject
+  in-editor, and selection/open-file context is shared automatically instead
+  of via explicit `<leader>at`/`<leader>ap` sends. Would complement, not
+  replace, the sidekick setup in `ai.lua`; evaluate coexistence first.
 - [ ] **Evaluate [grug-far.nvim](https://github.com/MagicDuck/grug-far.nvim)** —
   already the top pick for multibuffer-style search & replace in
   [nvim-backlog.md](nvim-backlog.md) (Zed gap analysis); not yet installed.
