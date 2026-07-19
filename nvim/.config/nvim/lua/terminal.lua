@@ -73,6 +73,49 @@ local function new_term()
   vim.cmd(n .. 'ToggleTerm')
 end
 
+-- <M-l>: indexed_select picker (pickers/common.lua) over the float pool
+-- (get_all() skips hidden: the bottom panel and go-run/clippy-fix floats).
+-- <CR>/<M-1>..<M-9> jump; <C-d> kills (process + buffer).
+local function select_term()
+  local terminal = require('toggleterm.terminal')
+  if #terminal.get_all() == 0 then
+    vim.notify('No toggleterms are open yet', vim.log.levels.INFO)
+    return
+  end
+  require('pickers.common').indexed_select({
+    source = 'toggleterm',
+    title = 'Terminals',
+    finder = function()
+      -- Re-runs after each <C-d> kill, so query live state.
+      return vim.tbl_map(function(t)
+        return { text = t.id .. ' ' .. t:_display_name(), term = t }
+      end, terminal.get_all())
+    end,
+    format = function(item)
+      return {
+        { item.term.id .. ': ', 'SnacksPickerIdx' },
+        { item.term:_display_name() },
+      }
+    end,
+    confirm = function(picker, item)
+      picker:close()
+      if not item then return end
+      if item.term:is_open() then
+        item.term:focus()
+        return
+      end
+      -- Close the current float so the target replaces it (same
+      -- single-visible-float model as cycle_term).
+      for _, t in ipairs(terminal.get_all()) do
+        if t:is_open() and t:is_float() then t:close() end
+      end
+      item.term:open()
+    end,
+    -- shutdown() is synchronous, so the post-kill refresh reads settled state.
+    kill = function(item) item.term:shutdown() end,
+  })
+end
+
 -- VS Code–style bottom panel: a dedicated horizontal terminal. hidden = true
 -- keeps it out of the count-addressable :ToggleTerm list, so it never collides
 -- with the float terminals.
@@ -139,11 +182,9 @@ function toggle_bottom_term()
 end
 
 -- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
--- NOTE: <C-[> was previously used for cycle-previous, but <C-[> is the same
--- keycode as <Esc> — the binding shadowed Esc and caused cycling instead of
--- exiting terminal mode. Removed; <C-]> cycles next and wraps around, so
--- repeated presses reach every float terminal (the bottom panel opts out —
--- see the id == 100 guard below).
+-- NOTE: cycling is M-based because a C-based pair can't work — <C-[> is the
+-- same keycode as <Esc>. Wraps around; the bottom panel opts out (id == 100
+-- guard below).
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling/switching',
@@ -158,15 +199,12 @@ vim.api.nvim_create_autocmd('TermOpen', {
     -- find no matching id in cycle_term's terms list (get_all() excludes
     -- hidden terminals) and swap two unrelated background floats instead.
     if vim.b.toggle_number ~= 100 then
-      vim.keymap.set('t', '<C-]>', function() cycle_term(1)  end, opts)
-      vim.keymap.set('n', '<C-]>', function() cycle_term(1)  end, opts) -- overrides built-in tag jump; harmless here since this is buffer-local to toggleterm
-      -- <M-n>/<M-l> deliberately mirror the sidekick CLI's own session keys
-      -- (ai.lua:319-336) for muscle-memory symmetry, though each is buffer-local
-      -- to its own terminal kind so neither clashes.
-      vim.keymap.set('t', '<M-n>', new_term, opts)
-      vim.keymap.set('n', '<M-n>', new_term, opts)
-      vim.keymap.set('t', '<M-l>', '<cmd>TermSelect<CR>', opts)
-      vim.keymap.set('n', '<M-l>', '<cmd>TermSelect<CR>', opts)
+      -- Mirror the sidekick CLI's session keys (ai.lua) for muscle-memory
+      -- symmetry; each set is buffer-local to its own terminal kind.
+      vim.keymap.set({ 't', 'n' }, '<M-]>', function() cycle_term(1)  end, opts)
+      vim.keymap.set({ 't', 'n' }, '<M-[>', function() cycle_term(-1) end, opts)
+      vim.keymap.set({ 't', 'n' }, '<M-n>', new_term, opts)
+      vim.keymap.set({ 't', 'n' }, '<M-l>', select_term, opts)
     end
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
     -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal

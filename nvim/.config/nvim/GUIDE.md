@@ -69,7 +69,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
-- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers, used by the buffer and gitstatus pickers
+- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-d>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
@@ -85,7 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<C-]>` cycle next float, `<M-n>` new auto-numbered float, `<M-l>` `:TermSelect` picker)
+- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
@@ -1736,9 +1736,9 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `<C-/>` (also `<C-_>`, same physical chord — see Tips) | Toggle the bottom-panel terminal (dedicated horizontal split, pre-warmed) |
 | `<Esc>` / `jj` / `jk` (in terminal) | Exit terminal mode → normal mode |
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
-| `<C-]>` (in a float terminal) | Cycle to next float (wraps, so repeated presses reach every float) |
+| `<M-]>` / `<M-[>` (in a float terminal) | Cycle to next / previous float (wraps) |
 | `<M-n>` (in a float terminal) | Open a new auto-numbered float (lowest free id) |
-| `<M-l>` (in a float terminal) | `:TermSelect` picker — jump to any open terminal |
+| `<M-l>` (in a float terminal) | Indexed terminal picker — `<CR>`/`<M-1>`..`<M-9>` jump, `<C-d>` kill |
 
 **Tips:**
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>`
@@ -1749,22 +1749,21 @@ that persists state across hides, plus a VS Code-style bottom panel.
   Neovim receives `<C-_>` for this physical keypress inside terminal mode,
   and `<C-/>` from normal mode / the GUI — binding both means the toggle
   works regardless of which byte arrives.
-- **Cycle between terminals**: `<C-]>` cycles to the next open float and
-  wraps around. Works in both terminal and normal mode within a float
-  buffer. (There is deliberately no cycle-previous key — `<C-[>` is the same
-  keycode as `<Esc>` and shadowed it.)
+- **Cycle between terminals**: `<M-]>`/`<M-[>` cycle to the next/previous
+  open float, wrapping, in terminal and normal mode. (M-based because
+  `<C-[>` is the same keycode as `<Esc>`, so a C-based pair would shadow it.)
 - **Open a new terminal in place**: `<M-n>` opens the lowest free id in the
   1-99 pool without leaving the float buffer.
-- **Switch between terminals**: `<M-l>` (or `:TermSelect` directly) opens a
-  picker over all open terminals.
-- **`<C-]>`/`<M-n>`/`<M-l>` are float-only**: the bottom panel is deliberately
-  a single dedicated terminal, not a member of the float pool, so none of
-  these three bind inside it — only `<Esc>`/`jj`/`jk`, `<C-h/j/k/l>`, and
-  `<S-CR>` do.
-- **`<M-n>`/`<M-l>` mirror the sidekick CLI**: they deliberately match the
-  [AI (sidekick.nvim)](#ai-sidekick)'s own `<M-n>`/`<M-l>` session keys for
-  muscle-memory symmetry — each is buffer-local to its own terminal kind, so
-  neither clashes.
+- **Switch between terminals**: `<M-l>` opens an indexed picker over the open
+  floats — `<M-1>`..`<M-9>` jumps to that row, `<C-d>` kills and refreshes
+  (same shape as the sidekick session picker; both use `pickers/common.lua`'s
+  `indexed_select()`). `:TermSelect` remains the plain built-in.
+- **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` are float-only**: the bottom panel is
+  deliberately a single dedicated terminal, so none of these bind inside it —
+  only `<Esc>`/`jj`/`jk`, `<C-h/j/k/l>`, and `<S-CR>` do.
+- **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` mirror the sidekick CLI**: the same
+  session keys as [AI (sidekick.nvim)](#ai-sidekick), for muscle-memory
+  symmetry; each set is buffer-local to its own terminal kind.
 - **Run a command**: `:TermExec cmd="make test"` — runs the command in
   terminal #1 and returns focus to your buffer.
 - **Override direction ad-hoc**: `:ToggleTerm direction=horizontal` opens a
@@ -2179,7 +2178,8 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    `claude 4`, not `claude 2`. A typed label makes a reusable named session
    (`claude: tests`) that re-attaches if you type the same label again.
    `<leader>al` opens a snacks picker over running sessions to **switch**
-   (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one.
+   (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one;
+   rows are numbered and `<M-1>`..`<M-9>` confirms that row directly.
    Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
    place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
    `<M-l>` opens the same switch/kill picker in place; `<C-]>` toggles back to
@@ -2220,7 +2220,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New Claude session — blank prompt = auto-numbered, label = named/reusable |
-| `<leader>al` | Switch (`<CR>`) or kill (`<C-d>`) a running CLI session (snacks picker) |
+| `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`) or kill (`<C-d>`) a running CLI session (indexed picker) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
@@ -2898,9 +2898,13 @@ in `animations.lua`, gated by `if vim.g.neovide then return end` — the
 inverse of `neovide.lua`'s guard, since Neovide already animates natively
 (see [Neovide](#neovide) below) and running both would double-animate.
 
-- **smear-cursor.nvim** — animated/smeared cursor trail, defaults only.
-  `smear_terminal_mode` defaults `false`, so toggleterm/sidekick terminal
-  buffers are already excluded. `:SmearCursorToggle` disables/re-enables it.
+- **smear-cursor.nvim** — animated/smeared cursor trail. One off-default
+  option: `legacy_computing_symbols_support = true` (smoother sub-cell smear
+  glyphs; Ghostty renders that Unicode block natively, no font support
+  needed). `smear_terminal_mode` defaults `false`, so toggleterm/sidekick
+  terminal buffers are already excluded. `:SmearCursorToggle`
+  disables/re-enables it. Tuning knobs live as commented-out defaults in
+  `animations.lua`.
 - **cinnamon.nvim** — animates cursor + window movement (`mode = "cursor"`,
   the default) for the keys below. `keymaps.basic = true`; `keymaps.extra`
   (which would also animate raw `h`/`j`/`k`/`l`) is left off — remapping

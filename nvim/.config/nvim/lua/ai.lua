@@ -622,8 +622,8 @@ function M.focus()
   require('sidekick.cli').focus({ name = M.active })
 end
 
--- <leader>al: custom snacks picker over running sidekick sessions.
--- <CR> shows/focuses (making it active); <C-d> tears down the highlighted one.
+-- <leader>al: indexed_select picker over running sessions. <CR>/<M-1>..<M-9>
+-- show/focus (making it active); <C-d> tears one down.
 function M.switch()
   local State = require('sidekick.cli.state')
 
@@ -636,7 +636,7 @@ function M.switch()
     end, State.get({ started = true }))              -- running sessions only
   end
 
-  return Snacks.picker.pick({
+  return require('pickers.common').indexed_select({
     source = 'sidekick_sessions',
     title = 'Sidekick sessions',
     finder = items,
@@ -647,9 +647,6 @@ function M.switch()
         { item.cwd, 'Comment' },
       }
     end,
-    -- Compact, previewless picker — it's a short "name  cwd" list, not a
-    -- file search (same compact preset pickers/theme.lua uses).
-    layout = { preset = 'select' },
     confirm = function(picker, item)
       picker:close()
       if item then
@@ -657,36 +654,26 @@ function M.switch()
         show_solo(item.name)   -- replace the open window, don't stack
       end
     end,
-    actions = {
-      kill_session = function(picker, item)
-        if not item then return end
-        local name = item.name
-        -- Synchronous teardown: State.detach → terminal:close() removes the
-        -- session inline (only the Detach *event* is scheduled), so the
-        -- refresh below reads post-kill state. cli.close() would be two
-        -- vim.schedule hops too late (state.lua:145,148) and refresh would
-        -- show the killed entry.
-        --
-        -- Reset active + GC the name synchronously here too, not only in the
-        -- detach sweep: the sweep is scheduled, and a send landing in the gap
-        -- before it runs would re-route to this dead-but-still-registered name
-        -- → select({auto=true}) → a *fresh* session respawns under it (the
-        -- exact surprise the sweep exists to prevent). _forget is a no-op on
-        -- built-ins, so <C-d> on the default `claude` won't unregister it.
-        -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
-        -- <leader>aa reattaches; done before State.detach, excluding this name,
-        -- while it's still started=true. Sets active before _forget runs, so
-        -- _forget's own repoint below is a no-op on this path (active ≠ name).
-        if M.active == name then M.active = fallback_active(name) end
-        State.detach(item.state)
-        M._forget(name)
-        picker:find()  -- re-run the finder so the list reflects post-kill state
-      end,
-    },
-    win = {
-      input = { keys = { ['<C-d>'] = { 'kill_session', mode = { 'i', 'n' } } } },
-      list = { keys = { ['<C-d>'] = 'kill_session' } },
-    },
+    kill = function(item)
+      local name = item.name
+      -- Synchronous teardown: State.detach removes the session inline, so
+      -- indexed_select's refresh reads post-kill state (cli.close() would be
+      -- two vim.schedule hops too late — state.lua:145,148).
+      --
+      -- Reset active + GC the name synchronously here too, not only in the
+      -- detach sweep: the sweep is scheduled, and a send landing in the gap
+      -- before it runs would re-route to this dead-but-still-registered name
+      -- → select({auto=true}) → a *fresh* session respawns under it (the
+      -- exact surprise the sweep exists to prevent). _forget is a no-op on
+      -- built-ins, so <C-d> on the default `claude` won't unregister it.
+      -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
+      -- <leader>aa reattaches; done before State.detach, excluding this name,
+      -- while it's still started=true. Sets active before _forget runs, so
+      -- _forget's own repoint below is a no-op on this path (active ≠ name).
+      if M.active == name then M.active = fallback_active(name) end
+      State.detach(item.state)
+      M._forget(name)
+    end,
   })
 end
 
