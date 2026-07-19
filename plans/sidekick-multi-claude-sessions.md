@@ -18,9 +18,10 @@ the CLI session whose window you last entered (default: the pre-warmed
   a **typed label re-attaches** if it already exists (reusable/named); `<Esc>`
   cancels. The new/reattached session becomes active.
 - `<leader>al` — **switch** between currently-running CLI sessions via a
-  **custom telescope picker**. `<CR>` shows/focuses the session (making it
-  active); **`<C-d>` tears down** the highlighted session (telescope's delete
-  convention). Torn-down dynamic names are GC'd from `cli.tools` synchronously
+  **custom picker** (shipped on snacks — today `pickers/common.lua`'s
+  `indexed_select`). `<CR>` shows/focuses the session (making it active);
+  **`<C-d>` tears down** the highlighted session (the delete convention shared
+  with the buffer picker). Torn-down dynamic names are GC'd from `cli.tools` synchronously
   in the `<C-d>` handler (the detach sweep is the backstop for self-exits).
 - `<leader>ad` — kill the **active** session (was: kill the single CLI),
   behind the existing confirm popup.
@@ -158,7 +159,7 @@ Two consequences:
 
 All current entry points besides `<leader>aa` — `<C-.>`/`<leader>ai`
 (`focus()`), every send key, `<leader>ao`'s default prompt callback, `<M-a>`
-in telescope — call `State.with` with **no name filter**. With
+in pickers — call `State.with` with **no name filter**. With
 `#attached > 1`, state.lua:165 shows the disambiguation select on **every
 invocation**: "send this to Claude" becomes a two-step flow the moment a
 second session exists. This is why routing through the active session is part
@@ -166,25 +167,25 @@ of the core design, not a follow-up: `filter_opts` (cli/init.lua:48) already
 threads `opts.name` into the filter for `send`/`focus`/`toggle`/`close`, so
 routing is just passing `name = M.active`.
 
-### The switch picker: custom telescope picker (needed for `<C-d>` delete)
+### The switch picker: custom picker (needed for `<C-d>` delete)
 
 Two facts force a hand-rolled picker:
 
 1. **sidekick's `select()` is just `vim.ui.select`.** `cli/ui/select.lua:46`
    calls `vim.ui.select(tools, opts, on_select)` — there is **no** native
-   telescope integration and **no** custom-action hook. (The `picker =
-   'telescope'` in `ai.lua` only routes `vim.ui.select` through
-   telescope-ui-select, which presents choices and returns one — it can't bind
-   `<C-d>` to a delete action per call.) So a delete-in-picker affordance
-   cannot hang off `select()`.
+   picker integration and **no** custom-action hook. (The `picker = 'snacks'`
+   in `ai.lua` only routes `vim.ui.select` through the snacks select UI,
+   which presents choices and returns one — it can't bind `<C-d>` to a delete
+   action per call.) So a delete-in-picker affordance cannot hang off
+   `select()`.
 2. `sidekick.cli.Filter.name` is an **exact** match (`filter.name ==
    t.tool.name`, state.lua:42) — no prefix — so `select()` couldn't be filtered
    to `claude*` anyway.
 
 **Decision (reverses the earlier "no hand-rolled picker" note):** because the
 user wants `<C-d>` to delete sessions from the switcher, `<leader>al` becomes a
-**custom telescope picker** built on `require('sidekick.cli.state').get({
-started = true })` (state.lua:69, public):
+**custom picker** (originally specced on telescope; shipped on snacks) built on
+`require('sidekick.cli.state').get({ started = true })` (state.lua:69, public):
 
 - `<CR>` → set `M.active`, then `cli.show({ name, focus = true })`.
 - `<C-d>` → **synchronous teardown + refresh** (see next section), then

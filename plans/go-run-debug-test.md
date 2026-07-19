@@ -234,9 +234,9 @@ and it's orthogonal to debugging. It would also force the module name
 `golang.lua` (a `lua/go.lua` would shadow go.nvim's `go` module — same rule as
 `debugging.lua`-not-`dap.lua`).
 
-**If picked up later:** it slots in cleanly as a new `lua/golang.lua`, lazily set
-up on the first Go buffer, plus `require('golang')` in `init.lua` and a `## Go`
-GUIDE update. Nothing in this plan blocks it.
+**If picked up later:** it slots into the existing `lua/golang.lua` (created
+since by the targets-picker plan), lazily set up on the first Go buffer, plus a
+`## Go` GUIDE update. Nothing in this plan blocks it.
 
 ### Hand-rolled `go run .` keymap (also cut)
 
