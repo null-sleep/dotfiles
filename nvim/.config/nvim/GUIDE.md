@@ -38,6 +38,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Window/tab title](#window-tab-title)
   - [File Explorer (nvim-tree)](#file-explorer)
   - [Outline (aerial)](#outline-aerial)
+  - [Undo tree (atone)](#undo-tree-atone)
   - [Terminal (toggleterm.nvim)](#terminal)
   - [Scratch buffers (snacks.nvim)](#scratch-buffers)
   - [Indent guides (snacks.nvim)](#indent-guides)
@@ -84,6 +85,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
+- **`undotree.lua`** — atone.nvim undo tree panel (`<leader>uU`): docked left-edge sidebar over the buffer's undo tree with a live treesitter diff and persistent node marks. Named for the feature, not the plugin's `atone` module (see the shadowing rule above)
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
@@ -101,7 +103,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
-- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd
+- **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd, plus the left-edge sidebar coordinator (`is_sidebar_visible`/`close_other_sidebars`) the panel toggles swap through
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`animations.lua`** — Terminal-only Neovide-style animation (gated by
   `if vim.g.neovide then return end` — the inverse of `neovide.lua`'s guard,
@@ -127,7 +129,7 @@ From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context 
 outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree ->
-animations -> neovide.
+undotree -> animations -> neovide.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
@@ -394,44 +396,59 @@ Two deliberate boundaries:
 
 `outline.lua`'s guard has two built-in exemptions: `aerial` and `NvimTree` are
 both in the registry (needed so the alt-buffer jump skips them), but
-`<leader>o`/`<leader>O` explicitly exempt both `filetype == 'aerial'` and
-`filetype == 'NvimTree'` from their own guard — see "File tree and outline
-swap into each other" below for why. When adding a similar code-only-keymap
-guard for a toggle that owns its own registered panel, apply the same kind of
-exemption for that panel's own filetype.
+`<leader>o`/`<leader>O` exempt every registered sidebar from their own guard
+via `is_sidebar()` — see "Left-edge sidebars swap into each other" below for
+why. When adding a similar code-only-keymap guard for a toggle that owns its
+own registered panel, apply the same kind of exemption for that panel's own
+filetype.
 
-### File tree and outline swap into each other
+### Left-edge sidebars swap into each other
 
 `<leader>e` (file tree) and `<leader>o` (outline) both want the true left
 edge of the tabpage (aerial's `placement = 'edge'`, see "Special/sidebar
 windows need pinning" above) — without coordination they'd stack side by
-side instead of one replacing the other. Both keymaps check the other
-plugin's visibility before opening:
+side instead of one replacing the other. Each keymap calls
+`buffers.close_other_sidebars(<its own filetype>)` before opening, and only
+on the *opening* edge of its own toggle: guarded on "am I already visible?",
+so closing a panel never reaches into the others.
 
-- `outline.lua`'s `<leader>o`: if aerial isn't already open (i.e. this press
-  is going to open it), close the file tree first via
-  `nvim-tree.api`'s `tree.is_visible()`/`tree.close()`.
-- `keymaps.lua`'s `<leader>e`: symmetric — if the tree isn't already visible,
-  close aerial first via `aerial.is_open()`/`aerial.close()`.
+That's what makes them swap. Pressed from inside the file tree, `<leader>o`
+closes the tree and opens the outline (and vice versa for `<leader>e`), while
+the same key from a plain code buffer just toggles that one panel.
 
-Each check only fires on the *opening* edge of that key's own toggle —
-closing one panel never reaches into the other. This is what makes the
-sidebars swap: pressed from inside the file tree, `<leader>o` closes the tree
-and opens the outline (and vice versa for `<leader>e` from inside the
-outline), while pressing a key from a plain code buffer just toggles that
-one panel normally.
+The coordinator lives in `buffers.lua`, next to the `sidebar_filetypes`
+registry that drives it. Its two jobs are deliberately split:
 
-This is why `NvimTree` must be exempted from `outline.lua`'s `is_special`
-guard (previous section) — without the exemption, pressing `<leader>o` from
-inside the file tree would hit the guard's notify-and-decline path instead of
-reaching the swap logic. Terminal and sidekick CLI buffers are deliberately
-**not** exempted: there's no "other panel" for a terminal to swap into, so
-`<leader>o` pressed there still just declines.
+- **Visibility** is answered from windows, not plugin APIs — uniform across
+  panels, and it works for a plugin that exposes no `is_open()`. Floating
+  windows are excluded, so aerial's nav popup (`<leader>O`) and atone's `gd`
+  diff float don't count as owning the edge and aren't closed by a swap.
+- **Closing** goes through each plugin's own API where one exists
+  (`sidebar_closers`), because nvim-tree and aerial track view state
+  internally and closing their window behind their back desyncs it. A
+  window-close pass follows regardless — a closer that errors would otherwise
+  leave the sidebar open and silently break the swap. (The `QuitPre`
+  auto-quit handler in `autocmds.lua` can use a raw `win_close` instead
+  because nvim is exiting anyway.)
 
-No shared "sidebar coordination" module was introduced for this — it's a
-symmetric pair between exactly two plugins, each already owning its own
-keymap file, so the check lives directly in both `outline.lua` and
-`keymaps.lua` rather than behind a new abstraction.
+A panel may own several edge windows — atone stacks its diff split under the
+tree, both filetype `atone` — so a swap closes every matching window, not the
+first.
+
+This is why sidebars must be exempted from `outline.lua`'s `is_special` guard
+(previous section): without it, `<leader>o` from inside the file tree would
+hit the notify-and-decline path instead of reaching the swap. The guard asks
+`is_special(0) and not is_sidebar(0)` rather than naming filetypes, so a new
+sidebar is exempt automatically. Terminal and sidekick CLI buffers are
+deliberately **not** exempt — there's no "other panel" for a terminal to swap
+into, so `<leader>o` there still declines.
+
+**On the abstraction.** This was two inlined pairwise checks for as long as it
+was a symmetric pair between exactly two plugins — deliberately un-factored,
+since each already owned its own keymap file. Adding a third sidebar (atone's
+undo tree) turns that into six pairwise checks, which is where a shared
+coordinator starts paying for itself. The registry is now the only thing a
+fourth panel has to touch.
 
 ### Panels stop at their last entry
 
@@ -692,6 +709,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>tl`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
 | `<leader>uu` | Undo history picker | keymaps.lua | [Picker (snacks.nvim)](#picker-snacks) → Undo history |
+| `<leader>uU` | Undo tree panel | undotree.lua | [Undo tree (atone)](#undo-tree-atone) |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
 | `<leader>tg` | Toggle indent guides + current-scope highlight | keymaps.lua (options in picker.lua) | [Indent guides (snacks.nvim)](#indent-guides) |
@@ -1275,6 +1293,12 @@ pasting where it belongs now, instead of time-travelling the whole file
 backwards and losing everything since. `<CR>` does restore the state, when
 that's genuinely what you want.
 
+**The tree half of the undo story is `<leader>uU`** — see
+[Undo tree (atone)](#undo-tree-atone). That panel shows branch topology and
+carries persistent marks; this picker flattens the tree but searches content
+and yanks without restoring. The panel restores state, the picker recovers
+content.
+
 Two notes on how it sits in the config:
 
 - **Bound under `<leader>u`, documented under the pickers.** Every other
@@ -1739,11 +1763,11 @@ Inside the tree (buffer-local, set by `on_attach`):
   the keypress (which-key would wait for a second key). Both explorer
   keymaps are registered as plain descriptions so they appear in
   `<leader>sk`.
-- `<leader>e` and the outline's `<leader>o` (`outline.lua`) swap into each
-  other: pressed from inside the outline sidebar, `<leader>e` closes it and
-  opens the tree instead (and vice versa). Only one left-edge sidebar is ever
-  open at a time. See [Design Decisions](#design-decisions) → "File tree and
-  outline swap into each other".
+- `<leader>e` swaps with the other left-edge sidebars: pressed from inside the
+  outline or the undo tree, it closes that panel and opens the tree instead
+  (and vice versa). Only one left-edge sidebar is ever open at a time. See
+  [Design Decisions](#design-decisions) → "Left-edge sidebars swap into each
+  other".
 
 
 <a id="outline-aerial"></a>
@@ -1773,7 +1797,87 @@ outline (and `<leader>e` does the reverse from inside the outline) — only one
 left-edge sidebar is ever open at a time. Pressed from inside the aerial
 sidebar itself, `<leader>o`/`<leader>O` just close it (normal toggle-off). See
 [Design Decisions](#design-decisions) → "Non-code buffer exceptions need a
-shared predicate" and "File tree and outline swap into each other".
+shared predicate" and "Left-edge sidebars swap into each other".
+
+
+<a id="undo-tree-atone"></a>
+## Undo tree (atone)
+
+Setup lives in `undotree.lua`: atone.nvim docks a panel showing the current
+buffer's undo *tree* — the branch structure `u`/`<C-r>` can't reach — with a
+live diff of the selected node in a split below it, treesitter-highlighted
+and with word-level inline highlights on the changed spans. It follows you as
+you switch buffers.
+
+| Key | Action |
+|---|---|
+| `<leader>uU` | Toggle the undo tree panel |
+| `j` / `k` | Step to the next / previous node (accepts a count) |
+| `gg` / `G` | Jump to the first / last node by sequence number |
+| `<CR>` | Restore the buffer to the selected node |
+| `m` | Mark the current node (`N` or `N:name` for slot 0-9) |
+| `'` / `` ` `` | Jump to a mark slot |
+| `s` | Fuzzy-find marks |
+| `x` / `X` / `dM` | Delete this mark / delete all marks |
+| `gd` | Open the diff in a centered float |
+| `u` / `<C-r>` | Undo / redo the attached buffer (works in both the tree and the diff split) |
+| `?` | Help |
+| `q` / `<C-c>` | Close |
+
+### Undo tree vs. undo picker
+
+Two undo UIs, answering different questions — reach for whichever matches:
+
+- **`<leader>uU` (this panel)** — *what shape is my history?* Branch topology,
+  stepping node by node with the diff repainting, and marks. Use it when you
+  branched somewhere and need to see where.
+- **`<leader>uu` ([Picker](#picker-snacks) → Undo history)** — *what did that
+  deleted block say?* Fuzzy-matches the text of each change and yanks the
+  added or removed lines **without touching the buffer**. Use it to recover a
+  snippet into a register.
+
+The panel restores state; the picker recovers content. Neither replaces the
+other.
+
+### Marks
+
+`m` bookmarks an undo state, `persist`ed to
+`stdpath('data')/atone_marks.json` and reloaded at startup — the one thing
+the picker structurally can't do. Deliberately **not** stow-synced across
+machines: marks key on undo sequence numbers in a specific machine's
+undofile, so a synced marks file would point at states that don't exist
+elsewhere.
+
+The mark picker (`s`) arrives through snacks without any wiring: atone's
+finder list is `{'fzf-lua', 'telescope', 'builtin'}`, we run neither of the
+first two, and `builtin` is `vim.ui.select` — which snacks owns
+(`picker.lua`'s `ui_select = true`). `undotree.lua` sets `finders =
+{'builtin'}` directly rather than falling through two failed `pcall`s.
+
+### How it sits in the config
+
+- **Left edge, joining the swap.** The right edge belongs to the sidekick CLI
+  (`ai.lua` promotes it to a full-height column), so the undo tree shares the
+  left with the file tree and outline — opening it closes whichever of those
+  is showing, and vice versa. See [Design Decisions](#design-decisions) →
+  "Left-edge sidebars swap into each other".
+- **Its buffers are synthetic** (`nofile`), so `session.lua` closes the panel
+  before `mksession` — otherwise a restored session shows a blank scratch
+  split where it was. Reopen with `<leader>uU` after a restore. See
+  "Synthetic sidebar buffers can't be session-serialized".
+- **No public Lua API.** `open`/`close`/`toggle`/`focus` live on the internal
+  `atone.core`; only `:Atone <subcommand>` is public, so that's what the
+  keymap and the session hook use.
+- **Not registered with stickybuf**, despite the "check that list first" rule
+  in "Special/sidebar windows need pinning". atone sets `winfixbuf` on its own
+  windows, which the core enforces at buffer-set time — a stray `:e` there
+  fails with `E1513` and the panel keeps its buffer (verified). Because the
+  buffer change never happens, stickybuf's reroute-on-change would never fire,
+  so registering it would be dead config. The trade is an error message
+  instead of stickybuf's silent reroute to the nearest normal window; the
+  protection itself is equivalent.
+- **Unpinned.** atone publishes no git tags, so `plugins.lua` leaves it bare
+  and `nvim-pack-lock.json`'s rev is the only pin.
 
 
 <a id="terminal"></a>

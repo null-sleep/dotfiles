@@ -212,7 +212,7 @@ feature (one such list was even missing entries another had). See GUIDE.md
   buffer's own filetype from the guard so the toggle can still close its own
   panel: `is_special(0) and vim.bo.filetype ~= '<own-ft>'`. If two such panels
   should swap into each other instead of just self-closing (like `<leader>o`
-  file tree ↔ outline, see GUIDE.md "File tree and outline swap into each
+  file tree ↔ outline, see GUIDE.md "Left-edge sidebars swap into each
   other"), exempt the *other* panel's filetype too, and have the handler close
   the other panel before opening its own.
 - **Wrapper re-evaluation trigger.** The guard is currently inlined at two

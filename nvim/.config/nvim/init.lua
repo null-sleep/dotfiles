@@ -26,6 +26,7 @@ require('titling')
 require('whichkey')
 require('autosave')
 require('filetree')
+require('undotree')  -- atone.nvim undo tree panel (<leader>uU)
 require('animations')
 require('neovide')
 

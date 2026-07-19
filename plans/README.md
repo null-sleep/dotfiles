@@ -70,23 +70,18 @@ off or delete them as they land; add new ones freely.
   already installed. See [treesitter-textobjects.md](treesitter-textobjects.md).
   Related: the [mini.ai](https://github.com/nvim-mini/mini.ai) eval below —
   that plan defers the `o`/`d`/next-last text objects to it.
-- [ ] **Live-check `<C-S-Y>` in the undo picker** — `<leader>uu`'s yank-removed-
-  lines action. Untestable headless: it needs the terminal to distinguish
-  Ctrl+Shift+y from plain Ctrl+y (Ghostty's kitty keyboard protocol should, but
-  unconfirmed). If it doesn't register, bind `yank_del` to something plain via a
-  `sources.undo.win.input.keys` override in `picker.lua`. Its sibling `<C-y>`
-  (yank *added* lines) needs no check — it shadows the global `copy_path`
-  provably, since snacks applies per-source config after the global layer.
-- [ ] **Evaluate [atone.nvim](https://github.com/XXiaoA/atone.nvim)** — a modern
-  undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
-  bookmarks). Narrowed 2026-07-19: `<leader>uu` now opens `Snacks.picker.undo()`
-  (see GUIDE.md → Picker → "Undo history"), so the question is no longer "can I
-  see my edit history" but **does a tree panel + persistent node marks add
-  anything over the picker** — the picker flattens branch topology and has no
-  bookmarks, which is exactly what atone would buy. Decide after living with it.
-  Note the built-in `:Undotree` is *not* a free alternative: it doesn't exist on
-  0.12.4 (probed with `nvim --clean`; absent from `$VIMRUNTIME/plugin`) — it's a
-  nightly/0.13 feature, so recheck on the next release bump.
+- [ ] **Decide whether the undo tree panel earns its slot** — atone.nvim
+  shipped 2026-07-19 on `<leader>uU` (GUIDE.md → "Undo tree (atone)"),
+  alongside the `<leader>uu` snacks undo picker. This closed the old "evaluate
+  atone" item, but skipped the *"decide after living with it"* part: it went in
+  on one instinctive keypress for an unbound key, not on evidence the picker
+  was insufficient. So the evaluation is still owed, just with the plugin
+  installed rather than not. Revert criteria: if the marks and branch view go
+  unused and it's only ever the picker being reached for, drop the plugin and
+  the sidebar registration (`buffers.lua`) — the left-sidebar coordinator it
+  motivated should stay either way. Note `:Undotree` is still not a free
+  alternative: absent on 0.12.4 (probed with `nvim --clean`), nightly/0.13
+  only — recheck on the next release bump.
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
   existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
   itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not

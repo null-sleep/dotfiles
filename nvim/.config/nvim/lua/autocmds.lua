@@ -130,9 +130,12 @@ vim.api.nvim_create_autocmd('QuitPre', {
       end
     end
     if total - floating - #sidebar_wins == 1 then
-      for _, w in ipairs(sidebar_wins) do
-        pcall(vim.api.nvim_win_close, w, true)
-      end
+      -- Via buffers.lua rather than a raw win_close on each window: atone
+      -- reacts to its own WinClosed by cascading through core.close(), and
+      -- closing its windows directly throws out of a refresh() mid-teardown.
+      -- Closing through each plugin's own API avoids that. Same reasoning as
+      -- the swap path — see "Left-edge sidebars swap into each other".
+      buffers.close_all_sidebars()
     end
   end,
 })
