@@ -247,13 +247,14 @@ require('snacks').setup({
   bigfile = { enabled = true },
   -- Inline images + mermaid, gated to capable frontends (can_render_images).
   -- Needs imagemagick (Brewfile) + `mmdc` for mermaid — here the zsh-stowed
-  -- `mmdc` shim routing to `mmdr` (native Rust, no Chromium; see plans/ghostty.md).
+  -- `mmdc` shim routing to `mmdr` (native Rust, no Chromium; see plans/ghostty-followups.md).
   -- math is off: render-markdown.nvim owns LaTeX, and rendering it twice
   -- double-draws (its own :checkhealth says so). mermaid doesn't conflict.
   -- PARKED: the mmdr-shim render pipeline works, but inline images are unstable
   -- in this split-heavy workflow (Claude runs in an nvim split beside docs, and
   -- terminal-graphics images only draw in the *focused* window). Machinery kept;
-  -- flip `false` back to can_render_images() to resume. See plans/ghostty.md §6.
+  -- flip `false` back to can_render_images() to resume. See
+  -- plans/ghostty-followups.md Part 1 §3.
   image = {
     enabled = false,           -- was can_render_images()
     math = { enabled = false },

@@ -9,10 +9,9 @@ yet, mapped to candidate plugins. Consolidated from four docs that used to
 duplicate each other: the by-editor gap analyses (Zed / VS Code / JetBrains
 below), the **LazyVim** and **LunarVim** comparison passes (now the capability
 sections — Editing power, Language servers, Options & autocmds), and the loose
-`TODO.md` wishlist (Smaller wishlist + Learning notes). Items that have their
-own dedicated plan file are pointers under "See dedicated specs," not
-re-listed here. Won't-do decisions are preserved in "Rejected" so they don't
-get re-litigated.
+`TODO.md` wishlist (Smaller wishlist + Learning notes). Items with their own
+dedicated plan file live in `plans/README.md`'s index, not re-listed here.
+Won't-do decisions are preserved in "Rejected" so they don't get re-litigated.
 
 The code is the source of truth; ✅ marks items already shipped.
 
@@ -70,51 +69,36 @@ picker-resume (`Snacks.picker.resume()`, `keymaps.lua`) — use `<leader>sR`.
   - https://github.com/Bekaboo/dropbar.nvim
 - **Diagnostics / references panel** → `trouble.nvim`
   Zed's problems panel and "find all references in a multibuffer." Pairs with the
-  existing LSP setup. (Also relevant to the edgebar idea in
-  `plans/unified-sidebar-panel.md`.) The LazyVim/LunarVim passes both *rejected*
-  trouble for now — loclist + the picker + satellite marks cover the
-  diagnostics-list workflow, and `plans/quickfix-improvements.md` owns list
-  ergonomics; reconsider only if that plan stalls or the problems-panel/
-  references ask below wins out.
+  existing LSP setup. (Also relevant to the unified-edgebar entry below.) The
+  LazyVim/LunarVim passes both *rejected* trouble for now — loclist + the
+  picker + satellite marks cover the diagnostics-list workflow, and
+  `plans/quickfix-improvements.md` owns list ergonomics; reconsider only if
+  that plan stalls or the problems-panel/references ask below wins out.
   - https://github.com/folke/trouble.nvim
-- ✅ **Done: Outline panel (persistent symbol tree)** → `stevearc/aerial.nvim`
-  Zed's right-side outline: an always-visible, collapsible tree of the buffer's
-  symbols (methods nested under their type), cursor-follow, kind-filtered to
-  structural symbols by default (Class/Function/Method/Interface/Struct/Enum/
-  Module/Constructor — same as VS Code's default, hiding locals/params/vars).
-  Chose aerial over `hedyhli/outline.nvim` for its treesitter-first backend
-  (works with no LSP attached). Docked left (alongside nvim-tree), persistent
-  (never auto-closes on jump).
-  We already have a fuzzy *picker* for this (`pickers/symbols.lua`, `<leader>ss`
-  workspace / `<leader>sS` document) — the popup search box — this adds the
-  persistent sidebar tree that was missing.
-  `<leader>o` toggles the sidebar, `<leader>O` the AerialNav popup, `]a`/`[a`
-  jump between symbols. Implemented in `lua/outline.lua` (2026-07-03).
-  (The originally-planned third keymap — a fuzzy picker over aerial's own
-  symbol source — was never bound: it was to be aerial's Telescope extension,
-  and the snacks migration dropped Telescope. `<leader>sb` is
-  `Snacks.picker.lines()`. The two `pickers/symbols.lua` maps cover the ask.)
-  - https://github.com/stevearc/aerial.nvim
-  - alt (not chosen): `hedyhli/outline.nvim` — lower Neovim version floor,
-    finer-grained inclusive/exclusive kind filtering, weaker picker integration.
-    https://github.com/hedyhli/outline.nvim
-  - alt: `trouble.nvim` symbols mode (`:Trouble symbols`) gives a near-identical
-    live outline for free if we install Trouble for the references panel above.
-- ✅ **Done: Git panel (stage/commit/diff in a pane)** → `neogit` + `diffview`
-  Zed shipped a real git panel in 2025; this config had only inline `gitsigns`
-  when the gap was written. Now a Magit-style operations dashboard in
-  `lua/gitui.lua` (`<leader>gg` status, `<leader>gc`/`gp`/`gu`/`gl`/`gd`/`gb`/
-  `gr`/`gw` popups, mnemonics mirroring the zsh git aliases), with `diffview`
-  for the rich diffs (`<leader>v*`). gitsigns still owns the gutter — Neogit's
-  own signs are disabled so the two don't stack.
-  - https://github.com/NeogitOrg/neogit
-- ✅ **Done: Native debugger** → `nvim-dap` + `nvim-dap-ui`
-  Zed shipped this in 2025; it was the largest lift on this list and it landed.
-  `lua/debugging.lua` owns the generic engine + docked UI (scopes, call stack,
-  breakpoints, watches, REPL); adapters live in the language modules
-  (`rust.lua`/codelldb, `golang.lua`/delve). Test running came with it via
-  `neotest` (+ `neotest-golang`). Still open, and now a genuine one-liner:
-  `nvim-dap-virtual-text` (see Smaller wishlist).
+- **Unified stacked edgebar** → `edgy.nvim` (folded in from the deleted
+  `unified-sidebar-panel.md`, 2026-07-18; full research in git history)
+  One docked edgebar hosting tree + outline + git + terminal as stacked,
+  collapsible, pinnable sections (`]w`/`[w` navigate the stack). The narrower
+  swap-in-place half (file-tree↔outline mutual exclusion) already shipped as a
+  manual wrapper — see GUIDE.md. Caveat: edgy docks by filetype, and nvim-tree
+  aggressively manages its own window (width, `QuitPre` auto-close) — either
+  relax that and let edgy own layout, or switch to neo-tree (what edgy is
+  documented against; note `telescope-vs-snacks-picker.md` §6 chose to *keep*
+  nvim-tree, so a neo-tree switch reopens that verdict). Open decisions:
+  nvim-tree vs neo-tree; fold the bottom terminal panel into edgy or leave it
+  standalone.
+  - https://github.com/folke/edgy.nvim
+- ✅ **Done: Outline panel** → `stevearc/aerial.nvim` (2026-07-03,
+  `lua/outline.lua`; `<leader>o`/`<leader>O`, `]a`/`[a` — see GUIDE.md).
+  Chosen over `hedyhli/outline.nvim` for the treesitter-first backend (works
+  with no LSP attached); trouble.nvim's symbols mode is a near-equivalent for
+  free if Trouble ever lands for the references panel above.
+- ✅ **Done: Git panel** → `neogit` + `diffview` (`lua/gitui.lua`: `<leader>gg`
+  + popups, `<leader>v*` diffs — see GUIDE.md). gitsigns still owns the gutter.
+- ✅ **Done: Native debugger** → `nvim-dap` + `nvim-dap-ui` + `neotest`
+  (`lua/debugging.lua` + per-language adapters in `rust.lua`/`golang.lua` —
+  see GUIDE.md). Still open, now a one-liner: `nvim-dap-virtual-text` (see
+  Smaller wishlist).
 
 ### Recommendation / priority
 
@@ -180,10 +164,6 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
   arbitrary build/lint/deploy commands with an output panel. Only worth it if
   that generic need shows up.
   - https://github.com/stevearc/overseer.nvim
-- **Rename with live preview (F2)** → `inc-rename.nvim`
-  VS Code's rename shows changes as you type. Native LSP rename has no live
-  preview. Small, focused.
-  - https://github.com/smjonas/inc-rename.nvim
 - **Zen / centered layout** → `zen-mode.nvim`. Minor, nice-to-have.
 
 ### Already covered (no action needed)
@@ -206,7 +186,6 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 2. `multicursor.nvim` — fills the biggest VS Code muscle-memory gap.
 3. ✅ `goto-preview` — peek definition/references; done (predates this doc's audit).
 4. `overseer.nvim` — only if running build/test tasks from the editor.
-5. `inc-rename.nvim` — small polish on LSP rename.
 
 ---
 
@@ -287,8 +266,9 @@ Add further sections here as more editors are reviewed.
 ## Editing power & motions
 
 From the LazyVim/LunarVim passes. Ordered roughly by payoff. Collision checks
-belong at implementation time against `plans/keymap-tracker.md` (the keymap
-inventory).
+belong at implementation time against GUIDE.md's keymap tables and the
+`<leader>sk` keybindings picker (keymap-tracker.md is tracker *research*, not
+an inventory).
 
 - **Surround add/change/delete** — the single biggest editing-power gap;
   nothing here can surround existing text (nvim-autopairs only *inserts*
@@ -323,6 +303,21 @@ inventory).
   (snacks already installed). Conflict: `]]`/`[[` are core section motions —
   confirm they're unused in your languages first.
 
+- **Leader-alias promotions — decide with usage data** (from
+  `keymap-tracker.md` Track C2; blocked on building that tracker first). Add
+  short *aliases* for the hottest pickers — keep `s*` canonical, zero
+  unlearning: `<leader>f` alongside `<leader>sf` (find files), `<leader>/`
+  alongside `<leader>sg` (grep; LazyVim/Helix precedent), maybe `<leader>.`
+  for picker-resume. Free top-level leader keys today: roughly
+  `f i j k l w x y z / , .`. Decide from the tracker's log, not anecdote —
+  40×/day on `sf` justifies `<leader>f` (and dodges which-key's ~300ms
+  partial-match wait on the `s` prefix); 4×/day doesn't.
+- **`<A-hjkl>` — resolve with data** (from `keymap-tracker.md` Track C3). If
+  the usage log shows zero invocations after a month, unmap — and consider
+  `<A-h>/<A-l>` for buffer prev/next (releasing `<S-h>/<S-l>`, restoring
+  native `H`/`L`) or window-swap. If they do get used, drop the
+  "speculative" label and keep them.
+
 ## Picker (snacks) — missing keymaps & sources
 
 From a 2026-07-13 pass over LazyVim's `extras/editor/snacks_picker.lua` (~45
@@ -332,7 +327,7 @@ frecency, width-flipping layout, the empty-until-typed `lines` source, plus the
 bespoke symbols/keybindings/gitstatus/buffer/theme pickers) — the gap is purely
 which stock snacks sources are bound. All of these are one-liners against
 already-installed snacks; the only real work is collision-checking keys against
-`plans/keymap-tracker.md`.
+GUIDE.md's keymap tables / the `<leader>sk` keybindings picker.
 
 Ordered by expected payoff:
 
@@ -474,28 +469,20 @@ GUIDE.md "Large files".
   ours registers later and runs after it on the same event, so it wins. Not
   yet applied/tested; low priority since the common paths already work.
 
-## See dedicated specs
-
-These have their own plan files — pointers only, not re-listed here:
-
-- **Persistent file bookmarks (harpoon)** → `plans/harpoon2.md`
-- **Quickfix / problems-list ergonomics** → `plans/quickfix-improvements.md`
-- **Semantic text objects (`af`/`if`/`ac`/… select, move, swap)** →
-  `plans/treesitter-textobjects.md` (LazyVim's mini.ai delta folded in there)
-- **Picker migration (telescope → snacks — done 2026-07), filter-preset rework,
-  and symbols-picker eval** → `plans/telescope-vs-snacks-picker.md`
-- **GUI-launched Neovide PATH/env** → `plans/neovide-path-env.md`
-- **Go debug + test stack** (delve, neotest-golang) → `plans/go-run-debug-test.md`
-  — **shipped**; the `nvim-dap` / `neotest` install traces back to it.
-- **Go run/debug targets picker** → `plans/go-targets-picker.md` — **shipped**
-  (`<leader>dR` in Go buffers). Narrows the `overseer.nvim` ask above.
-- **Startup performance** → `plans/nvim-startup-performance.md`
-- **Unified sidebar / edgebar (docking nvim-tree + aerial + trouble)** →
-  `plans/unified-sidebar-panel.md`
-- **cmux-inspired agent event pipeline (needs-input/done status per sidekick
-  session)** → `plans/sidekick-agent-event-pipeline.md` — look into soon.
-  Event pipeline only (Claude Code hooks → per-session registry); UI (status
-  bar, signs, desktop notification) is a follow-on once the pipeline exists.
+- **Sidekick CLI split↔float toggle (`<leader>aF`)** — folded in from the
+  deleted `sidekick-window-layout.md` (2026-07-18; full research in git
+  history). Open the CLI as a right-anchored float overlay instead of the
+  workspace-squishing right split: `cli.win.float = { width = 80,
+  height = 0.95, row = 0, col = 1 }` (`col = 1` pins it flush right where the
+  split sits today; optional `border = 'left'` for a visible edge), plus a
+  toggle flipping `right` ⇄ `float`. The toggle must mutate BOTH
+  `require('sidekick.config').cli.win.layout` (promotion autocmd + future
+  sessions) AND the live terminal's `opts.layout` via
+  `require('sidekick.cli.terminal').get(id)` — each session deepcopy-snapshots
+  the config at creation (sidekick terminal.lua:105) — then hide+show so
+  `open_win` re-runs. Caveats: `<C-h/j/k/l>` window-nav goes inert inside a
+  float (sidekick disables it there); the pre-warm flow is already
+  float-compatible.
 
 ## Learning / practice notes
 
