@@ -1,23 +1,17 @@
--- Claude-native `@file#L<n>`/`@file#L<a>-<b>` context ref builders, registered
--- as sidekick.nvim context overrides for `{position}`/`{function}`/`{class}`
--- (routed through by <leader>at (normal+visual), <leader>af, <leader>ac —
--- `{this}` maps to `{position}` for file buffers; wired in as `cli.context`
--- in ai.lua's sidekick.setup()).
+-- Claude-native `@file#L<n>`/`@file#L<a>-<b>` context refs, registered as
+-- sidekick cli.context overrides for `{position}`/`{function}`/`{class}` in
+-- ai.lua's setup — covers <leader>at/af/ac ({this} maps to {position} for
+-- file buffers).
 --
--- Why: sidekick's own renderers emit a `:L<row>:C<col>` location whose
--- column is off by one on the textobject path (1-based col fed straight into
--- an API wanting (1,0)-based), prefixed with a treesitter type/name that's
--- unreliable across languages. Claude Code's native mention shape is
--- `@relpath#L<n>`/`@relpath#L<a>-<b>` (sidekick's own `sk/cli/claude.lua`
--- hook already rewrites its `:L1-L2` output into exactly this for linewise
--- ranges) — so we emit that shape directly and skip sidekick's column
--- tracking and name lookup entirely.
+-- Why override: sidekick's own renderers emit an off-by-one column, a
+-- type/name prefix that's unreliable across languages, and only the START of
+-- a function/class. Claude Code's native mention shape is the line-granular
+-- `#L` form (sidekick's own claude hook already rewrites linewise ranges to
+-- it), so emit that directly.
 --
--- No `require('sidekick.*')` anywhere in this file: it must load during the
--- first-launch race where sidekick.nvim is still downloading (ai.lua's
--- packadd pcall) and be `require`-able from pickers without pulling in
--- ai.lua's setup side effects. `M.is_file` inlines sidekick's own
--- `Loc.is_file` rather than requiring `sidekick.cli.context.location`.
+-- No `require('sidekick.*')` anywhere: this must load while sidekick.nvim is
+-- still downloading (ai.lua's packadd pcall) and from pickers without
+-- ai.lua's side effects — M.is_file inlines sidekick's Loc.is_file.
 
 local M = {}
 
@@ -32,21 +26,17 @@ function M.ref(name, cwd, from, to)
   local ok, rel = pcall(vim.fs.relpath, cwd or vim.fn.getcwd(), name)
   if ok and rel and rel ~= '' and rel ~= '.' then name = rel end
 
-  -- Self-quote: sidekick's claude format hook only quotes chunks it has
-  -- highlighted `SidekickLocFile`; a plain-string context return like ours
-  -- bypasses that pass, so reproduce its own rule
-  -- (`str:find("[^%w/_%.%-]")`) here. Quotes wrap the NAME only — `#L…`
-  -- stays outside, matching Claude Code's native mention shape.
+  -- Self-quote: the claude format hook only quotes SidekickLocFile-highlighted
+  -- chunks, which plain-string returns bypass — reproduce its rule here.
+  -- Quotes wrap the NAME only; `#L…` stays outside.
   if name:find('[^%w/_%.%-]') then name = '"' .. name .. '"' end
 
   local ref = '@' .. name
-  -- `from ~= nil`, not truthiness: nil is the real "no line info" signal —
-  -- callers legitimately pass no `from` at all for file-only refs.
+  -- nil from = file-only ref (a legitimate caller shape, not an error).
   if from ~= nil then
     ref = ref .. '#L' .. from
-    -- `to and to ~= from`, in that order: `nil ~= 72` is true in Lua, so a
-    -- bare `to ~= from` would concatenate nil for from-only callers.
-    -- `to == from` collapses to a single line instead of `#L5-5`.
+    -- `to and to ~= from`: `nil ~= 72` is true in Lua (would concat nil for
+    -- from-only callers); `to == from` collapses to one line, not `#L5-5`.
     if to and to ~= from then ref = ref .. '-' .. to end
   end
   return ref
@@ -81,20 +71,15 @@ local function textobject(ctx, query)
   parser:parse()
   if not vim.treesitter.query.get(parser:lang(), 'textobjects') then return nil end
 
-  -- Trap: textobject_at_point wants a (1,0)-based pos (nvim_win_get_cursor's
-  -- convention — shared.lua only adjusts the row internally), but ctx.col is
-  -- 1-based. Sidekick's own textobject.lua passes ctx.col raw — that IS its
-  -- column off-by-one bug; do not copy that call.
+  -- textobject_at_point wants a (1,0)-based pos but ctx.col is 1-based, so
+  -- col - 1. (Sidekick passes ctx.col raw — that IS its off-by-one bug.)
   local shared = require('nvim-treesitter-textobjects.shared')
   local ok, range = pcall(shared.textobject_at_point, query, 'textobjects', ctx.buf, { ctx.row, ctx.col - 1 })
   if not ok or not range then return nil end
 
-  -- Range6 is 0-based, end-exclusive: [srow, scol, sbyte, erow, ecol, ebyte].
-  -- ecol > 0 means erow (0-based) IS the last content line -> 1-based last =
-  -- erow + 1. ecol == 0 means the end sits at col 0 of the line AFTER the
-  -- last content line, and that 0-based erow already equals that line's
-  -- 1-based number, so last = erow. Verified against fixtures/animal.go's
-  -- `func (z Zoo) Describe()` (1-based lines 70-76).
+  -- Range6 is 0-based, end-EXCLUSIVE: ecol > 0 → last 1-based line is
+  -- erow + 1; ecol == 0 → the end sits at col 0 of the line AFTER the last
+  -- content line, so last = erow. (Verified: animal.go Describe() → #L70-76.)
   local srow, _, _, erow, ecol = unpack(range)
   local last = ecol == 0 and erow or erow + 1
   return M.ref(vim.api.nvim_buf_get_name(ctx.buf), ctx.cwd, srow + 1, last)

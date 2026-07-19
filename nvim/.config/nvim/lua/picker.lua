@@ -55,10 +55,9 @@ local function confirm_and_scroll(picker, item, action)
 end
 
 -- Send the picker's current item (or multi-selection) to the active sidekick
--- CLI session as space-separated Claude-native mention refs (`@path` /
--- `@path#L<n>`, built by ai_context.lua — the same shape every other AI send
--- in this config uses, e.g. <leader>at/af/ac) — the sidekick README's <a-a>
--- integration, bound to <M-a> here to match the rest of this config.
+-- CLI as space-separated `@path`/`@path#L<n>` mentions (ai_context.lua — the
+-- same shape as the <leader>a* sends); the sidekick README's <a-a>
+-- integration, bound to <M-a> here.
 -- util.path() returns nil for non-file items (help tags, keymaps, ...), so
 -- those are skipped and the action no-ops gracefully on them.
 local function send_to_sidekick(picker)
@@ -67,8 +66,7 @@ local function send_to_sidekick(picker)
   for _, item in ipairs(items) do
     local path = Snacks.picker.util.path(item)
     if path then
-      -- item.pos is absent on some item kinds (e.g. <leader><leader> file
-      -- items) — ref()'s nil-`from` guard collapses that to a bare `@path`.
+      -- nil pos (e.g. plain file items) → ref() emits a bare `@path`.
       refs[#refs + 1] = require('ai_context').ref(path, picker:cwd(), item.pos and item.pos[1])
     end
   end

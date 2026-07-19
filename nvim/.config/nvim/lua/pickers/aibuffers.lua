@@ -6,26 +6,17 @@
 --   <Tab> toggle a row, <c-a> select/deselect all (snacks defaults), <CR> send
 --
 -- WHY
---   The old <leader>ab sent sidekick's `{buffers}` template var, which lists
---   EVERY open buffer wholesale — no way to exclude a scratch/unrelated file
---   from the send. This picker lets you choose which buffers go, using
---   ai_context.lua's `M.ref` for the same `@relpath` mention shape the other
---   send bindings use (file-only: no line numbers).
+--   The old <leader>ab sent sidekick's `{buffers}` var wholesale — no way to
+--   leave a scratch/unrelated file out. All rows start preselected, so bare
+--   <CR> keeps the old send-everything behavior; <Tab>/<c-a> narrow it.
+--   Preselecting must run in `picker:find({ on_done = ... })` — snacks'
+--   public post-matcher hook (fires immediately if already done) — because
+--   `list:select_all()` on a not-yet-populated list is a no-op.
 --
---   All rows start preselected, so bare <CR> (nothing toggled) reproduces the
---   old "send everything" behavior — <Tab>/<c-a> narrow it down from there.
---   Preselecting requires `picker:find({ on_done = ... })`: on_done fires
---   once the async matcher has actually populated the list (immediately if
---   it's already done), which matters because `list:select_all()` on an
---   empty/not-yet-populated list is a no-op. This is snacks' public hook —
---   do NOT reach into picker.matcher.task (private).
---
---   Deliberately no <M-N> quick-pick column and no <C-d> kill action, unlike
---   pickers/buffer.lua and pickers/gitstatus.lua: pickers/common.lua's
---   quick_pick_actions() does view(i) + confirm, and confirm here reads the
---   whole multi-selection — with every row preselected, <M-3> would send ALL
---   buffers, not just row 3. So this picker doesn't use
---   indexed_select/quick_pick_actions at all.
+--   Deliberately no <M-N> quick-pick / <C-d>, unlike the other pickers here:
+--   quick_pick_actions() does view(i) + confirm, and confirm reads the whole
+--   multi-selection — with every row preselected, <M-3> would send ALL
+--   buffers, not row 3.
 
 local ai_context = require('ai_context')
 
@@ -64,8 +55,7 @@ function M.open()
     end,
   })
 
-  -- Preselect every row once the finder's async matcher has actually
-  -- populated the list — see header comment.
+  -- Preselect all rows post-matcher — see header.
   picker:find({ on_done = function()
     if not picker.closed then picker.list:select_all() end
   end })
