@@ -94,13 +94,40 @@ local function textobject(ctx, query)
   return M.ref(vim.api.nvim_buf_get_name(ctx.buf), ctx.cwd, srow + 1, last)
 end
 
+-- Overrides `{quickfix}` (<leader>aq): sidekick's stock bullet list, with
+-- the `:L<n>:C<a>-C<b>` locations swapped for `#L` refs. Multi-line entry
+-- text is collapsed to one line (qf messages are effectively one-liners).
+local function quickfix(ctx)
+  local info = vim.fn.getqflist({ items = 0, title = 0 })
+  if not info.items or #info.items == 0 then return nil end
+  local lines = {}
+  local title = info.title or ''
+  if title ~= '' and not title:match('^:%S') then
+    lines[#lines + 1] = 'Quickfix: ' .. title
+  end
+  for _, item in ipairs(info.items) do
+    local name = item.bufnr and item.bufnr > 0 and vim.api.nvim_buf_get_name(item.bufnr) or ''
+    local from = item.lnum and item.lnum > 0 and item.lnum or nil
+    local to = item.end_lnum and item.end_lnum > 0 and item.end_lnum or nil
+    local parts = { '-', name ~= '' and M.ref(name, ctx.cwd, from, to) or '@[No Name]' }
+    if item.type and item.type ~= '' then
+      parts[#parts + 1] = ('[%s]'):format(item.type:upper())
+    end
+    local text = (item.text or ''):gsub('%s+', ' '):gsub('%s+$', '')
+    if text ~= '' then parts[#parts + 1] = text end
+    lines[#lines + 1] = table.concat(parts, ' ')
+  end
+  return lines
+end
+
 -- Looked up by name from Config.cli.context BEFORE sidekick's own built-ins
--- (sidekick/cli/context/init.lua M.fn) — these three keys cover
--- <leader>at/af/ac.
+-- (sidekick/cli/context/init.lua M.fn) — these keys cover
+-- <leader>at/af/ac/aq.
 M.overrides = {
   position = position,
   ['function'] = function(ctx) return textobject(ctx, '@function.outer') end,
   class = function(ctx) return textobject(ctx, '@class.outer') end,
+  quickfix = quickfix,
 }
 
 return M
