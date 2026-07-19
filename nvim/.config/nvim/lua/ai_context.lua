@@ -12,6 +12,15 @@
 -- No `require('sidekick.*')` anywhere: this must load while sidekick.nvim is
 -- still downloading (ai.lua's packadd pcall) and from pickers without
 -- ai.lua's side effects — M.is_file inlines sidekick's Loc.is_file.
+--
+-- Drift risk (nothing asserts these — read this first when a send regresses):
+-- this module assumes sidekick keeps (a) Config.cli.context checked BEFORE
+-- built-ins (cli/context/init.lua M.fn), (b) {this} → {position} for file
+-- buffers, (c) the ctx shape (1-based row/col, row-normalized range), and
+-- (d) nvim-treesitter-textobjects' textobject_at_point signature. Every
+-- failure is soft — sends fall back to stock :L:C format, or af/ac no-op
+-- with "Nothing to send." — so if either symptom appears after a plugin
+-- update, one of these internals moved.
 
 local M = {}
 
