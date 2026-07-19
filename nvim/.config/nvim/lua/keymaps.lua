@@ -410,6 +410,11 @@ vim.keymap.set('n', '<leader>aq',
 -- Editing utilities (<leader>u)
 local edit = require('edit')
 
+-- Bound here rather than with the other pickers under <leader>s*: reaching for
+-- undo history is editing recovery, not search. See GUIDE.md "Undo history".
+vim.keymap.set('n', '<leader>uu', function() Snacks.picker.undo() end,
+  { desc = 'Utilities: Undo history' })
+
 -- x (visual only, not select mode) — using a :cmd RHS so '</'> marks are
 -- set correctly before the substitution runs.
 vim.keymap.set('x', '<leader>us', [[:s/\s\+$//e<CR>]],

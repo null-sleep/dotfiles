@@ -691,6 +691,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
 | `<leader>tl`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
+| `<leader>uu` | Undo history picker | keymaps.lua | [Picker (snacks.nvim)](#picker-snacks) → Undo history |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
 | `<leader>tz`, `]s`/`[s`, `zg`, `z=`, `1z=`, `zw` | Spell checking | built-in + spell.lua | [Spell checking](#spell-checking) |
 | `<leader>tg` | Toggle indent guides + current-scope highlight | keymaps.lua (options in picker.lua) | [Indent guides (snacks.nvim)](#indent-guides) |
@@ -1250,6 +1251,38 @@ wholesale.
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
+| `<leader>uu` | Undo history — browse this buffer's undo states, fuzzy-matched by the *content* of each change. See below; it's the one picker not under `<leader>s*` |
+
+### Undo history
+
+`<leader>uu` opens `Snacks.picker.undo()` over the current buffer's undo
+tree — the payoff for `undofile`/`undolevels = 10000` in `configs.lua`, which
+were writing history nothing ever read.
+
+Rows are undo states (seq number, timestamp, added/removed line counts) with
+an upside-down tree gutter, newest first. The prompt fuzzy-matches the **text
+of the added and removed lines**, not the metadata: type a word you remember
+deleting and you land on the state that deleted it. The preview is a real
+unified diff.
+
+**The reason to reach for it is yank-without-restore.** `<C-y>` puts the
+state's *added* lines in a register, `<C-S-Y>` the *removed* lines — the
+buffer is never touched. Recovering a deleted function means yanking it and
+pasting where it belongs now, instead of time-travelling the whole file
+backwards and losing everything since. `<CR>` does restore the state, when
+that's genuinely what you want.
+
+Two notes on how it sits in the config:
+
+- **Bound under `<leader>u`, documented under the pickers.** Every other
+  picker is `<leader>s*`, and `<leader>su` was free. The keymap follows
+  intent, the docs follow implementation: you press this because you *lost*
+  something, not because you're searching for something, and `<leader>s*` is
+  muscle memory for "find a thing in the project".
+- `<C-y>` is bound globally to `copy_path` in `picker.lua`, but snacks applies
+  per-source config after the global layer, so the undo source's `yank_add`
+  wins here. `<M-a>` (send to sidekick) still works and sends the *file* path —
+  it says nothing about which undo state you were looking at.
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy
