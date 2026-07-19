@@ -25,6 +25,12 @@ vim.keymap.set('n', '<leader>sd', function() require('pickers.symbols').document
 vim.keymap.set('n', '<leader>so', function() Snacks.picker.recent() end, { desc = 'Search: Recent files' })
 vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
   { desc = 'Search: Themes' })
+-- <C-q> from a picker fills these lists; these read them back with fuzzy
+-- filter + preview. Raw window: <leader>tq. See GUIDE.md "Quickfix: picker vs. window".
+vim.keymap.set('n', '<leader>sq', function() Snacks.picker.qflist() end,
+  { desc = 'Search: Quickfix list' })
+vim.keymap.set('n', '<leader>sl', function() Snacks.picker.loclist() end,
+  { desc = 'Search: Location list' })
 
 -- Clear search highlights and close any floating windows (hover, diagnostics, etc.)
 -- Sets b:hover_suppressed so CursorHold hover doesn't immediately reopen the float.
@@ -291,6 +297,19 @@ vim.keymap.set('n', '<leader>ta', function()
   vim.g.sidekick_nes = enabling
   vim.notify('AI completions ' .. (enabling and 'ON' or 'OFF'))
 end, { desc = 'Toggle: AI completions (inline + NES)' })
+
+-- Toggle the quickfix window; winid == 0 means "not open" (:help getqflist()).
+-- Empty-list guard: :copen would open a blank split. botright matches the
+-- window snacks' own <C-q> action opens, so both keys land the same split.
+vim.keymap.set('n', '<leader>tq', function()
+  if vim.fn.getqflist({ winid = 0 }).winid ~= 0 then
+    vim.cmd('cclose')
+  elseif vim.fn.getqflist({ size = 0 }).size == 0 then
+    vim.notify('Quickfix list is empty')
+  else
+    vim.cmd('botright copen')
+  end
+end, { desc = 'Toggle: Quickfix window' })
 
 -- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
 vim.keymap.set('n', '<leader>ts',

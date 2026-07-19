@@ -721,6 +721,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
 | `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
+| `<leader>tq` | Toggle the quickfix window (`]q`/`[q` walk entries) — see [Quickfix: picker vs. window](#picker-quickfix) | keymaps.lua |
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
@@ -1250,6 +1251,8 @@ wholesale.
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns. Coverage gotchas: after a session restore only the LSPs of *visited* files join the fan-out ([Session](#session)), and servers match declaration names only — `impl` blocks and fields show up in `<leader>sd`, never here |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
+| `<leader>sq` | Quickfix list — fuzzy-filter + preview what `<C-q>` put there; see [Quickfix: picker vs. window](#picker-quickfix) |
+| `<leader>sl` | Location list — same, for the window-local list `<leader>cd` fills |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 | `<leader>uu` | Undo history — browse this buffer's undo states, fuzzy-matched by the *content* of each change. See below; it's the one picker not under `<leader>s*` |
 
@@ -1283,6 +1286,22 @@ Two notes on how it sits in the config:
   per-source config after the global layer, so the undo source's `yank_add`
   wins here. `<M-a>` (send to sidekick) still works and sends the *file* path —
   it says nothing about which undo state you were looking at.
+
+<a id="picker-quickfix"></a>
+### Quickfix: picker vs. window
+
+Both read the same list. `<leader>sq` is a transient float with fuzzy filter
+and preview — for narrowing a haystack: `<leader>sg` grep → `<C-q>` sends 200
+matches → `<leader>sq`, type `auth` → 12 left, preview, `<CR>` jumps.
+
+`<leader>tq` toggles the real quickfix split — for grinding a worklist: it
+stays visible while `]q`/`[q` walk entries and marks your position. The picker
+can't do that (it closes on every jump); the window can't fuzzy-filter. Note
+`<C-q>` already opens the window, so the first `<leader>tq` after it *hides*
+it. `q` inside the window closes it too (`autocmds.lua`).
+
+On an empty list `<leader>tq` notifies instead of opening a blank split;
+`<leader>sq` gets snacks' own "No results found".
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy
