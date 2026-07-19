@@ -267,6 +267,7 @@ All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-st
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/review-pr/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 | `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
