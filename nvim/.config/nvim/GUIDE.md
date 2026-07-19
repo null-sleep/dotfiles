@@ -95,6 +95,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). snacks as picker, right-split layout
+- **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
+- **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
@@ -1393,7 +1395,7 @@ list — bindings below are the daily set):
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
 | `<C-q>` | Send multi-selection (or all results if none selected) to the quickfix list and open it |
 | `<C-d>` | In the buffer picker: delete the highlighted buffer (or all multi-selected) |
-| `<M-a>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `path:line` refs |
+| `<M-a>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `@path`/`@path#L<n>` refs |
 | `<C-y>` | Copy the highlighted entry's path to the system clipboard, cwd-relative — the string the list displays, and what `yp` yanks for the open buffer. Closes the picker; no-ops on path-less rows (help tags, keymaps) |
 | `<a-h>` / `<a-i>` | Toggle hidden / ignored files (files and grep; shown as flags in the title) |
 | `<a-p>` / `<a-m>` | Toggle preview / maximize the picker |
@@ -2231,20 +2233,25 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |
 | `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
-| `<leader>at` | Send position (normal) or selection (visual) to CLI |
+| `<leader>at` | Send `@file#L<n>` cursor ref (normal) or `@file#L<a>-<b>` selection ref (visual) |
 | `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |
-| `<leader>af` | Send enclosing function (needs nvim-treesitter-textobjects) |
-| `<leader>ac` | Send enclosing class (needs nvim-treesitter-textobjects) |
+| `<leader>af` | Send enclosing function as `@file#L<start>-<end>` (needs nvim-treesitter-textobjects) |
+| `<leader>ac` | Send enclosing class as `@file#L<start>-<end>` (needs nvim-treesitter-textobjects) |
 | `<leader>ae` | Send buffer diagnostics (`e`, mirrors `<leader>ce`) |
-| `<leader>ab` | Send list of open buffers |
+| `<leader>aE` | Send workspace-wide diagnostics (capital `ae`, wider scope) |
+| `<leader>ab` | Pick open buffers to send as `@relpath` mentions (all preselected; `<Tab>` toggle, `<C-a>` all) |
+| `<leader>as` (visual) | Send the literal selected text (visual `<leader>at` sends a ref instead) |
 | `<leader>aq` | Send quickfix list |
-| `<M-a>` (in picker) | Send picker selection(s) to CLI |
+| `<M-a>` (in picker) | Send picker selection(s) to CLI as `@path`/`@path#L<n>` refs |
 
-`<leader>af`/`<leader>ac` send a *position reference* (type + name +
-`file:line`) for the function/class at the cursor, not the code body; outside
-any function/class the send is a benign no-op. They resolve via
-`nvim-treesitter-textobjects` (packadd'd in `plugins.lua`); the other send
-targets come from sidekick's own `cli/context` module.
+`<leader>af`/`<leader>ac` send a `@file#L<start>-<end>` ref for the
+function/class at the cursor (resolved via `nvim-treesitter-textobjects`,
+packadd'd in `plugins.lua`), not the code body; outside any function/class
+the send is a benign "Nothing to send." no-op. The refs come from
+`ai_context.lua`, which replaces sidekick's own renderer (off-by-one column,
+unreliable cross-language name extraction) with Claude Code's native `#L`
+mention shape; the non-positional send targets still use sidekick's stock
+`cli/context` module.
 
 ### NES vs Copilot inline completion
 
