@@ -22,6 +22,7 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # `brew trust` (newer Homebrew gates these).
 tap "1jehuang/mmdr", trusted: true             # mmdr — native-Rust Mermaid renderer
                                                # (see the mmdc shim in zsh/.local/bin).
+tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
 
 #-----------------------------------------------------------------------------
 # Core CLI — shell, search, dotfiles management
@@ -108,6 +109,7 @@ cask "rustrover"       # JetBrains Rust IDE
 cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
+cask "tabularis"        # database GUI client (test driving); tap in Taps above
 
 #-----------------------------------------------------------------------------
 # Utilities

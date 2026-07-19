@@ -34,7 +34,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [viu](#viu) · [yknotify](#yknotify)
+- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [Tabularis](#tabularis) — [MCP integration](#mcp-integration) · [viu](#viu) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -1146,6 +1146,43 @@ rg 'TODO' -ttest           # only test files, any language
 ripgrep type globs match the file *name* only, so directory conventions (Rust's `tests/`, Go's `testdata/`) and Rust's inline `#[cfg(test)]` unit tests aren't captured — see the comments in [`ripgrep/.config/ripgrep/ripgreprc`](ripgrep/.config/ripgrep/ripgreprc). List every type (built-in + custom) with `rg --type-list`.
 
 New to ripgrep, or want to use it well? See the example-heavy guide at [`docs/ripgrep.md`](docs/ripgrep.md) — search basics, regex, file types (and defining your own), glob anchoring, and a task cookbook.
+
+## Tabularis
+
+**Under testing** — evaluating as a database GUI client; no config or stow package.
+
+```bash
+brew tap TabularisDB/tabularis
+brew install --cask tabularis
+```
+
+[Tauri/Rust](https://tabularis.dev) desktop client. PostgreSQL,
+MySQL/MariaDB, and SQLite are built in; Redis and others (ClickHouse,
+DuckDB, Firestore, …) ship as bundled plugins — no separate install.
+SQL editor, data grid, notebooks, visual query builder/EXPLAIN, schema/ER
+diagrams, an AI SQL assistant, SSH/Kubernetes tunneling, and an MCP server
+mode. Credentials live in the OS keychain, not on disk.
+
+### MCP integration
+
+Tabularis ships its own MCP server — an AI client launches `tabularis --mcp`
+directly (stdio JSON-RPC, no network port), so there's no separate service
+to run. Enable via Settings → MCP → Install Config (auto-patches the
+client's config), or manually:
+
+```json
+{
+  "mcpServers": {
+    "tabularis": { "command": "/path/to/tabularis", "args": ["--mcp"] }
+  }
+}
+```
+
+Exposes read-only connection/schema resources plus `list_tables`,
+`describe_table`, and `run_query` (capped at 100 rows) tools, with an audit
+log, read-only mode, and approval gates as safety knobs. See
+[tabularis.dev/wiki/mcp-server](https://tabularis.dev/wiki/mcp-server) for
+more.
 
 ## viu
 
