@@ -351,13 +351,25 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set('n', '<C-d>', send_to_claude('\27[6~'),
       { buffer = args.buf, desc = 'AI: Scroll Claude TUI down' })
 
-    -- u in normal mode: forward Ctrl+_ (0x1F), Claude Code's chat:undo — vim's
-    -- own undo can only throw E21 here (terminal buffers are unmodifiable).
-    -- Caveats: 0x1F is the DEFAULT chat:undo binding (rebindable in
-    -- ~/.claude/keybindings.json), and it only means undo while Claude's input
-    -- box has focus — mid-stream/dialog states may no-op it.
+    -- u: forward Ctrl+_ (0x1F, chat:undo — pinned in the stowed
+    -- claude/.claude/keybindings.json) — vim's own undo would just E21 in an
+    -- unmodifiable terminal buffer. Only undoes while Claude's input box has
+    -- focus. <C-r> stays unmapped: Claude has no redo to forward.
     vim.keymap.set('n', 'u', send_to_claude('\31'),
       { buffer = args.buf, desc = 'AI: Undo prompt input (sends Ctrl+_)' })
+
+    -- p/P (identical here — no before/after-line in a prompt): bracketed-paste
+    -- v:register ("ap pastes @a; default unnamed) into Claude's input;
+    -- bracketing makes embedded newlines insert instead of submitting.
+    local function paste_to_claude()
+      local text = vim.fn.getreg(vim.v.register)
+      if text == '' then return end
+      send_to_claude('\27[200~' .. text .. '\27[201~')()
+    end
+    vim.keymap.set('n', 'p', paste_to_claude,
+      { buffer = args.buf, desc = 'AI: Paste register into prompt (bracketed)' })
+    vim.keymap.set('n', 'P', paste_to_claude,
+      { buffer = args.buf, desc = 'AI: Paste register into prompt (bracketed)' })
   end,
 })
 

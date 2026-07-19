@@ -2189,10 +2189,12 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
    `<leader>ad` path — there's no fast in-panel teardown.
    In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
    instead of hitting the unmodifiable terminal buffer: `u` sends Ctrl+_
-   (Claude's input-undo — vim's own `u` would just throw E21 here), and
-   `<C-u>`/`<C-d>` send PageUp/PageDown to scroll Claude's view. `u` only
-   means undo while Claude's input box has focus; mid-stream or dialog
-   states may ignore it.
+   (Claude's input-undo — vim's own `u` would just throw E21 here; the
+   binding is pinned in the stowed `claude/.claude/keybindings.json`),
+   `p`/`P` bracketed-paste a register into the prompt (yank in a code
+   buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
+   PageUp/PageDown to scroll Claude's view. `u` only means undo while
+   Claude's input box has focus; mid-stream or dialog states may ignore it.
    There is **no tool launcher**: `ai.lua` prunes `cli.tools` to `claude`, which
    left sidekick's launcher (formerly `<leader>as`) with nothing `<leader>aa`
    doesn't do. See "Sidekick's session backends shell out on every lookup" for
@@ -2225,6 +2227,7 @@ Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
 | `<M-n>` (in CLI) | New auto-numbered session in place (labels stay on `<leader>an`) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
 | `u` (in CLI, normal mode) | Forward Claude's input-undo (Ctrl+_) — vim's `u` would only E21 in a terminal buffer |
+| `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |
 | `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
