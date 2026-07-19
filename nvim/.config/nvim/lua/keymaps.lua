@@ -343,10 +343,12 @@ vim.keymap.set('n', '<leader>an',
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
   { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
--- No <leader>as (sidekick's tool launcher): ai.lua prunes cli.tools to claude,
--- so it could only offer what <leader>aa already does. Restore it alongside a
--- tool name in cli.tools. See GUIDE.md "Sidekick's session backends shell out
--- on every lookup".
+-- No NORMAL-mode <leader>as (sidekick's tool launcher): ai.lua prunes
+-- cli.tools to claude, so it could only offer what <leader>aa already does.
+-- Restore it alongside a tool name in cli.tools. See GUIDE.md "Sidekick's
+-- session backends shell out on every lookup". (Visual-mode <leader>as is a
+-- different binding, below — sidekick's launcher has no visual-mode meaning
+-- to reserve against.)
 -- close() kills the terminal process, deletes the buffer, and detaches the
 -- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
 -- show/hide without losing state. Guarded with a floating confirm popup
@@ -363,11 +365,16 @@ vim.keymap.set('n', '<leader>ao', function()
   end })
 end, { desc = 'AI: Select prompt' })
 
--- Send-context bindings. Each forwards a sidekick template variable to the
--- active CLI (see sidekick's cli/context/init.lua for the full var list).
+-- Send-context bindings. sidekick's template variables ({position},
+-- {function}, {class}, ...) are routed through ai_context.lua's overrides
+-- (registered as cli.context in ai.lua's sidekick.setup()), which build
+-- Claude-native `@file#L<n>`/`@file#L<a>-<b>` mentions instead of sidekick's
+-- own type/name+:L:C renderers — see ai_context.lua's header for why.
 -- {this} covers both cases:
---   normal mode → {position}; visual mode → {selection}
--- so a separate {selection} binding isn't needed.
+--   normal mode → {position} → a cursor-line ref; visual mode → a
+--   line-range ref for the selection
+-- so a separate {selection} REFERENCE binding isn't needed (see <leader>as
+-- below for the literal-TEXT alternative).
 vim.keymap.set({ 'n', 'x' }, '<leader>at',
   function() require('ai').send({ msg = '{this}' }) end,
   { desc = 'AI: Send this (position or selection)' })
@@ -376,8 +383,9 @@ vim.keymap.set('n', '<leader>ap',
   function() require('ai').send({ msg = '{file}' }) end,
   { desc = 'AI: Send file (path)' })
 -- {function}/{class} need nvim-treesitter-textobjects (packadd'd in plugins.lua).
--- They send a position reference (type + name + file:line) for the textobject
--- at the cursor; outside any function/class the send is a benign no-op.
+-- They send a `@file#L<start>-<end>` line-range ref for the textobject at the
+-- cursor (ai_context.lua's textobject()); outside any function/class the send
+-- is a benign no-op (sidekick warns "Nothing to send.").
 vim.keymap.set('n', '<leader>af',
   function() require('ai').send({ msg = '{function}' }) end,
   { desc = 'AI: Send enclosing function' })
@@ -388,9 +396,20 @@ vim.keymap.set('n', '<leader>ac',
 vim.keymap.set('n', '<leader>ae',
   function() require('ai').send({ msg = '{diagnostics}' }) end,
   { desc = 'AI: Send buffer diagnostics' })
+-- {diagnostics_all} on <leader>aE — E = everywhere/workspace (capital mirrors
+-- the ae pair: same var family, wider scope).
+vim.keymap.set('n', '<leader>aE',
+  function() require('ai').send({ msg = '{diagnostics_all}' }) end,
+  { desc = 'AI: Send workspace diagnostics' })
 vim.keymap.set('n', '<leader>ab',
-  function() require('ai').send({ msg = '{buffers}' }) end,
-  { desc = 'AI: Send open buffers' })
+  function() require('pickers.aibuffers').open() end,
+  { desc = 'AI: Send open buffers (picker)' })
+-- Visual-only: the literal selected TEXT (not a file+line-range reference —
+-- that's visual <leader>at). Useful for non-file buffers (scratch, terminal)
+-- or when the exact snippet matters more than pointing the CLI at a location.
+vim.keymap.set('x', '<leader>as',
+  function() require('ai').send({ msg = '{selection}' }) end,
+  { desc = 'AI: Send selection text (literal code)' })
 vim.keymap.set('n', '<leader>aq',
   function() require('ai').send({ msg = '{quickfix}' }) end,
   { desc = 'AI: Send quickfix list' })
