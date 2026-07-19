@@ -1,42 +1,13 @@
 # Plan: Ghostty follow-ups — leftover items + features not yet used
 
-## Why Ghostty
+**Status:** shrunk 2026-07-18 — cut the "Why Ghostty"/"Context" background,
+the zero-config feature listings (§2.1/2.2/2.7 bodies), and the
+files-touched/sources appendices. Open items and decision records kept;
+Part 1 §3 kept in full (only surviving record of the parked image pipeline).
 
-Ghostty ([ghostty.org](https://ghostty.org/)), by Mitchell Hashimoto
-(Terraform/Vagrant), aims to be **fast, feature-rich, and native** at once —
-most terminals pick two: Alacritty is fast/native but minimal, iTerm2 is
-feature-rich but not GPU-accelerated, Electron terminals are feature-rich but
-neither fast nor native. Its core, `libghostty` (Zig), is wrapped natively per
-platform — Swift/AppKit on macOS — so this Mac gets real `NSWindow` tabs,
-native splits, and Metal GPU rendering.
-
-What that buys here:
-- **Speed you feel.** Metal rendering → 120Hz scrolling, sub-2ms input
-  latency, ~3x iTerm2's throughput. Matters for large `git diff`/`rg`/build
-  scrollback.
-- **Kitty graphics protocol.** iTerm2 can't do this at all — it's the only
-  reason inline-mermaid rendering (Part 1 §3) is possible here.
-- **Zero-config defaults.** Most of what iTerm2 needed a settings pane for
-  (text editing, split/tab shortcuts) is a sane macOS default — why the
-  original migration ported almost nothing.
-- **Actively shipping.** 1.2 (late 2025) added the command palette and
-  quick-terminal — real features that landed after the migration plan was
-  written and never got evaluated, hence Part 2.
-
-Ghostty is now the *only* terminal in this repo — iTerm2 was uninstalled and
-fully de-referenced (see `plans/README.md`).
-
-## Context
-
-Supersedes `plans/ghostty.md` (the iTerm2→Ghostty migration plan, now
-**deleted** — fully shipped). That plan left two things undone: genuine open
-items (status bar, `ApplePressAndHoldEnabled`, a parked image feature), and
-zero coverage of Ghostty capabilities beyond iTerm2 parity, since porting
-iTerm2 was its whole frame.
-
-Part 1 carries that leftover work forward. Part 2 is new: features
-`ghostty +show-config --default` (1.3.1, verified on this machine) exposes
-that `ghostty/.config/ghostty/config` doesn't touch.
+Supersedes `plans/ghostty.md` (the iTerm2→Ghostty migration plan, deleted —
+fully shipped). Ghostty is the only terminal in this repo; iTerm2 was
+uninstalled and de-referenced (see `plans/README.md`).
 
 ---
 
@@ -206,44 +177,26 @@ Notes:
 
 # Part 2 — Ghostty features not currently used
 
-Verified against `ghostty +show-config --default` (1.3.1, this machine) and
-cross-checked against `ghostty/.config/ghostty/config`, which sets only: font,
-theme, window size/padding, cursor style, `macos-option-as-alt`,
-`scrollback-limit`, `confirm-close-surface`, `quit-after-last-window-closed`,
-and one keybind (`shift+enter`). Everything below is Ghostty's out-of-the-box
-default — no upgrade needed, all available today.
+Verified against `ghostty +show-config --default` (1.3.1, this machine),
+2026-07-15. §2.x numbers are stable — cut items keep their headings as
+tombstones so cross-references (root `README.md` cites §2.4/§2.8) don't
+shift.
 
-## 2.1 Command Palette — `Cmd+Shift+P` (already bound, zero config)
+## 2.1 Command Palette — zero-config, adopted silently
 
-Added in 1.2. Searchable list of every keybind action, including unbound
-ones — 80+ entries on this build. Highest-value zero-effort item here: a
-live cheat sheet for everything else in this section. Try it first.
+`Cmd+Shift+P` (1.2+), works out of the box; body cut 2026-07-18.
 
-## 2.2 Split Zoom — `Cmd+Shift+Enter` (already bound, zero config)
+## 2.2 Split Zoom — zero-config, adopted silently
 
-Temporarily maximizes the focused split without closing others
-(`toggle_split_zoom`, same shortcut to undo). No conflict with the
-`shift+enter=text:\n` binding — different modifier combo. Useful for the
-nvim+Claude split workflow (Part 1 §3): zoom in on whichever pane needs
-attention, zoom back out.
+`Cmd+Shift+Enter` (`toggle_split_zoom`), works out of the box; body cut
+2026-07-18.
 
-## 2.3 Quick Terminal — needs one keybind to enable
+## 2.3 Quick Terminal — tried (2026-07-18), reverted
 
-Global drop-down/quake-style terminal, summonable from any app. iTerm2 never
-had this configured (`Has Hotkey = False`), so it's new territory, not a port.
-Needs a `global:`-prefixed keybind to register system-wide:
-
-```ini
-keybind = global:cmd+backquote=toggle_quick_terminal
-```
-
-Tunable alongside it (all at defaults, none set): `quick-terminal-position`
-(`top`), `quick-terminal-animation-duration` (`0.2s`), `quick-terminal-autohide`
-(`true`).
-
-Tried 2026-07-18 (`cmd+backslash` / `center`, replacing nvim's `<C-\>` float)
-and reverted the same week — went back to nvim's `<C-\>` floating terminal +
-`<C-/>` bottom panel instead (`nvim/.config/nvim/lua/terminal.lua`).
+Global drop-down terminal via a `global:`-prefixed keybind
+(`toggle_quick_terminal`). Tried `cmd+backslash` / `center` (replacing nvim's
+`<C-\>` float) and reverted the same week — back to nvim's `<C-\>` floating
+terminal + `<C-/>` bottom panel (`nvim/.config/nvim/lua/terminal.lua`).
 
 ## 2.4 `window-save-state` — adopted (2026-07-15)
 
@@ -258,22 +211,19 @@ window-save-state = always
 
 ## 2.5 Background opacity + blur — declined (2026-07-15)
 
-`background-opacity`/`background-blur` (defaults `1`/`false`) — translucent
-blur is a common macOS terminal look, but **rejected, never wanted**. Staying
+`background-opacity`/`background-blur` — rejected, never wanted. Staying
 opaque; no action.
 
 ## 2.6 `unfocused-split-opacity` — confirmed active (2026-07-15)
 
-Default `0.7`. **Confirmed on-machine — inactive splits are visibly dimmed
-already**, no config needed. Useful beyond looks: makes it obvious which
-split is focused, the exact ambiguity behind the Part 1 §3 image blocker.
+Default `0.7`, confirmed on-machine — inactive splits already dim, no config
+needed.
 
-## 2.7 Custom shaders — cosmetic, low priority
+## 2.7 Custom shaders — cosmetic completeness listing, cut
 
-`custom-shader` (GLSL, unset) runs per-frame effects — cursor trails, CRT
-scanlines. Community collection:
-[awesome-ghostty](https://github.com/fearlessgeekmedia/awesome-ghostty).
-Not a priority, listed for completeness.
+Body cut 2026-07-18; see
+[awesome-ghostty](https://github.com/fearlessgeekmedia/awesome-ghostty) if
+ever wanted.
 
 ## 2.8 macOS window chrome
 
@@ -288,31 +238,9 @@ Not a priority, listed for completeness.
 
 - `macos-non-native-fullscreen` (default `false`, **not adopted**) — in-place
   borderless fullscreen instead of macOS Spaces-based fullscreen. Faster
-  toggle, no Space-switch animation, but loses per-Space window tracking.
-  Situational.
+  toggle, but loses per-Space window tracking. Situational.
 
 ## 2.9 `auto-update-channel` — already `stable`, no action
 
-Not a gap — confirmed already on the `stable` channel (Ghostty's default).
-Listed so it isn't rediscovered as an open question later.
-
----
-
-## Files likely touched, if Part 2 items are adopted
-
-| File | Change |
-|---|---|
-| `ghostty/.config/ghostty/config` | whichever of §2.3–2.8 get adopted |
-| `README.md` → `## Ghostty` | document any new keybind/setting, same-change rule per root `CLAUDE.md` |
-| `nvim/.config/nvim/lua/picker.lua` | Part 1 §3 resume, if picked back up |
-
-## Sources (Part 2 research)
-
-- [Ghostty — official site](https://ghostty.org/)
-- [About Ghostty](https://ghostty.org/docs/about)
-- [Ghostty GitHub repository](https://github.com/ghostty-org/ghostty)
-- [Ghostty 1.2.0 release notes](https://ghostty.org/docs/install/release-notes/1-2-0) — command palette, quick terminal
-- [Ghostty config reference](https://ghostty.org/docs/config/reference)
-- [Ghostty keybind reference — `global:` prefix](https://ghostty.org/docs/config/keybind/reference)
-- [awesome-ghostty — shaders/tools collection](https://github.com/fearlessgeekmedia/awesome-ghostty)
-- `ghostty +show-config --default` / `ghostty +show-config` / `ghostty +list-actions` — run directly on this machine, Ghostty 1.3.1, 2026-07-15
+Confirmed already on the `stable` channel (Ghostty's default); listed so it
+isn't rediscovered as an open question later.

@@ -14,6 +14,9 @@ still just research — see the Status line above for what's shipped.
 
 ---
 
+> Shrunk 2026-07-18: shipped-work narrative in §1/§2 compressed to stubs
+> (GUIDE.md owns the shipped docs; full narrative in git history).
+
 ## Current state (for gap reference)
 
 Already in this config:
@@ -37,37 +40,17 @@ Already in this config:
 
 ### 1. Already there, just needs wiring — SHIPPED 2026-07-17
 
-**Structural search & replace.** rust-analyzer ships its own semantic SSR
-over LSP (`rust-analyzer/ssr`), and rustaceanvim already exposes it:
+**Structural search & replace** — shipped as `<leader>cs` (`rust.lua`), a thin
+wrapper over rust-analyzer's semantic `:RustLsp ssr` (name-resolution-aware —
+in that respect stronger than RustRover's). See GUIDE.md → Rust → "Structural
+search & replace (SSR)". Syntactic / multi-language runners-up if ever wanted:
+`ast-grep` (+ `grug-far.nvim` for a UI) or `cshuaimin/ssr.nvim`
+(treesitter-only; its own docs say prefer the LSP version).
 
-```
-:RustLsp ssr 'foo($a,$b) ==>> ($a).foo($b)'
-```
-
-Whole-workspace in normal mode, selection-scoped in visual mode. It's
-**name-resolution-aware**, not just AST-shape matching — paths must
-resolve, so in one respect it's stronger than RustRover's SSR. This is a
-config/muscle-memory gap, not an ecosystem one; no new plugin required.
-
-**Shipped as `<leader>cs`** in `rust.lua` — a thin wrapper around `:RustLsp
-ssr` with no query arg (rustaceanvim's own `ssr` command already falls back
-to `vim.ui.input` when called with none). See GUIDE.md → Rust → "Structural
-search & replace (SSR)".
-
-Runners-up if a syntactic (not resolution-aware) or multi-language tool is
-ever wanted: `ast-grep` (`sg`) via `ast-grep-lsp` + `MagicDuck/grug-far.nvim`
-for a find/replace UI, or `cshuaimin/ssr.nvim` as a treesitter-only
-fallback (its own docs say prefer the LSP version when available).
-
-**Batch clippy fixes / workspace diagnostics.** `cargo clippy --fix
---workspace --allow-dirty --allow-staged` on a keymap covers most of
-RustRover's "fix all in project" — it applies every `Applicability::
-MachineApplicable` suggestion across the whole workspace in one shot (skips
-ambiguous/semantics-changing fixes, which need eyeballing anyway).
-
-**Shipped as `<leader>cF`** in `rust.lua` — runs the command above in a
-floating terminal (fixed id 102) from the nearest `Cargo.toml`'s directory.
-See GUIDE.md → Rust → "Batch-fixing clippy lints".
+**Batch clippy fixes** — shipped as `<leader>cF` (`rust.lua`): `cargo clippy
+--fix --workspace --allow-dirty --allow-staged` in a floating terminal (fixed
+id 102) from the nearest `Cargo.toml`. See GUIDE.md → Rust → "Batch-fixing
+clippy lints". Full shipped narrative for both: git history.
 
 Separately, rust-analyzer's `checkOnSave` already runs `cargo clippy
 --workspace` and publishes diagnostics for the **whole project**, not just
@@ -93,38 +76,17 @@ the diagnostics already exist, there's just no panel surfacing them yet.
 
 ### 2. Extract/inline refactors — mostly there, add a preview UI — SHIPPED 2026-07-17
 
-rust-analyzer exposes almost all of these as LSP code actions already:
-`extract_function`, `extract_variable`, `extract_constant`, `extract_module`,
-`extract_type_alias`, `extract_struct_from_enum_variant`, `inline_call`,
-`inline_into_callers`, `inline_local_variable`, `inline_macro`,
-`inline_type_alias`. (Extract assists need a visual selection — several only
-appear in visual mode, which is why they can look "missing.") `:RustLsp
-codeAction` (already in `rust.lua`) renders rust-analyzer's *grouped*
-assists, which plain `vim.lsp.buf.code_action` can't.
-
-What's missing is RustRover's diff-preview-before-apply.
-
-**Shipped** as [`aznhe21/actions-preview.nvim`](https://github.com/aznhe21/actions-preview.nvim)
-(`backend = { 'snacks' }`, `lsp.lua`) — global `<leader>ca`/`gra` now show a
-diff before applying. It can't render rustaceanvim's grouped picker, so Rust
-keeps both: `<leader>ca` for the grouped picker, `<leader>cp` (new) for the
-flat list with a preview. See GUIDE.md → LSP and → Rust → "Code action preview".
-
-Along the way, review surfaced a real latent bug this depended on:
-`rust.lua`'s overrides were set on `FileType`, but `lsp.lua`'s `LspAttach`
-handler rebinds the same keys on every attach, and a Rust buffer attaches
-*two* clients (rust-analyzer, then copilot) — both after `FileType` already
-fired. The global handler always won, silently reverting Rust's `K`/
-`<leader>ca` to plain LSP defaults. Fixed by moving the trigger to
-`LspAttach` itself. See GUIDE.md → Design Decisions → "Rust keymaps fire on
-LspAttach, not FileType".
-
-(Alternative not taken: [`rachartier/tiny-code-action.nvim`](https://github.com/rachartier/tiny-code-action.nvim)
-— picker respecting `refactor.extract`/`refactor.inline` kinds, with
-preview. `nvim-code-action-menu` is unmaintained — skip it.)
-
-There is **no first-class "change signature"** assist in rust-analyzer
-(only add-parameter-ish helpers) — see genuine gaps below.
+rust-analyzer already exposes the whole extract/inline family as LSP code
+actions (extract assists need a visual selection — why they can look
+"missing"); `:RustLsp codeAction` renders the *grouped* assists. The missing
+diff-preview-before-apply shipped as `actions-preview.nvim`
+(`backend = { 'snacks' }`, `lsp.lua`): `<leader>ca` keeps the grouped picker,
+`<leader>cp` adds the flat list with preview. See GUIDE.md → LSP, → Rust →
+"Code action preview", and → Design Decisions → "Rust keymaps fire on
+LspAttach, not FileType" (the latent-bug record found along the way).
+(Alternative not taken: `tiny-code-action.nvim`; `nvim-code-action-menu` is
+unmaintained — skip.) There is **no first-class "change signature"** assist
+in rust-analyzer — see genuine gaps below.
 
 ### 3. Debugger visuals — mostly there, rougher UX
 

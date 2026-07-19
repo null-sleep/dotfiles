@@ -1,151 +1,41 @@
 # Speed up nvim startup + session restore (`<leader>qs`)
 
+**Status (shrunk 2026-07-18):** Phase 1 — de-colliding the startup/restore window —
+**shipped and verified in full** (commits and verification record in "Post-landing
+status + design review" below). Phase 2 — the on-demand module deferrals — is
+**parked for good**, with its revival trigger recorded in the same section. This doc
+was cut to roughly half on 2026-07-18: the Phase 1 triage tables and step-by-step
+spec are spent and live in this file's git history; what remains is the verified
+mechanics, the unshipped Phase 2 spec, the Q&A rationale (kept for posterity), and
+the post-landing record.
+
 ## Context — what the profiling found
 
-Headless startup is ~124ms with **everything loading eagerly**. Top costs from `--startuptime`:
-`plugins.lua` 37ms, `lsp.lua` 19ms, `gitui.lua` (neogit+diffview) 11ms, `completion.lua` 8.6ms,
-`testing.lua` (neotest) 7.6ms, `debugging.lua` (dap+dap-ui) 5.8ms, `filetree.lua` 3.6ms.
+Headless startup was ~124ms with everything loading eagerly, but the sluggish *feel* —
+especially `<leader>qs` — was a **startup collision**, not module load time: the
+claude-CLI pre-warm (~1–2s of node CPU at +100ms), the toggleterm shell pre-warm,
+mason-tool-installer's daily ~19-package update check, and `configs.lua`'s background
+checks all landed in the same window as the async storm session restore triggers
+(rust-analyzer indexing, Copilot LSP, lua_ls, treesitter/gitsigns per buffer). Phase 1
+rescheduled that eager work out of the window; the Phase 2 deferrals below are a
+~22ms once-per-session polish at the edge of perception.
 
-The past-7-days commits are **not** the regression: snacks.nvim adds 0.5ms, the sidekick/statusline
-component is a cheap per-redraw pcall, the keybindings-picker work only affects picker open. The
-sluggish *feel* — especially `<leader>qs` — is a **startup collision**, mostly from older code:
+An Opus adversarial review verified every plugin-level gotcha empirically (neogit
+`did_setup` lock-in, plugin-phase clobbering of init-time command overrides, nvim-tree
+pre-setup error notify, toggleterm `spawn()` non-idempotency, mason `start_delay`,
+persistence Load events). Debugging (dap) deferral was dropped: for a Rust-first user
+its 5.8ms would be reloaded ~2s after the first `.rs` buffer anyway, and its dap-ui
+listener wiring has five entry points (incl. unguarded `:Dap*` commands) — highest
+risk, no real gain.
 
-1. **`ai.lua` pre-warms the `claude` CLI 100ms after startup** (heavy node process, ~1–2s of CPU),
-   and `terminal.lua` pre-warms a toggleterm shell at 100ms — exactly when you press `<leader>qs`.
-2. **Session restore itself is cheap** (~130ms sync, sessions are a few KB) — the slowness is the
-   async storm it triggers: rust-analyzer indexing, Copilot LSP (node), lua_ls, gitsigns/treesitter
-   per buffer, all competing with the claude spawn.
-3. **`mason-tool-installer` `auto_update`**: when the 24h debounce expires, ~19 package update
-   checks spawn right at startup (explains "sometimes it's much worse").
-4. **`configs.lua` runs a 500ms forever-timer** calling `:checktime` on all buffers, plus
-   `check_nvim_update()` spawns `brew info` in the startup window (once/24h).
-
-An Opus adversarial review of the first draft verified every plugin-level gotcha empirically
-(neogit `did_setup` lock-in, plugin-phase clobbering of init-time command overrides, nvim-tree
-pre-setup error notify, toggleterm `spawn()` non-idempotency, mason `start_delay`, persistence
-Load events) and re-prioritized: **the de-collision work is the actual fix for the felt problem;
-the module deferrals are a ~22ms once-per-session polish.** The plan below reflects that order.
-Debugging (dap) deferral was dropped: for a Rust-first user its 5.8ms would be reloaded ~2s after
-the first `.rs` buffer anyway, and its dap-ui listener wiring has five entry points (incl.
-unguarded `:Dap*` commands) — highest risk, no real gain.
-
-Key mechanic (verified): `vim.pack.add` puts every plugin on the rtp and sources its `plugin/`
-files during startup regardless of our `packadd` calls — so deferral targets the `require()`/
-`setup()` work, plugin commands still exist, and `require()` resolves at any time.
+Key mechanic (verified): `vim.pack.add` puts every plugin on the rtp and sources its
+`plugin/` files during startup regardless of our `packadd` calls — so deferral targets
+the `require()`/`setup()` work, plugin commands still exist, and `require()` resolves
+at any time.
 
 ---
 
-## Triage — risk vs. payoff
-
-Ratings below were grounded against the actual `ai.lua` / `terminal.lua` / `configs.lua` code,
-not just the plan's self-assessment; the claims check out.
-
-**Pre-warming is preserved.** Nothing here removes the sidekick-CLI or toggleterm pre-warms —
-#1 and #2 only *reschedule* them out of the `<leader>qs` collision window. This is a hard
-constraint: keep both pre-warms.
-
-### Phase 1 — de-collide (the felt fix)
-
-| # | Change | Payoff (felt fix) | Risk | Notes from the code |
-|---|--------|-------------------|------|---------------------|
-| **1** | `ai.lua` — reschedule claude pre-warm (persistence events + race guards) | **Highest** — the ~1–2s node spawn is *the* dominant collision cost | **Highest** in Phase 1 | Touches the monkey-patched `open_win`, the `_G.__sidekick_prewarm` flag that bridges `cli.show`'s two schedule hops, plus two *new* guards over a widened 3s window. Most moving parts by far. |
-| **3** | `lsp.lua` — `start_delay = 30000` on mason-tool-installer | **High** for the "sometimes much worse" tail (≈19 spawns) | **Minimal** | One option, verified in plugin source. Best risk-adjusted item in the whole plan. 30s (not 3s) so it clears the rust-analyzer indexing tail too; 30–60s all fine. |
-| **2** | `terminal.lua` — stagger shell pre-warm 100→2000ms + spawn guards | **Medium-low** — shell spawn is cheap CPU; mostly avoids piling on | **Low** | `ensure_bottom_term()` already exists as the single-source-of-truth guard for the panel; only the float (`id=1`) needs the new `get(1, true)` idempotency check. Small surface. |
-| **4** | `configs.lua` — defer `check_nvim_update` 5000ms (clean win) + checktime first-fire 500→2000ms | **Low** — `check_nvim_update` defer is pure win; checktime bump only de-collides the first all-buffer stat sweep out of restore (steady-state effect is nil, mildly regresses AI-review latency) | **Minimal** | Two independent changes — keep distinct. Existing `_G` timer re-source guard is already there to copy. `1000ms` is a middle option for the checktime half. See step 4 + Q&A. |
-
-### Phase 2 — optional polish (all ~once-per-session, edge-of-perception ~22ms)
-
-| # | Change | Payoff | Risk |
-|---|--------|--------|------|
-| **5** | `utils.lua` — `lazy_setup` helper | enabler, trivial | Minimal (must precede 6–8) |
-| **6** | `gitui.lua` — defer neogit (11ms) | best of Phase 2 | Moderate — `:Neogit` `did_setup` lock-in needs the `UIEnter`-once override |
-| **7** | `testing.lua` — defer neotest (~15-19ms since Go landed) | now second-best | Moderate |
-| **8** | `filetree.lua`/`outline.lua` — defer nvim-tree (3.6ms) | smallest | Moderate — `is_ready()` guard |
-
-### Recommended order
-
-**Phase 1 cheap→delicate: #3 → #4 → #2 → #1**, one commit per step (they're mutually
-independent). This banks the two zero-risk wins and the tail-latency fix (#3) with certainty
-*before* the one genuinely delicate edit (#1), and lets you measure after each. Caveat: if only
-one thing gets done, #1 is *the* fix — it's just the one most worth doing last, with full
-attention.
-
-**Then stop and measure** the `<leader>qs` feel in a Rust repo before touching Phase 2. Phase 2
-is a once-per-session ~22ms trim at the edge of perception; #1+#3 are what actually addresses the
-felt slowness. If Phase 1 fixes the feel, Phase 2 is optional. If done, order is **#5 → #6 → #7 →
-#8** (descending payoff).
-
----
-
-## Phase 1 — de-collide the startup/restore window (the felt fix)
-
-### 1. `ai.lua` — move claude pre-warm off the restore window
-- Replace `vim.defer_fn(..., 100)` with a re-schedulable 3000ms one-shot uv timer, following
-  `configs.lua`'s `_G` stop/close re-source guard; **also close the handle inside its own callback
-  after firing** (the first draft leaked it until re-source).
-- `User PersistenceLoadPre` → stop timer; `PersistenceLoadPost` → reschedule (events verified in
-  persistence.nvim source) — so `<leader>qs` pushes the claude spawn to 3s *after* restore.
-- **Race guards (both required — the 3s window makes them reachable):**
-  - At pre-warm start: skip entirely if a `sidekick_terminal` buffer already exists.
-  - Mid-pre-warm: `<leader>aa` during the show→hide window could open into the hidden-float
-    override or get hidden by the trailing `cli.hide`. Re-check before the trailing
-    `cli.hide`/cleanup: if a visible sidekick CLI appeared during the window, skip the hide and
-    clear the `_G.__sidekick_prewarm` flag immediately.
-
-### 2. `terminal.lua` — stagger shell pre-warm (100ms → 2000ms)
-- Staggered before claude's 3000ms so the spawns don't land together.
-- Add "user got there first" guards: `Terminal:spawn()` is **not** idempotent (verified) — check
-  `require('toggleterm.terminal').get(1, true)` for the float and bufnr validity for the bottom
-  panel before spawning. (Trade-off, acceptable: `<C-\>` within the first 2s pays a cold spawn.)
-
-### 3. `lsp.lua` — `start_delay = 30000` on mason-tool-installer
-Option verified in plugin source (`vim.defer_fn(check_install, start_delay)`); moves the daily
-~19-package update check out of the startup window. Extend the existing comment.
-
-**Push it well past restore, not just 3s.** The update is pure nice-to-have maintenance (already
-debounced to once/24h; the installed tools work regardless), so there's no reason to keep it near
-the front. 3s clears the ~130ms restore but can still land on the *tail* of the async storm —
-rust-analyzer indexing on a real Rust repo runs 10s+, and this is the once-a-day heavy case
-("sometimes it's much worse"). `30000` (30s) clears that tail and also sits well past the claude
-pre-warm at 3s, so no cross-collision. The value isn't sensitive — anywhere in **30–60s** is
-right; lean `60000` if a large-repo rust-analyzer index is the norm. By 30s the editor is warm, so
-the mostly-async install burst is absorbed far better than at 3s; quick edit-and-quit sessions
-(<30s) simply skip the check and catch up next long session. Note the 30–60s reasoning in the
-comment so the number isn't a mystery later.
-
-### 4. `configs.lua` — cheaper background checks
-
-This step is really two independent changes with different payoffs; keep them distinct.
-
-- **`check_nvim_update` defer (the clean win).** Wrap `require('utils').check_nvim_update()` in
-  `vim.defer_fn(..., 5000)` — it's already async, but this moves the `brew info` process spawn off
-  the startup window. Its own 24h/headless guards still apply at fire time. Pure de-collision, no
-  downside.
-
-- **checktime poll timer 500ms → 2000ms (a startup-sweep de-collision, *not* a steady-state win).**
-  Be honest about what this buys: the poll is **mostly redundant** with the event autocmds
-  (`FocusGained/BufEnter/CursorHold/CursorHoldI` + `TermClose/TermLeave`, `configs.lua:42-57`),
-  so during active use its interval barely matters. Its real value is at startup: the timer starts
-  with `:start(500, 500, …)` (`configs.lua:68`), so the **first** all-buffer `checktime` sweep
-  (which stats *every* open buffer against disk) currently lands 500ms in — potentially mid-restore,
-  statting every buffer of a freshly restored session. Bumping the initial delay to 2000ms moves
-  that sweep out of the restore storm. That is the justification; the "fewer wakes 2/s → 0.5/s" is
-  a tiny ongoing bonus, not the point.
-  - **Trade-off for AI-heavy editing** (files rewritten by sidekick / claude in other terminals):
-    the poll is the *sole* detector only in the "focused, idle, watching a buffer being edited"
-    regime — after the single `CursorHold` fires (300ms, one-shot-per-idle-period, *not* a
-    repeating poll), external-change detection then falls to the timer, so 500→2000ms stretches
-    that latency 0.5s → 2s. `FocusGained` still instantly re-checks the *unfocused* case on return;
-    only the focused-and-watching case leans on the timer. If that latency bites, **1000ms** is a
-    reasonable middle (still delays first-fire past the worst of restore, caps idle-detection at
-    1s). See the Q&A section for the full regime analysis.
-
-**Land Phase 1, measure the `<leader>qs` feel in a rust repo, then decide whether Phase 2 is
-still wanted** (it's a once-per-session ~22ms trim, at the edge of perception).
-
----
-
-## Phase 2 (optional polish) — defer on-demand modules (~22ms)
+## Phase 2 (parked) — defer on-demand modules (~22ms)
 
 ### 5. `utils.lua` — add `M.lazy_setup(fn)`
 Returns a memoized `ensure()`: runs `fn` on first call, no-ops after (module-local flag, resets on
@@ -196,25 +86,11 @@ nvim-tree — revisit only if Phase 2 proves worthwhile).
   rewording; new Design Decisions subsection ("On-demand modules set up on first use"); first-use
   notes in the Neogit/Rust-testing/nvim-tree/toggleterm/AI/LSP Part 2 sections.
 - nvim `CLAUDE.md`: reword the "rust before testing" bullet.
-- Copy this plan into `plans/` in the repo (house workflow).
 
-## Workflow
-Per-change commits with `Part-of:` body trailers (no subject numbering): roughly one commit per
-numbered step, docs included in the commit that changes the behavior. Pause before verification.
-Phase 1 steps are mutually independent; in Phase 2, step 5 precedes 6–8.
+## Verification (Phase 2, if revived)
 
-## Verification
+Steps 5 precedes 6–8; Phase 1's verification checklist all passed 2026-07-10 (see below).
 
-Phase 1:
-1. Collision test: in a rust repo, start nvim → immediately `<leader>qs`; claude appears ~3s after
-   restore completes (watch `ps aux | grep claude`), `<leader>aa` at ~5s is instant, `<C-\>` warm.
-2. Race guards: `<leader>aa` within 2s → CLI not hidden at 3s and not opened into a hidden float;
-   `<C-\>` early → exactly one shell #1 (`:lua =#require('toggleterm.terminal').get_all(true)`).
-3. `debounce_hours = 0` temporarily → mason update check fires ~30s in, not at startup; revert.
-4. checktime: external edit while nvim idle/unfocused reloads within ~2s.
-5. Re-source ai/terminal/configs twice — single autocmd registrations, no timer-leak errors.
-
-Phase 2:
 6. `nvim --startuptime` before/after — gitui/testing/filetree drop (~22ms total), nothing new >1ms.
 7. First-press smoke tests: `<leader>gg/gc/gq` (config applied: tab kind, no gutter signs),
    `<leader>vv/vp/vq` (unchanged path), `<leader>nn/ns/nd` in a Cargo project, `<leader>e` both
@@ -326,9 +202,10 @@ often enough that the poll is redundant. One correction to the intuition, though
 **one-shot-per-idle-period** (fires once, 300ms after your last movement), *not* a repeating 300ms
 poll. So the poll is the *sole* detector in exactly one regime — **focused, idle, watching a
 buffer being rewritten** — where, after that single `CursorHold`, detection latency falls to the
-timer. That's why the interval bump is reframed as a **startup** win (delay the first all-buffer
-stat sweep out of restore, see step 4), not a steady-state one, and why it's a mild *regression*
-(0.5s → 2s) in that one AI-review regime — with `1000ms` offered as a hedge.
+timer. That's why the interval bump was framed as a **startup** win (the shipped Phase 1 step 4
+delayed the first all-buffer stat sweep, 500→2000ms, out of restore), not a steady-state one, and
+why it's a mild *regression* (0.5s → 2s) in that one AI-review regime — with `1000ms` offered as
+a hedge.
 
 ---
 
