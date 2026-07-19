@@ -72,8 +72,14 @@ off or delete them as they land; add new ones freely.
   that plan defers the `o`/`d`/next-last text objects to it.
 - [ ] **Evaluate [atone.nvim](https://github.com/XXiaoA/atone.nvim)** — a modern
   undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
-  bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
-  not a swap — worth a look purely on "can I see and navigate my edit history".
+  bookmarks). Narrowed 2026-07-19: `<leader>uu` now opens `Snacks.picker.undo()`
+  (see GUIDE.md → Picker → "Undo history"), so the question is no longer "can I
+  see my edit history" but **does a tree panel + persistent node marks add
+  anything over the picker** — the picker flattens branch topology and has no
+  bookmarks, which is exactly what atone would buy. Decide after living with it.
+  Note the built-in `:Undotree` is *not* a free alternative: it doesn't exist on
+  0.12.4 (probed with `nvim --clean`; absent from `$VIMRUNTIME/plugin`) — it's a
+  nightly/0.13 feature, so recheck on the next release bump.
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
   existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
   itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not
