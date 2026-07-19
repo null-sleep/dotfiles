@@ -11,17 +11,6 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Confirm all machines have migrated**, then delete
-  [review-remediation-migration.md](review-remediation-migration.md) (it's a
-  one-time checklist that says to delete itself once every machine has pulled +
-  migrated).
-- [x] **Add the `ghostty` stow package** — a plain-text, macOS-native terminal
-  that follows macOS light/dark on its own. *(Shipped 2026-07 — Ghostty is the
-  primary terminal, the dead `kitty` package is removed, and (2026-07-15)
-  iTerm2 itself is fully cut over: uninstalled and every reference to it
-  removed from the repo. Both flagged risks came out clean: `Catppuccin Latte`
-  and `Dracula` are Title-Case built-ins. Leftover items + unused-feature
-  eval moved to [ghostty-followups.md](ghostty-followups.md).)*
 - [ ] **Render images + mermaid diagrams in nvim under Ghostty** —
   [ghostty-followups.md](ghostty-followups.md) Part 1 §3. **PARKED
   (2026-07-15):** the render pipeline works (native-Rust `mmdr` via an `mmdc`
@@ -63,6 +52,8 @@ off or delete them as they land; add new ones freely.
 - [ ] **Wire treesitter text objects and navigation** — `af`/`if`, `ac`/`ic`,
   `aa`/`ia`, `al`/`il` select, plus `]f`/`[f`/`]F`/`[F`/`]k`/`[k` jump. Plugin
   already installed. See [treesitter-textobjects.md](treesitter-textobjects.md).
+  Related: the [mini.ai](https://github.com/nvim-mini/mini.ai) eval below —
+  that plan defers the `o`/`d`/next-last text objects to it.
 - [ ] **Evaluate [atone.nvim](https://github.com/XXiaoA/atone.nvim)** — a modern
   undo-tree UI (treesitter-powered live diff previews, auto buffer attach, node
   bookmarks). We have **no undo-tree plugin at all** today, so this is additive,
@@ -201,9 +192,3 @@ actually real. Detail for each lives in
   `<leader>dR`/`<leader>cR` debug/run any `main` package in the module via an
   async `go list`. Kept for the `go list -e` exit-code trap and delve's
   `program`-must-be-a-folder contract.
-
-## Process / one-time
-
-- [review-remediation-migration.md](review-remediation-migration.md) — one-time
-  cross-machine post-pull migration checklist; deletes itself once every machine
-  has migrated.
