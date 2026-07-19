@@ -78,9 +78,9 @@ either/or.
 - **Preview window** — float showing the target file with syntax
   highlighting as you move through the list, without leaving quickfix.
 - **fzf-mode filtering** (`zf`) — fuzzy-filter the list down live, requires
-  the `fzf` binary (already on this machine via Homebrew, same as fzf-lua's
-  dependency noted in `telescope-vs-snacks-picker.md` §5) — optional, degrades
-  gracefully without it.
+  the `fzf` binary (already on this machine via Homebrew — it was fzf-lua's
+  dependency in the picker research, `telescope-vs-snacks-picker.md`) —
+  optional, degrades gracefully without it.
 - **Sign-based multi-select** (`<Tab>`) to build a new filtered quickfix list
   from a subset of items.
 - Recommends pairing with `nvim-treesitter` for preview highlighting — already
