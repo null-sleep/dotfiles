@@ -730,6 +730,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
+| `<leader>tn` | Toggle relative line numbers (`number` stays on, so the cursor line shows its absolute number) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
 | `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
 | `<leader>tq` | Toggle the quickfix window (`]q`/`[q` walk entries) — see [Quickfix: picker vs. window](#picker-quickfix) | keymaps.lua |
@@ -2034,6 +2035,7 @@ under a descriptive, non-colliding name.
 | `<leader>Gb` | Branch popup | `gcb` / `gnb` | `b` checkout / `c` create / `x` delete |
 | `<leader>Gr` | Rebase popup | `grb` | pick target (onto branch, interactive, ...) |
 | `<leader>Gw` | Worktree popup | `gw` | `c` create / `d` delete / etc. |
+| `<leader>Gq` | Closes Neogit — not a popup; the leader-namespaced twin of plain `q`, so both git views close alike | — | — |
 
 **These are only mnemonic parallels, not equivalent actions.** Every alias
 above runs its git command immediately; every `<leader>G*` mapping opens a
@@ -2136,6 +2138,7 @@ so the two tools stay visually distinct:
 | `<leader>vn` | Last N commits, squashed (flow 3 below) |
 | `<leader>vh` | Walk each of the last N commits (flow 3 below) |
 | `<leader>vf` | Current file's history |
+| `<leader>vc` | Cycle the 2-way layout, side-by-side ↔ stacked (leader-namespaced alternative to the default `g<C-x>`) |
 | `<leader>vq` | Close the active Diffview |
 
 **Feeding N to `vn`/`vh`:** a Vim count prefix wins — `5<leader>vn` opens
