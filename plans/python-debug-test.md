@@ -14,23 +14,8 @@
 > design question "what *is* a Python run target?" is unanswered, and is parked
 > in [Deferred](#deferred-targets-picker).
 >
-> **Adversarially reviewed three times (2026-07-14), pre-implementation.** Each pass
-> found a blocker in the previous pass's *fix*, which is the argument for having run
-> them:
-> - **Pass 1** — a pyright `before_init` that reassigned `config.settings` instead of
->   mutating it (so the plan's centrepiece silently sent pyright nothing), and a module
->   cycle that could permanently disable Python debugging for a session. Plus a
->   `<leader>dR` that duplicated `<F5>`.
-> - **Pass 2** — the resolver's `vim.fs.find` used a *function* predicate, which types
->   entries from scandir and therefore **skips a symlinked `.venv`** outright.
-> - **Pass 3** — the table form still walks to `/`: with no `stop`, one stray `~/.venv`
->   becomes the interpreter for **every** venv-less project (pyright, debugpy and pytest
->   at once). And `warn_if_unsynced` stat'd `<root>/.venv` directly, so it lied at every
->   uv **workspace member** and every `venv/`-named project. Both fixed in §2. Pass 3
->   also found that two comments defended invariants that *cannot be violated* — a
->   rationale that is wrong is worse than none, because it's what hid the walk bug.
->
-> Findings that shaped the design are flagged **[review]** where they land.
+> **Adversarially reviewed three times (2026-07-14), pre-implementation; all
+> findings folded in below.**
 
 ## Context
 
@@ -73,8 +58,7 @@ never heard of uv keeps working with zero special-casing.
 
 ### Upstream facts (source-verified, July 2026)
 
-Every claim below was read out of upstream source, not docs prose, and survived
-two adversarial passes.
+Every claim below was read out of upstream source, not docs prose.
 
 - **nvim-dap-python** (`mfussenegger/nvim-dap-python`, module `dap-python`) —
   **publishes no git tags** (the GitHub tags API returns `[]`), so it cannot be
@@ -97,10 +81,10 @@ two adversarial passes.
     instead — but note it is consulted **third**, after `VIRTUAL_ENV` (L100) and
     `CONDA_PREFIX` (L104), and those two are used **with no stat**.
   - `M.resolve_python()` is called **with no arguments**, so it resolves against
-    whatever buffer is current at launch [review — matters for the deferred
-    picker; see there].
+    whatever buffer is current at launch — matters for the deferred picker; see
+    there.
   - `setup()` never stats the adapter binary. **A `pcall` around it cannot catch
-    a missing debugpy** [review] — that surfaces as a spawn error at `<F5>` time.
+    a missing debugpy** — that surfaces as a spawn error at `<F5>` time.
 - **debugpy is cross-interpreter by design.** The adapter launches the debuggee
   as `<debuggee python> <the ADAPTER's launcher path>`
   (`debugpy/adapter/launchers.py:85-87`), so **the project venv does not need
@@ -123,8 +107,8 @@ two adversarial passes.
     session-long memoization in `base.lua:26`. A string return is wrapped into a
     list for you (`init.lua:26-28`). It is re-evaluated on **every discovery and
     every run** (`adapter.lua:63,85`) — i.e. **per discovered file**, which is
-    why the resolver must be cheap [review].
-  - **A second cache** [review]: `stored_runners` (`base.lua:179-198`) memoizes
+    why the resolver must be cheap.
+  - **A second cache**: `stored_runners` (`base.lua:179-198`) memoizes
     pytest-vs-unittest per python-command **for the session**, decided by shelling
     out `python -c "import pytest"`. Two consequences: `pip install pytest` after
     nvim started → stuck on unittest until restart; and a *broken* interpreter
@@ -133,7 +117,7 @@ two adversarial passes.
     (`base.lua:167-177`) — **first table wins**. `justMyCode = false` lands (not a
     base key), but `cwd`, `python`, `program`, `args`, `type`, `request`, `name`
     **cannot be overridden**, and `cwd` is hard-coded to **nvim's cwd**, not the
-    test root [review].
+    test root.
   - `console` **is** an addable key there — and adding it would **break test
     output** [review]: neotest's dap strategy captures the debuggee via
     `dap.listeners.after.event_output` (`neotest/client/strategies/dap/init.lua:64`),
@@ -141,17 +125,17 @@ two adversarial passes.
     Leave `console` off neotest's config.
   - Its own `filter_dir` excludes `venv` but **not `.venv`** (`adapter.lua:58-60`),
     while `is_test_file` matches any `test_*.py`/`*_test.py` (`base.lua:6-13`) — so
-    discovery walks into `.venv/**/site-packages` [review].
+    discovery walks into `.venv/**/site-packages`.
 - **neotest core**: `discovery.filter_dir` is **ANDed** with the adapter's, not a
   replacement (`neotest/client/init.lua:276-281`), and `config.projects`'
   metatable falls back to the global config (`config/init.lua:468-472`). Default
-  is `nil`, so adding a global one clobbers nothing [review — verified].
+  is `nil`, so adding a global one clobbers nothing.
 - **pyright** — the working settings key is **`python.pythonPath`** (nested under
   `python`), per `pyright/docs/settings.md:41`. Changing it needs **no restart**:
   `onDidChangeConfiguration` → `updateSettingsForAllWorkspaces()`
   (`languageServerBase.ts:725-731`), and nvim-lspconfig ships the command that
   pokes it: `:LspPyrightSetPythonPath <path>`.
-  - **The trap** [review]: settings must be **mutated in place** in `before_init`.
+  - **The trap**: settings must be **mutated in place** in `before_init`.
     `Client.create` binds `settings = config.settings` *once* (nvim 0.12
     `lsp/client.lua:409`), and everything that ships settings reads
     `client.settings` (`client.lua:601-602`, `handlers.lua:235-246`). Reassigning
@@ -659,7 +643,7 @@ Per the nested `CLAUDE.md`:
   (GUIDE.md:2122-2127 shows `require('dap-python').setup('uv')` — already wrong,
   since that's the trap; and :2179-2180 for neotest). Once Python ships, a recipe
   demonstrating an installed language reads as a bug — the trap the Go plan hit
-  (`go-run-debug-test.md:264-267`). **Rewrite both as language-agnostic skeletons**
+  (`go-run-debug-test.md` → "What actually shipped"). **Rewrite both as language-agnostic skeletons**
   (`dap.adapters.<x>` + `dap.configurations.<ft>`; "if the plugin registers both
   itself, see `golang.lua`/`python.lua`") citing the **shipped** Go/Python wiring
   [review — pointing them at Elixir would swap a stale example for an *untested*
