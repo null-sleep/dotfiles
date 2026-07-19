@@ -207,11 +207,9 @@ vim.keymap.set('n', '<leader>bo', function()
 end, { desc = 'Buffer: Close others' })
 
 -- File tree: opens and reveals current file, or closes if already open.
--- Only one left-edge sidebar at a time: opening the tree closes whichever
--- other sidebar is showing (symmetric with outline.lua's <leader>o). Guarded
--- on the tree not already being visible, so this only fires on the OPEN edge
--- of the toggle — closing the tree never reaches into the others. See
--- GUIDE.md "Left-edge sidebars swap into each other".
+-- Only one left-edge sidebar at a time (symmetric with outline.lua's
+-- <leader>o). Guarded on the tree not already being visible, so this fires on
+-- the OPEN edge only. GUIDE.md "Left-edge sidebars swap into each other".
 vim.keymap.set('n', '<leader>e', function()
   local nvim_tree_api = require('nvim-tree.api')
   if not nvim_tree_api.tree.is_visible() then

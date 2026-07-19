@@ -71,17 +71,15 @@ off or delete them as they land; add new ones freely.
   Related: the [mini.ai](https://github.com/nvim-mini/mini.ai) eval below —
   that plan defers the `o`/`d`/next-last text objects to it.
 - [ ] **Decide whether the undo tree panel earns its slot** — atone.nvim
-  shipped 2026-07-19 on `<leader>uU` (GUIDE.md → "Undo tree (atone)"),
-  alongside the `<leader>uu` snacks undo picker. This closed the old "evaluate
-  atone" item, but skipped the *"decide after living with it"* part: it went in
-  on one instinctive keypress for an unbound key, not on evidence the picker
-  was insufficient. So the evaluation is still owed, just with the plugin
-  installed rather than not. Revert criteria: if the marks and branch view go
-  unused and it's only ever the picker being reached for, drop the plugin and
-  the sidebar registration (`buffers.lua`) — the left-sidebar coordinator it
-  motivated should stay either way. Note `:Undotree` is still not a free
-  alternative: absent on 0.12.4 (probed with `nvim --clean`), nightly/0.13
-  only — recheck on the next release bump.
+  shipped 2026-07-19 on `<leader>uU` (GUIDE.md → "Undo tree (atone)"), which
+  closed the old "evaluate atone" item but skipped its *"decide after living
+  with it"* part: it went in on one instinctive keypress for an unbound key,
+  not on evidence the `<leader>uu` picker was insufficient. Evaluation still
+  owed, just with the plugin installed. Revert criteria: if the marks and
+  branch view go unused and it's only ever the picker being reached for, drop
+  the plugin and its `buffers.lua` registration — the left-sidebar coordinator
+  it motivated stays either way. `:Undotree` still isn't a free alternative:
+  absent on 0.12.4, nightly/0.13 only — recheck on the next release bump.
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
   existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
   itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not

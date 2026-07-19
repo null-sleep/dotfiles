@@ -138,21 +138,16 @@ require('aerial').setup({
 --
 -- The toggles no-op (with a notify) from a non-code buffer — terminal,
 -- sidekick CLI — where opening/focusing an outline is never useful. Sidebars
--- are exempted: they swap into each other (pressing <leader>o from the file
--- tree closes it and opens the outline), and pressing <leader>o from inside
--- aerial itself just closes it (normal toggle-off). Asking is_sidebar()
--- rather than naming filetypes keeps a future sidebar exempt automatically.
--- See buffers.lua / GUIDE.md "Non-code buffer exceptions need a shared
--- predicate" for the shared is_special() this is built on.
+-- are exempt so they can swap into each other; asking is_sidebar() rather
+-- than naming filetypes keeps a future one exempt automatically. See
+-- buffers.lua / GUIDE.md "Non-code buffer exceptions need a shared predicate".
 local buffers = require('buffers')
 local function outline_guard()
   return buffers.is_special(0) and not buffers.is_sidebar(0)
 end
--- Only one left-edge sidebar at a time: opening the outline closes whichever
--- other sidebar is showing. Guarded on aerial not already being open, so this
--- only fires on the OPEN edge of the toggle — closing the outline never
--- reaches into the others. See GUIDE.md "Left-edge sidebars swap into each
--- other".
+-- Only one left-edge sidebar at a time. Guarded on aerial not already being
+-- open, so this fires on the OPEN edge only — closing the outline never
+-- reaches into the others. GUIDE.md "Left-edge sidebars swap into each other".
 vim.keymap.set('n', '<leader>o', function()
   if outline_guard() then
     vim.notify('Outline: not available in this buffer', vim.log.levels.WARN)

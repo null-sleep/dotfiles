@@ -37,9 +37,8 @@ vim.api.nvim_create_autocmd('User', {
   callback = function()
     require('aerial').close_all()
     require('nvim-tree.api').tree.close_in_all_tabs()
-    -- atone exposes no public Lua API beyond setup() — open/close/toggle live
-    -- on the internal atone.core and are public only as :Atone subcommands.
-    -- No-op when nothing is open.
+    -- atone has no public Lua API; :Atone is the supported surface. No-op
+    -- when nothing is open.
     pcall(vim.cmd, 'Atone close')
     -- Also wipe stale `NvimTree_N` buffers by name. A session saved before this
     -- hook restores one as a plain listed, empty-filetype buffer (not a live
