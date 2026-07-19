@@ -28,6 +28,10 @@ off or delete them as they land; add new ones freely.
   - [ ] **Saved picker searches** - when you search something save that somewhere
      so you can easily re-run it later. This is a feature that I want to add to the
      picker plugin.
+- [ ] **Review and adopt the plans/ hygiene conventions** — status-header
+  template, prune-on-land rule, anchor-citation convention, `plans-audit`
+  skill sketch. Proposal saved in [plans-hygiene.md](plans-hygiene.md)
+  (2026-07-18); nothing in force until adopted.
 - [ ] **Review snacks' default picker keymaps for inspiration** — hoisted from
   [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md)'s
   post-migration TODO (#2) when that doc was shrunk (2026-07-18).
@@ -161,6 +165,10 @@ Grouped by state, not priority.
   worktree-switching plugins vs plain `cd` + fresh nvim; narrowed to
   do-nothing / Juksuu / afonsofrancof. Reach for it if worktree switching
   gets frequent.
+- [plans-hygiene.md](plans-hygiene.md) — proposal (not adopted): conventions
+  for this directory itself — status headers, prune-on-land, anchor citations,
+  a `plans-audit` skill — distilled from the 2026-07-18 consolidation. See the
+  TODO entry above.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
