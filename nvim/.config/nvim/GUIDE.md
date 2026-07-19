@@ -2250,8 +2250,8 @@ packadd'd in `plugins.lua`), not the code body; outside any function/class
 the send is a benign "Nothing to send." no-op. The refs come from
 `ai_context.lua`, which replaces sidekick's own renderer (off-by-one column,
 unreliable cross-language name extraction) with Claude Code's native `#L`
-mention shape (`{quickfix}` gets the same treatment); diagnostics and
-`{buffers}`/`{file}` still use sidekick's stock `cli/context` module.
+mention shape (`{quickfix}` included); diagnostics and `{buffers}`/`{file}`
+still use sidekick's stock `cli/context` module.
 
 ### NES vs Copilot inline completion
 

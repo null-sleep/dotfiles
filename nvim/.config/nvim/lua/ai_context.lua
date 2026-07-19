@@ -13,14 +13,12 @@
 -- still downloading (ai.lua's packadd pcall) and from pickers without
 -- ai.lua's side effects — M.is_file inlines sidekick's Loc.is_file.
 --
--- Drift risk (nothing asserts these — read this first when a send regresses):
--- this module assumes sidekick keeps (a) Config.cli.context checked BEFORE
--- built-ins (cli/context/init.lua M.fn), (b) {this} → {position} for file
--- buffers, (c) the ctx shape (1-based row/col, row-normalized range), and
--- (d) nvim-treesitter-textobjects' textobject_at_point signature. Every
--- failure is soft — sends fall back to stock :L:C format, or af/ac no-op
--- with "Nothing to send." — so if either symptom appears after a plugin
--- update, one of these internals moved.
+-- Drift risk (nothing asserts these): assumes sidekick keeps (a)
+-- Config.cli.context checked before built-ins, (b) {this} → {position} for
+-- file buffers, (c) the ctx shape (1-based row/col), and (d)
+-- textobject_at_point's signature. All failures are soft — stock :L:C
+-- output, or af/ac no-op — so either symptom after a plugin update means
+-- one of these moved.
 
 local M = {}
 
@@ -94,9 +92,8 @@ local function textobject(ctx, query)
   return M.ref(vim.api.nvim_buf_get_name(ctx.buf), ctx.cwd, srow + 1, last)
 end
 
--- Overrides `{quickfix}` (<leader>aq): sidekick's stock bullet list, with
--- the `:L<n>:C<a>-C<b>` locations swapped for `#L` refs. Multi-line entry
--- text is collapsed to one line (qf messages are effectively one-liners).
+-- Overrides `{quickfix}` (<leader>aq): stock's bullet list with `#L` refs
+-- instead of `:L:C` locations; entry text collapsed to one line.
 local function quickfix(ctx)
   local info = vim.fn.getqflist({ items = 0, title = 0 })
   if not info.items or #info.items == 0 then return nil end
@@ -120,9 +117,7 @@ local function quickfix(ctx)
   return lines
 end
 
--- Looked up by name from Config.cli.context BEFORE sidekick's own built-ins
--- (sidekick/cli/context/init.lua M.fn) — these keys cover
--- <leader>at/af/ac/aq.
+-- Covers <leader>at/af/ac/aq (looked up before sidekick's built-ins).
 M.overrides = {
   position = position,
   ['function'] = function(ctx) return textobject(ctx, '@function.outer') end,
