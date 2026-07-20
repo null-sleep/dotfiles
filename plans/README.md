@@ -70,13 +70,6 @@ off or delete them as they land; add new ones freely.
   already installed. See [treesitter-textobjects.md](treesitter-textobjects.md).
   Related: the [mini.ai](https://github.com/nvim-mini/mini.ai) eval below —
   that plan defers the `o`/`d`/next-last text objects to it.
-- [ ] **Live-check `<C-S-Y>` in the undo picker** — `<leader>uu`'s yank-removed-
-  lines action. Untestable headless: it needs the terminal to distinguish
-  Ctrl+Shift+y from plain Ctrl+y (Ghostty's kitty keyboard protocol should, but
-  unconfirmed). If it doesn't register, bind `yank_del` to something plain via a
-  `sources.undo.win.input.keys` override in `picker.lua`. Its sibling `<C-y>`
-  (yank *added* lines) needs no check — it shadows the global `copy_path`
-  provably, since snacks applies per-source config after the global layer.
 - **atone.nvim: evaluated, installed, reverted same day (2026-07-19).** Kept
   here as a decision record so it isn't re-litigated. It was installed on the
   premise that `Snacks.picker.undo()` "flattens branch topology" and so
