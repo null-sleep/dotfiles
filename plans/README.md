@@ -37,10 +37,6 @@ off or delete them as they land; add new ones freely.
   post-migration TODO (#2) when that doc was shrunk (2026-07-18).
 - [ ] **Mine linkarzu's snacks-picker post for setup ideas** — hoisted from the
   same post-migration TODO (#8).
-- [ ] **Make `<leader>ab` an interactive buffer-picker send** — see the
-  re-sketched second half of
-  [sidekick-af-ac-context-fix.md](sidekick-af-ac-context-fix.md) (the original
-  telescope mechanism was pruned; re-spec against snacks at build time).
 - [ ] **Finish large-file protection's deferred per-subsystem guards**
   (gitsigns / satellite / auto-save / sidekick NES + `:LargeFileRestore`) —
   see [large-file-protection.md](large-file-protection.md) → TODO.
@@ -132,10 +128,6 @@ Grouped by state, not priority.
 - [sidekick-windowless-prewarm.md](sidekick-windowless-prewarm.md) — real
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.
-- [sidekick-af-ac-context-fix.md](sidekick-af-ac-context-fix.md) — fix the
-  `<leader>af`/`<leader>ac` context column bug (land-ready spec); the
-  `<leader>ab` buffer-picker half was re-sketched against snacks 2026-07-18
-  (see the TODO above).
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.
