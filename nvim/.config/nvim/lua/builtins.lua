@@ -14,6 +14,12 @@ return {
   { lhs = 'u',      group = 'Undo/Redo',           desc = 'Undo changes' },
   { lhs = 'U',      group = 'Undo/Redo',           desc = 'Undo all latest changes on one line' },
   { lhs = '<C-r>',  group = 'Undo/Redo',           desc = 'Redo changes which were undone with u' },
+  -- Not built-ins: picker-local maps from the <leader>uu undo picker, listed
+  -- here because that's the only registry <leader>sk reads besides real
+  -- keymaps — and "how do I get a deleted line back" is an undo question, so
+  -- this is where you'd look for them.
+  { lhs = '<C-y>',   group = 'Undo/Redo',          desc = 'Yank the added lines of an undo state, without restoring it (in <Space>uu)' },
+  { lhs = '<C-S-Y>', group = 'Undo/Redo',          desc = 'Yank the removed lines of an undo state, without restoring it (in <Space>uu)' },
 
   { lhs = 'p',      group = 'Put',                 desc = 'Put text after cursor' },
   { lhs = 'P',      group = 'Put',                 desc = 'Put text before cursor' },

@@ -1275,7 +1275,9 @@ tree — the payoff for `undofile`/`undolevels = 10000` in `configs.lua`, which
 were writing history nothing ever read.
 
 Rows are undo states — seq number, relative time, `+added`/`-removed` counts,
-and a marker on states that were written to disk — newest first. The prompt
+and a save icon on states where the file was **written to disk** — so only
+some rows carry one, and it's how you spot "what this looked like at my last
+save". Newest first. The prompt
 fuzzy-matches the **text of the added and removed lines**, not the metadata:
 type a word you remember deleting and you land on the state that deleted it.
 The preview is a real unified diff.
@@ -1293,6 +1295,23 @@ buffer is never touched. Recovering a deleted function means yanking it and
 pasting where it belongs now, instead of time-travelling the whole file
 backwards and losing everything since. `<CR>` does restore the state, when
 that's genuinely what you want.
+
+Three things are customized in `picker.lua`'s `sources.undo`, all of them
+fighting stock layout rather than behavior:
+
+- **A custom `format`.** Stock pads the seq column by `8 - gutter - #seq`,
+  which goes negative once a branch nests deep enough, so nested rows shift
+  right and stop lining up. Ours gives the gutter a fixed-width right-aligned
+  field — glyphs still grow leftward with depth, but every column after it
+  lands in the same place at any depth.
+- **`previewers.diff.style = 'syntax'`** plus a `preview` wrapper that strips
+  the git header. The stock "fancy" renderer opens with a boxed filename and a
+  boxed file icon — ~6 lines before content, and the filename is a constant
+  here. The trade is losing the dual line-number columns and in-hunk syntax
+  highlighting; diff colors only.
+- **`SnacksPickerTree`** relinked to `Delimiter` in `themes.lua`'s
+  `global_overrides` — it defaults to `LineNr`, which is tuned to disappear,
+  leaving the branch shape unreadable.
 
 Two notes on how it sits in the config:
 

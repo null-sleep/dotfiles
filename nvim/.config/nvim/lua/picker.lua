@@ -175,6 +175,73 @@ require('snacks').setup({
       },
     },
     sources = {
+      -- Undo history (<leader>uu). Stock format lays the tree gutter out
+      -- left-aligned and then pads the seq column by `8 - gutter_width -
+      -- #seq`, which goes NEGATIVE once a branch nests deep enough — align()
+      -- returns the text unpadded in that case, so a nested row's whole line
+      -- shifts right and stops lining up with its siblings.
+      --
+      -- Same columns, but the gutter gets a fixed-width right-aligned field:
+      -- glyphs still grow leftward with depth (so nesting reads), while every
+      -- seq/time/count lands on the same column regardless of depth.
+      undo = {
+        -- Stock preview is the "fancy" diff renderer, which spends the first
+        -- ~6 lines on a boxed filename plus a boxed file-type icon before any
+        -- content. Both are dead weight here: an undo picker only ever diffs
+        -- the current buffer, so the filename is a constant. The trade is
+        -- losing the dual line-number columns and in-hunk syntax
+        -- highlighting — diff colors only. (There's no way to keep fancy and
+        -- drop just the header: its parser needs the `diff --git`/`---`/`+++`
+        -- lines to find the block, and removing them mangles the layout.)
+        previewers = { diff = { style = 'syntax' } },
+        preview = function(ctx)
+          if ctx.item.resolve then ctx.item:resolve() end
+          -- Drop the git header the finder templates on — with `syntax` it
+          -- would render as three literal lines of noise naming a file you
+          -- already know.
+          if ctx.item.diff then
+            ctx.item.diff = ctx.item.diff:gsub('^diff %-%-git[^\n]*\n%-%-%-[^\n]*\n%+%+%+[^\n]*\n', '', 1)
+          end
+          return Snacks.picker.preview.diff(ctx)
+        end,
+        format = function(item, picker)
+          local a = Snacks.picker.util.align
+          local entry = item.item
+          local GUTTER_W, SEQ_W = 6, 3
+          local ret = {}
+          ret[#ret + 1] = { a('', 2), item.current and 'SnacksPickerUndoCurrent' or nil }
+
+          local gutter = ''
+          for _, chunk in ipairs(Snacks.picker.format.tree(item, picker)) do
+            gutter = gutter .. chunk[1]
+          end
+          local gw = vim.api.nvim_strwidth(gutter)
+          if gw > GUTTER_W then
+            -- Deeper than the column: keep the innermost glyphs, drop the
+            -- outer verticals — the near-siblings are what you're reading.
+            gutter, gw = vim.fn.strcharpart(gutter, gw - GUTTER_W), GUTTER_W
+          end
+          ret[#ret + 1] = { (' '):rep(GUTTER_W - gw) .. gutter, 'SnacksPickerTree' }
+
+          ret[#ret + 1] = { ' ' }
+          ret[#ret + 1] = { a(tostring(entry.seq), SEQ_W, { align = 'right' }), 'SnacksPickerIdx' }
+          ret[#ret + 1] = { '  ' }
+          ret[#ret + 1] = { a(Snacks.picker.util.reltime(entry.time), 15), 'SnacksPickerTime' }
+          ret[#ret + 1] = { ' ' }
+          local function num(v, prefix)
+            v = v or 0
+            return a(v > 0 and prefix .. v or '', 4)
+          end
+          ret[#ret + 1] = { num(item.added, '+'), 'SnacksPickerUndoAdded' }
+          ret[#ret + 1] = { ' ' }
+          ret[#ret + 1] = { num(item.removed, '-'), 'SnacksPickerUndoRemoved' }
+          if entry.save then
+            ret[#ret + 1] = { ' ' }
+            ret[#ret + 1] = { a(picker.opts.icons.undo.saved, 2), 'SnacksPickerUndoSaved' }
+          end
+          return ret
+        end,
+      },
       -- Include hidden files/dirs (e.g. .github/) in results. .git/ is
       -- excluded by the finders' defaults; node_modules needs the explicit
       -- exclude (it's only skipped by default when gitignored).

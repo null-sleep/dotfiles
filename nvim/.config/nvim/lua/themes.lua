@@ -40,6 +40,13 @@ M.global_overrides = {
   -- from real code without being distracting.
   ComplHint = { link = 'Comment' },
 
+  -- snacks picker tree gutter (the ├╴/│/└╴ structure column in the <leader>uu
+  -- undo picker). Defaults to LineNr, which is tuned to disappear — too faint
+  -- to read the branch shape. Delimiter is the same "structural punctuation"
+  -- role, markedly darker, and non-italic (unlike Comment, which slants the
+  -- box-drawing glyphs).
+  SnacksPickerTree = { link = 'Delimiter' },
+
   -- nvim-tree git status: VS Code-style colored file names + right-aligned letters.
   -- Linked to semantic groups every theme defines, so colors adapt automatically.
   -- green (DiagnosticOk): new, staged, renamed
