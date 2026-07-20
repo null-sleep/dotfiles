@@ -11,10 +11,15 @@
 -- see lint.lua.)
 vim.cmd.packadd('conform.nvim')
 
--- Format-on-save off by default — it rewrites the buffer on every :w which
--- clears NES suggestions (sidekick) and inline completions (Copilot) mid-flow.
--- Toggle on with <leader>tf, or format manually with <leader>cf.
-vim.g.disable_autoformat = true
+-- Format-on-save ON. Note this is NOT scoped to :w — auto-save.nvim writes with
+-- a plain `silent! write` (noautocmd defaults false), so BufWritePre fires and
+-- conform runs on ITS writes too. With autosave.lua's defer_save on
+-- InsertLeave/TextChanged + a 1s debounce, that means a reformat ~1s after you
+-- stop typing, in normal mode, mid-edit. Escape hatches: <leader>tf (session),
+-- vim.b.disable_autoformat (buffer), <leader>cf (manual, works either way).
+-- Enabled as-is deliberately, to see how the coupling feels before tuning it —
+-- see plans/auto-format-aggressiveness.md for the options if it grates.
+vim.g.disable_autoformat = false
 
 require('conform').setup({
   formatters_by_ft = {
@@ -68,7 +73,11 @@ require('conform').setup({
     if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
       return
     end
-    return { timeout_ms = 1000, lsp_format = 'fallback' }
+    -- undojoin: merge the format into the preceding edit's undo entry, so `u`
+    -- undoes your change rather than just the reformat. Matters here because
+    -- auto-save's writes trigger this — without it, autoformat-on-autosave
+    -- interleaves formatter edits into the undo history mid-session.
+    return { timeout_ms = 1000, lsp_format = 'fallback', undojoin = true }
   end,
 })
 

@@ -93,7 +93,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 5 columns: key (dynamic width), modes (dim), icon+group breadcrumb (dim), desc, tag pills (dim). All six modes are walked, and a key mapped the same way across modes collapses into one row (`<D-s>` → `n x i`). The group column prefers a desc's own `Group: Action` prefix over the which-key ancestor group — the ancestor says where a key lives, the prefix says what it's for, and that's what you scan for (`grn` sits under the `g` prefix, so which-key calls it "Go to", but you look it up as `LSP ›`). It also covers keys with no ancestor at all (`<D-…>`, `jj`). The ancestor wins back when it already names the prefix in one of its segments, being the richer label there (`Session/Quit ›` beats the bare `Session` that `Session: Stop saving` would impose). The desc then displays without that prefix, since the column already says it (the full desc stays searchable). A prefix is only trusted when it looks like a group label — not trailing whitespace, bracket-free, short — or `Scroll down N lines (default: half screen)` would promote its sentence fragment to a heading. Tags are derived from that same prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group is hidden from the pills (still searchable), leaving pills to mean "cross-reference"
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
-- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
+- **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost/QuitPre/VimSuspend (immediate) and InsertLeave/TextChanged (debounced 1s, cancelled by InsertEnter); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
@@ -889,14 +889,19 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save** is OFF by default — auto-formatting rewrites the buffer
-  on every `:w`, which clears NES suggestions and inline completions mid-flow.
-  `<leader>tf` toggles it on globally; `<leader>cf` formats manually at any
-  time. Configured filetypes: Python, Go, Rust, JS/TS/JSON/YAML via
-  conform.nvim; Lua is formatted by lua_ls via LSP fallback.
-  `vim.g.disable_autoformat` (global) and `vim.b.disable_autoformat`
-  (per-buffer) are the underlying flags. Run `:ConformInfo` to see which
-  formatter binaries are detected on `$PATH`.
+- **Format-on-save** is ON (since 2026-07-20; it was off, citing NES, which no
+  longer exists). Note it is *not* scoped to `:w` — auto-save.nvim writes with a
+  plain `silent! write`, so `BufWritePre` fires and conform runs on its writes
+  too. With auto-save's `InsertLeave`/`TextChanged` triggers and a 1s debounce,
+  the buffer reformats about a second after you stop typing. `<leader>tf`
+  toggles it off for the session, `vim.b.disable_autoformat` per-buffer, and
+  `<leader>cf` formats manually regardless. Configured filetypes: Lua, Python,
+  Go, Rust, JS/TS/JSON/YAML, TOML, XML, just via conform.nvim; anything else
+  with a formatting-capable LSP is formatted through `lsp_format = 'fallback'`.
+  Formatting is `undojoin`ed into the preceding edit, so `u` undoes your change
+  rather than just the reformat. Run `:ConformInfo` to see which formatter
+  binaries are detected on `$PATH`. If the timing grates,
+  `plans/auto-format-aggressiveness.md` has the options.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grt` (type definition), `grx` (codelens)

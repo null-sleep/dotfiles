@@ -13,9 +13,12 @@ off or delete them as they land; add new ones freely.
 
 - [ ] **Revisit auto-format aggressiveness** — format-on-save went ON as-is
   (2026-07-20), but it fires on auto-save's writes, not just `:w`, so the buffer
-  reformats ~1s after you stop typing. Watch for reformat-while-you-think; three
-  tuning options (and the LSP-fallback breadth question) are written up in
-  [auto-format-aggressiveness.md](auto-format-aggressiveness.md).
+  reformats ~1s after you stop typing. Watch for reformat-while-you-think. Prior
+  art points at gating formatting to explicit `:w` — VS Code and Zed both ship
+  that gate, and VS Code enforces it in source — so if it annoys, go straight to
+  option 3 in [auto-format-aggressiveness.md](auto-format-aggressiveness.md)
+  (which also has the LSP-fallback breadth question and a `QuitPre` nit in
+  `autosave.lua`).
 - [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes
