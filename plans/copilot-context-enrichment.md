@@ -1,5 +1,11 @@
 # Plan: Enrich Copilot LSP Context for Better Inline Completions
 
+> **Obsolete as of 2026-07-20.** Copilot was removed from this config entirely —
+> both NES and inline completion — because next-edit prediction went unused. The
+> `didChange`-interception technique and the context-gathering research below
+> still hold for any LSP-backed completion source, so this is kept rather than
+> deleted, but nothing here is actionable while there's no Copilot client.
+
 ## Problem
 
 Copilot's inline completion (`textDocument/inlineCompletion`) has a narrow

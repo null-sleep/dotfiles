@@ -306,7 +306,7 @@ require('snacks').setup({
   -- The mechanism is a filetype *rename* to 'bigfile', not a feature switch:
   -- everything ft-keyed (LSP, treesitter, nvim-lint, conform, aerial,
   -- render-markdown) then simply never matches. Subsystems that are NOT
-  -- ft-keyed — gitsigns, satellite, auto-save, sidekick NES — still run; see
+  -- ft-keyed — gitsigns, satellite, auto-save — still run; see
   -- GUIDE.md "Big files get a filetype rename, not a per-feature guard" and
   -- plans/large-file-protection.md for what that leaves open.
   bigfile = { enabled = true },

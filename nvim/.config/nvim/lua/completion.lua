@@ -3,29 +3,16 @@ vim.cmd.packadd('blink.cmp')
 require('blink.cmp').setup({
   keymap = {
     preset = 'none',
-    -- Tab priority (matches VS Code / Zed): completion menu wins over ghost text.
+    -- Tab priority:
     -- 1. select_next: if blink menu is open, navigate it
-    -- 2. inline completion: if Copilot ghost text is showing, accept it
-    -- 3. snippet_forward: if a snippet session is active, jump to next placeholder
-    -- 4. fallback: literal Tab
+    -- 2. snippet_forward: if a snippet session is active, jump to next placeholder
+    -- 3. fallback: literal Tab
     --
     -- snippet_forward/backward are explicit even though fallback alone worked
     -- (it reached Neovim's default snippet-aware <Tab> from _defaults.lua) —
     -- explicit entries don't silently break if blink's fallback resolution or
     -- the core default mapping changes. Per LazyVim's supertab recipe.
-    ['<Tab>']     = {
-      'select_next',
-      function()
-        -- get() both applies the pending ghost text and returns whether one
-        -- existed (there is no separate accept() in the 0.12 API).
-        if vim.lsp.inline_completion.is_enabled({ bufnr = 0 })
-            and vim.lsp.inline_completion.get() then
-          return true
-        end
-      end,
-      'snippet_forward',
-      'fallback',
-    },
+    ['<Tab>']     = { 'select_next', 'snippet_forward', 'fallback' },
     ['<S-Tab>']   = { 'select_prev', 'snippet_backward', 'fallback' },
     ['<CR>']      = { 'accept', 'fallback' },
     ['<C-u>']     = { 'scroll_documentation_up', 'fallback' },
@@ -51,9 +38,12 @@ require('blink.cmp').setup({
     },
     -- auto_brackets: append () after completing a function and place cursor inside
     accept = { auto_brackets = { enabled = true } },
-    -- Disable blink ghost text — Copilot inline completion provides its own ghost
-    -- text via vim.lsp.inline_completion. Both use virt_text_pos='inline' and would
-    -- overlap if both were active.
+    -- Ghost text off by choice: with preselect = false above, blink only renders
+    -- it once an item is selected (show_without_selection defaults false), by
+    -- which point the menu already highlights that item — near-zero value.
+    -- Enabling it usefully means also setting show_without_selection = true AND
+    -- preselect = true, so <CR> accepts what's previewed. (Previously off to
+    -- avoid overlapping Copilot's inline completion, now removed.)
     ghost_text = { enabled = false },
   },
 

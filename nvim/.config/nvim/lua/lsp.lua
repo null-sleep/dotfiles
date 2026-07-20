@@ -55,7 +55,6 @@ require('mason-tool-installer').setup({
     'elixirls',
     'kotlin_language_server',
     'eslint',
-    'copilot',
     -- formatter/linter/debug-adapter CLIs
     'stylua',         -- lua formatter
     'ruff',           -- python formatter + linter
@@ -107,10 +106,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     local buf = ev.buf
     local client = vim.lsp.get_client_by_id(ev.data.client_id)
     if not client then return end
-
-    -- Note: Copilot LSP triggers this callback too. Most features are gated by
-    -- :supports_method() so they're filtered out. Ungated keymaps (gd, <C-s>,
-    -- <leader>ca, etc.) are harmless — Copilot doesn't implement those methods.
 
     local map = function(mode, lhs, rhs, desc)
       vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
@@ -214,14 +209,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- enable() handles refresh on BufEnter/BufWritePost automatically.
     if client:supports_method('textDocument/codeLens') then
       vim.lsp.codelens.enable(true, { bufnr = buf })
-    end
-
-    -- Copilot inline completion: ghost-text suggestions while typing in insert mode.
-    -- Separate from NES (sidekick), which shows follow-on edit diffs in normal mode.
-    -- <Tab> accepts (handled in completion.lua's blink keymap chain).
-    -- Enabled by default; <leader>ta toggles globally (all buffers, both features).
-    if client:supports_method(vim.lsp.protocol.Methods.textDocument_inlineCompletion, buf) then
-      vim.lsp.inline_completion.enable(true, { bufnr = buf })
     end
 
     -- snacks pickers for LSP jumps that can return multiple results
@@ -377,12 +364,6 @@ vim.lsp.config('kotlin_language_server', {
   root_markers = { 'pom.xml', 'settings.gradle', 'settings.gradle.kts', 'build.gradle', 'build.gradle.kts', '.git' },
 })
 
-vim.lsp.config('copilot', {
-  settings = {
-    copilot = { telemetryLevel = 'off' },
-  },
-})
-
 -- eslint: JS/TS linting as an LSP — diagnostics plus code actions (fix-all available
 -- via <leader>ca). lspconfig's default config supplies root markers (.eslintrc*,
 -- eslint.config.js) and the on_attach that registers the EslintFixAll command.
@@ -411,4 +392,4 @@ vim.lsp.config('*', {
 })
 
 -- rust_analyzer omitted: started by rustaceanvim, not the native vim.lsp path.
-vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'elixirls', 'kotlin_language_server', 'eslint', 'copilot' })
+vim.lsp.enable({ 'lua_ls', 'pyright', 'ts_ls', 'gopls', 'elixirls', 'kotlin_language_server', 'eslint' })

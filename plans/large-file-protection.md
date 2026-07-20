@@ -18,7 +18,8 @@ refreshed; nvim-lint ran on **BufReadPost as well as BufWritePost**; auto-save
 rewrote the file — and a multi-megabyte undofile — 1000ms after any change,
 which re-triggered lint; gitsigns diffed it; satellite recomputed its
 scrollbar; aerial fell back to its **LSP** backend precisely *because*
-treesitter had been skipped; sidekick's NES kept requesting edits.
+treesitter had been skipped; sidekick's NES kept requesting edits (NES was
+removed 2026-07-20 — that particular offender is gone).
 
 `snacks.bigfile` was already installed (snacks is set up in `lua/picker.lua`)
 and simply not enabled. This enables it.
@@ -77,10 +78,10 @@ batch.
   Fix: add `'bigfile'` to the `excluded` list in `lua/autosave.lua`. This is
   the one most likely to bite: a huge buffer plus the 1000ms debounce plus
   `undofile` means a multi-megabyte write after every burst of typing.
-- [ ] **sidekick NES / undofile / `wrap`** — all need a custom `setup` hook in
-  the snacks opts: `vim.b[buf].sidekick_nes = false`,
-  `vim.bo[buf].undofile = false`, and `wrap = false` (a 2MB single line,
-  wrapped, is the worst redraw case there is).
+- [ ] **undofile / `wrap`** — both need a custom `setup` hook in the snacks
+  opts: `vim.bo[buf].undofile = false` and `wrap = false` (a 2MB single line,
+  wrapped, is the worst redraw case there is). The third item here was
+  `vim.b[buf].sidekick_nes = false`, dropped when NES was removed 2026-07-20.
   **Trap:** overriding `setup` **replaces** snacks' default wholesale — deep-extend
   swaps functions, and the default isn't exported — so a custom hook must first
   re-implement the default verbatim (`:NoMatchParen`, `foldmethod=manual`,

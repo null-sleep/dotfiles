@@ -452,8 +452,11 @@ GUIDE.md "Large files".
   mount; not pursued, noted so the option isn't forgotten.
 - ✅ **Indent guides** — already shipped via `snacks.indent` (`scratch.lua`,
   toggle `<leader>tg`). No action.
-- ✅ **Next-edit prediction** — shipped via sidekick.nvim's Copilot-LSP NES
-  (not `blink-edit.nvim`, which the TODO note pointed at). No action.
+- ❌ **Next-edit prediction** — shipped via sidekick.nvim's Copilot-LSP NES
+  (not `blink-edit.nvim`, which the TODO note pointed at), then **removed
+  2026-07-20**: it went unused, and dropping it took Copilot's inline
+  completion with it. sidekick.nvim itself stays for the Claude CLI. Don't
+  re-add without a concrete reason it'd get used this time.
 - **Sidekick CLI: force terminal mode on plain window-nav re-entry** —
   toggleterm now always reopens in terminal mode (`persist_mode = false` in
   `terminal.lua`, 2026-07-18), but sidekick.nvim has no equivalent config flag:

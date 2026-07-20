@@ -35,10 +35,10 @@ M.active = read_saved_theme()
 -- Format: { HighlightGroup = { fg = '#hex', bg = '#hex', bold = true, ... } }
 -- See :help nvim_set_hl for all attributes.
 M.global_overrides = {
-  -- Copilot inline completion ghost text — default (NonText) is too faint.
-  -- Link to Comment: visible in every theme, italic in most, clearly distinct
-  -- from real code without being distracting.
-  ComplHint = { link = 'Comment' },
+  -- (Removed with Copilot: ComplHint = { link = 'Comment' }, which styled its
+  -- inline-completion ghost text because the NonText default was too faint. If
+  -- blink's own ghost text is ever enabled, it needs the same treatment —
+  -- BlinkCmpGhostText also defaults to NonText.)
 
   -- snacks picker tree gutter (the ├╴/│/└╴ structure column in the <leader>uu
   -- undo picker). Defaults to LineNr, which is tuned to disappear — too faint

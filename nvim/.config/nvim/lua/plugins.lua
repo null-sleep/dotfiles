@@ -91,7 +91,7 @@ vim.pack.add(vim.list_extend({
   -- treesitter requirement out from under users) — same rationale as the
   -- rustaceanvim ^9 pin above.
   { src = gh('fredrikaverpil/neotest-golang'), version = vim.version.range('^2') },
-  -- AI: NES (Copilot LSP) + Claude/Copilot CLI integration.
+  -- AI: Claude CLI integration.
   { src = gh('folke/sidekick.nvim') },
 }, themes.sources))
 

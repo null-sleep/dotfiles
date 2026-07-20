@@ -283,16 +283,6 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
--- Toggle all AI autocompletions globally (inline ghost text + NES).
--- Inline completion: omitting bufnr toggles for all buffers.
--- NES: vim.g.sidekick_nes is checked by sidekick's enabled callback.
-vim.keymap.set('n', '<leader>ta', function()
-  local enabling = not vim.lsp.inline_completion.is_enabled()
-  vim.lsp.inline_completion.enable(enabling)
-  vim.g.sidekick_nes = enabling
-  vim.notify('AI completions ' .. (enabling and 'ON' or 'OFF'))
-end, { desc = 'Toggle: AI completions (inline + NES)' })
-
 -- Toggle the quickfix window; winid == 0 means "not open" (:help getqflist()).
 -- Empty-list guard: :copen would open a blank split. botright matches the
 -- window snacks' own <C-q> action opens, so both keys land the same split.
@@ -325,19 +315,9 @@ vim.keymap.set({'n', 'x'}, 'yc', yank.claude_ref,           { desc = 'Yank: Clau
 vim.keymap.set({'n', 'x'}, 'yC', yank.claude_ref_absolute,  { desc = 'Yank: Claude reference (absolute path)' })
 vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitHub permalink' })
 
--- AI (sidekick.nvim): NES + Claude/Copilot CLI
+-- AI (sidekick.nvim): Claude CLI
 -- These are the *outside* entry points. Keymaps that act *inside* the CLI window
 -- go in the cli.win.keys table in ai.lua, not here.
--- <Tab> in normal mode jumps to or applies the next NES suggestion; falls
--- through to a literal <Tab> when none is active. blink.cmp's <Tab> is insert-
--- mode only, so there's no conflict. The picker's <Tab> (multi-select) is
--- buffer-local to the picker prompt, so it shadows this global binding inside
--- pickers — no conflict there either.
-vim.keymap.set('n', '<Tab>', function()
-  if not require('sidekick').nes_jump_or_apply() then
-    return '<Tab>'
-  end
-end, { expr = true, desc = 'AI: NES jump or apply' })
 
 -- Focus the sidekick CLI split from any mode.
 -- NOTE: <C-.> requires a terminal that sends CSI u sequences (kitty, iTerm2

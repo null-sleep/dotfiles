@@ -108,9 +108,12 @@ require('sidekick').setup({
     -- built-ins, context/init.lua M.fn). See lua/ai_context.lua for why.
     context = require('ai_context').overrides,
   },
-  nes = {
-    -- defaults are good: enabled = true, debounce = 100, diff.inline = 'words'
-  },
+  -- NES (Copilot next-edit suggestions) removed — unused. `enabled = false`, not
+  -- `vim.g.sidekick_nes = false`: only the literal false here makes config.lua
+  -- skip nes.enable(), which otherwise registers 7 autocmds and a per-keystroke
+  -- vim.on_key handler for a dead feature. Deleting the block re-enables it
+  -- (sidekick's default is `vim.g.sidekick_nes ~= false`).
+  nes = { enabled = false },
 })
 
 -- Kill the shell-out session backends. State.get() runs EVERY registered

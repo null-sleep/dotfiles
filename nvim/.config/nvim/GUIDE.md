@@ -72,7 +72,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-d>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
-- **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → Copilot ghost text → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — Copilot inline completion provides its own.
+- **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — near-inert against `preselect = false`.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-dap-virtual-text + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), inline variable values during a session, breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
@@ -81,7 +81,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
-- **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, Copilot/NES activity, lsp_status, location), powerline separators, global statusline. The Copilot/NES indicator (in `lualine_x`, left of `lsp_status`) reads `sidekick.status.get()` — hidden when idle, robot glyph while the Copilot LSP is busy (NES requests flow through it), red on error
+- **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
@@ -95,7 +95,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost (immediate) and InsertLeave/TextChanged (debounced 1s); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
-- **`ai.lua`** — sidekick.nvim setup: NES (Copilot LSP next-edit suggestions) + CLI integration (Claude, Copilot). snacks as picker, right-split layout
+- **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -587,7 +587,7 @@ own anywhere.
 
 The trade is real, and the price is paid in two places: `gc` breaks (no
 `commentstring`, since no ftplugin ran), and the subsystems that *aren't*
-ft-keyed — gitsigns, satellite, auto-save, sidekick NES — keep running. Both are
+ft-keyed — gitsigns, satellite, auto-save — keep running. Both are
 accepted for now; `plans/large-file-protection.md` records the per-subsystem fix
 if one bites.
 
@@ -651,14 +651,15 @@ gone; restore it alongside a name in `cli.tools` to run a second tool.
 `rust.lua`'s overrides (`K`, `<leader>ca`, etc.) used to be set on
 `FileType == 'rust'` — silently broken, since `lsp.lua`'s `LspAttach`
 handler rebinds the same keys on **every** attaching client, and a Rust
-buffer attaches *two* clients (rust-analyzer, then copilot), both after
+buffer attached *two* clients (rust-analyzer, then copilot — the latter removed
+2026-07-20), both after
 `FileType` already fired. The global handler always won, clobbering Rust's
 richer variants back to plain LSP defaults — undetected until the
 actions-preview.nvim work below surfaced it.
 
 Fixed by triggering on `LspAttach` instead, filtered by
 `vim.bo[buf].filetype == 'rust'` — not the client's name, since a
-rust-analyzer-only filter still loses to copilot's later attach. `init.lua`
+rust-analyzer-only filter still loses to any later-attaching client. `init.lua`
 requires `lsp` before `rust` (Load order), so this handler always
 registers, and fires, last — the winning write on every attach.
 
@@ -695,7 +696,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>G*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
-| `<leader>a*`, `<C-.>`, `<Tab>` | AI (sidekick CLI + NES) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
+| `<leader>a*`, `<C-.>` | AI (sidekick CLI) | ai.lua | [AI (sidekick.nvim)](#ai-sidekick) |
 | `<leader>c*` (Rust ft), `K` (Rust ft) | Rust actions | rust.lua | [Rust](#rust) → Keymaps |
 | `<leader>cR`/`<leader>dR` (Go ft) | Go run/debug targets | golang.lua | [Go](#go) → Keymaps |
 | `<leader>d*`, `<F5>`-`<F12>` | Debug (nvim-dap) | debugging.lua | [Debugging (nvim-dap)](#debugging) → Keymaps |
@@ -734,7 +735,6 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>tn` | Toggle relative line numbers (`number` stays on, so the cursor line shows its absolute number) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
-| `<leader>ta` | Toggle AI completions globally (inline ghost text + NES) | keymaps.lua |
 | `<leader>tq` | Toggle the quickfix window (`]q`/`[q` walk entries) — see [Quickfix: picker vs. window](#picker-quickfix) | keymaps.lua |
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
@@ -933,9 +933,12 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
      Neovide). Open Logi Options+ → select mouse → **Buttons** → add
      per-app assignments for **iTerm2** and **Neovide**:
      - Back side button → **Keystroke Assignment** → `Ctrl+O`
-     - Forward side button → `Ctrl+I` (= Tab; collides with the
-       sidekick NES `<Tab>` mapping in insert mode, where it will
-       insert a literal tab — assign only if you can live with that)
+     - Forward side button → `Ctrl+I` (= Tab: they share ASCII 9, so in
+       insert mode this button hits blink's `<Tab>` chain rather than
+       jumping the jumplist — assign only if you can live with that.
+       Normal mode works as intended: since NES's `<Tab>` map was removed
+       it falls through to cinnamon.nvim's `<C-i>`, i.e. a smooth-scrolled
+       jumplist-forward)
 
      Per-app scope leaves Safari/Chrome/Finder Back/Forward intact.
 
@@ -1014,17 +1017,21 @@ output, temporarily add `vim.lsp.set_log_level('debug')` to `lsp.lua`.
 ## Autocompletion (blink.cmp)
 
 Completion engine written in Rust, set up in `completion.lua`. Sources:
-LSP, file paths, snippets, buffer words. Ghost text is disabled — Copilot's
-inline completion (`textDocument/inlineCompletion`) supplies its own; see
-[AI (sidekick.nvim)](#ai-sidekick) → NES vs Copilot inline completion for how
-`<Tab>` arbitrates between the completion menu, Copilot ghost text, snippet
-placeholder jumps, and a literal tab.
+LSP, file paths, snippets, buffer words.
+
+Ghost text is disabled. It used to be, to avoid overlapping Copilot's inline
+completion; since Copilot's removal (2026-07-20) the reason is different —
+blink's `show_without_selection` defaults to `false` and this config sets
+`preselect = false`, so ghost text would only render *after* you've `<Tab>`-ed
+onto an item, where the menu already highlights it. Enabling it usefully means
+setting `show_without_selection = true` **and** flipping `preselect = true`, so
+`<CR>` accepts what's being previewed rather than nothing.
 
 ### Keymaps (inside the completion menu)
 
 | Key | Action |
 |---|---|
-| `<Tab>` | Next item (see the AI section for the full priority chain when Copilot ghost text is also showing) |
+| `<Tab>` | Next item (then snippet placeholder jump, then a literal tab) |
 | `<S-Tab>` | Previous item (or previous snippet placeholder when a snippet is active) |
 | `<CR>` | Accept selected item (falls back to normal Enter) |
 | `<C-u>` / `<C-d>` | Scroll documentation popup up / down |
@@ -1212,8 +1219,8 @@ re-attaches LSP with it. There's no dedicated restore command; treesitter still
 won't attach on a >1.5MB file, because the line/size guard in `plugins.lua` is
 independent.
 
-**What still runs on a big file** — gitsigns, satellite, auto-save and
-sidekick's NES are not filetype-keyed, so the rename doesn't reach them. This is
+**What still runs on a big file** — gitsigns, satellite and auto-save are not
+filetype-keyed, so the rename doesn't reach them. This is
 a known, accepted gap; `plans/large-file-protection.md` records the fix for each
 if one ever bites. Note gitsigns' own `max_file_length` is 40000 *lines*, which
 a one-line minified file sails straight through.
@@ -2246,73 +2253,62 @@ want it visible on another machine or to someone else.
 <a id="ai-sidekick"></a>
 ## AI (sidekick.nvim)
 
-Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for two features:
+Setup lives in `ai.lua`. Uses `folke/sidekick.nvim` for its **CLI integration**.
 
-1. **NES (Next Edit Suggestion)** — powered by Copilot LSP. After edits,
-   diff overlays appear suggesting follow-on changes. `<Tab>` in normal mode
-   jumps to or applies the next suggestion. Falls through to literal `<Tab>`
-   when no suggestion is active.
+Sidekick's other feature, NES (Copilot-LSP next-edit suggestions), was removed
+2026-07-20 — it went unused, and dropping it took Copilot's inline completion
+with it. `ai.lua` pins `nes = { enabled = false }` rather than deleting the
+block, because sidekick's default is on and the literal `false` is what stops it
+registering a per-keystroke `vim.on_key` handler for a dead feature.
 
-   Caveat: in a terminal that can't distinguish `Tab` from `Ctrl-I` (they
-   share ASCII 9 without the kitty keyboard protocol / CSI u), this mapping
-   also captures `<C-i>` — jumplist *forward* — so `<C-i>` triggers NES
-   instead of jumping. Not an issue in this setup's environments (kitty,
-   iTerm2 with CSI u, Neovide, all of which disambiguate), only in legacy
-   terminals (Apple Terminal, ssh without protocol support). Fallbacks that
-   always work: mouse forward button (`<X2Mouse>`) and Neovide's
-   `<D-M-Right>`.
+**CLI integration** — runs one or more Claude (and other CLI) sessions in
+terminal splits, organized around the **active session**: the CLI session
+whose window you last entered (default: the pre-warmed `claude`).
+`<leader>aa` toggles it, `<leader>ad` kills it, and **all send keys,
+`<leader>ao`, `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several
+sessions running, sends never stop to ask which one.
 
-2. **CLI integration** — runs one or more Claude (and other CLI) sessions in
-   terminal splits, organized around the **active session**: the CLI session
-   whose window you last entered (default: the pre-warmed `claude`).
-   `<leader>aa` toggles it, `<leader>ad` kills it, and **all send keys,
-   `<leader>ao`, `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several
-   sessions running, sends never stop to ask which one.
+`<leader>an` spawns a **new** session: a blank prompt auto-numbers it
+(`claude 2`, `claude 3`, …) — the counter climbs monotonically and never
+refills a freed number, so deleting `claude 2` and forking again gives
+`claude 4`, not `claude 2`. A typed label makes a reusable named session
+(`claude: tests`) that re-attaches if you type the same label again.
+`<leader>al` opens a snacks picker over running sessions to **switch**
+(`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one;
+rows are numbered and `<M-1>`..`<M-9>` confirms that row directly.
+Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
+place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
+`<M-l>` opens the same switch/kill picker in place; `<C-]>` toggles back to
+the last-used session (alt-tab style), `<M-n>` forks a new auto-numbered
+session in place, and `<M-a>` hides the panel (the `<leader>aa` toggle)
+without first escaping terminal mode. Kill stays on the deliberate
+`<leader>ad` path — there's no fast in-panel teardown.
+In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
+instead of hitting the unmodifiable terminal buffer: `u` sends Ctrl+_
+(Claude's input-undo — vim's own `u` would just throw E21 here; the
+binding is pinned in the stowed `claude/.claude/keybindings.json`),
+`p`/`P` bracketed-paste a register into the prompt (yank in a code
+buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
+PageUp/PageDown to scroll Claude's view. `u` only means undo while
+Claude's input box has focus; mid-stream or dialog states may ignore it.
+There is **no tool launcher**: `ai.lua` prunes `cli.tools` to `claude`, which
+left sidekick's launcher (formerly `<leader>as`) with nothing `<leader>aa`
+doesn't do. See "Sidekick's session backends shell out on every lookup" for
+why the other presets are dropped rather than merely unused, and how to
+restore one.
 
-   `<leader>an` spawns a **new** session: a blank prompt auto-numbers it
-   (`claude 2`, `claude 3`, …) — the counter climbs monotonically and never
-   refills a freed number, so deleting `claude 2` and forking again gives
-   `claude 4`, not `claude 2`. A typed label makes a reusable named session
-   (`claude: tests`) that re-attaches if you type the same label again.
-   `<leader>al` opens a snacks picker over running sessions to **switch**
-   (`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one;
-   rows are numbered and `<M-1>`..`<M-9>` confirms that row directly.
-   Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
-   place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
-   `<M-l>` opens the same switch/kill picker in place; `<C-]>` toggles back to
-   the last-used session (alt-tab style), `<M-n>` forks a new auto-numbered
-   session in place, and `<M-a>` hides the panel (the `<leader>aa` toggle)
-   without first escaping terminal mode. Kill stays on the deliberate
-   `<leader>ad` path — there's no fast in-panel teardown.
-   In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
-   instead of hitting the unmodifiable terminal buffer: `u` sends Ctrl+_
-   (Claude's input-undo — vim's own `u` would just throw E21 here; the
-   binding is pinned in the stowed `claude/.claude/keybindings.json`),
-   `p`/`P` bracketed-paste a register into the prompt (yank in a code
-   buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
-   PageUp/PageDown to scroll Claude's view. `u` only means undo while
-   Claude's input box has focus; mid-stream or dialog states may ignore it.
-   There is **no tool launcher**: `ai.lua` prunes `cli.tools` to `claude`, which
-   left sidekick's launcher (formerly `<leader>as`) with nothing `<leader>aa`
-   doesn't do. See "Sidekick's session backends shell out on every lookup" for
-   why the other presets are dropped rather than merely unused, and how to
-   restore one.
-
-   Sessions are keyed by `(tool name, cwd)`; each extra session is a
-   dynamically-registered tool name cloned from the `claude` preset (so
-   context sends stay claude-formatted). Only `claude` #1 is pre-warmed —
-   sessions 2+ cold-start (~1–2s) on first open. Killing a session
-   auto-unregisters its dynamic name (a detach sweep), and re-creating that
-   name starts a **fresh** conversation (no resume). A very long label
-   (≥16 chars) warns that reusing it from a different project dir collapses to
-   the same session. Nothing persists across an nvim restart without the mux
-   backend.
+Sessions are keyed by `(tool name, cwd)`; each extra session is a
+dynamically-registered tool name cloned from the `claude` preset (so
+context sends stay claude-formatted). Only `claude` #1 is pre-warmed —
+sessions 2+ cold-start (~1–2s) on first open. Killing a session
+auto-unregisters its dynamic name (a detach sweep), and re-creating that
+name starts a **fresh** conversation (no resume). A very long label
+(≥16 chars) warns that reusing it from a different project dir collapses to
+the same session. Nothing persists across an nvim restart without the mux
+backend.
 
 | Keymap | Action |
 |---|---|
-| `<Tab>` (insert) | Priority: blink menu selection → Copilot ghost text accept → snippet placeholder jump → literal Tab (matches VS Code/Zed) |
-| `<Tab>` (normal) | NES: jump to or apply next edit suggestion |
-| `<leader>ta` | Toggle all AI completions globally (inline ghost text + NES) |
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
@@ -2348,32 +2344,20 @@ unreliable cross-language name extraction) with Claude Code's native `#L`
 mention shape (`{quickfix}` included); diagnostics and `{buffers}`/`{file}`
 still use sidekick's stock `cli/context` module.
 
-### NES vs Copilot inline completion
+### There is no inline AI completion
 
-Two separate Copilot features, both powered by the Copilot LSP:
+Removed 2026-07-20, along with NES. Both were Copilot features on the same
+`copilot-language-server` client, and neither is configured anymore: the LSP is
+gone from `lsp.lua`, `vim.lsp.inline_completion` is never enabled, and the
+`<leader>ta` toggle that covered both is unbound.
 
-- **NES** (normal mode) — after you edit and leave insert mode, Copilot
-  suggests follow-on edits as diff overlays. Press `<Tab>` to jump/apply.
-  Reactive: "you changed X, here's what else should change."
-  LSP method: `textDocument/copilotInlineEdit`.
-- **Inline completion** (insert mode) — while typing, Copilot renders ghost
-  text at the cursor showing what to type next. Press `<Tab>` to accept.
-  Proactive: "here's what you probably want to write next."
-  LSP method: `textDocument/inlineCompletion`.
-  Uses `vim.lsp.inline_completion` (Neovim 0.12 built-in). `<leader>ta`
-  toggles globally. Ghost text styled via `ComplHint` highlight group
-  (linked to `Comment` in `themes.lua` for visibility).
-
-blink.cmp's ghost text is disabled to avoid dual overlays — Copilot's
-inline completion provides its own ghost text via the same extmark
-mechanism (`virt_text_pos='inline'`).
+blink.cmp's own ghost text stays off too, but for a different reason now — see
+[Autocompletion (blink.cmp)](#autocompletion).
 
 ### First-run setup
 
 1. Restart Neovim — sidekick.nvim installs via `vim.pack`.
-2. `:Mason` — confirm `copilot-language-server` is installed.
-3. `:LspCopilotSignIn` — complete the device-code flow in a browser.
-4. Install `claude` CLI if not already present.
+2. Install `claude` CLI if not already present.
 
 
 <a id="debugging"></a>

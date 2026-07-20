@@ -231,8 +231,8 @@ end)
 -- Rust buffers.
 --
 -- Fires on LspAttach, filtered by buffer filetype (not FileType, not the
--- client name): lsp.lua rebinds these same keys on every attach, and two
--- clients attach here — rust-analyzer, then copilot. rust.lua loads after
+-- client name): lsp.lua rebinds these same keys on every attach, and more than
+-- one client can attach here. rust.lua loads after
 -- lsp.lua (Load order), so this always registers, and fires, last. Full
 -- story: Design Decisions → "Rust keymaps fire on LspAttach, not FileType".
 vim.api.nvim_create_autocmd('LspAttach', {
