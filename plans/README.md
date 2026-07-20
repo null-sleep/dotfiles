@@ -25,9 +25,8 @@ off or delete them as they land; add new ones freely.
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
   `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
   in `669b19e`.
-  - [ ] **Saved picker searches** - when you search something save that somewhere
-     so you can easily re-run it later. This is a feature that I want to add to the
-     picker plugin.
+- [ ] **Saved picker searches** — save a search when you run it so you can
+  re-run it later. A feature to add to the picker.
 - [ ] **Review and adopt the plans/ hygiene conventions** — status-header
   template, prune-on-land rule, anchor-citation convention, `plans-audit`
   skill sketch. Proposal saved in [plans-hygiene.md](plans-hygiene.md)
@@ -66,26 +65,6 @@ off or delete them as they land; add new ones freely.
   already installed. See [treesitter-textobjects.md](treesitter-textobjects.md).
   Related: the [mini.ai](https://github.com/nvim-mini/mini.ai) eval below —
   that plan defers the `o`/`d`/next-last text objects to it.
-- **atone.nvim: evaluated, installed, reverted same day (2026-07-19).** Kept
-  here as a decision record so it isn't re-litigated. It was installed on the
-  premise that `Snacks.picker.undo()` "flattens branch topology" and so
-  couldn't show the undo *tree*. **That premise was false** — the snacks
-  finder recurses each entry's `alt` branches and the formatter draws a real
-  tree gutter, so branches were visible in the picker all along. What atone
-  uniquely added was persistent named marks and an always-visible panel; what
-  it cost was slower stepping (two keystrokes per node in its default
-  non-compact graph), a sparser display, and a GPL-3.0 unpinnable dependency.
-  Not worth it once the picker's tree rendering was understood. Revive only
-  if **persistent undo bookmarks** become a real need — that's the one thing
-  the picker genuinely can't do. Note `:Undotree` is still not a free
-  alternative: absent on 0.12.4, nightly/0.13 only.
-  - Two things outlived the revert, both worth keeping: the left-edge sidebar
-    coordinator in `buffers.lua` (the inlined version it replaced swept only
-    the current tabpage, so the auto-quit handler could strand a sidebar in
-    another tab), and the corrected picker description in GUIDE.md.
-  - Lesson worth generalizing: read the finder before claiming what a picker
-    can't do. One unverified sentence drove a plugin install, a refactor, and
-    a same-day revert.
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
   existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
   itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not
