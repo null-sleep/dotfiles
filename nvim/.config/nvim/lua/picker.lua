@@ -202,7 +202,22 @@ require('snacks').setup({
           if ctx.item.diff then
             ctx.item.diff = ctx.item.diff:gsub('^diff %-%-git[^\n]*\n%-%-%-[^\n]*\n%+%+%+[^\n]*\n', '', 1)
           end
-          return Snacks.picker.preview.diff(ctx)
+          local ret = Snacks.picker.preview.diff(ctx)
+          -- The filename moves to the preview window's border instead: one
+          -- line of chrome rather than six, and it survives the header strip
+          -- above. Set AFTER the previewer runs — preview:reset() clears the
+          -- title on every item change.
+          if ctx.item.file then
+            -- ':.' is cwd-relative and leaves a file outside the project as a
+            -- full absolute path, which would overflow the border — fall back
+            -- to '~' for those.
+            local name = vim.fn.fnamemodify(ctx.item.file, ':.')
+            if name:sub(1, 1) == '/' then
+              name = vim.fn.fnamemodify(ctx.item.file, ':~')
+            end
+            ctx.preview:set_title(name)
+          end
+          return ret
         end,
         format = function(item, picker)
           local a = Snacks.picker.util.align
@@ -350,4 +365,7 @@ require('snacks').setup({
 -- otherwise the default filter hides every `_`-prefixed function, which is most
 -- of the list-render hot path. A profiled *run* leaves the wrapped modules in
 -- place until restart, so quit nvim before timing anything for real.
-Snacks.toggle.profiler():map('<leader>tp')
+-- Explicit desc: snacks would generate "Toggle Profiler", and the <leader>sk
+-- picker derives a keymap's tag from the text before the first ':' — no colon,
+-- no tag. Matches the 'Group: Action' format every other keymap here uses.
+Snacks.toggle.profiler():map('<leader>tp', { desc = 'Toggle: Profiler' })

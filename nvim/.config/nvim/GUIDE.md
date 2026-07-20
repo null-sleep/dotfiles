@@ -1305,9 +1305,10 @@ fighting stock layout rather than behavior:
   field — glyphs still grow leftward with depth, but every column after it
   lands in the same place at any depth.
 - **`previewers.diff.style = 'syntax'`** plus a `preview` wrapper that strips
-  the git header. The stock "fancy" renderer opens with a boxed filename and a
-  boxed file icon — ~6 lines before content, and the filename is a constant
-  here. The trade is losing the dual line-number columns and in-hunk syntax
+  the git header and puts the filename in the preview window's border
+  instead. The stock "fancy" renderer opens with a boxed filename and a boxed
+  file icon — ~6 lines before content. One line of border beats six lines of
+  chrome. The trade is losing the dual line-number columns and in-hunk syntax
   highlighting; diff colors only.
 - **`SnacksPickerTree`** relinked to `Delimiter` in `themes.lua`'s
   `global_overrides` — it defaults to `LineNr`, which is tuned to disappear,
