@@ -25,21 +25,18 @@ vim.opt.sessionoptions:remove('terminal')
 -- globals into every session. See GUIDE.md "Synthetic sidebar buffers can't be
 -- session-serialized".
 --
--- Aerial's outline, nvim-tree's explorer, and atone's undo tree are the three
--- such panels today — all closed here. (nvim-tree was wrongly assumed to be
--- handled elsewhere and left out until this bug surfaced; same blank-buffer
--- failure mode.) Safe to close in PersistenceSavePre: it only fires from
--- persistence's VimLeavePre hook, i.e. nvim is already quitting.
+-- Aerial's outline and nvim-tree's explorer are the two such panels today —
+-- both closed here. (nvim-tree was wrongly assumed to be handled elsewhere
+-- and left out until this bug surfaced; same blank-buffer failure mode.)
+-- Safe to close in PersistenceSavePre: it only fires from persistence's
+-- VimLeavePre hook, i.e. nvim is already quitting.
 vim.api.nvim_create_autocmd('User', {
   group   = vim.api.nvim_create_augroup('UserSessionSave', { clear = true }),
   pattern = 'PersistenceSavePre',
-  desc = 'Session: close synthetic-buffer panels (aerial, nvim-tree, atone) before mksession so they leave no blank scratch window',
+  desc = 'Session: close synthetic-buffer panels (aerial, nvim-tree) before mksession so they leave no blank scratch window',
   callback = function()
     require('aerial').close_all()
     require('nvim-tree.api').tree.close_in_all_tabs()
-    -- atone has no public Lua API; :Atone is the supported surface. No-op
-    -- when nothing is open.
-    pcall(vim.cmd, 'Atone close')
     -- Also wipe stale `NvimTree_N` buffers by name. A session saved before this
     -- hook restores one as a plain listed, empty-filetype buffer (not a live
     -- tree), so the API close above misses it and mksession re-`badd`s it every

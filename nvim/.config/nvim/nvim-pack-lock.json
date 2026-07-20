@@ -8,10 +8,6 @@
       "rev": "28fe6e822ae344544c379d60fcb13c9519a1f08a",
       "src": "https://github.com/stevearc/aerial.nvim"
     },
-    "atone.nvim": {
-      "rev": "bfe863e0499fcb47827aa7be1d2d734b8395c4c7",
-      "src": "https://github.com/XXiaoA/atone.nvim"
-    },
     "auto-save.nvim": {
       "rev": "9aabcb8396224dcbf8d51c0c1d620d88a46e89d7",
       "src": "https://github.com/okuuva/auto-save.nvim"

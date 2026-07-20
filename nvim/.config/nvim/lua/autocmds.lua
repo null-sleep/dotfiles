@@ -131,8 +131,9 @@ vim.api.nvim_create_autocmd('QuitPre', {
     end
     if total - floating - #sidebar_wins == 1 then
       -- Via buffers.lua, not a raw win_close per window: it closes through
-      -- each plugin's own API, which atone needs (closing its windows
-      -- directly throws out of a refresh() mid-teardown).
+      -- each plugin's own API, so a panel that tracks its own view state
+      -- doesn't desync. Also sweeps every tabpage, which the window list
+      -- above is counted across.
       buffers.close_all_sidebars()
     end
   end,

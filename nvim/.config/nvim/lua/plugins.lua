@@ -54,10 +54,6 @@ vim.pack.add(vim.list_extend({
   -- Pins special windows (nvim-tree, aerial, toggleterm, neotest, quickfix...)
   -- so a stray :e/buffer-jump can't hijack them and load an unrelated file.
   { src = gh('stevearc/stickybuf.nvim') },
-  -- Undo-tree panel: the branch structure u/<C-r> can't reach, with live
-  -- treesitter diffs and persistent node bookmarks; see undotree.lua. No
-  -- version tags upstream — left unpinned, same as actions-preview above.
-  { src = gh('XXiaoA/atone.nvim') },
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },

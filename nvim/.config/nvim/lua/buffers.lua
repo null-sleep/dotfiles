@@ -20,7 +20,6 @@ M.special_filetypes = {
   NvimTree          = true,  -- file tree
   toggleterm        = true,  -- terminal panel/float
   sidekick_terminal = true,  -- sidekick AI CLI
-  atone             = true,  -- undo tree panel (tree + diff + help all share it)
 }
 
 -- Sidebars: persistent navigation panels docked to a window edge. A STRICT
@@ -32,7 +31,6 @@ M.special_filetypes = {
 M.sidebar_filetypes = {
   NvimTree = true,  -- file tree
   aerial   = true,  -- outline sidebar
-  atone    = true,  -- undo tree panel
 }
 
 -- True when `buf` is a non-code buffer: a terminal/prompt buftype, or a
@@ -59,12 +57,11 @@ function M.is_sidebar(buf)
 end
 
 -- Left-edge sidebar coordination: every `sidebar_filetypes` panel wants the
--- true left edge, so each toggle closes the others on its OPENING edge. Was
--- inlined pairwise in outline.lua/keymaps.lua until a third panel would have
--- made that six checks. See GUIDE.md "Left-edge sidebars swap into each other".
+-- true left edge, so each toggle closes the others on its OPENING edge. See
+-- GUIDE.md "Left-edge sidebars swap into each other".
 
--- Floats are excluded: aerial's nav popup and atone's `gd` diff carry their
--- panel's filetype without owning the edge.
+-- Floats are excluded: aerial's nav popup carries the panel's filetype
+-- without owning the edge.
 ---@param ft string
 ---@param all_tabs? boolean every tabpage instead of just the current one
 ---@return integer[]
@@ -88,9 +85,8 @@ function M.is_sidebar_visible(ft)
   return #edge_wins(ft) > 0
 end
 
--- Close through each plugin's own API: nvim-tree and aerial desync if their
--- window goes out from under them, and atone cascades through its WinClosed
--- into a refresh() that throws mid-teardown. `all_tabs` picks the wider call.
+-- Close through each plugin's own API — nvim-tree and aerial desync if their
+-- window goes out from under them. `all_tabs` picks the wider call.
 local sidebar_closers = {
   NvimTree = function(all_tabs)
     local api = require('nvim-tree.api')
@@ -100,14 +96,11 @@ local sidebar_closers = {
     local aerial = require('aerial')
     if all_tabs then aerial.close_all() else aerial.close() end
   end,
-  -- atone has no public Lua API; :Atone is the supported surface. One panel
-  -- only, so `all_tabs` is moot.
-  atone = function() vim.cmd('Atone close') end,
 }
 
 -- Sweeps windows after the closer too: one that errors would otherwise leave
 -- the sidebar open and silently break the swap. A panel may own several edge
--- windows (atone stacks tree + diff), so close every match.
+-- windows, so close every match.
 ---@param keep_ft? string sidebar filetype to leave alone (nil closes all)
 ---@param all_tabs? boolean every tabpage instead of just the current one
 local function close_sidebars(keep_ft, all_tabs)

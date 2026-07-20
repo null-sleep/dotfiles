@@ -77,16 +77,26 @@ off or delete them as they land; add new ones freely.
   `sources.undo.win.input.keys` override in `picker.lua`. Its sibling `<C-y>`
   (yank *added* lines) needs no check — it shadows the global `copy_path`
   provably, since snacks applies per-source config after the global layer.
-- [ ] **Decide whether the undo tree panel earns its slot** — atone.nvim
-  shipped 2026-07-19 on `<leader>uU` (GUIDE.md → "Undo tree (atone)"), which
-  closed the old "evaluate atone" item but skipped its *"decide after living
-  with it"* part: it went in on one instinctive keypress for an unbound key,
-  not on evidence the `<leader>uu` picker was insufficient. Evaluation still
-  owed, just with the plugin installed. Revert criteria: if the marks and
-  branch view go unused and it's only ever the picker being reached for, drop
-  the plugin and its `buffers.lua` registration — the left-sidebar coordinator
-  it motivated stays either way. `:Undotree` still isn't a free alternative:
-  absent on 0.12.4, nightly/0.13 only — recheck on the next release bump.
+- **atone.nvim: evaluated, installed, reverted same day (2026-07-19).** Kept
+  here as a decision record so it isn't re-litigated. It was installed on the
+  premise that `Snacks.picker.undo()` "flattens branch topology" and so
+  couldn't show the undo *tree*. **That premise was false** — the snacks
+  finder recurses each entry's `alt` branches and the formatter draws a real
+  tree gutter, so branches were visible in the picker all along. What atone
+  uniquely added was persistent named marks and an always-visible panel; what
+  it cost was slower stepping (two keystrokes per node in its default
+  non-compact graph), a sparser display, and a GPL-3.0 unpinnable dependency.
+  Not worth it once the picker's tree rendering was understood. Revive only
+  if **persistent undo bookmarks** become a real need — that's the one thing
+  the picker genuinely can't do. Note `:Undotree` is still not a free
+  alternative: absent on 0.12.4, nightly/0.13 only.
+  - Two things outlived the revert, both worth keeping: the left-edge sidebar
+    coordinator in `buffers.lua` (the inlined version it replaced swept only
+    the current tabpage, so the auto-quit handler could strand a sidebar in
+    another tab), and the corrected picker description in GUIDE.md.
+  - Lesson worth generalizing: read the finder before claiming what a picker
+    can't do. One unverified sentence drove a plugin install, a refactor, and
+    a same-day revert.
 - [ ] **Evaluate [mini.ai](https://github.com/nvim-mini/mini.ai)** — fits the
   existing mini.* family (mini.icons/notify/bufremove are in use; mini.surround
   itself is still only queued in [nvim-backlog.md](nvim-backlog.md), not
