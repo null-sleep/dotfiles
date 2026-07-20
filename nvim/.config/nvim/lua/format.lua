@@ -11,15 +11,24 @@
 -- see lint.lua.)
 vim.cmd.packadd('conform.nvim')
 
--- Format-on-save ON. Note this is NOT scoped to :w — auto-save.nvim writes with
--- a plain `silent! write` (noautocmd defaults false), so BufWritePre fires and
--- conform runs on ITS writes too. With autosave.lua's defer_save on
--- InsertLeave/TextChanged + a 1s debounce, that means a reformat ~1s after you
--- stop typing, in normal mode, mid-edit. Escape hatches: <leader>tf (session),
--- vim.b.disable_autoformat (buffer), <leader>cf (manual, works either way).
--- Enabled as-is deliberately, to see how the coupling feels before tuning it —
--- see plans/auto-format-aggressiveness.md for the options if it grates.
-vim.g.disable_autoformat = false
+-- Format-on-save OFF: formatting is manual, on <leader>cf.
+--
+-- The reason is the auto-save coupling, NOT `:w`. auto-save.nvim writes with a
+-- plain `silent! write` (noautocmd defaults false), so BufWritePre fires and
+-- conform runs on ITS writes too — and with autosave.lua's defer_save on
+-- InsertLeave/TextChanged + a 1s debounce, that reformats the buffer a second
+-- after you stop typing, mid-edit. Tried on for a day (2026-07-20); the
+-- mid-edit reformat is exactly as disruptive as it sounds.
+--
+-- Worth knowing this isn't a quirk of this config: no editor ships debounced
+-- auto-save together with format-on-save. VS Code refuses to format on a
+-- delayed auto-save and enforces it in source; Zed's default.json says the
+-- same. See plans/auto-format-aggressiveness.md for the gating options if
+-- automatic formatting is ever wanted back.
+--
+-- <leader>tf toggles on for a session, vim.b.disable_autoformat scopes it to a
+-- buffer, <leader>cf formats manually and ignores both.
+vim.g.disable_autoformat = true
 
 require('conform').setup({
   formatters_by_ft = {

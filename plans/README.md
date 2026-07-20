@@ -11,14 +11,13 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Revisit auto-format aggressiveness** — format-on-save went ON as-is
-  (2026-07-20), but it fires on auto-save's writes, not just `:w`, so the buffer
-  reformats ~1s after you stop typing. Watch for reformat-while-you-think. Prior
-  art points at gating formatting to explicit `:w` — VS Code and Zed both ship
-  that gate, and VS Code enforces it in source — so if it annoys, go straight to
-  option 3 in [auto-format-aggressiveness.md](auto-format-aggressiveness.md)
-  (which also has the LSP-fallback breadth question and a `QuitPre` nit in
-  `autosave.lua`).
+- [x] **Auto-format aggressiveness** — settled 2026-07-20: format-on-save tried
+  on, disliked (it fires on auto-save's writes, so the buffer reformats ~1s
+  after you stop typing), turned back off. **Formatting is manual on
+  `<leader>cf`.** [auto-format-aggressiveness.md](auto-format-aggressiveness.md)
+  keeps the research and the re-enable spec — read it before ever flipping
+  `disable_autoformat` again, since the naive flip is the thing that was
+  rejected. Still open in there: the LSP-fallback breadth question.
 - [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes

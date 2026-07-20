@@ -1,8 +1,14 @@
 # Auto-format aggressiveness
 
-Format-on-save is now ON (`lua/format.lua`, `vim.g.disable_autoformat = false`,
-2026-07-20). This plan captures the tuning options for *when* it fires, to be
-picked from lived experience rather than guessed at up front.
+**Status: settled. Format-on-save is OFF; formatting is manual on `<leader>cf`**
+(`lua/format.lua`, `vim.g.disable_autoformat = true`). Tried on 2026-07-20 and
+turned back off the same day — see the decision log.
+
+This doc is kept as the record of *why*, and as the spec for re-enabling: if
+automatic formatting is ever wanted back, the gating options below are worked
+out and the prior art is researched. Don't re-enable format-on-save without
+picking one of them first — plain `disable_autoformat = false` is the thing
+that was already rejected.
 
 Scope: format-on-save timing only. Nothing here is about Copilot — that removal
 landed in the same change and needs no plan.
@@ -217,3 +223,22 @@ auto path (`lua/format.lua:24`).
   mid-edit reformat is actually annoying in practice, and that data is worth
   more than matching someone else's default. If it does annoy, skip straight to
   option 3 rather than re-litigating all four.
+- **2026-07-20** — it annoyed. **Turned format-on-save back off; formatting is
+  now manual on `<leader>cf`.** Considered and rejected the gating options for
+  now: they all add machinery (an autocmd pair plus a flag) to earn back an
+  automation that `<leader>cf` already covers on demand, and none of them was
+  worth that until the manual key proves to be a nuisance. The experiment was
+  still worth running — "reformats while I'm thinking" is a much sharper reason
+  to keep it off than the stale NES rationale it replaced, and the research
+  behind it is now written down rather than re-derived next time.
+
+  If this is revisited: **option 1 + option 3 combined** is the recommendation —
+  format on leaving the buffer/window *and* on an explicit `:w`, never on the
+  debounced auto-save. Straight option 3 is wrong for this config specifically,
+  because auto-save means `:w` is rarely typed, so it degenerates into
+  `<leader>cf` with extra steps. The implementation detail that makes the
+  combination cleanly possible: `immediate_save` runs **synchronously** inside
+  its BufLeave/FocusLost autocmd (`auto-save/init.lua:112-119`) while
+  `defer_save` goes through a debounce timer on a later tick, so a flag set in a
+  BufLeave autocmd and cleared via `vim.schedule` distinguishes the two
+  regardless of autocmd registration order.

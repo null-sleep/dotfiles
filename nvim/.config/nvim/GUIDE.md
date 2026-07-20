@@ -889,19 +889,22 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
 - **Codelens** -- gated on `textDocument/codeLens`. `grx` (nvim 0.12
   default) runs the codelens under cursor.
 
-- **Format-on-save** is ON (since 2026-07-20; it was off, citing NES, which no
-  longer exists). Note it is *not* scoped to `:w` — auto-save.nvim writes with a
-  plain `silent! write`, so `BufWritePre` fires and conform runs on its writes
-  too. With auto-save's `InsertLeave`/`TextChanged` triggers and a 1s debounce,
-  the buffer reformats about a second after you stop typing. `<leader>tf`
-  toggles it off for the session, `vim.b.disable_autoformat` per-buffer, and
-  `<leader>cf` formats manually regardless. Configured filetypes: Lua, Python,
-  Go, Rust, JS/TS/JSON/YAML, TOML, XML, just via conform.nvim; anything else
-  with a formatting-capable LSP is formatted through `lsp_format = 'fallback'`.
-  Formatting is `undojoin`ed into the preceding edit, so `u` undoes your change
-  rather than just the reformat. Run `:ConformInfo` to see which formatter
-  binaries are detected on `$PATH`. If the timing grates,
-  `plans/auto-format-aggressiveness.md` has the options.
+- **Format-on-save** is OFF — **formatting is manual, on `<leader>cf`**. The
+  reason is the auto-save coupling, not `:w`: auto-save.nvim writes with a plain
+  `silent! write`, so `BufWritePre` fires and conform runs on its writes too,
+  and with auto-save's `InsertLeave`/`TextChanged` triggers plus a 1s debounce
+  the buffer would reformat about a second after you stop typing, mid-edit. It
+  was tried on for a day (2026-07-20) and turned back off. Not a quirk of this
+  config — no editor ships debounced auto-save with format-on-save; VS Code
+  refuses to format on a delayed auto-save and enforces it in source, and Zed
+  documents the same rule. `plans/auto-format-aggressiveness.md` has the gating
+  options if automatic formatting is ever wanted back.
+  `<leader>tf` toggles it on for the session, `vim.b.disable_autoformat` scopes
+  it per-buffer, and `<leader>cf` formats manually regardless of both.
+  Configured filetypes: Lua, Python, Go, Rust, JS/TS/JSON/YAML, TOML, XML, just
+  via conform.nvim; anything else with a formatting-capable LSP goes through
+  `lsp_format = 'fallback'`. Run `:ConformInfo` to see which formatter binaries
+  are detected on `$PATH`.
 
 - **Nvim 0.12 built-in keymaps** -- `K` (hover), `[d`/`]d` (diagnostic jump),
   `grn` (rename), `gra` (code action), `grt` (type definition), `grx` (codelens)
