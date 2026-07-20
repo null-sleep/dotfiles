@@ -130,3 +130,12 @@ vim.defer_fn(function()
   require('utils').check_nvim_update()
 end, 5000)
 
+-- Weekly prune of undo/session/shada/log leftovers. Last on the clock on
+-- purpose: mason-tool-installer starts at 30s and its downloads run well past
+-- that, so 2min keeps a disk walk off a busy disk. Only the sweep is deferred
+-- (:Cleanup is registered at startup); its weekly/headless guards apply at
+-- fire time.
+vim.defer_fn(function()
+  require('cleanup').auto()
+end, 120000)
+

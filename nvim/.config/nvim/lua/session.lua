@@ -16,6 +16,26 @@ require('persistence').setup({
 -- one line is the whole fix.
 vim.opt.sessionoptions:remove('terminal')
 
+-- Don't save sessions for throwaway directories — ten of the twenty-four here
+-- were /private/tmp and $TMPDIR scratchpads that only clutter <leader>qS.
+-- cleanup.lua sweeps ones already on disk through the same is_tmp_path.
+--
+-- Re-checked on DirChanged: the startup cwd isn't necessarily the one
+-- persistence saves under. Only ever stops, never starts — <leader>qd stops
+-- saving deliberately, and a cd shouldn't undo that.
+local function stop_in_tmpdir()
+  if require('utils').is_tmp_path(vim.fn.getcwd()) then
+    require('persistence').stop()
+  end
+end
+
+stop_in_tmpdir()
+vim.api.nvim_create_autocmd('DirChanged', {
+  group = vim.api.nvim_create_augroup('UserSessionTmpdir', { clear = true }),
+  desc = 'Session: stop saving after cd-ing into a temp directory',
+  callback = stop_in_tmpdir,
+})
+
 -- A synthetic (no-file) window can't be session-serialized: mksession has no
 -- filename to record, so a restored session shows a blank `enew` scratch split
 -- where the panel was. The general fix is to close such windows before the

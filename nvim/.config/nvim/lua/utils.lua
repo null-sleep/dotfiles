@@ -176,6 +176,20 @@ function M.confirm(msg, on_confirm)
   })
 end
 
+-- Is `path` inside a throwaway temp directory? Shared by session.lua and
+-- cleanup.lua so the root list can't drift. macOS puts $TMPDIR under
+-- /var/folders (a plain /tmp test misses it) and symlinks /tmp to
+-- /private/tmp, hence resolving both sides.
+---@param path string
+---@return boolean
+function M.is_tmp_path(path)
+  path = vim.fn.resolve(path)
+  for _, root in ipairs({ vim.uv.os_tmpdir(), '/tmp', '/var/folders' }) do
+    if root and vim.startswith(path, vim.fn.resolve(root)) then return true end
+  end
+  return false
+end
+
 -- Check for newer Neovim version via Homebrew (async, non-blocking).
 -- Shows a notification if an update is available.
 --

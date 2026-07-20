@@ -50,6 +50,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Go (delve + neotest)](#go)
   - [Animations](#animations)
   - [Neovide](#neovide)
+  - [On-disk state](#on-disk-state)
 
 
 # Part 1: Essentials
@@ -100,7 +101,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
+- **`cleanup.lua`** — `:Cleanup` and the weekly unattended sweep (`auto()`, armed in `configs.lua`): prunes stale undo files, sessions, leftover shada temps, and oversized logs. Rules are mtime-based on purpose — see [On-disk state](#on-disk-state) for why undo can't be pruned by "is the source gone?"
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd, plus the left-edge sidebar coordinator (`is_sidebar_visible`/`close_other_sidebars`) the panel toggles swap through
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
 - **`animations.lua`** — Terminal-only Neovide-style animation (gated by
@@ -127,7 +129,7 @@ From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context 
 outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree ->
-animations -> neovide.
+animations -> neovide -> cleanup.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
 which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
@@ -172,11 +174,17 @@ this table in the same change.
 
 | Fires at | Task | Owner |
 |----------|------|-------|
+| 1000ms | Orphaned-plugin scan (`vim.pack.get` + notify) | `plugins.lua` |
 | 2000ms, then every 2s | First all-buffer `checktime` sweep, then steady poll | `configs.lua` |
 | 2000ms | Shell pre-warms (toggleterm float + bottom panel) | `terminal.lua` |
 | 3000ms, restore-aware | Claude CLI pre-warm (sidekick) | `ai.lua` |
 | 5000ms | Neovim update check (`brew info` spawn) | `configs.lua` |
 | 30000ms | mason-tool-installer daily update check (`start_delay`) | `lsp.lua` |
+| 120000ms | Weekly on-disk-state sweep (`cleanup.auto()`) | `configs.lua` |
+
+The cleanup sweep sits last on purpose: mason-tool-installer *starts* at 30s
+but downloads for minutes past it, so 2 minutes keeps a disk walk off a busy
+disk. Only its auto-run is deferred — `:Cleanup` registers at startup.
 
 Only the claude pre-warm is restore-aware: `PersistenceLoadPre`/`LoadPost`
 cancel and re-arm its timer so it fires 3s after a restore *completes*
@@ -3055,3 +3063,87 @@ Other Neovide-only behavior:
   "Look Up" popover for text, Quick Look for file paths/URLs. No setup.
 - Animations are tuned short (cursor 0.05s, scroll 0.1s); floating shadow is
   off so floats match terminal nvim's flat edges.
+
+
+## On-disk state
+
+What this config persists between sessions, and what prunes it. Three roots:
+`stdpath('state')` for things you'd miss if lost, `stdpath('data')` for what
+can be re-fetched, `stdpath('cache')` for what regenerates. The spellfile is
+the deliberate exception — it lives *inside* this repo so it can be committed.
+
+| What | Where | Configured in |
+|---|---|---|
+| Persistent undo | `state/nvim/undo/` | `configs.lua` (`undofile`, `undolevels`) |
+| Sessions | `state/nvim/sessions/` | [Session](#session) — `session.lua` |
+| Marks, registers, `:`/`/` history, jumplist | `state/nvim/shada/` | nvim default, never overridden |
+| Personal dictionary | `~/.config/nvim/spell/en.utf-8.add` | [Spell checking](#spell-checking) |
+| Active theme | `data/nvim/theme.txt` | [Themes](#themes) — `themes.lua` |
+| Picker frecency | `data/nvim/snacks/` | [Picker](#picker-snacks) — `picker.lua` |
+| Scratch buffers | `data/nvim/scratch/` | [Scratch buffers](#scratch-buffers) |
+| LSP servers, formatters, linters, DAP | `data/nvim/mason/` | `lsp.lua` (`ensure_installed`) |
+| Plugin clones | `data/nvim/site/pack/core/opt/` | `plugins.lua`; versions pinned in `nvim-pack-lock.json` |
+| Treesitter parsers | inside the nvim-treesitter plugin dir | `plugins.lua` |
+| blink.cmp rust matcher + frecency | plugin dir, `data/nvim/blink/` | `completion.lua` |
+| Update-check stamp | `cache/nvim/nvim-update-check` | `utils.lua` — mtime *is* the payload |
+| Cleanup-sweep stamp | `cache/nvim/nvim-cleanup` | `cleanup.lua` — same idiom |
+| Deleted files (`D` in the tree) | macOS `~/.Trash` | [File Explorer](#file-explorer) |
+
+Each plugin also drops its own logfile under `stdpath('state')` (`lsp.log`,
+`mason.log`, …). None are configured; the sweep truncates any that get large.
+
+### Deliberately not persisted
+
+- **Swapfiles** — off in `configs.lua`: crash `:recover` traded for auto-save
+  writing ~1s after the last change (`autosave.lua`). Distinct from
+  `undofile`, which is history for files already on disk.
+- **Backups** (`backup`/`writebackup`) — off; the working tree and git cover it.
+- **Folds and views** — no `mkview`/`viewdir`; folds recompute from treesitter.
+- **Session auto-restore** — always explicit (`<leader>qs`). `sessionoptions`
+  drops `terminal` and never adds `globals` — see [Session](#session).
+- **Sidekick CLI sessions** — die with nvim; surviving would need the
+  tmux/zellij backend left off in `ai.lua`.
+- **DAP breakpoints** — cleared on exit.
+- **Notification history** — mini.notify's `:Notifications` is in-memory only.
+
+### Cleanup
+
+`:Cleanup` shows what it would remove in a split, then asks to confirm;
+`:Cleanup dry` previews without prompting. The same sweep runs unattended
+weekly, 2 minutes after startup (see [Startup stagger
+timeline](#startup-stagger-timeline)), and always notifies what it did — even
+when that's nothing, so a quiet week looks different from a broken one.
+
+| Rule | Threshold |
+|---|---|
+| Undo history untouched | 90d |
+| Sessions untouched | 30d |
+| Sessions whose branch is gone | 7d |
+| Sessions for temp directories | 7d |
+| Leftover `shada` temp files | 24h |
+| Logs over 5MB | truncated, not deleted |
+
+Sessions expire faster than undo because they're a clutter problem (the
+`<leader>qS` list), not a disk one. `session.lua` also refuses to *write* a
+session for a temp cwd, so the 7d rule only sweeps ones saved before that
+guard existed.
+
+**Why undo is pruned by age, not by "is the source file gone?"** — that rule
+is unimplementable. Nvim names an undo file by replacing `/` with `%` and
+doesn't escape a `%` already in the path, so `/a/b%c/d` and `/a/b/c/d` share
+one file. Decoding can therefore point at a nonexistent path while the real
+file is alive, destroying history. Age can't be fooled that way, collects
+orphans anyway, and won't mistake a temporarily unreachable path (unmounted
+volume, network share, rustup mid-upgrade) for a deleted one.
+
+The dead-branch rule is the one place a name *is* decoded, and it stays
+conservative: split on the last `%%`, require the decoded cwd to be a real
+git repo, normalize branches through the same `gsub('[\\/:]+', '%%')`
+persistence writes them with — without it every `feature/foo` reads as
+deleted and its live session gets swept — and treat any git failure as keep.
+
+**Not swept: Mason.** Largest dir by far (~1.1G) but it holds no version
+history — each package dir *is* the current version, so age-based deletion
+just re-downloads. An installed-vs-`ensure_installed` report also needs a
+name map (`ensure_installed` has `lua_ls`; Mason's dir is
+`lua-language-server`) or it flags healthy servers. Prune with `:Mason`.

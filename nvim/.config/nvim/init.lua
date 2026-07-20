@@ -28,4 +28,5 @@ require('autosave')
 require('filetree')
 require('animations')
 require('neovide')
+require('cleanup')  -- :Cleanup + the weekly on-disk-state sweep (armed in configs.lua)
 
