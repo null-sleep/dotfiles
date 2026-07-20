@@ -11,15 +11,6 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Render images + mermaid diagrams in nvim under Ghostty** —
-  [ghostty-followups.md](ghostty-followups.md) Part 1 §3. **PARKED
-  (2026-07-15):** the render pipeline works (native-Rust `mmdr` via an `mmdc`
-  shim — no Chromium — gate + `SNACKS_GHOSTTY` + imagemagick all built and
-  installed), but inline images are **disabled** (`image.enabled = false`)
-  because terminal-graphics images only draw in the *focused* window, which
-  blanks the diagram whenever the Claude-in-a-split pane is focused. Resume =
-  flip `enabled` back on and decide if that split limitation is acceptable.
-  See Part 1 §3 for the full record + the flatten.nvim testing gotcha.
 - [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
   machine's saved sessions have quit at least once under the fix (self-healing
   the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
@@ -134,7 +125,7 @@ Grouped by state, not priority.
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
 - [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted
   `ghostty.md` migration plan. Two leftover open items (status bar,
-  `ApplePressAndHoldEnabled`) + the parked inline-mermaid resume plan, plus a
+  `ApplePressAndHoldEnabled`), plus a
   researched list of Ghostty 1.3 features (command palette, quick terminal,
   split zoom, `window-save-state`, shaders, …) not yet used in the config.
 

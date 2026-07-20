@@ -27,9 +27,7 @@ Already in this config:
   (`rust.lua`).
 - `nvim-dap` + `nvim-dap-ui`, auto-wired to Mason's codelldb via
   rustaceanvim's `dap = {}`.
-- `diffview.nvim` + `neogit` for git; `aerial.nvim` for outline; `snacks.image`
-  (imagemagick backend) already renders SVG/PDF/math, and Mermaid via the
-  `mmdr`/`mmdc` shim (avoids mermaid-cli's Chromium dependency).
+- `diffview.nvim` + `neogit` for git; `aerial.nvim` for outline.
 - **Not present:** any SSR/ast-grep tool, a DB client, an HTTP client, a
   coverage plugin, or a batch/project-wide diagnostics panel (no
   `trouble.nvim` or similar).
@@ -119,8 +117,8 @@ Rough total: ~4 plugins (dadbod trio counts as one install unit, kulala,
 nvim-coverage) + `cargo-llvm-cov`, maybe 30-40 lines of `vim.pack.add` +
 config.
 
-Dependency/type diagrams (`cargo-modules`/`cargo-depgraph` → Graphviz `dot`
-→ `snacks.image`) were researched here too — not wanted, dropped entirely.
+Dependency/type diagrams (`cargo-modules`/`cargo-depgraph` → Graphviz `dot`)
+were researched here too — not wanted, dropped entirely.
 
 ---
 

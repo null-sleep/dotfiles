@@ -20,8 +20,6 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # lets `brew bundle` install from this
                                                # third-party tap without a separate
                                                # `brew trust` (newer Homebrew gates these).
-tap "1jehuang/mmdr", trusted: true             # mmdr — native-Rust Mermaid renderer
-                                               # (see the mmdc shim in zsh/.local/bin).
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
 
 #-----------------------------------------------------------------------------
@@ -44,13 +42,6 @@ brew "jq"              # used by claude/setup-*.sh (macOS 15+ ships one too)
 #-----------------------------------------------------------------------------
 brew "neovim"
 brew "tree-sitter-cli" # builds treesitter parsers
-brew "imagemagick"     # `magick` — snacks.image renders svg/pdf/non-PNG rasters
-                       # and LaTeX/typst math with it (a :checkhealth snacks
-                       # ERROR without it).
-brew "mmdr"            # native-Rust Mermaid renderer; the `mmdc` shim in
-                       # zsh/.local/bin routes snacks.image's mermaid to it,
-                       # avoiding mermaid-cli's ~1 GB Chromium. Inline image
-                       # rendering itself is PARKED — see plans/ghostty.md §6.
 # LSP servers, formatters, and linters are installed by Mason inside nvim.
 
 #-----------------------------------------------------------------------------
