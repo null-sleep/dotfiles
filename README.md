@@ -1149,7 +1149,9 @@ New to ripgrep, or want to use it well? See the example-heavy guide at [`docs/ri
 
 ## Tabularis
 
-**Under testing** — evaluating as a database GUI client; no config or stow package.
+**Under testing** — evaluating as a database GUI client. No config of its own;
+the only tracked piece is a `PATH` shim in the [`zsh`](#zsh) package (see
+[MCP integration](#mcp-integration) below).
 
 ```bash
 brew tap TabularisDB/tabularis
@@ -1167,16 +1169,35 @@ mode. Credentials live in the OS keychain, not on disk.
 
 Tabularis ships its own MCP server — an AI client launches `tabularis --mcp`
 directly (stdio JSON-RPC, no network port), so there's no separate service
-to run. Enable via Settings → MCP → Install Config (auto-patches the
-client's config), or manually:
+to run.
+
+The cask installs no `PATH` entry, so — as with [`rcmd`](#rcmd) — the
+[`zsh`](#zsh) package symlinks `~/.local/bin/tabularis` →
+`/Applications/tabularis.app/Contents/MacOS/tabularis` (tracked as
+`zsh/.local/bin/tabularis`). That keeps the bundle path out of every client's
+config; if the app isn't installed the symlink just dangles. Register it with
+Claude Code once per machine:
+
+```bash
+stow zsh                                            # if not already stowed
+claude mcp add --scope user tabularis tabularis -- --mcp
+claude mcp list                                     # expect: tabularis ✔ Connected
+```
+
+`--scope user` writes to `~/.claude.json` (machine-local state, not tracked
+here), so it's a per-machine step. Other clients can be pointed at the same
+shim, or use Settings → MCP → Install Config to auto-patch them:
 
 ```json
 {
   "mcpServers": {
-    "tabularis": { "command": "/path/to/tabularis", "args": ["--mcp"] }
+    "tabularis": { "command": "tabularis", "args": ["--mcp"] }
   }
 }
 ```
+
+Clients that don't inherit a login shell's `PATH` (GUI apps launched from
+Finder) need the full bundle path there instead.
 
 Exposes read-only connection/schema resources plus `list_tables`,
 `describe_table`, and `run_query` (capped at 100 rows) tools, with an audit
