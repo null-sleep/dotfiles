@@ -897,8 +897,10 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   was tried on for a day (2026-07-20) and turned back off. Not a quirk of this
   config — no editor ships debounced auto-save with format-on-save; VS Code
   refuses to format on a delayed auto-save and enforces it in source, and Zed
-  documents the same rule. `plans/auto-format-aggressiveness.md` has the gating
-  options if automatic formatting is ever wanted back.
+  documents the same rule. Don't simply flip `disable_autoformat` back: that's
+  the arrangement that was rejected. Re-enabling means gating formatting off for
+  auto-save's writes first — format on `BufLeave`/`FocusLost` and explicit `:w`,
+  never on the debounced save (`format.lua`'s comment has the mechanism).
   `<leader>tf` toggles it on for the session, `vim.b.disable_autoformat` scopes
   it per-buffer, and `<leader>cf` formats manually regardless of both.
   Configured filetypes: Lua, Python, Go, Rust, JS/TS/JSON/YAML, TOML, XML, just

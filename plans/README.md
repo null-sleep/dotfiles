@@ -11,13 +11,6 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [x] **Auto-format aggressiveness** — settled 2026-07-20: format-on-save tried
-  on, disliked (it fires on auto-save's writes, so the buffer reformats ~1s
-  after you stop typing), turned back off. **Formatting is manual on
-  `<leader>cf`.** [auto-format-aggressiveness.md](auto-format-aggressiveness.md)
-  keeps the research and the re-enable spec — read it before ever flipping
-  `disable_autoformat` again, since the naive flip is the thing that was
-  rejected. Still open in there: the LSP-fallback breadth question.
 - [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes
@@ -232,12 +225,6 @@ Grouped by state, not priority.
   select/move/swap text objects (`af`/`if`/`ac`/…), plus a LazyVim mini.ai delta.
 - [quickfix-improvements.md](quickfix-improvements.md) — quicker.nvim / nvim-bqf
   for a real, prunable quickfix panel.
-- [auto-format-aggressiveness.md](auto-format-aggressiveness.md) — format-on-save
-  is on but coupled to auto-save's writes rather than `:w`; three options for
-  when it should fire, plus the LSP-fallback breadth question.
-- [copilot-context-enrichment.md](copilot-context-enrichment.md) — **obsolete**
-  (Copilot removed 2026-07-20): injecting LSP/treesitter type context into
-  Copilot's `didChange` for better ghost text. Kept for the research.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
 - [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted

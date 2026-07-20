@@ -22,9 +22,15 @@ vim.cmd.packadd('conform.nvim')
 --
 -- Worth knowing this isn't a quirk of this config: no editor ships debounced
 -- auto-save together with format-on-save. VS Code refuses to format on a
--- delayed auto-save and enforces it in source; Zed's default.json says the
--- same. See plans/auto-format-aggressiveness.md for the gating options if
--- automatic formatting is ever wanted back.
+-- delayed auto-save and enforces it in source (SaveReason.AUTO bails out of
+-- FormatOnSaveParticipant); Zed's default.json documents the same rule.
+--
+-- So don't just flip this back to false — that's the arrangement already
+-- rejected. Re-enabling means gating formatting off for auto-save's writes
+-- first: format on BufLeave/FocusLost and explicit :w, never on the debounced
+-- save. auto-save's immediate_save runs synchronously inside its autocmd while
+-- defer_save goes through a timer on a later tick, so a flag set on BufLeave
+-- and cleared via vim.schedule tells the two apart regardless of autocmd order.
 --
 -- <leader>tf toggles on for a session, vim.b.disable_autoformat scopes it to a
 -- buffer, <leader>cf formats manually and ignores both.
