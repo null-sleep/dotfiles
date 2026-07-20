@@ -11,11 +11,6 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Remove the stale-`NvimTree_N` session cleanup shim** — once every
-  machine's saved sessions have quit at least once under the fix (self-healing
-  the old `badd NvimTree_N` phantom), drop the by-name buffer-wipe loop in
-  `session.lua`'s `PersistenceSavePre` hook (keep the window-close). Shim added
-  in `669b19e`.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Review and adopt the plans/ hygiene conventions** — status-header
