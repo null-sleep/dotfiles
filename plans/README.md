@@ -11,6 +11,19 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Revisit auto-format aggressiveness** — format-on-save went ON as-is
+  (2026-07-20), but it fires on auto-save's writes, not just `:w`, so the buffer
+  reformats ~1s after you stop typing. Watch for reformat-while-you-think; three
+  tuning options (and the LSP-fallback breadth question) are written up in
+  [auto-format-aggressiveness.md](auto-format-aggressiveness.md).
+- [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
+  disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
+  pasteboard as NUL instead of newline, so every multi-line selection pastes
+  as a single line. When re-enabling, the value must be `clipboard`, not
+  `true`. Details and the byte-level evidence in [Ghostty copy-on-select
+  mangles multi-line copies](#ghostty-copy-on-select-mangles-multi-line-copies)
+  below; still unverified whether it's Ghostty-wide or specific to the Claude
+  Code pane.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Review and adopt the plans/ hygiene conventions** — status-header
@@ -29,8 +42,9 @@ off or delete them as they land; add new ones freely.
 - [ ] **Mine linkarzu's snacks-picker post for setup ideas** — hoisted from the
   same post-migration TODO (#8).
 - [ ] **Finish large-file protection's deferred per-subsystem guards**
-  (gitsigns / satellite / auto-save / sidekick NES + `:LargeFileRestore`) —
-  see [large-file-protection.md](large-file-protection.md) → TODO.
+  (gitsigns / satellite / auto-save + `:LargeFileRestore`) — see
+  [large-file-protection.md](large-file-protection.md) → TODO. The sidekick-NES
+  guard that was also on this list is moot: NES was removed 2026-07-20.
 - [ ] **Finish verifying Go debug/test** — two interactive checks never closed.
   (1) The `-test.run` **state-leak**: `<leader>nd` on `TestDescribe`, terminate,
   then `<leader>nd` on `TestMax` — the second session must stop in `TestMax`, not
@@ -47,9 +61,10 @@ off or delete them as they land; add new ones freely.
   [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md).
 - [ ] **Evaluate [avante.nvim](https://github.com/yetone/avante.nvim)** — a
   Cursor-style AI plugin (inline suggest + one-click apply, "Zen Mode" agent,
-  multi-provider, project `avante.md` instructions). Overlaps what we already
-  run — sidekick.nvim (CLI agents) + Copilot ghost text — so the question is
-  whether it *replaces* either or just adds a third AI surface. Note the costs:
+  multi-provider, project `avante.md` instructions). Overlaps sidekick.nvim
+  (CLI agents), so the question is whether it *replaces* it or just adds a
+  second AI surface — and since Copilot's removal (2026-07-20) it would also be
+  the only inline-suggestion source, which changes the calculus. Note the costs:
   needs a build step (Rust/Cargo or a prebuilt binary fetch) and its own API
   keys, plus plenary + nui.
 - [ ] **Wire treesitter text objects and navigation** — `af`/`if`, `ac`/`ic`,
@@ -98,6 +113,89 @@ off or delete them as they land; add new ones freely.
 
 ---
 
+<a id="ghostty-copy-on-select-mangles-multi-line-copies"></a>
+
+## Ghostty copy-on-select mangles multi-line copies
+
+Findings from the 2026-07-20 investigation, kept here rather than as its own
+plan — it's a one-setting problem with a one-line workaround.
+
+**Symptom.** Selecting multi-line text in Ghostty and pasting it into nvim
+yields a single line, with the line breaks rendered as `^@`.
+
+**Cause.** Ghostty writes hard line breaks to the macOS pasteboard as NUL
+(`0x00`) rather than newline (`0x0A`). Confirmed with `od -c` straight off
+the pasteboard, no editor in the path:
+
+```
+$ pbpaste | od -c | head -2
+0000000    S   a   m   p   l   e       H   e   a   d   i   n   g  \0  \0
+0000020    T   h   i   s       i   s       a       b   o   l   d       s
+```
+
+Everything downstream is behaving correctly: `systemlist('pbpaste')` returns
+one item because there is nothing to split on, and nvim renders the NULs as
+`^@`. Soft-wrapped continuation lines are joined with a space correctly — only
+hard breaks are affected.
+
+**Ruled out.** nvim's clipboard provider (stock `pbcopy`/`pbpaste`, health
+check clean), `g:clipboard` (nil, and no plugin sets it), this repo's
+`setreg` calls, and any multiplexer (none in use). A headless run of the same
+config pastes multi-line text correctly.
+
+**The `true` vs `clipboard` trap.** `copy-on-select = true` prefers the
+*selection* clipboard, which on macOS `pbpaste` and other apps cannot read —
+so it silently copies nothing to the system clipboard. It does not avoid the
+NUL bug either. If the setting is ever re-enabled, it must be `clipboard`.
+
+**Current state.** `copy-on-select = false` in
+`ghostty/.config/ghostty/config`. ⌘C is unaffected and still copies
+multi-line text correctly.
+
+**Open.** Whether this affects all Ghostty selections on macOS or only the
+Claude Code pane — the minimal shell reproduction (select three lines of
+`printf` output, then `pbpaste | od -c`) was never run to completion. Worth
+settling before filing upstream, since a terminal mangling every multi-line
+copy is a big enough bug that it would likely already be known. Ghostty
+1.3.1, installed 2026-03-13; the setting itself landed 2026-07-17 in
+`7d5912a`, which is why this appeared to be a recent regression.
+
+**Workaround if upstream is slow.** A custom `g:clipboard` whose paste
+function splits on `\0` as well as `\n` makes nvim immune regardless of
+fault, and would let `copy-on-select` be re-enabled for nvim's benefit even
+while the bug is live. Goes in `nvim/.config/nvim/lua/configs.lua`, next to
+the existing clipboard comment (~line 15):
+
+```lua
+-- Ghostty writes hard line breaks to the macOS pasteboard as NUL, so the
+-- stock provider sees one line. Split on both NUL and newline.
+local function paste()
+  local f = io.popen('pbpaste', 'r')
+  if not f then return {} end
+  local raw = f:read('*a') or ''
+  f:close()
+  return vim.split(raw, '[\n%z]')
+end
+
+vim.g.clipboard = {
+  name = 'pbcopy-nul-tolerant',
+  copy = { ['+'] = 'pbcopy', ['*'] = 'pbcopy' },
+  paste = { ['+'] = paste, ['*'] = paste },
+}
+```
+
+`io.popen` is load-bearing: `vim.fn.system()` converts NUL to SOH (`\1`) on
+the way back, so a `%z` split against it silently matches nothing. Verified
+2026-07-20 against a NUL-separated pasteboard (splits correctly), a normal
+newline pasteboard (unchanged), and copying (still writes newlines).
+
+Cost of adopting it: this config currently sets no `g:clipboard` at all, so
+it trades a stock, zero-maintenance provider for a hand-rolled one that is
+macOS-only and papers over someone else's bug. Prefer the upstream fix if it
+arrives.
+
+---
+
 Grouped by state, not priority.
 
 ## Active — outstanding work with momentum
@@ -132,8 +230,12 @@ Grouped by state, not priority.
   select/move/swap text objects (`af`/`if`/`ac`/…), plus a LazyVim mini.ai delta.
 - [quickfix-improvements.md](quickfix-improvements.md) — quicker.nvim / nvim-bqf
   for a real, prunable quickfix panel.
-- [copilot-context-enrichment.md](copilot-context-enrichment.md) — experimental:
-  inject LSP/treesitter type context into Copilot's `didChange` for better ghost text.
+- [auto-format-aggressiveness.md](auto-format-aggressiveness.md) — format-on-save
+  is on but coupled to auto-save's writes rather than `:w`; three options for
+  when it should fire, plus the LSP-fallback breadth question.
+- [copilot-context-enrichment.md](copilot-context-enrichment.md) — **obsolete**
+  (Copilot removed 2026-07-20): injecting LSP/treesitter type context into
+  Copilot's `didChange` for better ghost text. Kept for the research.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
 - [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted

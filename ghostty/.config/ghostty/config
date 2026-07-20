@@ -51,9 +51,14 @@ shell-integration-features = ssh-env,ssh-terminfo
 confirm-close-surface = false
 quit-after-last-window-closed = true
 
-# Selecting text copies it, and also always copies to the system clipboard
-# (not just the X11-style selection clipboard) — matches macOS conventions.
-copy-on-select = clipboard
+# Off: Ghostty writes hard line breaks to the macOS pasteboard as NUL, not
+# newline, so every multi-line selection pastes as one line (nvim shows the
+# breaks as ^@). ⌘C is unaffected — only the copy-on-select path is. If
+# re-enabling after an upstream fix, the value must be `clipboard`, not
+# `true`: `true` prefers the selection clipboard, which pbpaste and other
+# apps can't read, so nothing reaches the system clipboard at all.
+# See plans/README.md → "Ghostty copy-on-select mangles multi-line copies".
+copy-on-select = false
 
 # Only custom keybinding ported from iTerm2: literal newline for multi-line
 # input in Claude Code / REPLs.
