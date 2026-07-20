@@ -245,6 +245,8 @@ bash ~/src/dotfiles/claude/setup-statusline.sh
 bash ~/src/dotfiles/claude/setup-theme.sh
 # Enable the LSP plugins (Lua/Python/Rust/Go) in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
+# Select the review-pr skill variant for this machine (one-time)
+bash ~/src/dotfiles/claude/setup-review-pr.sh
 # Register the rtk token-optimizer hook in ~/.claude/settings.json (one-time)
 rtk init -g --auto-patch
 ```
@@ -256,7 +258,7 @@ untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
 with a single directory symlink (a "fold"), which can't hold local files
 alongside the synced ones.
 
-All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). Re-running any of them when already configured is a no-op.
+All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to one of two tracked variants (see [What's managed](#whats-managed) below).
 
 ### What's managed
 
@@ -265,14 +267,17 @@ All three setup scripts use `jq` to edit `settings.json` idempotently. `setup-st
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
 | `~/.claude/themes/*.json` (10 themes, incl. the `catppuccin-latte`/`dracula` pair the `theme` switcher uses) | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/review-pr/SKILL.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/review-pr/SKILL.{generic,work}.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to one of the two files above, created by `setup-review-pr.sh` |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
 | `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
 | `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
 
-`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `setup-*.sh` scripts merge just their own keys into it idempotently with `jq`, so re-running any of them is a no-op.
+`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `jq`-based `setup-*.sh` scripts merge just their own keys into it idempotently, so re-running any of them is a no-op.
+
+**`review-pr`'s two variants:** the skill's content differs by machine — `SKILL.work.md` has Work/services specifics (gh-stack, Linear, generated-code paths); `SKILL.generic.md` is provider-neutral. Both are stowed, but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite the per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to whichever variant applies: pass `generic`/`work` explicitly, or run it with no argument to auto-detect from the presence of [`~/.zshrc_work.zsh`](#per-machine-config) (the same work-machine marker `.zshrc_config.zsh` already uses to conditionally source Work shell config). Re-running is idempotent — it just re-links to the same target.
 
 ### Recommended manual settings
 
@@ -390,6 +395,14 @@ Use `stow -R --no-folding claude` (not a plain `stow claude`):
 For the skill only, skip the `setup-theme.sh` step — `git pull`,
 `stow -R --no-folding claude`, restart. The skill then lives at
 `~/.claude/skills/nvim-theme-to-claude/` and is invokable from any project.
+
+**`review-pr` needs one more step**, because its `SKILL.md` is machine-local
+(see [What's managed](#whats-managed) above) rather than stowed: after
+`stow -R --no-folding claude`, run `bash ~/src/dotfiles/claude/setup-review-pr.sh`
+to (re)create the `SKILL.md` symlink. This is required, not optional — restow
+alone leaves `~/.claude/skills/review-pr/SKILL.md` **dangling** on any machine
+that had it from before this split, since the file it used to point at no
+longer exists in the repo.
 
 ## Unified theme switching
 

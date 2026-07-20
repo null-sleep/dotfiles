@@ -1,3 +1,4 @@
 setup-statusline\.sh
 setup-theme\.sh
 setup-lsp-plugins\.sh
+setup-review-pr\.sh
