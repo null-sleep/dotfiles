@@ -17,6 +17,12 @@ off or delete them as they land; add new ones freely.
   template, prune-on-land rule, anchor-citation convention, `plans-audit`
   skill sketch. Proposal saved in [plans-hygiene.md](plans-hygiene.md)
   (2026-07-18); nothing in force until adopted.
+- [ ] **Try smart path shortening in the symbol picker's path column** — the
+  column now truncates from the left (`…s/pickers/symbols.lua:42`, 2026-07-20)
+  so the filename always survives, but a component-wise squeeze
+  (`n/./n/l/pickers/symbols.lua`) would fit the *whole* path in the same 38
+  cells. Option to try, not a decision; `PATH_WIDTH` in
+  `nvim/.config/nvim/lua/pickers/symbols.lua` is the other knob.
 - [ ] **Review snacks' default picker keymaps for inspiration** — hoisted from
   [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md)'s
   post-migration TODO (#2) when that doc was shrunk (2026-07-18).

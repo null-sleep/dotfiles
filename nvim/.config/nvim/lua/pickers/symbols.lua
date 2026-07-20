@@ -481,8 +481,13 @@ function M.workspace()
         ret[#ret + 1] = { Snacks.picker.util.align(item.client_name or '', client_width), 'Comment' }
         ret[#ret + 1] = { SEPARATOR }
       end
+      -- Truncate from the left ("…rc/pickers/symbols.lua:42"), not the right:
+      -- the tail (filename + line) is what identifies the hit, the leading
+      -- directories are the disposable part. align()'s own truncate cuts the
+      -- wrong end, so truncate first and align the already-fitting string.
       local path = (item.relpath or '') .. ':' .. item.pos[1]
-      ret[#ret + 1] = { Snacks.picker.util.align(path, PATH_WIDTH, { truncate = true }), 'Comment' }
+      path = Snacks.picker.util.truncate(path, PATH_WIDTH, true)
+      ret[#ret + 1] = { Snacks.picker.util.align(path, PATH_WIDTH), 'Comment' }
       ret[#ret + 1] = { SEPARATOR }
       local trimmed = vim.trim(source_line(item.file, item.pos[1]))
       Snacks.picker.highlight.format(item, trimmed, ret)
