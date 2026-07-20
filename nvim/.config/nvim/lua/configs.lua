@@ -105,7 +105,10 @@ opt.spellfile = vim.fn.stdpath('config') .. '/spell/en.utf-8.add'
 
 opt.backup = false                     -- no permanent backup files
 opt.writebackup = false                -- no temporary backup during write
-opt.swapfile = false                   -- no swap files (undofile handles recovery)
+-- Nothing replaces what swapfiles do (:recover unsaved changes after a crash),
+-- so that work is lost — the trade is auto-save writing ~1s after the last
+-- change. Not undofile: that's undo history for files already on disk.
+opt.swapfile = false
 
 -- justfile detection: map justfiles to the 'just' filetype so the treesitter
 -- parser and conform's just formatter attach. Covers the common spellings in
