@@ -78,16 +78,15 @@ off or delete them as they land; add new ones freely.
   power & motions"): `s` labeled jump, `S` treesitter-node select, `r`/`R`
   remote in operator-pending. Known conflicts noted there (`s` = core
   substitute, `S` overlaps the hand-built structural select).
-- [ ] **Fuzzy-search all tests + run the whole suite (Go/Rust)** — partly
-  exists already: `<leader>ns` opens neotest's summary tree, which lists every
-  test in the project and runs an individual test / file / dir from it. Two
-  real gaps: (1) the tree is navigable but **not searchable** — no way to type
-  a test name and jump to it, which is the ask for anything past a few dozen
-  tests; (2) `<leader>nf` stops at file scope, so there's **no run-the-whole-
-  suite key** (`neotest.run.run(vim.uv.cwd())` is the one-liner). A
-  `pickers/tests.lua` following `pickers/gotargets.lua`'s shape is the obvious
-  build for (1) — neotest already exposes the parsed positions, so it needs no
-  new discovery mechanism. Check whether snacks ships a test source first.
+- [ ] **Adapt neotest to the workflow** — see
+  [neotest-workflow.md](neotest-workflow.md). Three parts: a fuzzy test
+  picker (`<leader>ns`'s tree lists every test but isn't *searchable*), the
+  panel placement (neotest is entirely unconfigured, so the summary opens on
+  the **right edge — the same one sidekick's CLI owns** — and is registered
+  in none of the three panel registries), and a run-the-whole-suite key
+  (`<leader>nf` stops at file scope). Main open decision in the plan: move
+  the summary to the left edge and join the `<leader>e`/`<leader>o` swap
+  group, or generalize the coordinator to per-edge groups.
 - [ ] **Build the Python debug/test stack** — spec'd and thrice-reviewed in
   [python-debug-test.md](python-debug-test.md). Two follow-on decisions it
   deliberately leaves open: (1) **what is a Python "run target"?** — the
@@ -123,6 +122,9 @@ Grouped by state, not priority.
   plus the venv convention neither of them needed (`uv` creates it,
   `<project>/.venv` is the contract, one resolver feeds pyright + debugpy +
   neotest). Three times adversarially reviewed; the targets picker is deferred.
+- [neotest-workflow.md](neotest-workflow.md) — use neotest more by removing the
+  friction: a fuzzy test picker, panel placement (it's unconfigured today, so
+  the summary contests the right edge with sidekick), and a suite-run key.
 - [harpoon2.md](harpoon2.md) — persistent, ordered per-project file bookmarks
   (`<leader>1`–`<leader>5`).
 - [treesitter-textobjects.md](treesitter-textobjects.md) — semantic
