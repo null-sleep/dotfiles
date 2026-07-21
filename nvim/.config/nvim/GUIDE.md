@@ -125,8 +125,23 @@ dependencies at the right time. Where order matters (e.g. `lsp.lua` does
 `packadd` for mason -> mason-lspconfig -> lspconfig in dependency order),
 the file handles sequencing itself.
 
-Plugin versions are pinned in `nvim-pack-lock.json` (commit SHAs). Commit
-this file after updating plugins to keep versions consistent across machines.
+Plugin versions are pinned in `nvim-pack-lock.json` (commit SHAs). It's a
+native `vim.pack` lockfile (nvim writes it automatically; no code in this
+repo touches it), living in the config dir so stow syncs it. `vim.pack.add()`
+installs each plugin at the lockfile's pinned `rev` on a fresh machine.
+
+### Updating plugins
+
+`:lua vim.pack.update()` (all) or `:lua vim.pack.update({ 'name' })` (one)
+fetches remotes and opens a review buffer listing the pending commits between
+the locked rev and the newest one matching each plugin's `version` constraint
+(`[[`/`]]` jump between plugins, `gO` lists them). Confirm with `:w` to apply
+and bump the lockfile; `:q` discards and keeps the pin. `{ offline = true }`
+reviews already-fetched changes without hitting the network. An unpinned
+plugin (`version` omitted, e.g. grug-far) moves to its default branch's HEAD;
+a ranged pin (`vim.version.range('1.*')`) only moves within that range.
+**Commit `nvim-pack-lock.json` after confirming** — that's what propagates
+the new pin to other machines.
 
 ### Load order
 
