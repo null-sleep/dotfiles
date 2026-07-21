@@ -74,6 +74,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-d>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
+- **`pickers/grepselection.lua`** — Custom snacks picker (`<leader>ss` in visual mode): literal, multi-line-aware grep of the visual selection via `rg --json --multiline`. See [Picker (snacks.nvim)](#picker-snacks) → "Multi-line selection search"
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — near-inert against `preselect = false`.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
@@ -1281,6 +1282,7 @@ wholesale.
 | `<leader>sf` | Find files by name — fuzzy over the file list; `<c-g>` flips it to a live `fd` search (see below) |
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>sw` (normal + visual) | Grep the word under the cursor, or the visual selection — exact match (`--word-regexp`, not fuzzy/live), jumps straight to usages without the `sg`-then-type step |
+| `<leader>ss` (visual only) | Grep the **exact** visual selection, literal and multi-line included — see [Multi-line selection search](#multiline-selection-search). Normal-mode `<leader>ss` is workspace symbols (above); the visual binding is a separate command |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
@@ -1352,6 +1354,34 @@ Two notes on how it sits in the config:
   per-source config after the global layer, so the undo source's `yank_add`
   wins here. `<M-a>` (send to sidekick) still works and sends the *file* path —
   it says nothing about which undo state you were looking at.
+
+<a id="multiline-selection-search"></a>
+### Multi-line selection search
+
+`<leader>ss` in **visual** mode greps the exact highlighted span, literal
+(`--fixed-strings`, no word boundaries) and multi-line-aware, into a
+read-only picker. Rows show `relpath:line` + the first matched line; a
+`+N↵` badge marks a match spanning `N` extra lines. Lives in
+`pickers/grepselection.lua`.
+
+**Why not `Snacks.picker.grep_word` with a flag.** Snacks' grep source can't
+render a multi-line match — it parses `rg`'s output one physical line at a
+time, so a match containing a newline breaks the parser. This picker uses
+`rg --json --multiline` instead, where each match is one JSON line
+regardless of span, keeping line-by-line parsing safe. Flags otherwise
+mirror the grep source (`--hidden`, `--smart-case`, exclude
+`.git`/`node_modules`).
+
+**The prompt fuzzy-filters the fixed hit list**, matched against
+`relpath:line` + the first matched line only — a word on a match's 2nd/3rd
+line won't narrow it (open TODO in `plans/README.md`). The preview still
+highlights the whole span (`pos`→`end_pos`).
+
+**vs. `<leader>sw`.** `sw` is whole-word (`--word-regexp`): jumps to
+standalone identifier usages, skipping substrings. `ss` has no word
+boundary, so it's the pick for multi-word, punctuation-terminated, or
+multi-line selections — exactly where `--word-regexp` drops matches. For an
+**editable** find/replace, use [grug-far](#grug-far) (`<leader>sR`) instead.
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy

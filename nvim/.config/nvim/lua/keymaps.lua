@@ -12,6 +12,10 @@ vim.keymap.set('n', '<leader>sg', function() Snacks.picker.grep() end,  { desc =
 -- exact-match jump straight to every real usage, skipping the sg-then-type step.
 vim.keymap.set({ 'n', 'x' }, '<leader>sw', function() Snacks.picker.grep_word() end,
   { desc = 'Search: Grep word under cursor' })
+-- Visual-only: grep the selection literally, multi-line included — snacks'
+-- grep source can't render multi-line matches. See pickers/grepselection.lua.
+vim.keymap.set('x', '<leader>ss', function() require('pickers.grepselection').search() end,
+  { desc = 'Search: Grep selection (literal, multi-line)' })
 vim.keymap.set('n', '<leader>sh', function() Snacks.picker.help() end,  { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', function() Snacks.picker.resume() end, { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })

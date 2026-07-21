@@ -21,6 +21,11 @@ off or delete them as they land; add new ones freely.
   Code pane.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
+- [ ] **Fuzzy-filter the grep-selection picker (`<leader>ss`) on the whole
+  match, not just its first line** — a word on a match's 2nd/3rd line can't
+  currently narrow the list (2026-07-21). Trade-off: noisier matching. Knob
+  is the `text` field in `pickers/grepselection.lua`'s `parse()`. Option to
+  try, not a decision.
 - [ ] **Review and adopt the plans/ hygiene conventions** — status-header
   template, prune-on-land rule, anchor-citation convention, `plans-audit`
   skill sketch. Proposal saved in [plans-hygiene.md](plans-hygiene.md)
@@ -88,7 +93,10 @@ off or delete them as they land; add new ones freely.
   jump motion, already scoped in [nvim-backlog.md](nvim-backlog.md) ("Editing
   power & motions"): `s` labeled jump, `S` treesitter-node select, `r`/`R`
   remote in operator-pending. Known conflicts noted there (`s` = core
-  substitute, `S` overlaps the hand-built structural select).
+  substitute, `S` overlaps the hand-built structural select). Config example:
+  <https://tduyng.com/blog/neovim-enhance-editing-experiences/> (2026-07-21);
+  same post's other picks: grug-far already shipped, noice.nvim rejected,
+  yanky.nvim in nvim-backlog.md's Smaller wishlist as a maybe.
 - [ ] **Adapt neotest to the workflow** — see
   [neotest-workflow.md](neotest-workflow.md). Three parts: a fuzzy test
   picker (`<leader>ns`'s tree lists every test but isn't *searchable*), the

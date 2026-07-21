@@ -434,6 +434,12 @@ GUIDE.md "Large files".
 
 ## Smaller wishlist (from TODO.md)
 
+- **Maybe: `gbprod/yanky.nvim`** — yank/delete history with a picker
+  (`<leader>y`), so a delete after a yank doesn't clobber what you copied.
+  Surfaced again by tduyng's editing-experience post
+  (<https://tduyng.com/blog/neovim-enhance-editing-experiences/>, 2026-07-21);
+  split out of Rejected (dial.nvim/inc-rename) since the yank-clobber
+  annoyance is real but unproven at personal scale — try before deciding.
 - **octo.nvim** — view/comment/review GitHub PRs in-editor. Heavy plugin; may
   want to defer or avoid.
 - **Markdown auto lists/headings** — continue list markers / heading levels on
@@ -535,8 +541,8 @@ they aren't proposed again.
   keymap surface to solve a problem that only exists when you launch nvim from
   somewhere other than the project root — not the case here. Every picker in
   this config uses cwd, deliberately.
-- **dial.nvim / yanky / inc-rename** — inc-rename is redundant with core `grn`
-  + `inccommand`; the others don't earn a slot yet.
+- **dial.nvim / inc-rename** — inc-rename is redundant with core `grn`
+  + `inccommand`; dial.nvim doesn't earn a slot yet.
 - **structlog / `:LvimInfo` / nlsp-settings** — `:checkhealth` + mini.notify +
   native `exrc` (`.nvim.lua`) cover these at personal scale.
 - ~~**Big-file protection**~~ — **shipped 2026-07-13**, moved out of Rejected;
