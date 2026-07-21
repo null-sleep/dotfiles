@@ -29,6 +29,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Treesitter](#treesitter)
   - [Large files](#large-files)
   - [Picker (snacks.nvim)](#picker-snacks)
+  - [Quickfix & location lists](#quickfix-loclist)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
   - [Editing utilities](#editing-utilities)
@@ -80,7 +81,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a toggleterm float
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
-- **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tl`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
+- **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tL`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
@@ -100,6 +101,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
+- **`pickers/qfhistory.lua`** — snacks picker over the quickfix / location-list history stack (`<leader>sQ` / `<leader>sL`): lists all N remembered lists (title + size, current marked `●`) and activates the chosen one via `:{nr}chistory` / `:{nr}lhistory`; built on `common.indexed_select`, captures the origin window so the window-local loclist opens in the right place. Lazy-required
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
 - **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
 - **`cleanup.lua`** — `:Cleanup` and the weekly unattended sweep (`auto()`, armed in `configs.lua`): prunes stale undo files, sessions, leftover shada temps, and oversized logs. Rules are mtime-based on purpose — see [On-disk state](#on-disk-state) for why undo can't be pruned by "is the source gone?"
@@ -689,6 +691,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | Prefix | Purpose | Defined in | Full list |
 |---|---|---|---|
 | `<leader>s*` | Search / pickers (snacks) | keymaps.lua, `pickers/*.lua` | [Picker (snacks.nvim)](#picker-snacks) → Keymaps |
+| `]q`/`[q`, `]Q`/`[Q` (and `]l`/`]L` for the loclist) | Quickfix / location-list navigation — entries and history stack | keymaps.lua | [Quickfix & location lists](#quickfix-loclist) |
 | `<C-\>`, `<C-/>` (also `<C-_>`) | Terminal (toggleterm) — `<C-\>` floating terminal, `<C-/>` bottom panel | terminal.lua | [Terminal (toggleterm.nvim)](#terminal) |
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr`/`gai`/`gao` | LSP goto / peek floats / call hierarchy | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
@@ -703,7 +706,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>n*` | Test (neotest) | testing.lua | [Testing (neotest)](#testing) → Keymaps |
 | `<leader>e` | File tree toggle | filetree.lua | [File Explorer (nvim-tree)](#file-explorer) |
 | `<leader>tf`/`cf` | Format-on-save toggle / manual format | format.lua | [Format-on-save](#format-on-save) |
-| `<leader>tl`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
+| `<leader>tL`/`cl` | Lint-on-save toggle / manual lint | linting.lua | [Linting (nvim-lint)](#linting-nvim-lint) |
 | `<leader>us`/`uc` | Strip whitespace / reflow pasted text | keymaps.lua / edit.lua | [Editing utilities](#editing-utilities) |
 | `<leader>uu` | Undo history picker | keymaps.lua | [Picker (snacks.nvim)](#picker-snacks) → Undo history |
 | `<D-…>` (Cmd keys) | Neovide-only macOS shortcuts | neovide.lua | [Neovide](#neovide) |
@@ -735,7 +738,8 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>tn` | Toggle relative line numbers (`number` stays on, so the cursor line shows its absolute number) | keymaps.lua |
 | `<leader>ts` | Toggle symbol-picker scope (workspace / buffer-only) | keymaps.lua / `pickers/symbols.lua` |
-| `<leader>tq` | Toggle the quickfix window (`]q`/`[q` walk entries) — see [Quickfix: picker vs. window](#picker-quickfix) | keymaps.lua |
+| `<leader>tq` | Toggle the quickfix window — `]q`/`[q` walk entries, `]Q`/`[Q` the history stack; see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
+| `<leader>tl` | Toggle the location-list window (window-local; `<leader>cd` fills it) — see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
@@ -1127,7 +1131,7 @@ into the shared `vim.diagnostic` config (`<leader>td` toggles display).
 | Keymap | Action |
 |---|---|
 | `<leader>cl` | Lint the buffer now (works even when lint-on-save is off) |
-| `<leader>tl` | Toggle lint-on-save globally — turning it off also clears nvim-lint's existing diagnostics |
+| `<leader>tL` | Toggle lint-on-save globally — turning it off also clears nvim-lint's existing diagnostics |
 
 **Diagnostics come from TWO subsystems, not just this one.** LSP servers
 (lsp.lua) publish their own diagnostics — lua_ls, clippy via rust-analyzer,
@@ -1136,7 +1140,7 @@ eslint — which is why lua/rust/js/ts are intentionally absent from
 `golangci-lint` (go), `credo` (elixir, via the project's `mix credo`),
 `yamllint`, `checkmake`. When adding or auditing a linter, check lsp.lua too.
 
-The `<leader>tl` toggle clears only nvim-lint's namespaces (named per linter,
+The `<leader>tL` toggle clears only nvim-lint's namespaces (named per linter,
 e.g. "ruff") and never touches LSP-delivered diagnostics (`nvim.lsp.*`
 namespaces). Per-buffer opt-out for vendored files:
 `:lua vim.b.disable_lint = true`. Linter binaries install via
@@ -1282,8 +1286,8 @@ wholesale.
 | `<leader>ss` | Symbols (workspace) — fans query to all active LSPs; two-token prompt: first word is the name query sent to the LSP, remainder filters by file path (e.g. `render utils` finds symbols named "render" in files matching "utils"). Columns: icon, name, kind, client, path:line, source line. `<leader>ts` toggles to buffer-only mode; `<c-g>` freezes results for fuzzy refinement over all columns. Coverage gotchas: after a session restore only the LSPs of *visited* files join the fan-out ([Session](#session)), and servers match declaration names only — `impl` blocks and fields show up in `<leader>sd`, never here |
 | `<leader>sd` | Symbols (document) — columns: icon, name, kind, line, source line (treesitter-highlighted); opens preselected on the symbol enclosing the cursor; type `function` / `variable` to filter by kind |
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
-| `<leader>sq` | Quickfix list — fuzzy-filter + preview what `<C-q>` put there; see [Quickfix: picker vs. window](#picker-quickfix) |
-| `<leader>sl` | Location list — same, for the window-local list `<leader>cd` fills |
+| `<leader>sq` / `<leader>sl` | Fuzzy-filter + preview entries of the quickfix / location list — see [Quickfix & location lists](#quickfix-loclist) |
+| `<leader>sQ` / `<leader>sL` | Pick a whole list from the quickfix / location-list **history** stack — see [Quickfix & location lists](#quickfix-loclist) |
 | `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 | `<leader>uu` | Undo history — browse this buffer's undo states, fuzzy-matched by the *content* of each change. See below; it's the one picker not under `<leader>s*` |
 
@@ -1344,22 +1348,6 @@ Two notes on how it sits in the config:
   per-source config after the global layer, so the undo source's `yank_add`
   wins here. `<M-a>` (send to sidekick) still works and sends the *file* path —
   it says nothing about which undo state you were looking at.
-
-<a id="picker-quickfix"></a>
-### Quickfix: picker vs. window
-
-Both read the same list. `<leader>sq` is a transient float with fuzzy filter
-and preview — for narrowing a haystack: `<leader>sg` grep → `<C-q>` sends 200
-matches → `<leader>sq`, type `auth` → 12 left, preview, `<CR>` jumps.
-
-`<leader>tq` toggles the real quickfix split — for grinding a worklist: it
-stays visible while `]q`/`[q` walk entries and marks your position. The picker
-can't do that (it closes on every jump); the window can't fuzzy-filter. Note
-`<C-q>` already opens the window, so the first `<leader>tq` after it *hides*
-it. `q` inside the window closes it too (`autocmds.lua`).
-
-On an empty list `<leader>tq` notifies instead of opening a blank split;
-`<leader>sq` gets snacks' own "No results found".
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy
@@ -1536,6 +1524,104 @@ list — bindings below are the daily set):
 |---|---|
 | `:checkhealth snacks` | Verify snacks and the picker's optional deps (sqlite, etc.) |
 
+
+<a id="quickfix-loclist"></a>
+## Quickfix & location lists
+
+A **quickfix list** is a persistent, navigable list of `file:line` locations —
+grep hits, every caller of a function, a file's diagnostics — that you walk one
+at a time, editing as you go. It's a worklist the editor holds for you so you
+don't lose your place across thirty edits in a dozen files. If you've only ever
+jumped around with the picker, this is what turns "find" into "find, then
+methodically fix every one."
+
+### The mental model
+
+Two lists, told apart by *scope*, each with a history behind it:
+
+- **Quickfix = your one main worklist.** There is exactly one, shared by every
+  window; whatever you send to it replaces what was there.
+- **Location list = a per-window scratch list.** Each window has its *own*,
+  independent one. Use it for a side-task (this file's warnings) so it doesn't
+  clobber the quickfix worklist you're partway through.
+- **Both keep a 10-deep history** (`:help :chistory`) — a back-button for
+  result sets. A second search doesn't erase the first; it's pushed one slot
+  down the stack, still there to return to.
+
+So "can I have more than one?" splits two ways: **one quickfix active at a
+time** (with the last 10 remembered), but **many location lists at once**, one
+per window. That's the whole reason both exist — quickfix for the shared task,
+the loclist for something local to the window in front of you.
+
+One idea covers the entire keymap: **lowercase walks entries** inside the
+active list, **capital walks whole lists** in the stack.
+
+|  | Quickfix (one, global) | Location list (per window) |
+|---|---|---|
+| Fill it | `<C-q>` from any picker · `grr` (LSP refs) · `:grep` | `<leader>cd` (diagnostics) · `:lgrep` |
+| Next / previous **entry** | `]q` / `[q` | `]l` / `[l` |
+| Newer / older **list** in the stack | `]Q` / `[Q` | `]L` / `[L` |
+| Pick a list from the stack | `<leader>sQ` | `<leader>sL` |
+| Fuzzy-filter + preview entries | `<leader>sq` | `<leader>sl` |
+| Open the list window | `<leader>tq` | `<leader>tl` |
+
+All of `]q`/`[q`/`]Q`/`[Q` (and the loclist twins) wrap around at the ends and
+notify on an empty list instead of raising a raw `E42`/`E553`. A stack hop
+(`]Q`/`[Q`) also announces the list it landed on — title and size — since
+switching the active list is otherwise invisible.
+
+### Example — a project-wide rename
+
+You're renaming `parseConfig` everywhere.
+
+1. `<leader>sg parseConfig` — live grep, say 30 hits across a dozen files.
+2. `<C-q>` — all 30 land in the quickfix list and its window opens at the
+   bottom.
+3. `]q` jumps to the first hit; you edit it, `]q` to the next. The quickfix
+   window stays open on the side as a checklist, marking which hit you're on;
+   `[q` steps back if you overshoot.
+4. Thirty edits later you've visited every one — none missed, place never lost.
+
+Why the **window** and not the `<leader>sq` **picker** here: the picker closes
+on every jump, so it can't be a standing checklist; the window can. The flip
+side — the grep returned 200 hits and you only want the auth-related ones — is
+exactly when `<leader>sq` wins: fuzzy-type `auth` down to 12 with a preview,
+then jump. Haystack-narrowing vs. worklist-grinding, over the same list.
+
+### Example — a side-quest that doesn't lose your place
+
+Partway through that rename (quickfix holds your 30 hits), a file you open has
+five warnings you'd rather clear first.
+
+1. `<leader>cd` — this file's diagnostics go into *this window's* location
+   list, a separate scratch list.
+2. `]l` / `[l` walk the five warnings; you fix each.
+3. Your quickfix rename list is untouched — `]q` resumes it exactly where you
+   left off.
+
+That's the payoff of the loclist being window-local: a detour that never
+overwrites the main worklist.
+
+### Example — bring back your last search
+
+1. `<leader>sg TODO` → `<C-q>` — quickfix list #1.
+2. Later, `<leader>sg FIXME` → `<C-q>` — list #2, now active; #1 is pushed into
+   the history, not lost.
+3. You weren't actually done with the TODOs: `[Q` — list #1 is active again,
+   and `]q` / `[q` now walk the TODO hits. No re-running the grep.
+
+`<leader>sQ` opens the whole stack as a picker instead — every remembered list
+with its title (`:grep TODO`) and size, the current one marked `●` — to jump
+straight to any of the last 10. `]L` / `[L` and `<leader>sL` do the same for a
+window's location-list stack.
+
+### Window mechanics
+
+`<C-q>` already opens the quickfix window, so the first `<leader>tq` after it
+*hides* it — `<leader>tq` is a toggle. `q` inside the window closes it too
+(auto-mapped; see `autocmds.lua`). On an empty list `<leader>tq` notifies
+instead of opening a blank split, and `<leader>sq` shows snacks' own "No
+results found".
 
 ## Clipboard split
 

@@ -26,11 +26,17 @@ vim.keymap.set('n', '<leader>so', function() Snacks.picker.recent() end, { desc 
 vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
   { desc = 'Search: Themes' })
 -- <C-q> from a picker fills these lists; these read them back with fuzzy
--- filter + preview. Raw window: <leader>tq. See GUIDE.md "Quickfix: picker vs. window".
+-- filter + preview. Raw window: <leader>tq. See GUIDE.md "Quickfix & location lists".
 vim.keymap.set('n', '<leader>sq', function() Snacks.picker.qflist() end,
   { desc = 'Search: Quickfix list' })
 vim.keymap.set('n', '<leader>sl', function() Snacks.picker.loclist() end,
   { desc = 'Search: Location list' })
+-- sQ/sL pick a whole list from the history stack (]Q/[Q step it one at a
+-- time). See GUIDE.md "Quickfix & location lists".
+vim.keymap.set('n', '<leader>sQ', function() require('pickers.qfhistory').open('quickfix') end,
+  { desc = 'Search: Quickfix history' })
+vim.keymap.set('n', '<leader>sL', function() require('pickers.qfhistory').open('location') end,
+  { desc = 'Search: Location-list history' })
 
 -- Clear search highlights and close any floating windows (hover, diagnostics, etc.)
 -- Sets b:hover_suppressed so CursorHold hover doesn't immediately reopen the float.
@@ -295,6 +301,70 @@ vim.keymap.set('n', '<leader>tq', function()
     vim.cmd('botright copen')
   end
 end, { desc = 'Toggle: Quickfix window' })
+
+-- Loclist twin of <leader>tq, on the current window's list. No botright:
+-- a loclist window is window-scoped, unlike the full-width quickfix split.
+vim.keymap.set('n', '<leader>tl', function()
+  if vim.fn.getloclist(0, { winid = 0 }).winid ~= 0 then
+    vim.cmd('lclose')
+  elseif vim.fn.getloclist(0, { size = 0 }).size == 0 then
+    vim.notify('Location list is empty')
+  else
+    vim.cmd('lopen')
+  end
+end, { desc = 'Toggle: Location list window' })
+
+-- ]q/[q walk the quickfix list, ]l/[l the location list. Wraparound: pcall
+-- swallows the end-of-list error (E553) so cfirst/clast loop around; the size
+-- guard turns an empty list into a notify, not a raw E42.
+local function list_nav(size, move, wrap, empty_msg)
+  return function()
+    if size() == 0 then
+      vim.notify(empty_msg)
+    elseif not pcall(vim.cmd, move) then
+      vim.cmd(wrap)
+    end
+  end
+end
+local qf_size = function() return vim.fn.getqflist({ size = 0 }).size end
+local ll_size = function() return vim.fn.getloclist(0, { size = 0 }).size end
+vim.keymap.set('n', ']q', list_nav(qf_size, 'cnext', 'cfirst', 'Quickfix list is empty'),
+  { desc = 'Quickfix: next entry' })
+vim.keymap.set('n', '[q', list_nav(qf_size, 'cprev', 'clast', 'Quickfix list is empty'),
+  { desc = 'Quickfix: previous entry' })
+vim.keymap.set('n', ']l', list_nav(ll_size, 'lnext', 'lfirst', 'Location list is empty'),
+  { desc = 'Location list: next entry' })
+vim.keymap.set('n', '[l', list_nav(ll_size, 'lprev', 'llast', 'Location list is empty'),
+  { desc = 'Location list: previous entry' })
+
+-- ]Q/[Q, ]L/[L step the history stack (newer/older whole lists). :{n}chistory
+-- takes an absolute index, so compute the wrapped target ourselves and notify
+-- the landed list — the switch is otherwise silent. dir: ] = +1, [ = -1.
+local function stack_nav(get, hist, label, dir)
+  return function()
+    local total = get({ nr = '$' }).nr
+    if total == 0 then
+      vim.notify(label .. ' history is empty')
+      return
+    end
+    local cur = get({ nr = 0 }).nr
+    local target = (cur - 1 + dir) % total + 1  -- 1-based wraparound
+    vim.cmd(target .. hist)
+    local l = get({ nr = target, title = 0, size = 0 })
+    vim.notify(('%s list %d/%d: %s (%d)')
+      :format(label, target, total, l.title ~= '' and l.title or '(untitled)', l.size))
+  end
+end
+local qf_get = function(q) return vim.fn.getqflist(q) end
+local ll_get = function(q) return vim.fn.getloclist(0, q) end
+vim.keymap.set('n', ']Q', stack_nav(qf_get, 'chistory', 'Quickfix', 1),
+  { desc = 'Quickfix: newer list (history)' })
+vim.keymap.set('n', '[Q', stack_nav(qf_get, 'chistory', 'Quickfix', -1),
+  { desc = 'Quickfix: older list (history)' })
+vim.keymap.set('n', ']L', stack_nav(ll_get, 'lhistory', 'Location', 1),
+  { desc = 'Location list: newer list (history)' })
+vim.keymap.set('n', '[L', stack_nav(ll_get, 'lhistory', 'Location', -1),
+  { desc = 'Location list: older list (history)' })
 
 -- Toggle <leader>ss scope: multi-LSP fan-out (default) ↔ buffer-attached only.
 vim.keymap.set('n', '<leader>ts',

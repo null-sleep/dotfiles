@@ -13,7 +13,7 @@
 -- and anything touching diagnostics (clearing, toggling, filtering by namespace)
 -- must account for the LSP-delivered ones — they live in "nvim.lsp.*" namespaces,
 -- separate from nvim-lint's per-linter namespaces (named after each linter, e.g.
--- "ruff"). See the <leader>tl toggle below for how it clears only the latter.
+-- "ruff"). See the <leader>tL toggle below for how it clears only the latter.
 vim.cmd.packadd('nvim-lint')
 
 local lint = require('lint')
@@ -44,7 +44,7 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost' }, {
   group = group,
   callback = function(args)
     -- Gated by the same disable/enable convention as conform (vim.g / vim.b),
-    -- so <leader>tl and a per-buffer vim.b.disable_lint silence auto-linting.
+    -- so <leader>tL and a per-buffer vim.b.disable_lint silence auto-linting.
     if vim.g.disable_lint or vim.b[args.buf].disable_lint then
       return
     end
@@ -68,7 +68,7 @@ end, { desc = 'Code: Lint buffer' })
 -- authoritative and never touches LSP-delivered diagnostics (those live in the
 -- separate "nvim.lsp.*" namespaces). reset() with no bufnr clears all buffers,
 -- matching the global scope of the toggle.
-vim.keymap.set('n', '<leader>tl', function()
+vim.keymap.set('n', '<leader>tL', function()
   vim.g.disable_lint = not vim.g.disable_lint
   if vim.g.disable_lint then
     local seen = {}
