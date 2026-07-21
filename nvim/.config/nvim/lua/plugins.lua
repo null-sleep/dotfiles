@@ -273,6 +273,82 @@ vim.api.nvim_create_autocmd('PackChanged', {
   end,
 })
 
+-------------------------------------------------------------------------------
+-- Plugin updates: :PackUpdate / <leader>up + a twice-a-month reminder
+-------------------------------------------------------------------------------
+
+-- force = true skips the confirmation buffer and updates every plugin at once,
+-- then rewrites nvim-pack-lock.json — commit it (see GUIDE.md "Updating plugins").
+local function pack_update()
+  vim.pack.update(nil, { force = true })
+end
+
+vim.api.nvim_create_user_command('PackUpdate', pack_update,
+  { desc = 'Update all plugins (no confirmation) and refresh the lockfile' })
+vim.keymap.set('n', '<leader>up', pack_update,
+  { desc = 'Utilities: Update all plugins (:PackUpdate)' })
+
+-- Reminder to run the update: 2nd and last Friday of each month at 10:00 local,
+-- via vim.notify. nvim isn't a daemon, so best-effort — a timer fires it if a
+-- session spans the instant, else a startup catch-up shows it next launch. A
+-- stamp dedupes so each Friday fires once. Off headless / under claude-nvim.
+if vim.env.CLAUDE_NVIM ~= '1' and require('utils').has_ui() then
+  local nudge_stamp = vim.fs.joinpath(vim.fn.stdpath('cache'), 'nvim-pack-update-nudge')
+
+  local function fri_at_10(y, m, d)
+    return os.time({ year = y, month = m, day = d, hour = 10, min = 0, sec = 0 })
+  end
+  -- os.date wday: Sun=1..Fri=6. Second Friday = first Friday + 7 days.
+  local function second_friday(y, m)
+    local wday = os.date('*t', fri_at_10(y, m, 1)).wday
+    return fri_at_10(y, m, 1 + (6 - wday) % 7 + 7)
+  end
+  -- Last day of the month, walked back to Friday.
+  local function last_friday(y, m)
+    local ny, nm = m == 12 and y + 1 or y, m == 12 and 1 or m + 1
+    local last = os.date('*t', fri_at_10(ny, nm, 1) - 24 * 60 * 60)
+    return fri_at_10(y, m, last.day - (last.wday - 6) % 7)
+  end
+  -- Scheduled instant at/before `now` and the next after it; the prev/current/
+  -- next month's candidates bracket `now` either way.
+  local function targets(now)
+    local t = os.date('*t', now)
+    local list = {}
+    for _, off in ipairs({ -1, 0, 1 }) do
+      local y, m = t.year, t.month + off
+      if m < 1 then y, m = y - 1, 12 elseif m > 12 then y, m = y + 1, 1 end
+      list[#list + 1] = second_friday(y, m)
+      list[#list + 1] = last_friday(y, m)
+    end
+    table.sort(list)
+    local prev, nxt
+    for _, ts in ipairs(list) do
+      if ts <= now then prev = ts else nxt = ts break end
+    end
+    return prev, nxt
+  end
+
+  local function fire()
+    local prev = targets(os.time())
+    if not prev then return end -- no scheduled Friday reached yet
+    local stat = vim.uv.fs_stat(nudge_stamp)
+    if stat and stat.mtime.sec >= prev then return end -- already nudged this cycle
+    vim.fn.writefile({}, nudge_stamp)
+    vim.notify('Plugin update nudge — run <leader>up (:PackUpdate)', vim.log.levels.INFO)
+  end
+
+  -- Catch up on startup, then time the next instant for long-lived sessions.
+  local timer = vim.uv.new_timer()
+  local function arm()
+    local _, nxt = targets(os.time())
+    timer:start(math.max(0, (nxt - os.time()) * 1000), 0, vim.schedule_wrap(function()
+      fire()
+      arm()
+    end))
+  end
+  vim.defer_fn(function() fire(); arm() end, 2000)
+end
+
 -- Install any missing parsers from the ensure_installed list
 local ensure_installed = {
   'lua', 'python', 'javascript', 'typescript', 'go',

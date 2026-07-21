@@ -143,6 +143,19 @@ a ranged pin (`vim.version.range('1.*')`) only moves within that range.
 **Commit `nvim-pack-lock.json` after confirming** — that's what propagates
 the new pin to other machines.
 
+**Skip the review buffer:** `<leader>up` (or `:PackUpdate`, both in
+`plugins.lua`) runs `vim.pack.update(nil, { force = true })` — updates every
+plugin with no confirmation, straight to rewriting the lockfile. No changelog
+preview, so `git diff` the lockfile before committing; to undo,
+`git checkout HEAD -- nvim-pack-lock.json` then `:restart`.
+
+**Reminder to update:** `plugins.lua` nudges via `vim.notify` on the **2nd and
+last Friday of each month at 10:00** local. nvim isn't a daemon, so it's
+best-effort — a timer fires it if a session spans the instant, else a startup
+catch-up shows it at the next launch past it. A cache stamp
+(`nvim-pack-update-nudge`) dedupes to once per scheduled Friday; off when
+headless / under claude-nvim.
+
 ### Load order
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
@@ -785,6 +798,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
 | `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
+| `<leader>up` / `:PackUpdate` | Update all plugins with no confirmation, then commit the lockfile — see [Updating plugins](#updating-plugins) | plugins.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
 | `<M-b>` / `<M-f>` | Word back / forward — Option+Left/Right, which the terminal sends as literal Meta+b/Meta+f (see keymaps.lua comment) | keymaps.lua |
 | `<M-BS>` (insert mode) | Delete word left — Option+Backspace, sent as Meta+Backspace by the terminal | keymaps.lua |

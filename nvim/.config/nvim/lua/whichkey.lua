@@ -94,6 +94,7 @@ local keywords = {
   ['<leader>us'] = 'strip whitespace trim trailing spaces clean',
   ['<leader>uc'] = 'clean paste reflow dedent terminal claude format fix',
   ['<leader>uu'] = 'undo history recover deleted restore seq timeline tree',
+  ['<leader>up'] = 'update plugins packages vim.pack upgrade lockfile PackUpdate',
   ['<leader>bs'] = 'scratch buffer toggle pad notes temporary snacks',
   ['<leader>bS'] = 'scratch buffer select list snacks delete ctrl-x new ctrl-n',
   ['<leader>db'] = 'breakpoint dap debugger',
