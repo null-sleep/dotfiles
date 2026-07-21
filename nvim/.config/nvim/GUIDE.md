@@ -670,6 +670,28 @@ rust-analyzer-only filter still loses to any later-attaching client. `init.lua`
 requires `lsp` before `rust` (Load order), so this handler always
 registers, and fires, last — the winning write on every attach.
 
+### Run output can't be re-shown, only re-run
+
+`<leader>cR`'s output float can be **dismissed** (`q`/`<C-\>`) but not re-shown,
+so `<leader>co` **re-runs** the last target rather than restoring old output.
+Two dead ends, kept so they aren't re-attempted:
+
+1. **toggleterm delists on job-exit** — a `TermClose` autocmd calls
+   `delete(term.id)`, so `get(id)` is `nil` for any finished run (even with
+   `close_on_exit = false`). Holding the `Terminal` object sidesteps this.
+2. **The buffer is wiped on hide anyway.** Closing the float fires
+   `BufWinLeave → BufHidden → BufUnload → BufWipeout` — Neovim's C-level
+   teardown of a finished-terminal buffer (no Lua caller in the trace).
+   `bufhidden = 'hide'` doesn't stop it, and it only happens interactively, not
+   headless — which is why it survived every headless repro. (`stickybuf`
+   ruled out: `prev_bufhidden` stayed `unset`.)
+
+So `<leader>co` maps to a no-picker re-run (`RustLsp! run` for Rust,
+`gotargets.rerun_last` for Go) — reliable, and a fast edit→re-run loop. True
+peek-after-dismiss would need a buffer we own, never routed through a closing
+window (snapshot the lines into a scratch buffer on exit) — not built; see
+`plans/nvim-backlog.md`.
+
 
 ## Keymap index
 
@@ -2864,9 +2886,18 @@ it would also hide genuine "can't find your Cargo.toml" errors in real projects)
 ### Running a program
 
 - **`<leader>cR`** — runnables picker; select the binary → runs `cargo run` in a
-  terminal split. Workspace-aware (rust-analyzer picks the right `-p` package).
+  **floating terminal** (workspace-aware `-p`). One float, reused across runs;
+  dismiss with `<C-\>`/`q`. A custom `tools.executor` in `rust.lua` routed
+  through `utils.float_terminal_action` (id 102), shared with Go's `<leader>cR`.
+  `cargo test` runnables still go to neotest (`test_executor` unchanged).
+- **`<leader>co`** — re-run the *last* runnable in that float, no picker
+  (`RustLsp! run`); falls back to the picker if nothing's run yet. Re-run, not
+  re-show — a dismissed run's output is gone (see [Design
+  Decisions](#design-decisions) → "Run output can't be re-shown, only re-run").
+  Same in Go.
 - **`grx`** on the `fn main` line — runs the `▶ Run` codelens directly.
-- **`:RustLsp run`** — re-run the *last* runnable (fast edit-run loop).
+- **`:RustLsp run`** — run the runnable *at the cursor* (`:RustLsp! run` re-runs
+  the last one — what `<leader>co` maps to).
 - Or just a terminal: `<C-/>`, then `cargo run -p <crate>`.
 
 ### Debugging entry point
@@ -3005,6 +3036,7 @@ the manual, on-demand fallback.
 | `<leader>ca` | Code action (rustaceanvim grouped variant) |
 | `<leader>cp` | Code action preview — flat list, diff shown before applying |
 | `<leader>cR` | Runnables — run a binary/target |
+| `<leader>co` | Re-run the last runnable in the float, no picker (`RustLsp! run`) |
 | `<leader>cm` | Expand macro under cursor |
 | `<leader>cC` | Open the crate's `Cargo.toml` |
 | `<leader>cs` | Structural search & replace (SSR) — prompts for a query |
@@ -3161,7 +3193,10 @@ no-kill guard that protects Rust's clippy `--fix` from being killed
 mid-write). Already exited: the old terminal is shut down and the new
 selection runs in a fresh one. It does **not** close on exit
 (`close_on_exit = false`), so the program's output stays on screen after it
-finishes.
+finishes; dismiss it with `<C-\>`/`q`. **`<leader>co`** re-runs the *last* target
+in that float, no picker (`gotargets.rerun_last`) — the Go mirror of Rust's
+`<leader>co`; re-run, not re-show (see [Design Decisions](#design-decisions) →
+"Run output can't be re-shown, only re-run").
 
 **It passes no arguments.** `<leader>cR` runs the package bare. For a program
 that needs argv, open a terminal (`<C-/>`) and run `go run ./cmd/foo -flag`
@@ -3184,6 +3219,7 @@ ever lingers, `<leader>du` toggles it.
 |---|---|
 | `<leader>dR` | Debuggables — pick a `main` package, debug it under delve |
 | `<leader>cR` | Runnables — pick a `main` package, `go run` it in a terminal |
+| `<leader>co` | Re-run the last `run` target in the float, no picker |
 
 The global Debug and Test keymap tables live in
 [Debugging](#debugging) → Keymaps and [Testing](#testing) → Keymaps.

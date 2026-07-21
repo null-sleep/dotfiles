@@ -9,6 +9,24 @@
 -- eager plugin/ dir), so setting it first is the safe, self-consistent order. The
 -- one hard rule from the docs is: never set it from after/ftplugin/rust.lua.
 
+-- `cargo run` output float for runnables — same fixed-id toggleterm pattern as
+-- Go's <leader>cR (gotargets.lua, id 101; ids 100/101/102 are the reserved
+-- pool, see terminal.lua). `q`/<C-\> dismiss it. `require`s are inside the
+-- builder: it runs at runnable time, after the packadd below puts rustaceanvim
+-- (an opt package) on the runtimepath.
+local RUN_TERM_ID = 102
+local run_output = require('utils').float_terminal_action(RUN_TERM_ID, function(command, args, cwd, opts)
+  return {
+    cmd = require('rustaceanvim.shell').make_command_from_args(command, args),
+    dir = cwd,
+    env = opts and opts.env,
+    on_open = function(t)
+      vim.keymap.set('n', 'q', function() t:close() end,
+        { buffer = t.bufnr, nowait = true, desc = 'Hide Rust run output' })
+    end,
+  }
+end)
+
 vim.g.rustaceanvim = {
   server = {
     -- Use the rustup proxy explicitly instead of a bare 'rust-analyzer'.
@@ -52,6 +70,12 @@ vim.g.rustaceanvim = {
       end
       return settings
     end,
+  },
+  tools = {
+    -- Route <leader>cR runnables to the float above instead of the default
+    -- bottom split. test_executor stays at its default (neotest), so `cargo
+    -- test` runnables still go to the test UI, not this float.
+    executor = { execute_command = run_output },
   },
   -- dap = {} accepts rustaceanvim's default adapter, which auto-detects Mason's
   -- codelldb. If a debug session dies instantly on Apple Silicon (a liblldb pairing
@@ -252,6 +276,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('<leader>cp', function() require('actions-preview').code_actions() end,
       'Rust: Code action preview (diff, ungrouped)')
     map('<leader>cR', function() vim.cmd.RustLsp('runnables') end,            'Rust: Runnables (run)')
+    -- Re-run the last runnable in the float, no picker (bang = execute_last_-
+    -- runnable; falls back to the picker if nothing's run yet). Re-run, not
+    -- re-show — a dismissed run's buffer is gone.
+    -- See GUIDE.md "Run output can't be re-shown, only re-run".
+    map('<leader>co', function() vim.cmd('RustLsp! run') end,
+      'Rust: Re-run last runnable (no picker)')
     map('<leader>cm', function() vim.cmd.RustLsp('expandMacro') end,          'Rust: Expand macro')
     map('<leader>cC', function() vim.cmd.RustLsp('openCargo') end,            'Rust: Open Cargo.toml')
     -- Manual escape hatch: bypasses the automatic reload's gate/cooldown above.

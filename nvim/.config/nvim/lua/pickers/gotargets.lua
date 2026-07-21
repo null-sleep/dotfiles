@@ -17,6 +17,13 @@ local common = require('pickers.common')
 
 local M = {}
 
+-- Fixed float-terminal id for `go run` output (see run_target for why).
+local RUN_TERM_ID = 101
+
+-- Most recent { item, root } sent to `run`, so <leader>co (M.rerun_last) can
+-- re-run it without the picker.
+local last_run
+
 -- One line per package. `|` is safe: neither an import path nor a package dir
 -- can contain it. Fields: kind, import path, abs dir, #in-package test files,
 -- first .go file (used for the preview only).
@@ -69,12 +76,20 @@ end
 -- useful. Shutdown-then-recreate-then-toggle (and never killing a still-live
 -- run on re-press) is shared with rust.lua's clippy-fix terminal — see
 -- utils.lua's float_terminal_action.
-local run_target = require('utils').float_terminal_action(101, function(item, root)
+local run_target = require('utils').float_terminal_action(RUN_TERM_ID, function(item, root)
   -- `go run <import-path>` from the module root reaches any main package in the
   -- module, from any buffer — which is exactly what a hand-rolled `go run .`
   -- could not do (plans/go-run-debug-test.md, Alternatives).
-  -- close_on_exit = false so the program's output survives its exit.
-  return { cmd = 'go run ' .. vim.fn.shellescape(item.importpath), dir = root, close_on_exit = false }
+  -- close_on_exit = false so output survives exit; `q`/<C-\> dismiss the float.
+  return {
+    cmd = 'go run ' .. vim.fn.shellescape(item.importpath),
+    dir = root,
+    close_on_exit = false,
+    on_open = function(t)
+      vim.keymap.set('n', 'q', function() t:close() end,
+        { buffer = t.bufnr, nowait = true, desc = 'Hide Go run output' })
+    end,
+  }
 end)
 
 --- @param mode 'debug'|'run'
@@ -206,11 +221,22 @@ function M.open(mode)
         if mode == 'debug' then
           debug_target(item, root)
         else
+          last_run = { item = item, root = root } -- for M.rerun_last (<leader>co)
           run_target(item, root)
         end
       end)
     end,
   })
+end
+
+--- <leader>co: re-run the last `run` target, no picker. Falls back to the
+--- picker if nothing's been run yet.
+function M.rerun_last()
+  if last_run then
+    run_target(last_run.item, last_run.root)
+  else
+    M.open('run')
+  end
 end
 
 return M

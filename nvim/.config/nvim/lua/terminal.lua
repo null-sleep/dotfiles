@@ -73,8 +73,11 @@ local function new_term()
   vim.cmd(n .. 'ToggleTerm')
 end
 
--- <M-l>: indexed_select picker (pickers/common.lua) over the float pool
--- (get_all() skips hidden: the bottom panel and go-run/clippy-fix floats).
+-- <M-l>: indexed_select picker (pickers/common.lua) over the float pool.
+-- get_all() (no arg) skips only terminals created with hidden = true — here
+-- just the bottom panel (id 100). The go-run/clippy-fix/rust-run floats
+-- (ids 101/102) are NOT hidden, so they DO appear in this picker, on purpose:
+-- jumping back to a run's output is useful (see gotargets.lua's id comment).
 -- <CR>/<M-1>..<M-9> jump; <C-d> kills (process + buffer).
 local function select_term()
   local terminal = require('toggleterm.terminal')

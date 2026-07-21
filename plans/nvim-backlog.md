@@ -493,6 +493,26 @@ GUIDE.md "Large files".
   float (sidekick disables it there); the pre-warm flow is already
   float-compatible.
 
+- **Run-output as an IDE-style bottom panel (alt to the float)** — 2026-07-21.
+  Rust and Go `<leader>cR` both run in a toggleterm **float** (`rust.lua` id
+  102, `gotargets.lua` id 101, via `utils.float_terminal_action`). A persistent
+  **bottom panel** (VS Code / JetBrains model) is the alternative if the
+  centered float starts feeling like it covers the code. Sketch: a fixed-id
+  *horizontal* toggleterm (same shape as `terminal.lua`'s id-100 panel); route
+  both `get_spec`s through it via `direction = 'horizontal'`. Cleanest as a
+  shared `float` vs `bottom` knob rather than hardcoding. Not pursued; revisit
+  if the overlay proves annoying.
+
+- **Persistent, re-showable run output (snapshot to a scratch buffer)** —
+  2026-07-21. `<leader>co` re-*runs* rather than re-*shows*, because a dismissed
+  float buffer is wiped by Neovim's C-level window-close teardown (root-cause in
+  GUIDE.md → Design Decisions → "Run output can't be re-shown, only re-run").
+  For true peek-after-dismiss, snapshot the run's lines into a scratch buffer we
+  own (`nvim_buf_get_lines` on `TermClose` → `buftype=nofile`/`bufhidden=hide`;
+  `<leader>co` floats *that*). Costs: plain text (no ANSI colour), frozen at
+  exit, extra buffer per id. Not worth it for quick runs where re-running is
+  instant; revisit if a slow/expensive run makes re-execution costly.
+
 ## Learning / practice notes
 
 Not build tasks — personal practice reminders kept from `TODO.md` so they
