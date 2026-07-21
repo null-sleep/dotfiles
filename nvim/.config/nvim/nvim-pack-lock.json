@@ -66,8 +66,9 @@
       "src": "https://github.com/rmagatti/goto-preview"
     },
     "grug-far.nvim": {
-      "rev": "1cc080f55706b38aabfa97d40acb6adf59ac4a5a",
-      "src": "https://github.com/MagicDuck/grug-far.nvim"
+      "rev": "08b3b8541a834e72dfc6c7b98d5606559cad0c9b",
+      "src": "https://github.com/null-sleep/grug-far.nvim",
+      "version": "'fix/visual-selection-respects-inclusive'"
     },
     "gruvbox.nvim": {
       "rev": "154eb5ff5b96d0641307113fa385eaf0d36d9796",

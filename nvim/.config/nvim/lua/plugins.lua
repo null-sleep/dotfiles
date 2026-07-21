@@ -38,8 +38,10 @@ vim.pack.add(vim.list_extend({
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
-  -- Interactive project-wide find & replace (setup in grugfar.lua)
-  { src = gh('MagicDuck/grug-far.nvim') },
+  -- Interactive project-wide find & replace (setup in grugfar.lua). On a fork
+  -- branch for the visual-selection fix (PR MagicDuck/grug-far.nvim#595);
+  -- revert to gh('MagicDuck/grug-far.nvim') with no version once merged.
+  { src = gh('null-sleep/grug-far.nvim'), version = 'fix/visual-selection-respects-inclusive' },
   -- Terminal-only Neovide-style cursor/scroll animation; see animations.lua
   { src = gh('sphamba/smear-cursor.nvim') },
   { src = gh('declancm/cinnamon.nvim') },
