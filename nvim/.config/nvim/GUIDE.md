@@ -1534,9 +1534,10 @@ list — bindings below are the daily set):
 Interactive, buffer-based find & replace across the project — the editable
 counterpart to the read-only snacks grep pickers. `<leader>sg` finds and
 jumps; grug-far turns a search into an editable results buffer you tweak
-(delete the rows you don't want) and then apply as a real, undoable
-replacement. Setup lives in `grugfar.lua`; the plugin lazy-loads on the first
-`<leader>sR` press.
+(delete the rows you don't want) and then apply as a real replacement, with
+live preview and per-line control. Setup lives in `grugfar.lua`; the plugin
+lazy-loads on the first `<leader>sR` press. For a walkthrough (video + recipes),
+see the [linkarzu guide](https://linkarzu.com/posts/neovim/grug-far/).
 
 ### Opening it
 
@@ -1598,6 +1599,7 @@ in-buffer; this is a summary:
 | `\e` | Swap engine (ripgrep ↔ ast-grep) |
 | `\t` | Open search history |
 | `\x` | Swap the replacement interpreter (string ↔ Lua/Vimscript) |
+| `\S` | **Swap** the Search and Replace inputs (custom — see below) |
 | `q` | Close the buffer |
 | `g?` | Full in-buffer help |
 
@@ -1607,6 +1609,12 @@ under the cursor, or just the file it belongs to, when you don't want to push
 
 `\q` bridges to the [quickfix workflow](#quickfix-loclist): dump the matches to
 the quickfix list, then walk them with `]q` / `[q` or batch-edit with `:cdo`.
+
+`\S` is a **custom** key (defined in `grugfar.lua`, not a grug-far built-in): it
+swaps the Search and Replace inputs. Handy as a one-key reverse — after applying
+`a`→`b`, press `\S` then `\r` to turn it back into `b`→`a`. That's the closest
+thing to "undo the last replace" for files that weren't open (recall `\r` writes
+to disk — see the undo note above).
 
 `q` is remapped from grug-far's default `\c` and runs the plugin's real
 teardown (aborts an in-flight search + cleans up the instance), not a bare

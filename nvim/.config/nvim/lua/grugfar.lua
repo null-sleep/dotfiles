@@ -22,3 +22,23 @@ vim.keymap.set({ 'n', 'x' }, '<leader>sR', function()
   ensure()
   require('grug-far').open({ transient = true })
 end, { desc = 'Search: Search & replace (grug-far)' })
+
+-- <localleader>S in the results buffer swaps the Search and Replace inputs.
+-- Doubles as a one-key reverse: after applying a→b, swap to b→a and \r to undo
+-- it. Same input names on both engines, so it's engine-agnostic. Registered
+-- per-buffer via FileType because it's a custom action, not one of grug-far's
+-- remappable built-in keys. Reads/writes through grug-far's inputs API rather
+-- than scraping buffer lines.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'grug-far',
+  desc = 'grug-far: <localleader>S swaps the Search/Replace inputs',
+  callback = function(ev)
+    vim.keymap.set('n', '<localleader>S', function()
+      local inst = require('grug-far').get_instance(0)
+      if not inst then return end
+      local v = require('grug-far.inputs').getValues(inst._context, inst._buf)
+      v.search, v.replacement = v.replacement, v.search
+      inst:update_input_values(v, true)
+    end, { buffer = ev.buf, desc = 'Search & replace: Swap search/replace (grug-far)' })
+  end,
+})
