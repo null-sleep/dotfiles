@@ -1592,11 +1592,21 @@ in-buffer; this is a summary:
 |---|---|
 | `\r` | Apply the replacement to **every match in the buffer** (curate first — see above) |
 | `\s` | Sync your **manual edits** to result lines back to source (not the same as `\r`) |
+| `\l` | Sync only the **current result line**'s manual edit back to its file |
+| `\v` | Sync only the manual edits within the **current file** |
+| `\q` | Send the results to the **quickfix list** |
 | `\e` | Swap engine (ripgrep ↔ ast-grep) |
 | `\t` | Open search history |
 | `\x` | Swap the replacement interpreter (string ↔ Lua/Vimscript) |
 | `q` | Close the buffer |
 | `g?` | Full in-buffer help |
+
+`\l` / `\v` are finer-grained cousins of `\s` (Sync All) — sync just the line
+under the cursor, or just the file it belongs to, when you don't want to push
+*every* manual edit at once.
+
+`\q` bridges to the [quickfix workflow](#quickfix-loclist): dump the matches to
+the quickfix list, then walk them with `]q` / `[q` or batch-edit with `:cdo`.
 
 `q` is remapped from grug-far's default `\c` and runs the plugin's real
 teardown (aborts an in-flight search + cleans up the instance), not a bare
