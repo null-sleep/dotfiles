@@ -18,9 +18,21 @@ end
 -- open() auto-prefills a visual selection as a --fixed-strings search (the
 -- recommended lua-fn usage, not with_visual_selection()). transient = unlisted
 -- buffer wiped on close; history persists separately (\t).
+--
+-- Fixed instanceName so a repeat press supersedes instead of stacking a new
+-- window (default: auto-named, so each open() adds one). Re-check
+-- has_instance after kill_instance() — it declines mid-replace/sync, and an
+-- unkilled instance would make open() error "already exists".
+local INSTANCE_NAME = 'leader_sR'
+
 vim.keymap.set({ 'n', 'x' }, '<leader>sR', function()
   ensure()
-  require('grug-far').open({ transient = true })
+  local grug_far = require('grug-far')
+  if grug_far.has_instance(INSTANCE_NAME) then
+    grug_far.kill_instance(INSTANCE_NAME)
+    if grug_far.has_instance(INSTANCE_NAME) then return end
+  end
+  grug_far.open({ transient = true, instanceName = INSTANCE_NAME })
 end, { desc = 'Search: Search & replace (grug-far)' })
 
 -- <localleader>S in the results buffer swaps the Search and Replace inputs.

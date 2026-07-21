@@ -1543,7 +1543,7 @@ see the [linkarzu guide](https://linkarzu.com/posts/neovim/grug-far/).
 
 | Keymap | Mode | Action |
 |---|---|---|
-| `<leader>sR` | normal | Open a fresh search & replace buffer |
+| `<leader>sR` | normal | Open a search & replace buffer, closing one already open |
 | `<leader>sR` | visual | Same, prefilling the selection as the Search and setting `--fixed-strings`, so regex metacharacters in the selection stay literal |
 
 The buffer has labelled fields, each on its own line — **Search**, **Replace**,
