@@ -22,6 +22,7 @@ require('git')
 require('gitui')  -- neogit.nvim (Magit-style dashboard) + diffview.nvim
 require('terminal')
 require('scratch')  -- snacks.nvim scratch buffer keymaps (setup lives in picker.lua)
+require('grugfar')  -- grug-far.nvim: project-wide find & replace (<leader>sR)
 require('titling')
 require('whichkey')
 require('autosave')

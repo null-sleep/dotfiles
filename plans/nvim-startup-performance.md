@@ -82,11 +82,11 @@ plugins.lua's telescope/treesitter setup, git.lua/gitsigns, aerial (symmetric ca
 nvim-tree — revisit only if Phase 2 proves worthwhile).
 
 ### 10. `grugfar.lua` — grug-far ships lazy from day one (NOT a parked item)
-Unlike the deferrals above, `plans/grug-far.md` builds grug-far **lazy-loaded from the start**
-(greenfield, so there's no migration risk to weigh against reviving Phase 2). Its `grugfar.lua`
-registers the `<leader>sr` keymap + the `special_filetypes`/stickybuf glue eagerly (all
+Unlike the deferrals above, grug-far shipped **lazy-loaded from the start** (greenfield, so no
+migration risk to weigh against reviving Phase 2). `grugfar.lua` (the shipped code)
+registers the `<leader>sR` keymap + the `special_filetypes`/stickybuf glue eagerly (all
 plugin-independent), and memoizes `packadd('grug-far.nvim')` + `setup{}` behind a local
-`ensure()` that fires on first `<leader>sr` press — the same shape as Phase 2's `ensure()`
+`ensure()` that fires on first `<leader>sR` press — the same shape as Phase 2's `ensure()`
 pattern (step 5), hand-rolled locally rather than via the shared `utils.lua` helper (not built
 while Phase 2 is parked). `:GrugFar`/`:GrugFarWithin` still exist from boot (vim.pack sources the
 plugin/ files), so no command override is needed. Recorded here for the timeline/registry; it is

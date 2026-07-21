@@ -45,18 +45,33 @@ vim.api.nvim_create_autocmd('DirChanged', {
 -- globals into every session. See GUIDE.md "Synthetic sidebar buffers can't be
 -- session-serialized".
 --
--- Aerial's outline and nvim-tree's explorer are the two such panels today —
--- both closed here. (nvim-tree was wrongly assumed to be handled elsewhere
--- and left out until this bug surfaced; same blank-buffer failure mode.)
--- Safe to close in PersistenceSavePre: it only fires from persistence's
--- VimLeavePre hook, i.e. nvim is already quitting.
+-- Aerial's outline, nvim-tree's explorer, and grug-far's transient results
+-- buffer are the synthetic-buffer panels handled today — all closed here.
+-- (nvim-tree was wrongly assumed to be handled elsewhere and left out until
+-- this bug surfaced; same blank-buffer failure mode.) Safe to close in
+-- PersistenceSavePre: it only fires from persistence's VimLeavePre hook, i.e.
+-- nvim is already quitting.
 vim.api.nvim_create_autocmd('User', {
   group   = vim.api.nvim_create_augroup('UserSessionSave', { clear = true }),
   pattern = 'PersistenceSavePre',
-  desc = 'Session: close synthetic-buffer panels (aerial, nvim-tree) before mksession so they leave no blank scratch window',
+  desc = 'Session: close synthetic-buffer panels (aerial, nvim-tree, grug-far) before mksession so they leave no blank scratch window',
   callback = function()
     require('aerial').close_all()
     require('nvim-tree.api').tree.close_in_all_tabs()
+    -- grug-far's is a *named* nofile buffer, so mksession serializes any window
+    -- showing it → junk split on restore. Close those windows (buffer is
+    -- bufhidden=wipe, so it goes too), then wipe any left. Inline, not grug-far's
+    -- own close (conditional, and can pop a confirm() at quit). pcall: last-win E444.
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'grug-far' then
+        pcall(vim.api.nvim_win_close, win, true)
+      end
+    end
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.bo[buf].filetype == 'grug-far' then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
   end,
 })
 

@@ -20,6 +20,7 @@ M.special_filetypes = {
   NvimTree          = true,  -- file tree
   toggleterm        = true,  -- terminal panel/float
   sidekick_terminal = true,  -- sidekick AI CLI
+  ['grug-far']      = true,  -- find & replace panel
 }
 
 -- Sidebars: persistent navigation panels docked to a window edge. A STRICT

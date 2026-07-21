@@ -29,6 +29,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Treesitter](#treesitter)
   - [Large files](#large-files)
   - [Picker (snacks.nvim)](#picker-snacks)
+  - [grug-far](#grug-far)
   - [Quickfix & location lists](#quickfix-loclist)
   - [Clipboard split](#clipboard-split)
   - [Structural selection](#structural-selection)
@@ -89,6 +90,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
+- **`grugfar.lua`** — grug-far.nvim setup + the `<leader>sR` (`n`+`x`) entry key for interactive project-wide find & replace (the editable counterpart to the read-only snacks grep pickers). Lazy-loads the plugin (`packadd` + `setup()`) on first press, keeping only the keymap eager; close remapped to `q`, in-buffer editing on `<localleader>` (`\`). See the [grug-far](#grug-far) section. Named `grugfar` (no hyphen) to avoid shadowing the plugin's own `grug-far` Lua module
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
@@ -130,7 +132,7 @@ this file after updating plugins to keep versions consistent across machines.
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
 outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
-git -> gitui -> terminal -> scratch -> titling -> whichkey -> autosave -> filetree ->
+git -> gitui -> terminal -> scratch -> grugfar -> titling -> whichkey -> autosave -> filetree ->
 animations -> neovide -> cleanup.
 
 `rust` must precede `testing` (`testing.lua` does `require('rustaceanvim.neotest')`,
@@ -538,12 +540,14 @@ nesting an editor inside a terminal window. Pieces that make this work:
 `mksession` serializes a window by the *file* its buffer points at. Aerial's
 outline buffer and nvim-tree's explorer buffer have no backing file, so a
 saved session restores their windows as bare `enew` scratch buffers — junk
-blank splits where the panels used to be. `session.lua` closes both
-(`aerial.close_all()`, `api.tree.close_in_all_tabs()`) in persistence's
-`PersistenceSavePre` hook so the synthetic windows are simply absent from the
-saved layout; you reopen them with `<leader>o` / `<leader>e` on demand. Any
-future plugin owning a synthetic sidebar buffer needs the same
-close-before-save treatment.
+blank splits where the panels used to be. `session.lua` closes them
+(`aerial.close_all()`, `api.tree.close_in_all_tabs()`, and any grug-far window
+via a direct `nvim_win_close`) in persistence's `PersistenceSavePre` hook so the
+synthetic windows are simply absent from the saved layout; you reopen them with
+`<leader>o` / `<leader>e` / `<leader>sR` on demand. Any future plugin owning a
+synthetic sidebar buffer needs the same close-before-save treatment. grug-far's
+buffer is a *named* nofile buffer, so it's closed by an inline window sweep (not
+its own `close`/`kill_instance`, which can pop a confirm prompt at quit).
 
 (nvim-tree was originally left out of this hook on the unverified assumption
 it was "handled some other way" — it wasn't, and hit the same blank-buffer
@@ -1523,6 +1527,146 @@ list — bindings below are the daily set):
 | Command | Purpose |
 |---|---|
 | `:checkhealth snacks` | Verify snacks and the picker's optional deps (sqlite, etc.) |
+
+
+## grug-far
+
+Interactive, buffer-based find & replace across the project — the editable
+counterpart to the read-only snacks grep pickers. `<leader>sg` finds and
+jumps; grug-far turns a search into an editable results buffer you tweak
+(delete the rows you don't want) and then apply as a real, undoable
+replacement. Setup lives in `grugfar.lua`; the plugin lazy-loads on the first
+`<leader>sR` press.
+
+### Opening it
+
+| Keymap | Mode | Action |
+|---|---|---|
+| `<leader>sR` | normal | Open a fresh search & replace buffer |
+| `<leader>sR` | visual | Same, prefilling the selection as the Search and setting `--fixed-strings`, so regex metacharacters in the selection stay literal |
+
+The buffer has labelled fields, each on its own line — **Search**, **Replace**,
+**Files Filter**, **Flags**, **Paths**. Navigate to a field's line and type;
+results populate live below. The buffer is `transient` (unlisted, wiped on
+close); search *history* persists separately (`\t`).
+
+### The mental model: curate, then apply
+
+**`\r` always replaces *every* match currently in the buffer — there is no
+per-match confirm.** So you don't pick matches at apply time; you curate the
+results buffer first, then apply what remains:
+
+**search → curate the results buffer → `\r` applies exactly what's left.**
+
+Two ways to curate, and they compose:
+
+- **Subtractive — `dd` the rows you *don't* want.** The results buffer is a
+  normal buffer, so `dd` a match row (or `dd` a file's header/path line to drop
+  *all* its matches at once), Visual + `d` a range, `u` to bring a row back.
+  Best for one-off "not that one" exclusions.
+- **Rules — narrow with the fields.** `Files Filter` (`*.py`, `!*_test.go`) or
+  `Paths` (`fixtures/animal.py`) shrink the match set before it ever appears.
+  Best for "never the tests / only this subtree."
+
+Then `\r`. `\s` (Sync All) is a *different* tool — see the note under the key
+table.
+
+**Undo is not a global safety net.** `\r` writes changes **straight to disk**
+(libuv, bypassing the undo history) and reloads open buffers via `checktime`.
+So there's no single `u` that reverts the whole replacement:
+
+- A file that was **open** when you applied → `u` in *that* buffer reverts it
+  (the reload preserves undo via `'undoreload'`, default < 10000 lines).
+- A file that was **not open** → no in-editor undo; the change is disk-only.
+
+The reliable revert is **git** — review the diff and `git restore <file>`. Run
+big renames against a clean working tree so the diff *is* the undo.
+
+### In-buffer keys
+
+In-buffer actions hang off `<localleader>` (`\`) — this config's only
+`<localleader>` consumer. The authoritative, always-current list is `g?`
+in-buffer; this is a summary:
+
+| Key | Action |
+|---|---|
+| `\r` | Apply the replacement to **every match in the buffer** (curate first — see above) |
+| `\s` | Sync your **manual edits** to result lines back to source (not the same as `\r`) |
+| `\e` | Swap engine (ripgrep ↔ ast-grep) |
+| `\t` | Open search history |
+| `\x` | Swap the replacement interpreter (string ↔ Lua/Vimscript) |
+| `q` | Close the buffer |
+| `g?` | Full in-buffer help |
+
+`q` is remapped from grug-far's default `\c` and runs the plugin's real
+teardown (aborts an in-flight search + cleans up the instance), not a bare
+window close. `:q` / `:close` also close it like any window.
+
+### Engines: ripgrep vs. ast-grep
+
+The default engine is **ripgrep** — line-oriented, regex. `\e` swaps to
+**ast-grep**, a syntax-aware engine: patterns match the parse tree, so
+`console.log($A)` matches regardless of whitespace and `$A` is a metavariable
+capturing any argument. ast-grep is apply-only — `\r` works, `\s` (line sync)
+does not.
+
+### Scoping a search
+
+A search is project-wide by default — we deliberately don't pre-fill any scope
+(a silent `*.<ext>` filter would hide cross-language matches, a bad default for
+a rename tool). Narrow it with one of two fields:
+
+- **Files Filter** — *which* files, ripgrep-glob / gitignore syntax, one
+  pattern per line: `*.lua`, `*.{ts,tsx,js}`, a subtree `lua/**`. Negate with
+  `!` (`!*_test.go`, `!README.md`). "Same filetype as this buffer" = type
+  `*.<ext>` here.
+- **Paths** — *where* to search: directories or files, e.g. `lua/pickers`.
+  Supports `~`, and the special `<buflist>` (open buffers) / `<qflist>`
+  (quickfix entries).
+
+Flags typed in **Flags** pass straight to the engine: `-i` ignore case, `-w`
+whole word, `--hidden`, `--no-ignore`.
+
+### Worked examples
+
+Fields are lines in the buffer; navigate to one and type, then `\r` applies.
+To revert, see the undo caveat above — `\r` writes to disk, so `git restore`,
+not a global `u`, is the reliable undo.
+
+1. **Project-wide rename.** `<leader>sR` → Search `getUserId`, Replace
+   `getUserID` → `\r`.
+2. **Replace highlighted text.** Visually select `user.profile.name`,
+   `<leader>sR` — it prefills the selection and sets `--fixed-strings`, so the
+   `.`s are literal → set Replace → `\r`.
+3. **Restrict to one filetype.** Files Filter `*.lua` (or `*.{ts,tsx}`) →
+   Search/Replace as usual.
+4. **Exclude tests / a file.** Files Filter `!*_test.go` (or `!*.test.ts`,
+   `!README.md`); `!` negates, stack multiple patterns one per line.
+5. **Scope to a subdirectory.** Paths `lua/pickers` (searches only there), or
+   Files Filter `lua/pickers/**`.
+6. **Case-insensitive / whole word.** Flags `-i` (ignore case), `-w` (word
+   boundary).
+7. **Selective apply.** Run the search, then `dd` the result rows you *don't*
+   want changed; `\r` only touches the rows that remain. Easier than crafting a
+   perfect exclusion pattern.
+8. **Include hidden / ignored files.** Flags `--hidden` and/or `--no-ignore`.
+9. **Structural (ast-grep).** `\e` to swap engine → Search `console.log($A)`,
+   Replace `logger.debug($A)` → `\r`. `$A` is an ast-grep metavariable matching
+   any argument. (ast-grep is apply-only: `\r`, no `\s`.)
+
+### Power move: multiline + Lua interpreter
+
+grug-far's most powerful mode:
+
+- Add `--multiline` in the **Flags** field so a single search/replace can span
+  line breaks (patterns and replacements may contain `\n`).
+- Press `\x` to swap the replacement input to the **Lua interpreter**: the
+  replacement is then Lua code with the current match available as `match`, so
+  you can compute replacements a static string can't express (case conversion,
+  arithmetic, conditional rewrites).
+- Caveats: `\s` (Sync all) is **disabled** under `--multiline`, and the
+  ast-grep engine supports `\r` but not `\s` either — so multiline / ast-grep
+  work is apply-only, with no line-sync.
 
 
 <a id="quickfix-loclist"></a>

@@ -38,6 +38,8 @@ vim.pack.add(vim.list_extend({
   { src = gh('lewis6991/satellite.nvim') },
   { src = gh('folke/which-key.nvim') },
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
+  -- Interactive project-wide find & replace (setup in grugfar.lua)
+  { src = gh('MagicDuck/grug-far.nvim') },
   -- Terminal-only Neovide-style cursor/scroll animation; see animations.lua
   { src = gh('sphamba/smear-cursor.nvim') },
   { src = gh('declancm/cinnamon.nvim') },
@@ -379,6 +381,9 @@ vim.cmd.packadd('stickybuf.nvim')
 require('stickybuf').setup({
   get_auto_pin = function(bufnr)
     if vim.bo[bufnr].filetype == 'sidekick_terminal' then
+      return 'filetype'
+    end
+    if vim.bo[bufnr].filetype == 'grug-far' then
       return 'filetype'
     end
     return require('stickybuf').should_auto_pin(bufnr)

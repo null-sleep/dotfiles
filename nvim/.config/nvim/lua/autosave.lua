@@ -15,7 +15,7 @@ require('auto-save').setup({
   -- problems (e.g. gitcommit would save an incomplete message), and for
   -- read-only buffers like help pages and diffs.
   condition = function(buf)
-    local excluded = { 'oil', 'snacks_picker_input', 'mason', 'gitcommit', 'gitrebase', 'harpoon' }
+    local excluded = { 'oil', 'snacks_picker_input', 'mason', 'gitcommit', 'gitrebase', 'harpoon', 'grug-far' }
     local ft = vim.bo[buf].filetype
     for _, v in ipairs(excluded) do
       if ft == v then return false end
