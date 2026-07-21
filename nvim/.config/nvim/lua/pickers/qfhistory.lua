@@ -44,7 +44,9 @@ function M.open(kind)
   local cur = spec.get({ nr = 0 }).nr
 
   return common.indexed_select({
-    source = 'qf_history',
+    -- Per-kind: Snacks.picker.pick toggle-closes an open same-source picker,
+    -- which would make <leader>sL just close an open <leader>sQ (and vice versa).
+    source = 'qf_history_' .. kind,
     title = spec.label .. ' history',
     finder = function()
       local items = {}

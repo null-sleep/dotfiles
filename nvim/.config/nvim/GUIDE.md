@@ -1728,7 +1728,8 @@ active list, **capital walks whole lists** in the stack.
 | Open the list window | `<leader>tq` | `<leader>tl` |
 
 All of `]q`/`[q`/`]Q`/`[Q` (and the loclist twins) wrap around at the ends and
-notify on an empty list instead of raising a raw `E42`/`E553`. A stack hop
+notify on an empty list instead of raising a raw `E42`/`E553`. Entry moves
+take a count like the built-ins they shadow (`3]q` skips three). A stack hop
 (`]Q`/`[Q`) also announces the list it landed on — title and size — since
 switching the active list is otherwise invisible.
 

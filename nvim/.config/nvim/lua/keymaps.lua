@@ -314,14 +314,15 @@ vim.keymap.set('n', '<leader>tl', function()
   end
 end, { desc = 'Toggle: Location list window' })
 
--- ]q/[q walk the quickfix list, ]l/[l the location list. Wraparound: pcall
+-- ]q/[q walk the quickfix list, ]l/[l the location list. Honors a count
+-- (3]q → :3cnext) like the built-in defaults these shadow. Wraparound: pcall
 -- swallows the end-of-list error (E553) so cfirst/clast loop around; the size
 -- guard turns an empty list into a notify, not a raw E42.
 local function list_nav(size, move, wrap, empty_msg)
   return function()
     if size() == 0 then
       vim.notify(empty_msg)
-    elseif not pcall(vim.cmd, move) then
+    elseif not pcall(vim.cmd, vim.v.count1 .. move) then
       vim.cmd(wrap)
     end
   end
