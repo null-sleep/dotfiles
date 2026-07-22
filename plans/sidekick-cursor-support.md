@@ -182,6 +182,10 @@ came out of it.
   session). Supersedes the earlier "auto name is always `<agent> <n>`"; the
   counter stays single and global.
 - **The picker costs one extra Enter** (see Decision 2's amendment).
+- *(2026-07-22 follow-up: the picker currently ranks `cursor` first as a
+  trial — `<CR><CR>` makes a cursor session; TODO in `new_session` to
+  consider reverting to claude-first. Home base is unchanged: pre-warm and
+  fallback stay claude.)*
 
 ### ai.lua changes
 

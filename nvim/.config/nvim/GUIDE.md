@@ -2614,8 +2614,9 @@ active session, `<leader>ad` kills it, and **all send keys, `<leader>ao`,
 running, sends never stop to ask which one.
 
 `<leader>an` spawns a **new** session in two steps: an agent picker
-(`claude` highlighted by default, so plain `<CR>` confirms it — one extra
-Enter vs the old claude-only flow, accepted), then a label prompt; `<Esc>`
+(the first item is highlighted, so plain `<CR>` confirms it — one extra
+Enter vs the old claude-only flow, accepted; `cursor` is currently ranked
+first as a trial, TODO in `ai.lua` to revisit), then a label prompt; `<Esc>`
 cancels either step. A blank label auto-names the session: the bare agent
 name (`cursor`) if nothing is running under it, else a number from a counter
 shared across agents that never refills a freed number — so per-agent

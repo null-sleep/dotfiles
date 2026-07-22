@@ -1,8 +1,8 @@
 -- The closed agent set: each entry is a static sidekick preset in cli.tools
 -- AND the leading token of every session name ('cursor 2', 'claude: foo') —
 -- the name carries the agent, the agent picks the binary (create_session).
--- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback, picker
--- default.
+-- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback (the
+-- <leader>an picker ranks independently — see new_session).
 local AGENTS = { 'claude', 'cursor' }
 local PRIMARY = AGENTS[1]
 
@@ -648,12 +648,15 @@ function M._forget(name)
   if M.active == name then M.active = fallback_active(name) end
 end
 
--- <leader>an: the single creation door. Agent picker (claude default, so
--- plain <CR> confirms — +1 Enter, accepted), then a label: blank = auto name
--- (bare-first, then numbered), a repeat label re-attaches, <Esc> cancels
--- either step.
+-- <leader>an: the single creation door. Agent picker (first item is the
+-- default, so plain <CR> confirms — +1 Enter, accepted), then a label:
+-- blank = auto name (bare-first, then numbered), a repeat label re-attaches,
+-- <Esc> cancels either step.
 function M.new_session()
-  vim.ui.select(AGENTS, { prompt = 'New session — agent:' }, function(agent)
+  -- TODO: cursor ranked first while trialling it (<CR><CR> = new cursor
+  -- session). Consider reverting to AGENTS order (claude first) later.
+  local pick_order = { 'cursor', 'claude' }
+  vim.ui.select(pick_order, { prompt = 'New session — agent:' }, function(agent)
     if agent == nil then return end                       -- <Esc> cancels
     vim.ui.input({ prompt = ('New %s session (blank = auto): '):format(agent) }, function(input)
       if input == nil then return end                     -- <Esc> cancels
