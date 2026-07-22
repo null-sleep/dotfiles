@@ -591,10 +591,12 @@ gh auth login
 ## Cursor CLI (cursor-agent)
 
 Cursor's terminal coding agent — a peer to the Claude Code CLI. Installed here as
-the second agent for the planned Neovim /
-[sidekick.nvim](https://github.com/folke/sidekick.nvim) integration (design in
-[plans/sidekick-cursor-support.md](plans/sidekick-cursor-support.md)); usable
-standalone as `cursor-agent` today.
+the second agent in the Neovim /
+[sidekick.nvim](https://github.com/folke/sidekick.nvim) integration — spawn one
+with `<leader>an`; keymaps in the nvim config's GUIDE.md, "AI (sidekick.nvim)",
+design history in
+[plans/sidekick-cursor-support.md](plans/sidekick-cursor-support.md). Also
+usable standalone as `cursor-agent`.
 
 **Install** — not on Homebrew; use Cursor's install script (canonical at
 <https://cursor.com/cli>):

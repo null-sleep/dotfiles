@@ -44,10 +44,13 @@ require('lualine').setup({
             return 'Terminal #' .. nr
           end
           local bufname = vim.api.nvim_buf_get_name(0)
-          local cli = bufname:match('/bin/(%w+)$') or bufname:match('/bin/(%w+):')
-          local known_clis = { claude = true, copilot = true, gemini = true }
+          -- [%w-] not %w: cursor-agent has a hyphen. Explicit display names,
+          -- not a title-case rule — that would render "Cursor-agent CLI".
+          local cli = bufname:match('/bin/([%w-]+)$') or bufname:match('/bin/([%w-]+):')
+          local known_clis = { claude = 'Claude', copilot = 'Copilot',
+                               gemini = 'Gemini', ['cursor-agent'] = 'Cursor' }
           if cli and known_clis[cli] and bufname:match('^term://') then
-            return cli:sub(1, 1):upper() .. cli:sub(2) .. ' CLI'
+            return known_clis[cli] .. ' CLI'
           end
           return name
         end,

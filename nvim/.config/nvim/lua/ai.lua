@@ -1,10 +1,29 @@
+-- The closed agent set: each entry is a static sidekick preset in cli.tools
+-- AND the leading token of every session name ('cursor 2', 'claude: foo') —
+-- the name carries the agent, the agent picks the binary (create_session).
+-- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback, picker
+-- default.
+local AGENTS = { 'claude', 'cursor' }
+local PRIMARY = AGENTS[1]
+
+-- Name → agent (the name is a session's only identity — no agent field).
+-- Strictly anchored: the next char must be ' ' or ':' so
+-- 'claude: cursor-migration' parses as claude, never cursor. nil for names
+-- outside the invariant — callers must refuse, not default.
+local function agent_of(name)
+  if not name then return end
+  for _, a in ipairs(AGENTS) do
+    if name == a or name:find('^' .. a .. '[ :]') then return a end
+  end
+end
+
 -- Exported module. Defined ABOVE the packadd pcall so the method stubs below
 -- survive the first-launch race (where the plugin is still downloading and the
--- real definitions at the bottom never run). `active` defaults to 'claude' so
--- everything works before any session is entered; `_dynamic` maps names we
--- registered → 'registered' | 'started' (only these are ever removed from
--- cli.tools).
-local M = { active = 'claude', _dynamic = {} }
+-- real definitions at the bottom never run). `active` defaults to the primary
+-- agent so everything works before any session is entered; `_dynamic` maps
+-- names we registered → 'registered' | 'started' (only these are ever removed
+-- from cli.tools).
+local M = { active = PRIMARY, _dynamic = {} }
 
 -- Change the active session and remember the one we left, so <C-]> can toggle
 -- back to it. Every user-driven switch routes through this.
@@ -17,7 +36,7 @@ end
 -- (<leader>aa / send / focus) reattaches to a surviving instance instead of
 -- spawning a fresh one. Prefer the alt-tab target (M._last) so you land back on
 -- the session you were just on; else the name-sorted first running session;
--- else the built-in 'claude' when nothing is alive (toggle then spawns fresh).
+-- else the primary agent when nothing is alive (toggle then spawns fresh).
 -- `exclude` drops the session being torn down: cli.close is async, so in
 -- kill_active the killed session is still started=true when we choose here.
 -- Note: the name-sort surfaces the primary 'claude' (possibly an unused
@@ -37,7 +56,7 @@ local function fallback_active(exclude)
   for _, s in ipairs(sessions) do
     if s.tool.name ~= exclude then return s.tool.name end
   end
-  return 'claude'
+  return PRIMARY
 end
 
 -- Stub the public methods so a keypress during the first-launch packadd race
@@ -145,16 +164,16 @@ for _, name in ipairs(no_discovery) do
   if backend then backend.sessions = no_sessions end
 end
 
--- We only use claude: drop the other presets so no spec but claude's is ever
--- dofile'd (opencode proved a spec can register a scanner on load) and
--- State.get's per-call tool loop shrinks from 12 entries to 1. Must run *after*
--- the stub above — pruning first leaves the dofile cache cold, so a later
--- tool.get('opencode') would re-register the real 40ms sessions(). With claude
--- alone, sidekick's tool launcher offers nothing <leader>aa doesn't, so
--- keymaps.lua drops <leader>as; restore both together to run a second tool.
+-- Keep only the two agents' presets: no other spec is ever dofile'd (opencode
+-- proved a spec can register a scanner on load) and State.get's per-call tool
+-- loop shrinks from 12 entries to 2. cursor's spec is safe to keep — bare
+-- cmd/is_proc/url, no sessions() scanner. Must run *after* the stub above —
+-- pruning first leaves the dofile cache cold, so a later tool.get('opencode')
+-- would re-register the real 40ms sessions(). The tool launcher (formerly
+-- <leader>as) stays unbound even with two tools — see keymaps.lua.
 local tools = require('sidekick.config').cli.tools
 for name in pairs(tools) do
-  if name ~= 'claude' then tools[name] = nil end
+  if not vim.tbl_contains(AGENTS, name) then tools[name] = nil end
 end
 
 -- Promote the sidekick CLI to a full-height edge column on every show.
@@ -410,38 +429,38 @@ local function do_prewarm()
   -- (evaluated against the restored buffers) so we don't spawn claude for a
   -- session/dir outside a project.
   if not vim.fs.root(0, '.git') then return end
-  -- Guard 1: a *claude* CLI already exists (user opened it during the wait, or
-  -- a restore surfaced one) -> don't double-spawn. Match the claude tool
-  -- specifically via sidekick's live terminal registry, NOT the
-  -- `sidekick_terminal` filetype -- every sidekick CLI shares that filetype, so
-  -- were another tool ever re-added to cli.tools it would wrongly suppress the
-  -- claude pre-warm.
+  -- Guard 1: a *primary* (claude) CLI already exists (user opened it during
+  -- the wait, or a restore surfaced one) -> don't double-spawn. Match the
+  -- primary tool specifically via sidekick's live terminal registry, NOT the
+  -- `sidekick_terminal` filetype -- every sidekick CLI shares that filetype,
+  -- so a live cursor session would wrongly suppress the claude pre-warm.
   for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
-    if t.tool and t.tool.name == 'claude' and t:buf_valid() then
+    if t.tool and t.tool.name == PRIMARY and t:buf_valid() then
       return
     end
   end
   local cli = require('sidekick.cli')
   _G.__sidekick_prewarm = true
-  pcall(cli.show, { name = 'claude', focus = false })
+  pcall(cli.show, { name = PRIMARY, focus = false })
   vim.defer_fn(function()
     _G.__sidekick_prewarm = nil
     if prewarm_term then
       prewarm_term.open_win = nil
       prewarm_term = nil
     end
-    -- Guard 2: if a *visible* claude CLI appeared during the show->hide window
-    -- (user hit <leader>aa), skip the hide so we don't yank it away. Match the
-    -- claude tool specifically (registry, not filetype) so a visible *other*
-    -- tool doesn't suppress our hide. Our own pre-warm float stays hidden
-    -- (hide=true; promotion is skipped while pre-warming), so it's excluded.
+    -- Guard 2: if a *visible* primary CLI appeared during the show->hide
+    -- window (user hit <leader>aa), skip the hide so we don't yank it away.
+    -- Match the primary tool specifically (registry, not filetype) so a
+    -- visible cursor session doesn't suppress our hide. Our own pre-warm
+    -- float stays hidden (hide=true; promotion is skipped while
+    -- pre-warming), so it's excluded.
     for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
-      if t.tool and t.tool.name == 'claude' and t:win_valid()
+      if t.tool and t.tool.name == PRIMARY and t:win_valid()
          and not vim.api.nvim_win_get_config(t.win).hide then
         return
       end
     end
-    pcall(cli.hide, { name = 'claude' })
+    pcall(cli.hide, { name = PRIMARY })
   end, 300)
 end
 
@@ -517,25 +536,51 @@ if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' 
     vim.log.levels.ERROR)
 end
 
--- Auto-numbered session names climb monotonically ('claude 2', 'claude 3', …)
--- and never refill a freed number: deleting 'claude 2' and forking again
--- yields the next unused number, not the gap. _auto_seq is the high-water mark
--- of numbers handed out this nvim run; we also floor it above any existing
--- 'claude N' so a re-source (which resets M) or an externally-created name
--- can't collide with a live session.
-function M._next_auto_name()
+-- Same warn-loud idea for the cursor preset. tool.get never throws for a
+-- missing preset — it returns `config = {}` — so the throw risk is the
+-- .cmd[1] index; pcall the whole access so a reshaped upstream can't abort
+-- this file before `return M` and take every AI keymap down.
+local cursor_ok, cursor_cfg = pcall(function()
+  return require('sidekick.cli.tool').get('cursor').config
+end)
+if not cursor_ok or type(cursor_cfg.cmd) ~= 'table' or cursor_cfg.cmd[1] ~= 'cursor-agent' then
+  vim.notify('sidekick: cursor preset missing/reshaped — cursor sessions may spawn the wrong binary',
+    vim.log.levels.ERROR)
+end
+
+-- Auto numbers climb monotonically and never refill a freed number (delete
+-- 'claude 2', fork again → next unused, not the gap). One global counter
+-- across agents, so per-agent sequences are non-contiguous ('claude 2',
+-- 'cursor 3') — deliberate; the prefix carries identity, not the number.
+-- _auto_seq is the high-water mark this nvim run, also floored above any
+-- existing '<agent> N' so a re-source (resets M) or an externally-created
+-- name can't collide with a live session.
+function M._next_auto_name(agent)
   local tools = require('sidekick.config').cli.tools
   local n = M._auto_seq or 1
   for name in pairs(tools) do
-    local k = tonumber(name:match('^claude (%d+)$'))
-    if k and k > n then n = k end
+    for _, a in ipairs(AGENTS) do
+      local k = tonumber(name:match('^' .. a .. ' (%d+)$'))
+      if k and k > n then n = k end
+    end
   end
   n = n + 1
   M._auto_seq = n
-  return 'claude ' .. n
+  return agent .. ' ' .. n
 end
 
--- Register a dynamic claude tool (if new) and show it. Re-registering an
+-- Bare-name-first: with no running session named exactly <agent>, the auto
+-- name IS the bare agent name (its static preset spawns, no dynamic
+-- registration needed); otherwise the next global number. So an <M-n> fork
+-- can resurrect a dead bare name instead of numbering.
+local function auto_name(agent)
+  if #require('sidekick.cli.state').get({ name = agent, started = true }) == 0 then
+    return agent
+  end
+  return M._next_auto_name(agent)
+end
+
+-- Register a dynamic tool (if new) and show it. Re-registering an
 -- existing name is a no-op → labels re-attach (see "Labels are reusable").
 -- show (not toggle): re-entering the label of a *visible* session must
 -- focus it, not hide it. show auto-starts unstarted registered names via
@@ -553,26 +598,45 @@ local function show_solo(name)
 end
 
 local function create_session(name)
+  -- A non-parsing name means a producer broke the prefix invariant — refuse,
+  -- never default: a silent claude fallback would revive the old "name is
+  -- cosmetic" bug.
+  local agent = agent_of(name)
+  if not agent then
+    vim.notify(('sidekick: session name %q has no agent prefix — refusing to spawn'):format(name),
+      vim.log.levels.ERROR)
+    return
+  end
+  local preset = require('sidekick.cli.tool').get(agent).config
+  -- Missing-binary guard, BEFORE set_active: proceeding would wedge M.active
+  -- on an unspawnable name (built-ins never GC via the detach sweep) and
+  -- spawn a terminal that dies instantly.
+  local exe = type(preset.cmd) == 'table' and preset.cmd[1]
+  if not exe or vim.fn.executable(exe) == 0 then
+    vim.notify(('sidekick: %s not executable — install it to run %s sessions'):format(exe or '?', agent),
+      vim.log.levels.WARN)
+    return
+  end
   local cfg = require('sidekick.config')
   if not cfg.cli.tools[name] then
-    -- Clone claude's resolved preset (cmd + format + resume/continue), not a
-    -- bare { cmd = {'claude'} } — see plan "clone the preset".
-    cfg.cli.tools[name] = vim.deepcopy(require('sidekick.cli.tool').get('claude').config)
+    -- Clone the agent's own resolved preset (claude: cmd + format +
+    -- resume/continue; cursor: bare cmd) — see plan "clone the preset".
+    cfg.cli.tools[name] = vim.deepcopy(preset)
     M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
   end
   set_active(name)  -- eager; WinEnter confirms once the window is entered
   show_solo(name)
 end
 
--- <M-n> inside the CLI: spawn a fresh auto-numbered session immediately, no
--- label prompt (labels stay on <leader>an), so you can fork off a session
--- without leaving terminal mode.
+-- <M-n> inside the CLI: fork an auto-named session of the ACTIVE session's
+-- agent, no prompts (labels stay on <leader>an). The one agent-scoped nav
+-- key; <M-l>/<M-]>/<M-[> stay pool-wide.
 function M.new_auto()
-  create_session(M._next_auto_name())
+  create_session(auto_name(agent_of(M.active) or PRIMARY))
 end
 
--- Drop a dynamically-registered name from cli.tools. Never touches built-ins
--- (claude/copilot/…) — only names we added via create_session.
+-- Drop a dynamically-registered name from cli.tools. Never touches the
+-- built-in bare agent names (claude/cursor) — only names create_session added.
 function M._forget(name)
   if not M._dynamic[name] then return end
   require('sidekick.config').cli.tools[name] = nil
@@ -584,18 +648,25 @@ function M._forget(name)
   if M.active == name then M.active = fallback_active(name) end
 end
 
+-- <leader>an: the single creation door. Agent picker (claude default, so
+-- plain <CR> confirms — +1 Enter, accepted), then a label: blank = auto name
+-- (bare-first, then numbered), a repeat label re-attaches, <Esc> cancels
+-- either step.
 function M.new_session()
-  vim.ui.input({ prompt = 'New Claude session (blank = auto): ' }, function(input)
-    if input == nil then return end                       -- <Esc> cancels
-    local name = input ~= '' and ('claude: ' .. input) or M._next_auto_name()
-    if #name >= 16 then
-      -- sid's cwd-hash slice is empty at >=16 chars (session/init.lua:107):
-      -- reusing this label from another project dir in this nvim run would
-      -- silently reattach to this session. Warn, don't reject.
-      vim.notify(('Long label (%d chars): reusing "%s" from another project dir will reattach to this session'):format(#name, name),
-        vim.log.levels.WARN)
-    end
-    create_session(name)
+  vim.ui.select(AGENTS, { prompt = 'New session — agent:' }, function(agent)
+    if agent == nil then return end                       -- <Esc> cancels
+    vim.ui.input({ prompt = ('New %s session (blank = auto): '):format(agent) }, function(input)
+      if input == nil then return end                     -- <Esc> cancels
+      local name = input ~= '' and (agent .. ': ' .. input) or auto_name(agent)
+      if #name >= 16 then
+        -- sid's cwd-hash slice is empty at >=16 chars (session/init.lua:107):
+        -- reusing this label from another project dir in this nvim run would
+        -- silently reattach to this session. Warn, don't reject.
+        vim.notify(('Long label (%d chars): reusing "%s" from another project dir will reattach to this session'):format(#name, name),
+          vim.log.levels.WARN)
+      end
+      create_session(name)
+    end)
   end)
 end
 
@@ -611,7 +682,7 @@ function M.kill_active()
   local name = M.active
   -- Repoint to a survivor (excluding the one we're killing — cli.close is
   -- async, so it's still started=true here) so <leader>aa reattaches instead
-  -- of spawning fresh. fallback_active returns 'claude' when none survive.
+  -- of spawning fresh. fallback_active returns the primary when none survive.
   M.active = fallback_active(name)
   require('sidekick.cli').close({ name = name })
 end

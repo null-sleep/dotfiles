@@ -1,11 +1,12 @@
 # Add Cursor alongside Claude in sidekick
 
-> **Status:** implementation planned (UX locked 2026-07-21; revised 2026-07-22 —
-> dropped the dedicated `<leader>as` Cursor summon, `<leader>an`'s agent picker
-> is now the single creation door; implementation plan + two UX amendments
-> added 2026-07-22, see [Implementation plan](#implementation-plan)). This doc
-> holds the UX decisions and the implementation plan in one place. Code is the
-> source of truth once it lands.
+> **Status:** implemented 2026-07-22, all manual verification steps passed
+> (UX locked 2026-07-21; revised 2026-07-22 — dropped the dedicated
+> `<leader>as` Cursor summon, `<leader>an`'s agent picker is now the single
+> creation door; implementation plan + two UX amendments added 2026-07-22,
+> see [Implementation plan](#implementation-plan)). This doc holds the UX
+> decisions and the implementation plan in one place. Code is the source of
+> truth.
 
 ## Goal
 
@@ -135,9 +136,8 @@ detail: it's just "the active session"). This already works and needs no change:
   family — `{this}`/`{function}`/`{class}`/`{quickfix}` — and file-only refs.
   Diagnostics (`<leader>ae`/`aE`) bypass the overrides and emit sidekick's
   stock ` :L10-L20` form, which only claude's per-tool `format` hook rewrites
-  to `#L`; whether cursor-agent resolves the stock form is unverified —
-  settled by verification step 5, with a minimal cursor `format` shim as the
-  fallback.)*
+  to `#L`. Verified 2026-07-22: cursor-agent resolves the stock form too — no
+  `format` shim needed.)*
 
 ### 6. Visual cue — not needed (agent TUIs self-identify)
 
@@ -330,12 +330,14 @@ Manual:
 
 ## Open / next
 
-- ~~Fill in the implementation details~~ — done 2026-07-22, see
+All resolved 2026-07-22:
+
+- ~~Fill in the implementation details~~ — see
   [Implementation plan](#implementation-plan).
-- Verify a cursor session doesn't perturb the pre-warm guards or the detach
-  sweep in practice (verification steps 7/9).
-- Verify diagnostics sends resolve in cursor-agent (verification step 5);
-  add the minimal cursor `format` shim if not.
+- ~~Verify pre-warm guards / detach sweep with a cursor session~~ — verified
+  inert (verification steps 7/9 passed).
+- ~~Verify diagnostics sends resolve in cursor-agent~~ — they do, in the
+  stock ` :L` form; no `format` shim needed (verification step 5 passed).
 
 <a id="out-of-scope-until-asked"></a>
 

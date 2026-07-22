@@ -390,7 +390,7 @@ vim.keymap.set({'n', 'x'}, 'yc', yank.claude_ref,           { desc = 'Yank: Clau
 vim.keymap.set({'n', 'x'}, 'yC', yank.claude_ref_absolute,  { desc = 'Yank: Claude reference (absolute path)' })
 vim.keymap.set({'n', 'x'}, 'yu', yank.github_url,           { desc = 'Yank: GitHub permalink' })
 
--- AI (sidekick.nvim): Claude CLI
+-- AI (sidekick.nvim): agent CLIs (Claude primary, Cursor secondary)
 -- These are the *outside* entry points. Keymaps that act *inside* the CLI window
 -- go in the cli.win.keys table in ai.lua, not here.
 
@@ -408,21 +408,21 @@ vim.keymap.set('n', '<leader>aa',
   { desc = 'AI: Toggle active CLI session' })
 vim.keymap.set('n', '<leader>an',
   function() require('ai').new_session() end,
-  { desc = 'AI: New Claude session' })
+  { desc = 'AI: New agent session (claude/cursor picker)' })
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
   { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
--- No NORMAL-mode <leader>as (sidekick's tool launcher): ai.lua prunes
--- cli.tools to claude, so it could only offer what <leader>aa already does.
--- Restore it alongside a tool name in cli.tools. See GUIDE.md "Sidekick's
--- session backends shell out on every lookup". (The visual-mode <leader>as
--- below is separate — this reservation is normal-mode only.)
+-- No NORMAL-mode <leader>as (sidekick's tool launcher), even with two agents
+-- in cli.tools: <leader>an's picker is the single creation door, and a
+-- per-agent summon key would break the flat-pool symmetry
+-- (plans/sidekick-cursor-support.md, Decision 2). The visual-mode <leader>as
+-- below is separate — this reservation is normal-mode only.
 -- close() kills the terminal process, deletes the buffer, and detaches the
 -- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
 -- show/hide without losing state. Guarded with a floating confirm popup
 -- (utils.confirm — y confirms, anything else is No): <leader>ad sits one key
 -- from <leader>aa, so a typo shouldn't be able to silently discard a running
--- Claude conversation.
+-- agent conversation.
 vim.keymap.set('n', '<leader>ad', function()
   require('utils').confirm('Kill active CLI session? (Tears down the terminal and session state)',
     function() require('ai').kill_active() end)
