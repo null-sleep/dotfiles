@@ -137,6 +137,9 @@ alias zshconf="nvim ~/.zshrc_config.zsh"
 # Editor
 alias vim=nvim
 alias n=nvim
+alias v=nvim
+alias vi=nvim
+
 # Exec the bundle's real executable, not the Homebrew shim that symlinks into it —
 # a symlinked exec never registers with LaunchServices, so rcmd can't see the window.
 # (whence -p = PATH-only lookup, skipping this function; :A resolves the symlink.)
