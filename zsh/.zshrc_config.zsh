@@ -312,6 +312,9 @@ gw() {
 # Claude Alias
 alias c=claude
 
+# Silence Claude Code's "Update available!" banner
+export CLAUDE_CODE_NO_AUTO_UPDATE=1
+
 # Keep the laptop awake while plugged in (-s only applies on AC power).
 # Runs in the foreground; Ctrl-C to release.
 awake() {
