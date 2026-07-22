@@ -380,9 +380,18 @@ vim.api.nvim_create_autocmd('FileType', {
     -- u: forward Ctrl+_ (0x1F, chat:undo — pinned in the stowed
     -- claude/.claude/keybindings.json) — vim's own undo would just E21 in an
     -- unmodifiable terminal buffer. Only undoes while Claude's input box has
-    -- focus. <C-r> stays unmapped: Claude has no redo to forward.
-    vim.keymap.set('n', 'u', send_to_claude('\31'),
-      { buffer = args.buf, desc = 'AI: Undo prompt input (sends Ctrl+_)' })
+    -- focus. Claude-only: cursor-agent has no input-undo binding (checked
+    -- 2026-07-22), so decline with a notice there instead of sending a dead
+    -- byte. <C-r> stays unmapped: Claude has no redo to forward.
+    vim.keymap.set('n', 'u', function()
+      local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+      if tool and agent_of(tool.name) ~= 'claude' then
+        vim.notify('u (input-undo) is Claude-only — cursor-agent has no undo binding',
+          vim.log.levels.INFO)
+        return
+      end
+      send_to_claude('\31')()
+    end, { buffer = args.buf, desc = 'AI: Undo prompt input (claude only, sends Ctrl+_)' })
 
     -- p/P (identical here — no before/after-line in a prompt): bracketed-paste
     -- v:register ("ap pastes @a; default unnamed) into Claude's input;

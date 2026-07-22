@@ -2645,8 +2645,8 @@ buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
 PageUp/PageDown to scroll Claude's view. `u` only means undo while
 Claude's input box has focus; mid-stream or dialog states may ignore it.
 These byte-forwards are bound in every sidekick terminal but tuned for
-Claude's TUI — in a cursor panel `u`'s Ctrl+_ is a benign no-op
-(cursor-agent has no matching binding).
+Claude's TUI — in a cursor panel `u` declines with a notice instead of
+sending a dead byte (cursor-agent has no input-undo binding).
 There is **no tool launcher**: even with two agents in `cli.tools`,
 sidekick's launcher (formerly `<leader>as`) stays unbound — `<leader>an`'s
 agent picker is the single creation door, and a per-agent summon key would
@@ -2680,7 +2680,7 @@ without the mux backend.
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
-| `u` (in CLI, normal mode) | Forward Claude's input-undo (Ctrl+_) — vim's `u` would only E21 here; no-op in a cursor panel |
+| `u` (in CLI, normal mode) | Forward Claude's input-undo (Ctrl+_) — vim's `u` would only E21 here; declines with a notice in a cursor panel |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |
 | `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
