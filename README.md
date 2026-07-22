@@ -612,6 +612,23 @@ update — so those shims are **not** tracked or stowed by this repo (they're
 gitignored; see `.gitignore`). The install command above is the
 reproducible-on-a-new-machine record, in place of checked-in files.
 
+**Settings are deliberately not stowed.** `~/.cursor/cli-config.json` mixes
+durable `/config` choices with caches and account identifiers, and Cursor's
+own managed `~/.cursor/.gitignore` ignores it — only `rules/`, `commands/`,
+and `skills/` are treated as versionable user content. Nothing to symlink
+today; revisit with a `cursor` stow package if/when those dirs gain content.
+(Also confirmed 2026-07-22: no copy-on-select setting exists in the config
+schema — but the TUI doesn't grab the mouse, so the terminal's native
+select-to-copy works as-is.)
+
+**TODO:** wire up a custom status line like Claude's. cursor-agent supports a
+Claude-compatible hook — `statusLine: {"type": "command", "command": "..."}`
+in `~/.cursor/cli-config.json`, same stdin-JSON contract (`session_id`,
+`cwd`, `model.display_name`, plus `render_width_chars` /
+`updateIntervalMs`) — so a variant of the stowed
+`claude/.claude/statusline-command.sh` should port over (the cost/rate-limit
+fields won't exist; model + cwd + git will).
+
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
 
