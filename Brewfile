@@ -12,6 +12,8 @@
 #   • rustup / cargo subcommands  — curl + `cargo install` (Languages section)
 #   • antigen, zsh-direnv         — curl + git clone (ZSH section)
 #   • nvim LSP servers/formatters — Mason, inside nvim (Languages section)
+#   • cursor-agent CLI            — cursor.com/cli install script; self-updates
+#                                   (README → "Cursor CLI (cursor-agent)")
 
 #-----------------------------------------------------------------------------
 # Taps
@@ -98,6 +100,8 @@ cask "ghostty"         # terminal; GPU-accelerated and native to macOS.
 cask "neovide-app"     # Neovim GUI
 cask "typora"          # markdown editor (`typora` shell alias)
 cask "rustrover"       # JetBrains Rust IDE
+cask "cursor"          # Cursor AI code editor (the IDE). The cursor-agent CLI is
+                       # separate and NOT brewable — see README → "Cursor CLI".
 cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)

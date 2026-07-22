@@ -25,3 +25,12 @@ __pycache__/
 # guards against someone re-enabling "Save changes to folder" and dirtying
 # the repo on every quit.
 iterm2/com.googlecode.iterm2.plist
+
+# Cursor CLI (cursor-agent) drops these shims/symlinks into ~/.local/bin (a stow
+# dir) at install time. They're installer-generated and version-pinned (the
+# symlinks point at ~/.local/share/cursor-agent/versions/<stamped>/), and the
+# tool repoints them on every self-update — so they must NOT be stowed. Install
+# cursor-agent per README → "Cursor CLI (cursor-agent)" instead.
+/zsh/.local/bin/agent
+/zsh/.local/bin/cursor
+/zsh/.local/bin/cursor-agent

@@ -17,6 +17,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Code](#claude-code) — [Recommended manual settings](#recommended-manual-settings) · [LSP plugins](#lsp-plugins-code-intelligence) · [rtk](#rtk-token-optimizer) · [Theme](#theme)
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
+- [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 
 *Editors*
 - [Neovim](#neovim)
@@ -585,6 +586,32 @@ gh auth login
 - **Background work**: detach with `Ctrl+q` and the agent keeps running. Come back later with `↵`/`o`.
 - **Review before pushing**: hit `tab` to see the diff, then `s` to commit + push or `c` to checkout the branch locally.
 - **Failed to start session**: if you see `timed out waiting for tmux session`, update the underlying agent (`claude`, `codex`, etc.) — the error is almost always a stale binary.
+
+<a id="cursor-cli-cursor-agent"></a>
+## Cursor CLI (cursor-agent)
+
+Cursor's terminal coding agent — a peer to the Claude Code CLI. Installed here as
+the second agent for the planned Neovim /
+[sidekick.nvim](https://github.com/folke/sidekick.nvim) integration (design in
+[plans/sidekick-cursor-support.md](plans/sidekick-cursor-support.md)); usable
+standalone as `cursor-agent` today.
+
+**Install** — not on Homebrew; use Cursor's install script (canonical at
+<https://cursor.com/cli>):
+
+```bash
+curl https://cursor.com/install -fsS | bash
+```
+
+This installs the agent under `~/.local/share/cursor-agent/versions/<stamped>/`
+and drops `agent`, `cursor`, and `cursor-agent` shims into `~/.local/bin`. It
+**self-updates** — a new versioned directory plus repointed symlinks on each
+update — so those shims are **not** tracked or stowed by this repo (they're
+gitignored; see `.gitignore`). The install command above is the
+reproducible-on-a-new-machine record, in place of checked-in files.
+
+The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
+[`Brewfile`](Brewfile).
 
 ## Neovim
 
