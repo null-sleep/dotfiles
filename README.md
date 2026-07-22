@@ -1070,7 +1070,7 @@ colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
 colima start --cpu 2 --memory 4
 ```
 
-The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running. It also defines `logs`, which greps local `run-servers` logs from any services cwd (including worktrees). Case-insensitive by default (`-I` for sensitive); prints the run directory on stderr. `-s tr,st` filters by server (`ap`/`tr`/`st`/`tk`/`md`/`tm`); `-n` lists runs, `-n 2` / `-n <dirname>` picks one. Bare `logs` prints usage.
+The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running. It also defines `logs`, which greps local `run-servers` logs from any services cwd (including worktrees). Case-insensitive by default (`-I` for sensitive); pretty-formats slog/metrics lines (colors on a TTY; `--raw` for exact `app=…` output); prints the run directory on stderr. `-s tr,st` filters by server (`ap`/`tr`/`st`/`tk`/`md`/`tm`); `-n` lists runs, `-n 2` / `-n <dirname>` picks one. Bare `logs` prints usage.
 
 <a id="colima-default-config"></a>
 ### Default config (so `colima start` needs no flags)
