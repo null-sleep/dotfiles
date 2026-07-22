@@ -158,6 +158,10 @@ neok() {
 }
 # Typora — open a markdown file in the Typora app
 alias typora="open -a Typora"
+
+# grep
+alias g=grep
+
 # Set editor based on terminal context
 if [[ "$TERM_PROGRAM" == "vscode" ]]; then
     # Distinguish between Cursor and VS Code
@@ -237,7 +241,6 @@ gclean() {
 }
 
 ## Git Aliases
-alias g=git
 alias gt=git  # NOTE: shadows the Graphite CLI's `gt` — remove this line if you adopt Graphite
 alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
