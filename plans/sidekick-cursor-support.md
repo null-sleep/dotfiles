@@ -277,8 +277,11 @@ Then, in file order:
 Unchanged by design: `M.send`/WinEnter routing, `show_solo`, the detach
 sweep, `<M-l>`/`<M-]>`/`<M-[>`/`<C-]>` (pool-wide), `ai_context.lua`,
 `pickers/aibuffers.lua` (routes through `ai.send`, file-only refs). The
-in-CLI `u` (forwards Ctrl+_, Claude's input-undo) stays bound in all sidekick
-terminals — a benign no-op in a cursor panel.
+in-CLI `u` is per-agent since the 2026-07-22 follow-up: Ctrl+_ in claude,
+Ctrl+U (kill-line) in cursor — the original "benign no-op" assumption was
+wrong; binary inspection showed cursor-agent has no input-undo at all and
+0x1F *cycles the model* there. Details in `ai.lua`'s keymap comment and
+GUIDE.md.
 
 ### statusline.lua
 
