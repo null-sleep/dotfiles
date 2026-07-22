@@ -335,7 +335,8 @@ vim.api.nvim_create_autocmd('FileType', {
     -- Session switching in place (single-window model), without leaving terminal
     -- mode (vs jj/jk then <leader>al): <M-]>/<M-[> cycle next/prev (nvim's ]/[
     -- next/prev idiom), <C-]> toggles the last-used session (a raw control byte,
-    -- reliable with no CSI-u dependency), <M-n> forks a new auto-numbered session.
+    -- reliable with no CSI-u dependency), <M-n> forks an auto-named session of
+    -- the active session's agent (bare-first, then numbered).
     vim.keymap.set({ 't', 'n' }, '<M-]>', function() require('ai').cycle(1) end,
       { buffer = args.buf, desc = 'AI: Next CLI session' })
     vim.keymap.set({ 't', 'n' }, '<M-[>', function() require('ai').cycle(-1) end,
@@ -343,7 +344,7 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, '<C-]>', function() require('ai').toggle_last() end,
       { buffer = args.buf, desc = 'AI: Toggle last-used CLI session' })
     vim.keymap.set({ 't', 'n' }, '<M-n>', function() require('ai').new_auto() end,
-      { buffer = args.buf, desc = 'AI: New CLI session (auto-numbered)' })
+      { buffer = args.buf, desc = 'AI: Fork active agent, auto-named (in place)' })
 
     -- <M-a> hides the panel in place (the <leader>aa toggle) without first
     -- escaping terminal mode via jj/jk — the common "stash the chat" action.
