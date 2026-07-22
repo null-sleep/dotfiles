@@ -53,6 +53,14 @@ off or delete them as they land; add new ones freely.
   picker's **abort/kill**: `<leader>dR` on a big module, `<Esc>` mid-load, then
   `pgrep -f "go list"` — nothing should linger. See
   [go-run-debug-test.md](go-run-debug-test.md) → Verification.
+- [ ] **Unify yank.lua's `yc`/`yC` ref format with sidekick's `#L`** — `yc`/`yC`
+  in `nvim/.config/nvim/lua/yank.lua` emit `@path:42-58` (colon, no `L`), while
+  sidekick / `ai_context.lua` emit `@path#L42-58`. Both are readable and Cursor
+  parses either (noted 2026-07-21 while designing
+  [sidekick-cursor-support.md](sidekick-cursor-support.md)), so this is a
+  pre-existing repo inconsistency, unrelated to the Cursor work — worth a
+  separate pass sometime to prefer one shape (`#L`) everywhere, not part of that
+  change.
 - [ ] **Collapse the sidekick detach sweep's 9 `State.get` calls into 1** — all
   9 filter the same snapshot, so the sweep re-scans the world 9× for nothing.
   Harmless today (~0.05ms/call post-`88cb662`), but it's the multiplier that
@@ -209,6 +217,11 @@ Grouped by state, not priority.
 - [sidekick-windowless-prewarm.md](sidekick-windowless-prewarm.md) — real
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.
+- [sidekick-cursor-support.md](sidekick-cursor-support.md) — add Cursor
+  (`cursor-agent`) as a second agent beside Claude in the flat session pool
+  (`<leader>an` agent picker is the single creation door, agent-aware
+  naming/fork, pool-wide switch/cycle). UX locked 2026-07-21 (rev. 2026-07-22);
+  implementation not started.
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.
