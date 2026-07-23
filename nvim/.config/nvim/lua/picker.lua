@@ -106,6 +106,15 @@ require('snacks').setup({
     -- rustaceanvim runnables, sidekick's prompt library).
     ui_select = true,
     layout = pick_layout,
+    -- Left-truncate long paths so the identifying tail survives
+    -- (`…/orderbuilderutil/order.go` vs stock center `packages/…/order.go`).
+    -- Stock snacks expands the path to the full list width, so on a wide
+    -- pane almost nothing truncates — the format.filename wrap after setup
+    -- caps display width (PATH_MAX). Full path for the selected row lives
+    -- in the preview border. GUIDE.md "Path display".
+    formatters = {
+      file = { truncate = 'left' },
+    },
     -- Live mode is easy to lose track of, and it silently changes what the
     -- prompt *means* (the tool's regex vs the fuzzy matcher — see GUIDE.md
     -- "Whose grammar is it?"). Stock snacks signals it with a bare 󰐰 in the
@@ -322,6 +331,54 @@ require('snacks').setup({
     animate  = { enabled = false },
   },
 })
+
+-- Cap stock file-path display width. Snacks' filename formatter expands to
+-- the list pane's full width (math.max(available, min_width)), so left-
+-- truncate alone barely fires on a wide picker — monorepo paths fill the
+-- row. Clamp the resolve()'d max_width so the list stays ~as compact as the
+-- custom pickers (grepselection PATH_WIDTH=40, symbols=38). Preview border
+-- still shows the full path (wrap below). GUIDE.md "Path display".
+local PATH_MAX = 40
+do
+  local filename = Snacks.picker.format.filename
+  Snacks.picker.format.filename = function(item, picker)
+    local ret = filename(item, picker)
+    for _, chunk in ipairs(ret) do
+      if chunk.resolve then
+        local orig = chunk.resolve
+        chunk.resolve = function(max_width)
+          return orig(math.min(max_width, PATH_MAX))
+        end
+      end
+    end
+    return ret
+  end
+end
+
+-- Stock file preview puts only the basename in the preview border. Wrap it so
+-- the selected row shows the full cwd-relative path there (list rows stay
+-- left-truncated — see formatters.file above). Wrap the module function rather
+-- than a global `preview`/`on_change`: on_change runs *before* preview:show()
+-- so a title set there gets overwritten, and a top-level preview fn would
+-- fight sources that pin their own (diff, man, undo). GUIDE.md "Path display".
+do
+  local file_preview = Snacks.picker.preview.file
+  Snacks.picker.preview.file = function(ctx)
+    local ret = file_preview(ctx)
+    local path = Snacks.picker.util.path(ctx.item)
+    if path then
+      -- ':.' / relpath is cwd-relative; files outside the project stay absolute
+      -- and would overflow the border — fall back to '~' for those (same as
+      -- the undo source's preview title).
+      local name = vim.fs.relpath(ctx.picker:cwd(), path) or path
+      if name:sub(1, 1) == '/' then
+        name = vim.fn.fnamemodify(path, ':~')
+      end
+      ctx.preview:set_title(name)
+    end
+    return ret
+  end
+end
 
 -- <leader>tp: start/stop the snacks instrumentation profiler; stopping opens a
 -- picker over the trace. Lives here because it needs the `Snacks` global that

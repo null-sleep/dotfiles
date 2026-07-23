@@ -36,6 +36,22 @@ off or delete them as they land; add new ones freely.
   (`n/./n/l/pickers/symbols.lua`) would fit the *whole* path in the same 38
   cells. Option to try, not a decision; `PATH_WIDTH` in
   `nvim/.config/nvim/lua/pickers/symbols.lua` is the other knob.
+- [ ] **Try filename-first path display in snacks pickers** — list currently
+  left-truncates with a 40-cell cap; `formatters.file.filename_first = true`
+  would show `order.go packages/…/` instead. Option to try; see
+  [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
+- [ ] **Tune picker path display `PATH_MAX`** — capped at 40 cells in
+  `picker.lua` (2026-07-23) so wide lists don't show full monorepo paths;
+  raise/lower if the list feels too tight or too long. See
+  [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
+- [ ] **Try on-demand full-path notify in pickers** — flash/notify the full
+  path for the current row without changing list/border chrome (`<C-y>`
+  already yanks it). Option to try; see
+  [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
+- [ ] **Try an LSP-only custom path format** — per-source `format` on
+  `lsp_references` / `lsp_definitions` only (e.g. two-line path + snippet),
+  leaving files/grep alone. Option to try; see
+  [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
 - [ ] **Review snacks' default picker keymaps for inspiration** — hoisted from
   [telescope-vs-snacks-picker.md](telescope-vs-snacks-picker.md)'s
   post-migration TODO (#2) when that doc was shrunk (2026-07-18).

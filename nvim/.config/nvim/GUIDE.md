@@ -29,6 +29,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Treesitter](#treesitter)
   - [Large files](#large-files)
   - [Picker (snacks.nvim)](#picker-snacks)
+    - [Path display](#picker-path-display)
   - [grug-far](#grug-far)
   - [Quickfix & location lists](#quickfix-loclist)
   - [Clipboard split](#clipboard-split)
@@ -92,7 +93,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`grugfar.lua`** — grug-far.nvim setup + the `<leader>sR` (`n`+`x`) entry key for interactive project-wide find & replace (the editable counterpart to the read-only snacks grep pickers). Lazy-loads the plugin (`packadd` + `setup()`) on first press, keeping only the keymap eager; close remapped to `q`, in-buffer editing on `<localleader>` (`\`). See the [grug-far](#grug-far) section. Named `grugfar` (no hyphen) to avoid shadowing the plugin's own `grug-far` Lua module
-- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
+- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, left-truncated + width-capped file paths + full path in the preview border — see [Path display](#picker-path-display), custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 5 columns: key (dynamic width), modes (dim), icon+group breadcrumb (dim), desc, tag pills (dim). All six modes are walked, and a key mapped the same way across modes collapses into one row (`<D-s>` → `n x i`). The group column prefers a desc's own `Group: Action` prefix over the which-key ancestor group — the ancestor says where a key lives, the prefix says what it's for, and that's what you scan for (`grn` sits under the `g` prefix, so which-key calls it "Go to", but you look it up as `LSP ›`). It also covers keys with no ancestor at all (`<D-…>`, `jj`). The ancestor wins back when it already names the prefix in one of its segments, being the richer label there (`Session/Quit ›` beats the bare `Session` that `Session: Stop saving` would impose). The desc then displays without that prefix, since the column already says it (the full desc stays searchable). A prefix is only trusted when it looks like a group label — not trailing whitespace, bracket-free, short — or `Scroll down N lines (default: half screen)` would promote its sentence fragment to a heading. Tags are derived from that same prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group is hidden from the pills (still searchable), leaving pills to mean "cross-reference"
@@ -1326,6 +1327,43 @@ override are *functions*, not tables: snacks deep-merges layout tables
 key-by-key (a table would inherit the ivy source's `preview = "main"` and
 leak global keys into the compact popups) but replaces function layouts
 wholesale.
+
+<a id="picker-path-display"></a>
+### Path display
+
+Long paths in the results list are **left-truncated and width-capped**
+(`…/websocket/marketdata/worker.go`) so the filename and nearest directories
+stay visible without filling a wide list pane. Stock snacks center-truncates
+(`packages/…/order.go`) and expands the path to the full list width, so on a
+wide picker almost nothing truncates. Configured via
+`formatters.file.truncate = 'left'` plus a wrap of `format.filename` that
+clamps display width to 40 cells (same ballpark as the custom pickers'
+`PATH_WIDTH`) in `picker.lua`.
+
+The **selected row's full cwd-relative path** is shown in the preview
+window's border title (stock snacks puts only the basename there).
+Implemented by wrapping `Snacks.picker.preview.file` after setup — not a
+global `on_change` (that runs *before* the previewer and gets overwritten)
+and not a top-level `preview` fn (would fight sources that pin their own:
+diff, man, undo). Files outside the project fall back to a `~`-shortened
+absolute path so the border doesn't overflow.
+
+`<C-y>` still copies the full relative path to the clipboard (same as the
+list would show untruncated).
+
+**Options still to experiment with** (parked in `plans/README.md` TODO;
+knobs are under snacks' `formatters.file` unless noted):
+
+- **Filename-first** — `filename_first = true` → `order.go packages/…/`;
+  basename always visible, path truncated after. Good when many hits share
+  a name and you scan by file first.
+- **Tune `PATH_MAX`** — the 40-cell cap in `picker.lua`; raise to show more
+  path, lower to keep the list tighter.
+- **On-demand notify** — flash/notify the full path for the current row
+  without changing list or border chrome (you already have `<C-y>` yank).
+- **LSP-only custom format** — per-source `format` on `lsp_references` /
+  `lsp_definitions` only (two-line path + snippet, or left-truncate only
+  there). Isolates experiments from files/grep.
 
 ### Keymaps
 
