@@ -309,8 +309,9 @@ gw() {
   [[ -n "$target" ]] && cd "$target"
 }
 
-# Claude Alias
+# Claude / Cursor Agent aliases
 alias c=claude
+alias a=agent
 
 # Silence Claude Code's "Update available!" banner on Homebrew installs
 # (anthropics/claude-code#41840). `claude update` still works.
