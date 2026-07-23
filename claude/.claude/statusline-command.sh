@@ -1,16 +1,57 @@
 #!/bin/sh
-# Claude Code status line — model, context %, and per-message context growth bars
-# Mode is controlled by CLAUDE_STATUSLINE_MODE env var:
-#   cost  → session cost, per-message delta, monthly total (pay-per-use / API)
-#   (unset) → 5h/7d rate limit percentages (Max plan)
-# Input: JSON from stdin
+# =============================================================================
+# Claude Code status line  —  https://code.claude.com/docs/en/statusline
+# =============================================================================
+# Usage mode:  Opus 4.8 (1M context)  ctx:22%  #109 ▁▂▃        5h:10%/3h34m  7d:1%
+#
+# Built as a LEFT cluster ($line: model · ctx:N% · #msgs · sparkline) and a
+# RIGHT cluster ($right: 5h/7d limits, or cost) padded flush-right to the edge.
+# Segments: .model.display_name (cyan) / ⚡+effort flag (⚡ yellow when .fast_mode
+# on, .effort.level as dim shorthand: hi/med/xhi/…) /
+# .context_window.used_percentage (red≥90 yellow≥70 else
+# dim) / message count / per-message context-growth bars (last ≤15) /
+# .rate_limits.{five_hour,seven_day} (usage) or .cost (cost mode).
+# Sibling fork for Cursor: cursor/.cursor/statusline-command.sh.
+#
+# MODE ($CLAUDE_STATUSLINE_MODE): unset → usage (5h/7d %, subscription plans);
+#   "cost" → session $ / per-msg delta / month-to-date (API). Right cluster only
+#   — the left cluster is identical either way.
+#
+# WIRING: the statusLine block in ~/.claude/settings.json runs
+#   "bash $HOME/.claude/statusline-command.sh" (Claude expands $HOME; Cursor
+#   doesn't — hence its absolute path). Injected by claude/setup-statusline.sh;
+#   settings.json is machine-local, not stowed.
+#
+# WIDTH: Claude captures our stdout, so `tput cols` can't see the terminal — it
+#   exports $COLUMNS/$LINES instead (v2.1.153+). Right-align pads by $COLUMNS,
+#   measuring VISIBLE width (ANSI stripped, wc -m so a 3-byte block ▁ = 1 col);
+#   RMARGIN reserves a few cols because Claude truncates ("…") before the true
+#   edge. Unknown width / too-full line → 2-space join. Tune RMARGIN if the
+#   inset looks off.
+#
+# PAYLOAD (JSON on stdin; used fields — full schema in the docs):
+#   .session_id                       state key (growth + prevcost files)
+#   .model.display_name               model segment ("(1M context)" → "[1M]")
+#   .context_window.used_percentage   ctx% (round %.0f)
+#   .context_window.current_usage     sparkline = input + cache_creation + cache_read
+#   .fast_mode, .effort.level         ⚡ + effort flag (after model)
+#   .cost.total_cost_usd              cost mode
+#   .rate_limits.five_hour.{used_percentage,resets_at}, .seven_day.used_percentage
+#   Present but unused: workspace, session_name, transcript_path, version,
+#   thinking, exceeds_200k_tokens, output_style.
+#
+# BRANCH: parsed from .worktree.branch, which the schema renamed to
+#   .workspace.git_worktree — so it reads empty and no branch shows. ACCEPTED
+#   (decision 2026-07-22, line preferred without branch); don't switch the path
+#   unless asked.
+#
+# STATE: $STATE_DIR (~/.cache, not world-shared /tmp) holds per-session scratch
+#   growth-<id> + prevcost-<id>, pruned after 7d. Cost totals persist in
+#   ~/.claude/cost-log (data, not scratch).  Input: JSON on stdin.
+# =============================================================================
 
 input=$(cat)
 
-# Per-session scratch state (prev cost, context history). ~/.cache, not /tmp:
-# /tmp is shared across users (predictable names are squattable) and cleared
-# on reboot. The monthly cost log stays in ~/.claude/cost-log — that's
-# persistent data, not scratch.
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline"
 mkdir -p "$STATE_DIR"
 
@@ -19,6 +60,8 @@ eval "$(echo "$input" | jq -r '
   @sh "model=\(.model.display_name // "")",
   @sh "branch=\(.worktree.branch // "")",
   @sh "used=\(.context_window.used_percentage // "")",
+  @sh "fast=\(.fast_mode // false)",
+  @sh "effort=\(.effort.level // "")",
   @sh "session_id=\(.session_id // "")",
   @sh "cost=\(.cost.total_cost_usd // "")",
   @sh "rl_5h=\(.rate_limits.five_hour.used_percentage // "")",
@@ -136,11 +179,57 @@ yellow='\033[0;33m'
 red='\033[0;31m'
 reset='\033[0m'
 
+# Visible (printable) width of a string: strip ANSI SGR codes, then count
+# characters — not bytes — so multi-byte sparkline blocks (▁▂▃) count as 1 each.
+ESC=$(printf '\033')
+vis_width() {
+  printf '%s' "$1" | sed "s/${ESC}\[[0-9;]*m//g" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' '
+}
+
 # --- Build output line ---
+# $line is the left cluster (model, branch, ctx, #N, bars); $right is the
+# limits/cost cluster, right-aligned to the terminal edge at the end.
 line=""
+right=""
 
 if [ -n "$model" ]; then
+  # Shorten a "(<size> context)" suffix to "[<size>]", e.g.
+  # "Opus 4.8 (1M context)" → "Opus 4.8 [1M]". Size is extracted (not hardcoded),
+  # and any other name/suffix is left untouched.
+  case "$model" in
+    *" ("*" context)")
+      _size=${model##* (}     # "1M context)"
+      _size=${_size%% *}      # "1M"
+      model="${model% (*} [${_size}]"
+      ;;
+  esac
   line=$(printf "${cyan}%s${reset}" "$model")
+fi
+
+# Fast-mode / effort flag right after the model: ⚡ (yellow — fast mode costs
+# ~3x, so it nags) when fast mode is on, then the reasoning effort level as a
+# dim shorthand. Levels: low→lo medium→med high→hi xhigh→xhi max→max
+# ultracode→uc; anything else (auto, or a future level) shows as-is.
+flag=""
+[ "$fast" = "true" ] && flag=$(printf "${yellow}⚡${reset}")
+if [ -n "$effort" ]; then
+  case "$effort" in
+    low)       eff=lo ;;
+    medium)    eff=med ;;
+    high)      eff=hi ;;
+    xhigh)     eff=xhi ;;
+    max)       eff=max ;;
+    ultracode) eff=uc ;;
+    *)         eff=$effort ;;
+  esac
+  flag=$(printf "%s${dim}%s${reset}" "$flag" "$eff")
+fi
+if [ -n "$flag" ]; then
+  if [ -n "$line" ]; then
+    line=$(printf "%s  %s" "$line" "$flag")
+  else
+    line="$flag"
+  fi
 fi
 
 if [ -n "$branch" ]; then
@@ -167,6 +256,14 @@ if [ -n "$used" ]; then
   fi
 fi
 
+# Message count and growth bars — grouped with ctx, before the limits/cost block
+if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then
+  line=$(printf "%s  ${dim}#%s${reset}" "$line" "$msg_count")
+  if [ -n "$bars" ]; then
+    line=$(printf "%s ${dim}%s${reset}" "$line" "$bars")
+  fi
+fi
+
 if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
   # Cost mode: session total, per-message delta, monthly total
   if [ -n "$cost" ] && [ "$cost" != "0" ]; then
@@ -176,9 +273,9 @@ if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
       msg_cost_part=$(printf ' +$%s' "$last_msg_cost")
     fi
     if [ -n "$monthly_cost" ]; then
-      line=$(printf "%s  ${dim}%s%s (mo:\$%s)${reset}" "$line" "$cost_fmt" "$msg_cost_part" "$monthly_cost")
+      right=$(printf "${dim}%s%s (mo:\$%s)${reset}" "$cost_fmt" "$msg_cost_part" "$monthly_cost")
     else
-      line=$(printf "%s  ${dim}%s%s${reset}" "$line" "$cost_fmt" "$msg_cost_part")
+      right=$(printf "${dim}%s%s${reset}" "$cost_fmt" "$msg_cost_part")
     fi
   fi
 else
@@ -196,7 +293,7 @@ else
     if [ -n "$resets_in" ]; then
       rl_part=$(printf "%s${dim}/%s${reset}" "$rl_part" "$resets_in")
     fi
-    line=$(printf "%s  5h:%s" "$line" "$rl_part")
+    right=$(printf "5h:%s" "$rl_part")
   fi
 
   if [ -n "$rl_7d" ]; then
@@ -208,15 +305,32 @@ else
     else
       rl7_color="$dim"
     fi
-    line=$(printf "%s  7d:${rl7_color}%s%%${reset}" "$line" "$rl_7d_int")
+    if [ -n "$right" ]; then
+      right=$(printf "%s  7d:${rl7_color}%s%%${reset}" "$right" "$rl_7d_int")
+    else
+      right=$(printf "7d:${rl7_color}%s%%${reset}" "$rl_7d_int")
+    fi
   fi
 fi
 
-# Append message count and growth bars
-if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then
-  line=$(printf "%s  ${dim}#%s${reset}" "$line" "$msg_count")
-  if [ -n "$bars" ]; then
-    line=$(printf "%s ${dim}%s${reset}" "$line" "$bars")
+# Right-align $right to the edge via $COLUMNS; RMARGIN clears Claude's "…"
+# truncation. Unknown width or too-full line → 2-space join. (Why: header WIDTH.)
+COLS="${COLUMNS:-0}"
+case "$COLS" in ''|*[!0-9]*) COLS=0 ;; esac
+RMARGIN=3
+
+if [ -n "$right" ]; then
+  if [ "$COLS" -gt 0 ]; then
+    # ⚡ renders 2 cols wide but wc -m counts it as 1 char — correct by +1.
+    wide=0; case "$line" in *"⚡"*) wide=1 ;; esac
+    gap=$(( COLS - $(vis_width "$line") - wide - $(vis_width "$right") - RMARGIN ))
+    if [ "$gap" -ge 2 ]; then
+      line=$(printf "%s%*s%s" "$line" "$gap" "" "$right")
+    else
+      line=$(printf "%s  %s" "$line" "$right")
+    fi
+  else
+    line=$(printf "%s  %s" "$line" "$right")
   fi
 fi
 
