@@ -121,9 +121,6 @@ off or delete them as they land; add new ones freely.
   `[project.scripts]`? `python -m pkg`?), which is what finally binds
   `<leader>dR` for Python; (2) whether `dap-python.debug_selection()` (debug a
   visual selection — no neotest equivalent) deserves a key.
-- [ ] **Cursor CLI statusline** — Claude-parity status bar for
-  `cursor-agent` (model / branch / ctx% / sparkline). Design locked in
-  [cursor-cli-statusline.md](cursor-cli-statusline.md).
 
 ---
 
@@ -225,9 +222,6 @@ Grouped by state, not priority.
   (`<leader>an` agent picker is the single creation door, agent-aware
   naming/fork, pool-wide switch/cycle). UX locked 2026-07-21 (rev. 2026-07-22);
   implementation not started.
-- [cursor-cli-statusline.md](cursor-cli-statusline.md) — Claude-parity
-  statusline for `cursor-agent` via a new `cursor/` stow package (model /
-  branch / ctx% / sparkline; no cost/rate-limit). Design locked 2026-07-22.
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.

@@ -54,8 +54,8 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Neovide config symlink ([Neovide](#neovide)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -157,6 +157,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:Mason` | LSP servers/tools show installed, not failed ([Languages](#languages)) |
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
+| `cursor-agent` | statusline renders (model / branch / ctx%) ([Cursor CLI](#cursor-cli-cursor-agent)) |
 
 If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
@@ -612,22 +613,40 @@ update — so those shims are **not** tracked or stowed by this repo (they're
 gitignored; see `.gitignore`). The install command above is the
 reproducible-on-a-new-machine record, in place of checked-in files.
 
-**Settings are deliberately not stowed.** `~/.cursor/cli-config.json` mixes
-durable `/config` choices with caches and account identifiers, and Cursor's
-own managed `~/.cursor/.gitignore` ignores it — only `rules/`, `commands/`,
-and `skills/` are treated as versionable user content. Nothing to symlink
-today; revisit with a `cursor` stow package if/when those dirs gain content.
-(Also confirmed 2026-07-22: no copy-on-select setting exists in the config
-schema — but the TUI doesn't grab the mouse, so the terminal's native
-select-to-copy works as-is.)
+**`cli-config.json` is deliberately not stowed.** `~/.cursor/cli-config.json`
+mixes durable `/config` choices with caches and account identifiers, and
+Cursor's own managed `~/.cursor/.gitignore` ignores it — only `rules/`,
+`commands/`, and `skills/` are treated as versionable user content. The
+`cursor` stow package (below) symlinks only the statusline **script**;
+`cli-config.json` itself stays machine-local, with just its `statusLine`
+block injected by `setup-statusline.sh` — the same split as Claude's
+`settings.json`. (Also confirmed 2026-07-22: no copy-on-select setting exists
+in the config schema — but the TUI doesn't grab the mouse, so the terminal's
+native select-to-copy works as-is.)
 
-**TODO:** wire up a custom status line like Claude's. cursor-agent supports a
-Claude-compatible hook — `statusLine: {"type": "command", "command": "..."}`
-in `~/.cursor/cli-config.json`, same stdin-JSON contract (`session_id`,
-`cwd`, `model.display_name`, plus `render_width_chars` /
-`updateIntervalMs`) — so a variant of the stowed
-`claude/.claude/statusline-command.sh` should port over (the cost/rate-limit
-fields won't exist; model + cwd + git will).
+### Status line
+
+`cursor-agent` gets a custom status line matching the Claude Code one for the
+fields Cursor's payload provides — model name, git branch, context %, and a
+per-message context-growth sparkline. No cost or rate-limit segments (absent
+from Cursor's stdin payload); the script is a trimmed fork of
+`claude/.claude/statusline-command.sh`.
+
+```bash
+stow --no-folding cursor    # --no-folding: never fold a pre-existing ~/.cursor/
+bash ~/src/dotfiles/cursor/setup-statusline.sh
+```
+
+`setup-statusline.sh` is idempotent (re-running when already configured is a
+no-op) and uses `jq` to merge only the `statusLine` block into
+`~/.cursor/cli-config.json`, preserving every other key. If a later `/config`
+change ever drops the block, re-run the script to restore it.
+
+| File / config | How it's managed |
+|---|---|
+| `~/.cursor/statusline-command.sh` | Symlinked via stow |
+| `~/.cursor/cli-config.json` `statusLine` block | Injected by `setup-statusline.sh` |
+| `~/.cursor/cli-config.json` itself | **Not** stowed — machine-local (auth, model prefs) |
 
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
