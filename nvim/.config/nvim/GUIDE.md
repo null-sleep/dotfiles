@@ -1337,8 +1337,8 @@ stay visible without filling a wide list pane. Stock snacks center-truncates
 (`packages/…/order.go`) and expands the path to the full list width, so on a
 wide picker almost nothing truncates. Configured via
 `formatters.file.truncate = 'left'` plus a wrap of `format.filename` that
-clamps display width to 40 cells (same ballpark as the custom pickers'
-`PATH_WIDTH`) in `picker.lua`.
+clamps display width — **40 cells** by default, **60 for the files source**
+(`<leader>sf`, path-only rows) — in `picker.lua`.
 
 The **selected row's full cwd-relative path** is shown in the preview
 window's border title (stock snacks puts only the basename there).
@@ -1357,8 +1357,9 @@ knobs are under snacks' `formatters.file` unless noted):
 - **Filename-first** — `filename_first = true` → `order.go packages/…/`;
   basename always visible, path truncated after. Good when many hits share
   a name and you scan by file first.
-- **Tune `PATH_MAX`** — the 40-cell cap in `picker.lua`; raise to show more
-  path, lower to keep the list tighter.
+- **Tune `PATH_MAX` / `PATH_MAX_BY_SOURCE`** — default 40-cell cap in
+  `picker.lua`, with `files = 60` for `<leader>sf`; raise/lower per source
+  if a list feels too tight or too long.
 - **On-demand notify** — flash/notify the full path for the current row
   without changing list or border chrome (you already have `<C-y>` yank).
 - **LSP-only custom format** — per-source `format` on `lsp_references` /

@@ -37,12 +37,13 @@ off or delete them as they land; add new ones freely.
   cells. Option to try, not a decision; `PATH_WIDTH` in
   `nvim/.config/nvim/lua/pickers/symbols.lua` is the other knob.
 - [ ] **Try filename-first path display in snacks pickers** — list currently
-  left-truncates with a 40-cell cap; `formatters.file.filename_first = true`
-  would show `order.go packages/…/` instead. Option to try; see
+  left-truncates (40-cell default, 60 for files/`<leader>sf`);
+  `formatters.file.filename_first = true` would show `order.go packages/…/`
+  instead. Option to try; see
   [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
-- [ ] **Tune picker path display `PATH_MAX`** — capped at 40 cells in
-  `picker.lua` (2026-07-23) so wide lists don't show full monorepo paths;
-  raise/lower if the list feels too tight or too long. See
+- [ ] **Tune picker path display `PATH_MAX` / `PATH_MAX_BY_SOURCE`** — default
+  40 cells, `files = 60` for `<leader>sf` in `picker.lua` (2026-07-23); raise
+  or lower per source if a list feels too tight or too long. See
   [GUIDE.md → Path display](../nvim/.config/nvim/GUIDE.md#picker-path-display).
 - [ ] **Try on-demand full-path notify in pickers** — flash/notify the full
   path for the current row without changing list/border chrome (`<C-y>`

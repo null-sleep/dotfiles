@@ -110,8 +110,8 @@ require('snacks').setup({
     -- (`…/orderbuilderutil/order.go` vs stock center `packages/…/order.go`).
     -- Stock snacks expands the path to the full list width, so on a wide
     -- pane almost nothing truncates — the format.filename wrap after setup
-    -- caps display width (PATH_MAX). Full path for the selected row lives
-    -- in the preview border. GUIDE.md "Path display".
+    -- caps display width (PATH_MAX / PATH_MAX_BY_SOURCE). Full path for the
+    -- selected row lives in the preview border. GUIDE.md "Path display".
     formatters = {
       file = { truncate = 'left' },
     },
@@ -335,19 +335,23 @@ require('snacks').setup({
 -- Cap stock file-path display width. Snacks' filename formatter expands to
 -- the list pane's full width (math.max(available, min_width)), so left-
 -- truncate alone barely fires on a wide picker — monorepo paths fill the
--- row. Clamp the resolve()'d max_width so the list stays ~as compact as the
--- custom pickers (grepselection PATH_WIDTH=40, symbols=38). Preview border
--- still shows the full path (wrap below). GUIDE.md "Path display".
+-- row. Clamp the resolve()'d max_width so deep paths still truncate.
+-- Files (`<leader>sf`) gets a wider cap: its rows are path-only, so a tight
+-- global cap leaves half the list empty; grep/LSP keep the tighter default
+-- to leave room for the snippet. Preview border still shows the full path
+-- (wrap below). GUIDE.md "Path display".
 local PATH_MAX = 40
+local PATH_MAX_BY_SOURCE = { files = 60 }
 do
   local filename = Snacks.picker.format.filename
   Snacks.picker.format.filename = function(item, picker)
     local ret = filename(item, picker)
+    local cap = PATH_MAX_BY_SOURCE[picker.opts.source] or PATH_MAX
     for _, chunk in ipairs(ret) do
       if chunk.resolve then
         local orig = chunk.resolve
         chunk.resolve = function(max_width)
-          return orig(math.min(max_width, PATH_MAX))
+          return orig(math.min(max_width, cap))
         end
       end
     end
