@@ -369,6 +369,11 @@ do
   local file_preview = Snacks.picker.preview.file
   Snacks.picker.preview.file = function(ctx)
     local ret = file_preview(ctx)
+    -- An item-pinned title (stock: preview_title or title) outranks the path,
+    -- same precedence the stock previewer gives it over the basename.
+    if ctx.item.preview_title or ctx.item.title then
+      return ret
+    end
     local path = Snacks.picker.util.path(ctx.item)
     if path then
       -- ':.' / relpath is cwd-relative; files outside the project stay absolute

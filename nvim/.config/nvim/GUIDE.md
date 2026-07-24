@@ -1345,8 +1345,10 @@ window's border title (stock snacks puts only the basename there).
 Implemented by wrapping `Snacks.picker.preview.file` after setup — not a
 global `on_change` (that runs *before* the previewer and gets overwritten)
 and not a top-level `preview` fn (would fight sources that pin their own:
-diff, man, undo). Files outside the project fall back to a `~`-shortened
-absolute path so the border doesn't overflow.
+diff, man, undo). An item that pins its own title (`preview_title`/`title`)
+keeps it — same precedence stock gives those over the basename. Files
+outside the project fall back to a `~`-shortened absolute path so the border
+doesn't overflow.
 
 `<C-y>` still copies the full relative path to the clipboard (same as the
 list would show untruncated).
