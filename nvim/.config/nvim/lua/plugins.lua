@@ -179,6 +179,21 @@ require('mini.bufremove').setup()
 vim.cmd.packadd('flatten.nvim')
 
 local _flatten_hidden = {}
+local _flatten_winbufs = {}  -- pre_open snapshot of window -> buffer
+
+-- Reopen the floats snapshotted in pre_open. Deferred: t:open() during a
+-- buffer lifecycle callback triggers E1159 (see the note above).
+local function _flatten_reopen_floats()
+  vim.schedule(function()
+    local ok, term_mod = pcall(require, 'toggleterm.terminal')
+    if not ok then return end
+    for _, id in ipairs(_flatten_hidden) do
+      local t = term_mod.get(id)
+      if t then t:open() end
+    end
+    _flatten_hidden = {}
+  end)
+end
 
 require('flatten').setup({
   window = {
@@ -199,6 +214,11 @@ require('flatten').setup({
       -- the current event loop tick. Closing a float synchronously during
       -- pre_open (while flatten is mid-buffer-open) triggers E1159.
       _flatten_hidden = {}
+      -- Snapshot window -> buffer so post_open can record what the guest displaces.
+      _flatten_winbufs = {}
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        _flatten_winbufs[w] = vim.api.nvim_win_get_buf(w)
+      end
       local ok, term_mod = pcall(require, 'toggleterm.terminal')
       if not ok then return end
       for _, t in ipairs(term_mod.get_all(true)) do
@@ -218,36 +238,25 @@ require('flatten').setup({
     post_open = function(opts)
       if opts.is_blocking then
         vim.g._flatten_blocking = true
-        -- Restore terminals when the blocking buffer is deleted (unblocks the guest).
+        -- Record the displaced buffer on the guest buffer; git.lua shows it
+        -- before wiping (see close_buffer). Unset when 'smart' spawned a fresh
+        -- window (winnr not in the snapshot).
+        local prev = _flatten_winbufs[opts.winnr]
+        if prev and prev ~= opts.bufnr and vim.api.nvim_buf_is_valid(prev) then
+          vim.b[opts.bufnr].flatten_prev_buf = prev
+        end
+        -- Reopen floats once the guest buffer is deleted (which unblocks the guest).
         vim.api.nvim_create_autocmd('BufDelete', {
           buffer   = opts.bufnr,
           once     = true,
           callback = function()
             vim.g._flatten_blocking = false
-            -- Defer: t:open() during BufDelete also triggers E1159.
-            vim.schedule(function()
-              local ok, term_mod = pcall(require, 'toggleterm.terminal')
-              if not ok then return end
-              for _, id in ipairs(_flatten_hidden) do
-                local t = term_mod.get(id)
-                if t then t:open() end
-              end
-              _flatten_hidden = {}
-            end)
+            _flatten_reopen_floats()
           end,
         })
       else
-        -- Non-blocking guest (e.g. plain `nvim somefile`): restore immediately.
-        vim.schedule(function()
-          local ok, term_mod = pcall(require, 'toggleterm.terminal')
-          if ok then
-            for _, id in ipairs(_flatten_hidden) do
-              local t = term_mod.get(id)
-              if t then t:open() end
-            end
-            _flatten_hidden = {}
-          end
-        end)
+        -- Non-blocking guest (e.g. plain `nvim somefile`): reopen immediately.
+        _flatten_reopen_floats()
       end
     end,
   },

@@ -52,30 +52,47 @@ require('gitsigns').setup({
   end,
 })
 
--- Buffer-local keymaps for git editor buffers opened via $EDITOR (e.g. git
--- commit, git rebase -i). These only exist in gitcommit/gitrebase buffers.
--- <leader>w writes and closes the buffer, signalling git to proceed.
--- <leader>x quits with a non-zero exit code (:cq), signalling git to abort.
--- Note: :wq/:q would quit the whole nvim session; :cq exits only the
--- --remote-wait client process, leaving the nvim server running.
+-- Buffer-local keymaps for git editor buffers (git commit, git rebase -i,
+-- Neogit's commit tab — all gitcommit/gitrebase filetype). <leader>w confirms,
+-- <leader>x aborts. Standalone as $EDITOR they :quit/:cq the client; on the
+-- flatten/Neogit parent path that would quit the host, so we wipe the buffer
+-- instead (abort empties + writes first so git aborts on an empty message/todo).
 vim.api.nvim_create_autocmd('FileType', {
   group    = vim.api.nvim_create_augroup('UserGitEditor', { clear = true }),
   pattern  = { 'gitcommit', 'gitrebase' },
   callback = function(args)
+    local function is_standalone_editor()
+      return #vim.fn.getbufinfo({ buflisted = 1 }) <= 1 and not vim.g._flatten_blocking
+    end
+    -- Wipe this buffer to unblock the guest, but show the displaced buffer
+    -- (flatten_prev_buf) first: wiping a still-displayed buffer closes its
+    -- window when another exists (e.g. the sidekick split), dropping the code.
+    local function close_buffer()
+      local prev = vim.b[args.buf].flatten_prev_buf
+      if prev and vim.api.nvim_buf_is_valid(prev) then
+        vim.api.nvim_win_set_buf(0, prev)
+      end
+      vim.cmd('bwipeout! ' .. args.buf)
+    end
     local function confirm()
       vim.cmd('write')
-      -- flatten unblocks the guest on BufUnload/BufDelete (fired by bwipeout).
-      -- When nvim is invoked standalone as $EDITOR (no parent instance and
-      -- flatten not active), fall back to :quit so the terminal regains focus.
-      local listed = vim.fn.getbufinfo({ buflisted = 1 })
-      if #listed <= 1 and not vim.g._flatten_blocking then
+      if is_standalone_editor() then
         vim.cmd('quit')
       else
-        vim.cmd('bwipeout')
+        close_buffer()
       end
     end
-    vim.keymap.set('n', '<leader>w', confirm,       { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
-    vim.keymap.set('n', '<leader>x', '<cmd>cq<CR>', { buffer = args.buf, desc = 'Git: abort' })
+    local function abort()
+      if is_standalone_editor() then
+        vim.cmd('cquit')
+      else
+        vim.cmd('silent %delete _')
+        vim.cmd('write')
+        close_buffer()
+      end
+    end
+    vim.keymap.set('n', '<leader>w', confirm, { buffer = args.buf, desc = 'Git: confirm (save + close buffer)' })
+    vim.keymap.set('n', '<leader>x', abort,   { buffer = args.buf, desc = 'Git: abort' })
   end,
 })
 

@@ -87,7 +87,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tL`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
 - **`statusline.lua`** — lualine: sections (mode, path, branch, diff, diagnostics, lsp_status, location), powerline separators, global statusline
 - **`session.lua`** — persistence.nvim: branch-aware session save/restore, `<leader>q*` keymaps
-- **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (`:write \| bd`, confirm) and `<leader>x` (`:cq`, abort with non-zero exit)
+- **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (confirm) and `<leader>x` (abort)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
@@ -549,14 +549,19 @@ Shells inside an nvim-owned terminal (toggleterm, the sidekick CLI) inherit
 child process and opens its buffer in the *parent* instance instead of
 nesting an editor inside a terminal window. Pieces that make this work:
 
-- **`block_for` gitcommit/gitrebase** — for git editor buffers the guest
-  process stays alive until the buffer is deleted, so git sees the edit
-  complete. `git.lua`'s `<leader>w` confirm map ends with `bwipeout`, which
-  is what unblocks the guest.
+- **`block_for` gitcommit/gitrebase** — the guest process stays alive until the
+  buffer is deleted, so git sees the edit complete. `git.lua`'s `<leader>w`
+  wipes the buffer to unblock it; `<leader>x` empties + writes + wipes (git
+  aborts on an empty message/todo) — `:cq` would quit the host.
 - **Float handling** — flatten's `pre_open`/`post_open` hooks snapshot and
   close any open toggleterm floats, then restore them when the edit is done.
   All of it runs through `vim.schedule` because opening/closing floats
   synchronously during buffer transitions raises E1159.
+- **Layout restore** — `'smart'` lands the guest in a code window, so
+  `post_open` records the buffer it displaced (`flatten_prev_buf`) and `git.lua`
+  shows it before wiping the guest — wiping a still-displayed buffer closes its
+  window when another exists (e.g. the sidekick split). A fresh window `'smart'`
+  spawned has no `flatten_prev_buf`, so the wipe closes it.
 - **`should_nest` via `NVIM_NEST=1`** — escape hatch: prefix a command with
   `NVIM_NEST=1` to genuinely nest instead of routing to the parent.
 - **`nvim-editor`** (zsh package) is just `exec nvim "$@"` — the routing
@@ -2424,8 +2429,8 @@ reachable from here:
 Committing (`c` then `c` in the commit popup, or `<leader>Gc`) opens a real
 **`gitcommit`-filetype buffer** — the existing `git.lua` FileType maps and
 signing flow apply unchanged: `<leader>w` confirms (write + close),
-`<leader>x` aborts (`:cq`). If this ever fights the flow, `commit_editor.kind`
-in `gitui.lua`'s `setup()` is the escape hatch.
+`<leader>x` aborts. If this ever fights the flow, `commit_editor.kind` in
+`gitui.lua`'s `setup()` is the escape hatch.
 
 ### Diffs
 
