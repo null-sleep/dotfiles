@@ -336,7 +336,3 @@ fix_dock() {
 # GO111MODULE=on
 export GOPATH=$HOME/go
 export PATH="$PATH:$GOPATH/bin"
-
-# Source company-specific config if present
-[[ -f ~/.zshrc_work.zsh ]] && source ~/.zshrc_work.zsh
-[[ -f ~/.zshrc_shared.zsh ]] && source ~/.zshrc_shared.zsh

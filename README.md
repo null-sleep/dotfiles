@@ -247,7 +247,7 @@ bash ~/src/dotfiles/claude/setup-statusline.sh
 bash ~/src/dotfiles/claude/setup-theme.sh
 # Enable the LSP plugins (Lua/Python/Rust/Go) in ~/.claude/settings.json (one-time)
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
-# Select the review-pr skill variant for this machine (one-time)
+# Activate the review-pr skill for this machine (one-time)
 bash ~/src/dotfiles/claude/setup-review-pr.sh
 # Register the rtk token-optimizer hook in ~/.claude/settings.json (one-time)
 rtk init -g --auto-patch
@@ -260,7 +260,7 @@ untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
 with a single directory symlink (a "fold"), which can't hold local files
 alongside the synced ones.
 
-All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to one of two tracked variants (see [What's managed](#whats-managed) below).
+All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
 
 ### What's managed
 
@@ -269,8 +269,8 @@ All four setup scripts are idempotent; re-running any of them when already confi
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
 | `~/.claude/themes/*.json` (10 themes, incl. the `catppuccin-latte`/`dracula` pair the `theme` switcher uses) | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/review-pr/SKILL.{generic,work}.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to one of the two files above, created by `setup-review-pr.sh` |
+| `~/.claude/skills/review-pr/SKILL.generic.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
@@ -279,7 +279,7 @@ All four setup scripts are idempotent; re-running any of them when already confi
 
 `settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `jq`-based `setup-*.sh` scripts merge just their own keys into it idempotently, so re-running any of them is a no-op.
 
-**`review-pr`'s two variants:** the skill's content differs by machine — `SKILL.work.md` has Work/services specifics (gh-stack, Linear, generated-code paths); `SKILL.generic.md` is provider-neutral. Both are stowed, but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite the per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to whichever variant applies: pass `generic`/`work` explicitly, or run it with no argument to auto-detect from the presence of [`~/.zshrc_work.zsh`](#per-machine-config) (the same work-machine marker `.zshrc_config.zsh` already uses to conditionally source Work shell config). Re-running is idempotent — it just re-links to the same target.
+**`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
 
 ### Recommended manual settings
 
@@ -402,9 +402,9 @@ For the skill only, skip the `setup-theme.sh` step — `git pull`,
 (see [What's managed](#whats-managed) above) rather than stowed: after
 `stow -R --no-folding claude`, run `bash ~/src/dotfiles/claude/setup-review-pr.sh`
 to (re)create the `SKILL.md` symlink. This is required, not optional — restow
-alone leaves `~/.claude/skills/review-pr/SKILL.md` **dangling** on any machine
-that had it from before this split, since the file it used to point at no
-longer exists in the repo.
+alone never creates `SKILL.md` (it's untracked), so
+`~/.claude/skills/review-pr/SKILL.md` stays absent or **dangling** until you
+run the script.
 
 ## Unified theme switching
 
@@ -1040,15 +1040,6 @@ Best-effort timeout via coreutils `timeout`/`gtimeout` (`brew install coreutils`
 
 **Rule of thumb:** if `echo $NVIM` is non-empty, never call bare `nvim` from a script/tool — use `claude-nvim` (isolated) or `nvim-editor` (routes into the host, for `$EDITOR` use).
 
-### Per-machine config
-
-`.zshrc_config.zsh` conditionally sources two optional files:
-
-- **`~/.zshrc_shared.zsh`** — stowed from this repo. Shared per-project tooling. Lives in version control.
-- **`~/.zshrc_work.zsh`** — *not* stowed. The committed `zsh/.stow-local-ignore` excludes it, so `stow zsh` never symlinks it — the repo copy is a reference template. On a Work work machine, drop your real copy at `~/.zshrc_work.zsh` and it gets sourced automatically.
-
-Secrets go in `~/.zshenv`, which is not managed by stow.
-
 ### Troubleshooting antigen
 
 **Stale cache** — if you see `tee: /completions/_docker: No such file or directory` on shell startup, antigen has cached an empty `$ZSH` / `$ZSH_CACHE_DIR`. Wipe and rebuild the cache:
@@ -1135,7 +1126,7 @@ colima start --cpu 8 --memory 8 --arch aarch64 --vm-type=vz --vz-rosetta
 colima start --cpu 2 --memory 4
 ```
 
-The `docker` CLI talks to Colima's daemon automatically. The `.zshrc_work.zsh` file includes a `colima_start` helper and an auto-check that warns if Colima isn't running. It also defines `logs`, which greps local `run-servers` logs from any services cwd (including worktrees). Case-insensitive by default (`-I` for sensitive); pretty-formats slog/metrics lines (colors on a TTY; `--raw` for exact `app=…` output); prints the run directory on stderr. `-s tr,st` filters by server (`ap`/`tr`/`st`/`tk`/`md`/`tm`); `-n` lists runs, `-n 2` / `-n <dirname>` picks one; `-f path` searches an explicit file (repeatable; skips `-s`/`-n`); `-t`/`--tail` follows with `tail -F` (pattern optional; bare `-f path` also tails). Bare `logs` prints usage.
+The `docker` CLI talks to Colima's daemon automatically.
 
 <a id="colima-default-config"></a>
 ### Default config (so `colima start` needs no flags)
@@ -1321,9 +1312,6 @@ the legacy `com.user.yknotify` label if a machine still has the package's old
 layout loaded. Logs land in `/tmp/yknotify.{out,err}.log`; if a required
 binary is missing the watcher exits with a clear message there instead of
 silently respawn-looping.
-
-The `.zshrc_work.zsh` `yknotify_check` function warns (once per boot) if the
-LaunchAgent is not loaded.
 
 **Do Not Disturb / Focus mode:** notifications are sent via `terminal-notifier
 -ignoreDnD`, but on macOS 14+ this flag alone is not enough to break through

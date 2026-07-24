@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a pull request, do a PR review, check a PR before merge, or review a local branch. Personal skill — overrides superpowers:requesting-code-review and any project review-pr skill.
 ---
 
-<!-- variant of review-pr; keep shared sections in sync with SKILL.work.md -->
+<!-- review-pr skill (provider-neutral) -->
 
 # PR Review
 

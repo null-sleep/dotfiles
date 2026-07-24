@@ -10,7 +10,6 @@ Goal: GUI-launched Neovide finds the same binaries as terminal-launched.
 
 - LSP servers (rust-analyzer) and formatters (rustfmt, goimports) work in GUI-launched Neovide.
 - No regression for terminal nvim or for shell sessions.
-- Per-machine variations (e.g. `~/.zshrc_work.zsh`) still work.
 
 ---
 
@@ -121,7 +120,6 @@ stows cleanly.
 - [ ] LSP attaches in a `.rs` file opened via Spotlight launch
 - [ ] Terminal nvim still works
 - [ ] Shell prompt, antigen, direnv still work in iTerm2/kitty
-- [ ] `~/.zshrc_work.zsh` still loads on work machines
 
 ---
 
