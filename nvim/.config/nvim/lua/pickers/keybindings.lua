@@ -83,11 +83,21 @@ local function strip_group(desc, bc)
   return desc
 end
 
--- Mode letters → dim label. Normal-only rows render blank (they're most rows, so
--- a column of "n"s is noise) — same hide-the-redundant idea as pill_tags() below.
+-- Mode letters → label (n, "n x", i, t, …). Normal-mode 'n' is shown explicitly
+-- (not suppressed), so every row states its mode.
 local function modes_label(modes)
-  if #modes == 1 and modes[1] == 'n' then return '' end
   return table.concat(modes, ' ')
+end
+
+-- The mode column doubles as a "context" column: a normal keymap shows its vim
+-- mode(s); a picker-scoped key (builtins.lua `scope` field) shows the picker it
+-- lives in instead — e.g. 'undo' — in a distinct color (SnacksPickerKeymapScope,
+-- linked in themes.lua) so it reads as a place, not a mode.
+local function context_text(item)
+  return item.scope or modes_label(item.modes)
+end
+local function context_hl(item)
+  return item.scope and 'SnacksPickerKeymapScope' or 'SnacksPickerKeymapMode'
 end
 
 -- Breadcrumb string → decorated column text with optional icon.
@@ -150,31 +160,31 @@ end
 -- Measure display column widths from the full result set.
 -- Uses strdisplaywidth (not #) so multi-byte Nerd Font glyphs size correctly.
 local function compute_widths(results)
-  local key, modes, bc, tags = 0, 0, 0, 0
+  local key, ctx, bc, tags = 0, 0, 0, 0
   for _, r in ipairs(results) do
-    key   = math.max(key,   vim.fn.strdisplaywidth(r.keys))
-    modes = math.max(modes, vim.fn.strdisplaywidth(modes_label(r.modes)))
-    bc    = math.max(bc,    vim.fn.strdisplaywidth(bc_label(r.bc)))
-    tags  = math.max(tags,  vim.fn.strdisplaywidth(tags_label(r.pills)))
+    key  = math.max(key,  vim.fn.strdisplaywidth(r.keys))
+    ctx  = math.max(ctx,  vim.fn.strdisplaywidth(context_text(r)))
+    bc   = math.max(bc,   vim.fn.strdisplaywidth(bc_label(r.bc)))
+    tags = math.max(tags, vim.fn.strdisplaywidth(tags_label(r.pills)))
   end
   return {
-    key   = math.min(key + 1, 18),
-    modes = modes,  -- 0 when every map is normal-only → column vanishes
-    bc    = math.min(bc, 24),
-    tags  = tags,   -- 0 when no tags defined → column vanishes
+    key  = math.min(key + 1, 18),
+    ctx  = ctx,   -- vim mode letters, or the picker name for picker-scoped keys
+    bc   = math.min(bc, 24),
+    tags = tags,  -- 0 when no tags defined → column vanishes
   }
 end
 
 -- Builds the 5-column snacks format function for one picker open (widths are
 -- measured from the full result set, so the closure is per-open, not per-row).
--- Columns: key | modes (dim) | icon+group breadcrumb (dim) | desc | tag pills (dim).
+-- Columns: key | mode/scope | icon+group breadcrumb (dim) | desc | tag pills (dim).
 local function make_format(widths)
   local align = function(text, width) return Snacks.picker.util.align(text, width, { truncate = true }) end
   return function(item)
     return {
       { align(item.keys, widths.key),               'SnacksPickerKeymapLhs' },
       { ' ' },
-      { align(modes_label(item.modes), widths.modes), 'SnacksPickerKeymapMode' },
+      { align(context_text(item), widths.ctx),      context_hl(item) },
       { ' ' },
       { align(bc_label(item.bc), widths.bc),        'Comment' },
       { ' ' },
@@ -292,7 +302,7 @@ local function build_results()
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp = entry.group or ''
         results[#results + 1] = {
-          keys = entry.lhs, bc = grp, desc = entry.desc,
+          keys = entry.lhs, bc = grp, desc = entry.desc, scope = entry.scope,
           label = strip_group(entry.desc, grp), modes = { 'n' },
           pills = pill_tags(tags, derived, grp),
           kw = keywords[entry.lhs] or '', tags_str = table.concat(tags, ' '),
@@ -310,13 +320,17 @@ local function build_results()
     local leader_alias = r.keys:gsub('^<Space>', '<leader>', 1)
     if leader_alias == r.keys then leader_alias = '' end
     r.ordinal = table.concat({
-      r.keys, leader_alias, r.bc, r.desc, r.kw, r.tags_str,
+      r.keys, leader_alias, r.bc, r.desc, r.kw, r.tags_str, r.scope or '',
     }, ' ')
   end
 
   -- Normal-mode rows first within a key, so <D-v> (n) sorts above <D-v> (t).
+  -- modes_label now shows 'n' explicitly, so sort on an is-normal key rather
+  -- than the label (else insert 'i' would sort ahead of normal 'n').
   table.sort(results, function(a, b)
     if a.keys ~= b.keys then return a.keys < b.keys end
+    local an, bn = vim.tbl_contains(a.modes, 'n'), vim.tbl_contains(b.modes, 'n')
+    if an ~= bn then return an end
     return modes_label(a.modes) < modes_label(b.modes)
   end)
   return results

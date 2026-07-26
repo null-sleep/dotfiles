@@ -17,9 +17,10 @@ return {
   -- Not built-ins: picker-local maps from the <leader>uu undo picker, listed
   -- here because that's the only registry <leader>sk reads besides real
   -- keymaps — and "how do I get a deleted line back" is an undo question, so
-  -- this is where you'd look for them.
-  { lhs = '<C-y>',   group = 'Undo/Redo',          desc = 'Yank the added lines of an undo state, without restoring it (in <Space>uu)' },
-  { lhs = '<C-S-Y>', group = 'Undo/Redo',          desc = 'Yank the removed lines of an undo state, without restoring it (in <Space>uu)' },
+  -- this is where you'd look for them. The `scope` field tags them so
+  -- <leader>sk's scope column names which picker they're confined to.
+  { lhs = '<C-y>',   group = 'Undo/Redo', scope = 'undo', desc = 'Yank the added lines of an undo state, without restoring it' },
+  { lhs = '<C-S-Y>', group = 'Undo/Redo', scope = 'undo', desc = 'Yank the removed lines of an undo state, without restoring it' },
 
   { lhs = 'p',      group = 'Put',                 desc = 'Put text after cursor' },
   { lhs = 'P',      group = 'Put',                 desc = 'Put text before cursor' },
@@ -149,7 +150,7 @@ return {
 
   { lhs = 'jj',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
 
-  { lhs = 'g?',   group = 'Explorer',  desc = 'Show all nvim-tree keybindings (inside tree)' },
+  { lhs = 'g?',   group = 'Explorer',  scope = 'tree', desc = 'Show all nvim-tree keybindings' },
 
   { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
   { lhs = '[s',   group = 'Spell',  desc = 'Previous misspelled word' },

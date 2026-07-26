@@ -47,6 +47,12 @@ M.global_overrides = {
   -- box-drawing glyphs).
   SnacksPickerTree = { link = 'Delimiter' },
 
+  -- <leader>sk keybindings picker: its mode column shows a picker name
+  -- ('undo'/'tree') for picker-scoped keys instead of mode letters. Color it
+  -- distinctly from the mode letters (SnacksPickerKeymapMode) so it reads as a
+  -- place, not a mode. See pickers/keybindings.lua context_hl(). Retune freely.
+  SnacksPickerKeymapScope = { link = 'Function' },
+
   -- nvim-tree git status: VS Code-style colored file names + right-aligned letters.
   -- Linked to semantic groups every theme defines, so colors adapt automatically.
   -- green (DiagnosticOk): new, staged, renamed

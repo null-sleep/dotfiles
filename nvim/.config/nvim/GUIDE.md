@@ -1394,7 +1394,7 @@ knobs are under snacks' `formatters.file` unless noted):
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sq` / `<leader>sl` | Fuzzy-filter + preview entries of the quickfix / location list — see [Quickfix & location lists](#quickfix-loclist) |
 | `<leader>sQ` / `<leader>sL` | Pick a whole list from the quickfix / location-list **history** stack — see [Quickfix & location lists](#quickfix-loclist) |
-| `<leader>sk` | Keymap picker — columns: key (dynamic width), modes (dim; blank for normal-only), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
+| `<leader>sk` | Keymap picker — columns: key (dynamic width), mode/scope (the vim mode(s) — `n`/`x`/`i`/… — or, for keys confined to a picker, that picker's name like `undo` in a distinct color), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 | `<leader>uu` | Undo history — browse this buffer's undo states, fuzzy-matched by the *content* of each change. See below; it's the one picker not under `<leader>s*` |
 
 ### Undo history
