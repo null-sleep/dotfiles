@@ -49,13 +49,13 @@ local extensions = require('harpoon.extensions')
 harpoon:extend(extensions.builtins.highlight_current_file()) -- highlight current file in menu
 harpoon:extend(extensions.builtins.navigate_with_number())   -- press 1-9 in menu to select
 
--- UI: add split keymaps inside the harpoon menu (matches the snacks pickers' <C-v>/<C-x> split keys)
+-- UI: add split keymaps inside the harpoon menu (matches the snacks pickers' <C-v>/<C-s> split keys)
 harpoon:extend({
   UI_CREATE = function(cx)
     vim.keymap.set('n', '<C-v>', function()
       harpoon.ui:select_menu_item({ vsplit = true })
     end, { buffer = cx.bufnr })
-    vim.keymap.set('n', '<C-x>', function()
+    vim.keymap.set('n', '<C-s>', function()
       harpoon.ui:select_menu_item({ split = true })
     end, { buffer = cx.bufnr })
   end,
@@ -181,8 +181,9 @@ mark files and jump to them by index (1-5). The list persists to disk under
 - `<leader>1`-`<leader>5` — jump to file by position
 - `[h` / `]h` — cycle previous/next (wraps around)
 
-Inside the quick menu: `<C-v>` opens in vsplit, `<C-x>` in hsplit, `dd` removes
-a file, rearrange lines to reorder. `1`-`9` number keys select directly
+Inside the quick menu: `<C-v>` opens in vsplit, `<C-s>` in hsplit, `dd` removes
+a file, rearrange lines to reorder. (A future revision could bind `<C-x>` to
+remove-entry to match the repo-wide "delete item under cursor" convention.) `1`-`9` number keys select directly
 (via `navigate_with_number` extension).
 
 ### Why built-in menu over a snacks picker

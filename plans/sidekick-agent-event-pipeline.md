@@ -286,7 +286,7 @@ The actual "event system" — deliberately UI-agnostic:
   = { session = session, category = category } })`. Does **not** delete the
   tmpfile — the hook script owns that via its own `trap`.
 - Lifecycle cleanup: hook `M._forget` (`ai.lua:443-448`) and the picker's
-  `<C-d>` teardown (`plans/sidekick-multi-claude-sessions.md` §"`<C-d>`
+  `<C-x>` teardown (`plans/sidekick-multi-claude-sessions.md` §"`<C-x>`
   teardown must be synchronous") to also clear `M.sessions[name]` — otherwise
   a reused name (spawn "claude 2", kill it, spawn a new "claude 2") starts
   with stale state from the previous process.
@@ -385,7 +385,7 @@ in practice.
 2. With 3 sidekick Claude sessions open, trigger a permission prompt in
    `claude 2` only — confirm `agent_events.M.sessions['claude 2'].category ==
    'needs-permission'` and that `claude`/`claude 3` are untouched.
-3. Kill `claude 2` (`<C-d>` in the picker), spawn a new `claude 2` — confirm
+3. Kill `claude 2` (`<C-x>` in the picker), spawn a new `claude 2` — confirm
    no stale category carries over.
 4. Run a plain `claude` in a non-sidekick, non-nvim terminal (e.g. Terminal.app)
    — confirm the hook script no-ops cleanly (no error, no hang) since

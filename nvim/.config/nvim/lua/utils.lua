@@ -101,7 +101,7 @@ function M.float_terminal_action(id, get_spec)
 end
 
 -- Floating yes/no confirm for destructive keymaps (<leader>qq quit-all,
--- <leader>ad kill CLI session).
+-- <leader>ax kill CLI session).
 --
 -- Why this exists instead of the built-ins:
 --   * vim.fn.confirm() renders at the cmdline (bottom of screen); a centered

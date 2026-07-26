@@ -79,9 +79,9 @@ require('nvim-tree').setup({
     end, vim.tbl_extend('force', opts, { desc = 'Vsplit preview' }))
     -- <CR> opens in the current window (no new tabs)
     vim.keymap.set('n', '<CR>', api.node.open.edit,          vim.tbl_extend('force', opts, { desc = 'Open' }))
-    -- <C-d> closes the buffer for the file under the cursor. Matches the
-    -- buffer picker's <C-d> (pickers/buffer.lua).
-    vim.keymap.set('n', '<C-d>', api.node.buffer.delete,     vim.tbl_extend('force', opts, { desc = 'Close buffer of file under cursor' }))
+    -- Delete/split keys should match the convention
+    vim.keymap.set('n', '<C-x>', api.node.buffer.delete,     vim.tbl_extend('force', opts, { desc = 'Close buffer of file under cursor' }))
+    vim.keymap.set('n', '<C-s>', api.node.open.horizontal,   vim.tbl_extend('force', opts, { desc = 'Open in horizontal split' }))
   end,
   -- Narrow sidebar width
   -- For adaptive width: view = { width = { min = 35, max = 50 } }

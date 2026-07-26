@@ -71,9 +71,9 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
-- **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-d>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
+- **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-x>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
-- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-d>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
+- **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-x>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`pickers/grepselection.lua`** — Custom snacks picker (`<leader>ss` in visual mode): literal, multi-line-aware grep of the visual selection via `rg --json --multiline`. See [Picker (snacks.nvim)](#picker-snacks) → "Multi-line selection search"
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — near-inert against `preselect = false`.
@@ -93,7 +93,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`grugfar.lua`** — grug-far.nvim setup + the `<leader>sR` (`n`+`x`) entry key for interactive project-wide find & replace (the editable counterpart to the read-only snacks grep pickers). Lazy-loads the plugin (`packadd` + `setup()`) on first press, keeping only the keymap eager; close remapped to `q`, in-buffer editing on `<localleader>` (`\`). See the [grug-far](#grug-far) section. Named `grugfar` (no hyphen) to avoid shadowing the plugin's own `grug-far` Lua module
-- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, left-truncated + width-capped file paths + full path in the preview border — see [Path display](#picker-path-display), custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<M-a>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
+- **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, left-truncated + width-capped file paths + full path in the preview border — see [Path display](#picker-path-display), custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<C-CR>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 5 columns: key (dynamic width), modes (dim), icon+group breadcrumb (dim), desc, tag pills (dim). All six modes are walked, and a key mapped the same way across modes collapses into one row (`<D-s>` → `n x i`). The group column prefers a desc's own `Group: Action` prefix over the which-key ancestor group — the ancestor says where a key lives, the prefix says what it's for, and that's what you scan for (`grn` sits under the `g` prefix, so which-key calls it "Go to", but you look it up as `LSP ›`). It also covers keys with no ancestor at all (`<D-…>`, `jj`). The ancestor wins back when it already names the prefix in one of its segments, being the richer label there (`Session/Quit ›` beats the bare `Session` that `Session: Stop saving` would impose). The desc then displays without that prefix, since the column already says it (the full desc stays searchable). A prefix is only trusted when it looks like a group label — not trailing whitespace, bracket-free, short — or `Scroll down N lines (default: half screen)` would promote its sentence fragment to a heading. Tags are derived from that same prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group is hidden from the pills (still searchable), leaving pills to mean "cross-reference"
@@ -107,7 +107,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`pickers/qfhistory.lua`** — snacks picker over the quickfix / location-list history stack (`<leader>sQ` / `<leader>sL`): lists all N remembered lists (title + size, current marked `●`) and activates the chosen one via `:{nr}chistory` / `:{nr}lhistory`; built on `common.indexed_select`, captures the origin window so the window-local loclist opens in the right place. Lazy-required
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ad`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ax`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
 - **`cleanup.lua`** — `:Cleanup` and the weekly unattended sweep (`auto()`, armed in `configs.lua`): prunes stale undo files, sessions, leftover shada temps, and oversized logs. Rules are mtime-based on purpose — see [On-disk state](#on-disk-state) for why undo can't be pruned by "is the source gone?"
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd, plus the left-edge sidebar coordinator (`is_sidebar_visible`/`close_other_sidebars`) the panel toggles swap through
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
@@ -793,7 +793,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `:Q` | Quit all (`qa`) | keymaps.lua |
 | `gb` | Toggle to the alternate buffer (deterministic `<C-^>`, but skips non-code buffers — see `buffers.lua`) | keymaps.lua |
 | `<leader><leader>` | Smart picker (frecency-ranked buffers + recent + files, cwd-scoped) — see [Picker (snacks.nvim)](#picker-snacks) | keymaps.lua |
-| `<leader>bd` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
+| `<leader>bx` | Close buffer, keep split (via mini.bufremove) | keymaps.lua |
 | `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
 | `<leader>qq` | Quit all (`:qa`, behind a floating confirm popup — `y` confirms, anything else is No) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
@@ -804,14 +804,14 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>tq` | Toggle the quickfix window — `]q`/`[q` walk entries, `]Q`/`[Q` the history stack; see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
 | `<leader>tl` | Toggle the location-list window (window-local; `<leader>cd` fills it) — see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
-| `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink | keymaps.lua / yank.lua |
+| `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink (in a picker: `<C-S-U>` for the item under the cursor) | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `<leader>up` / `:PackUpdate` | Update all plugins with no confirmation, then commit the lockfile — see [Updating plugins](#updating-plugins) | plugins.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |
 | `<M-b>` / `<M-f>` | Word back / forward — Option+Left/Right, which the terminal sends as literal Meta+b/Meta+f (see keymaps.lua comment) | keymaps.lua |
 | `<M-BS>` (insert mode) | Delete word left — Option+Backspace, sent as Meta+Backspace by the terminal | keymaps.lua |
 | `<M-d>` (insert mode) | Delete word forward — Option+D, readline convention | keymaps.lua |
-| `<M-a>` (in any picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
+| `<C-CR>` (in any picker) | Send selection(s) to the AI CLI | see [AI (sidekick.nvim)](#ai-sidekick) |
 
 Toggling a comment has no dedicated `<leader>t*` map — use nvim's native
 `gc` (operator, e.g. `gcip`) / `gcc` (current line), which are shorter and
@@ -1040,16 +1040,16 @@ the treesitter parser and run `:MasonUninstall server_name`, restart nvim.
   to forward it. (Right-click context menu is still available via
   right-click or the configured pointer binding.)
 
-- **`<leader>ad` kills the session** — unlike `<leader>aa` (toggle, which
-  just hides the window), `<leader>ad` calls `close()` which terminates the
+- **`<leader>ax` kills the session** — unlike `<leader>aa` (toggle, which
+  just hides the window), `<leader>ax` calls `close()` which terminates the
   CLI process and deletes the buffer. Use `<leader>aa` to temporarily hide
-  the chat; `<leader>ad` when you're done with the conversation. Guarded by
+  the chat; `<leader>ax` when you're done with the conversation. Guarded by
   a floating confirm popup (`utils.confirm` — single-keypress `y` confirms,
   anything else is No) — it sits one key from `<leader>aa`, so a typo can't
   silently discard a running conversation.
 
-  With **multiple sessions** running, killing the active one (via `<leader>ad`
-  or the `<leader>al` picker's `<C-d>`) repoints "active" to a *surviving*
+  With **multiple sessions** running, killing the active one (via `<leader>ax`
+  or the `<leader>al` picker's `<C-x>`) repoints "active" to a *surviving*
   session — preferring the one you were last on (`<C-]>`'s alt-tab target),
   else the first by name. So a follow-up `<leader>aa` reattaches to that live
   instance rather than spawning a brand-new session; it only spawns fresh when
@@ -1382,7 +1382,7 @@ knobs are under snacks' `formatters.file` unless noted):
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>sw` (normal + visual) | Grep the word under the cursor, or the visual selection — exact match (`--word-regexp`, not fuzzy/live), jumps straight to usages without the `sg`-then-type step |
 | `<leader>ss` (visual only) | Grep the **exact** visual selection, literal and multi-line included — see [Multi-line selection search](#multiline-selection-search). Normal-mode `<leader>ss` is workspace symbols (above); the visual binding is a separate command |
-| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-d>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
+| `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-x>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
 | `<leader>s/` / `<leader>sb` | Fuzzy search inside current buffer — starts empty until you type, like grep; line numbers use grep's file-name highlight |
@@ -1451,7 +1451,7 @@ Two notes on how it sits in the config:
   muscle memory for "find a thing in the project".
 - `<C-y>` is bound globally to `copy_path` in `picker.lua`, but snacks applies
   per-source config after the global layer, so the undo source's `yank_add`
-  wins here. `<M-a>` (send to sidekick) still works and sends the *file* path —
+  wins here. `<C-CR>` (send to sidekick) still works and sends the *file* path —
   it says nothing about which undo state you were looking at.
 
 <a id="multiline-selection-search"></a>
@@ -1618,16 +1618,17 @@ list — bindings below are the daily set):
 |---|---|
 | Type anything | Filter results (fuzzy, or live — see above) |
 | `<C-n>`/`<C-p>` or `<C-j>`/`<C-k>` | Move down / up — **one row per key repeat**, so holding these is a bad way to cross a long list (see `<C-u>`/`<C-d>`) |
-| `<C-u>` / `<C-d>` | Scroll the list up / down by half a window (`'scroll'`, ~26 rows here) — one keypress covers ~26× what a `<C-j>` repeat tick does, for the *same* render cost. This is the answer to "the list scrolls too slowly", not a faster key repeat. Stock snacks, so it works in **every** picker — except that we rebind `<C-d>` itself in the two pickers whose lists are short anyway: the buffer picker (delete buffer, below) and the AI session picker (kill session). `<C-u>` is never overridden |
+| `<C-u>` / `<C-d>` | Scroll the list up / down by half a window (`'scroll'`, ~26 rows here) — one keypress covers ~26× what a `<C-j>` repeat tick does, for the *same* render cost. This is the answer to "the list scrolls too slowly", not a faster key repeat. Stock snacks, and **never overridden** — delete/kill lives on `<C-x>` (below), not `<C-d>` |
 | `<CR>` | Open highlighted entry — cursor line lands ~20% from the window top (custom confirm in `picker.lua`; `scrolloff=10` is the floor in short windows) |
 | `<C-v>` | Open in vertical split |
-| `<C-x>` / `<C-s>` | Open in horizontal split (`<C-s>` overrides the global LSP signature-help key while a picker is focused) |
+| `<C-s>` | Open in horizontal split (overrides the global LSP signature-help key while a picker is focused) |
 | `<C-t>` | Open in new tab |
 | `<Tab>` / `<S-Tab>` | Toggle multi-select on the current row, move down / up |
-| `<C-q>` | Send multi-selection (or all results if none selected) to the quickfix list and open it |
-| `<C-d>` | In the buffer picker: delete the highlighted buffer (or all multi-selected) |
-| `<M-a>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `@path`/`@path#L<n>` refs |
-| `<C-y>` | Copy the highlighted entry's path to the system clipboard, cwd-relative — the string the list displays, and what `yp` yanks for the open buffer. Closes the picker; no-ops on path-less rows (help tags, keymaps) |
+| `<C-q>` / `<C-l>` | Send multi-selection (or all results if none selected) to the **quickfix** / **location** list and open it. `<C-l>` shadows the global move-to-right-split while the picker is focused |
+| `<C-x>` | Delete the item under the cursor (or all multi-selected) in the pickers whose source supports it — buffer picker (close buffer), session/terminal pickers (kill), scratch / marks / git-branches. The picker stays open and refreshes; a no-op in sources with nothing to delete (files, grep) |
+| `<C-CR>` | Send the highlighted entry (or multi-selection) to the active sidekick CLI as `@path`/`@path#L<n>` refs (Ctrl+Enter = send; joins the `<CR>`/`<S-CR>` Enter family) |
+| `<C-y>` / `<C-S-Y>` | Copy the highlighted entry's path to the system clipboard — `<C-y>` cwd-relative (the string the list shows, and what `yp` yanks for the open buffer), `<C-S-Y>` absolute. A `:line` suffix is appended on rows that carry a position (grep, LSP, symbols). Closes the picker; no-ops on path-less rows (help tags, keymaps) |
+| `<C-S-U>` | Copy the highlighted entry's **GitHub permalink** (HEAD-pinned SHA, `#L<line>` on positioned rows) — the picker twin of the `yu` buffer yank, sharing `yank.lua`'s URL builder. Notifies an error outside a GitHub repo |
 | `<a-h>` / `<a-i>` | Toggle hidden / ignored files (files and grep; shown as flags in the title) |
 | `<a-p>` / `<a-m>` | Toggle preview / maximize the picker |
 | `<c-g>` | Toggle live ↔ fuzzy — grep, symbols, and files only (see above) |
@@ -1636,12 +1637,12 @@ list — bindings below are the daily set):
 
 **Multi-select workflows:**
 - `<Tab>` marks an entry (a dot appears in the gutter) and moves the cursor down; `<S-Tab>` marks and moves up. Repeat to build up a set.
-- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-v>`/`<C-x>`/`<C-t>` fan them into splits or tabs.
-- `<C-q>` sends the selection to qflist — or the entire result list when nothing is marked (handy after a grep when you want every match).
+- With a multi-selection: `<CR>` opens them all (first into the current window, the rest as buffers); `<C-s>`/`<C-v>`/`<C-t>` fan them into splits or tabs.
+- `<C-q>` sends the selection to the quickfix list — or the entire result list when nothing is marked (handy after a grep when you want every match). `<C-l>` does the same into the window-local **location** list.
 - Common pattern: `<leader>sg` → search → `<Tab>` the matches you want → `<C-q>` → `:cdo s/old/new/g | update`.
 
 **Per-picker notes:**
-- `<leader>bb`/`<leader>m` (buffer picker) — Tab a few buffers and press `<C-d>` to bulk-close them; the picker stays open.
+- `<leader>bb`/`<leader>m` (buffer picker) — Tab a few buffers and press `<C-x>` to bulk-close them; the picker stays open.
 - `<leader>sm` (gitstatus) — `<Tab>` is **overridden** to stage / unstage the file under the cursor (no multi-select in this picker); the list refreshes in place. Count-prefix it for a last-N-commits range mode — see [Reviewing diffs (diffview.nvim)](#reviewing-diffs) → "Past N commits".
 
 **Tips:**
@@ -2144,9 +2145,10 @@ Inside the tree (buffer-local, set by `on_attach`):
 |---|---|
 | `l` / `<CR>` | Open file / expand directory |
 | `h` | Collapse directory |
+| `<C-s>` | Open file in horizontal split |
 | `<C-v>` | Open file in vertical split |
-| `<C-x>` | Open file in horizontal split |
-| `<C-d>` | Close the buffer for the file under the cursor |
+| `<C-t>` | Open file in new tab |
+| `<C-x>` | Close the buffer for the file under the cursor (mirrors the picker's `<C-x>`; separate from `x` cut / `d` delete-file below) |
 | `a` | Create file or directory (append `/` for dir) |
 | `d` | Delete (permanent) |
 | `D` | Trash (sends to macOS trash) |
@@ -2228,7 +2230,7 @@ that persists state across hides, plus a VS Code-style bottom panel.
 | `<C-h/j/k/l>` (in terminal) | Navigate to adjacent splits |
 | `<M-]>` / `<M-[>` (in a float terminal) | Cycle to next / previous float (wraps) |
 | `<M-n>` (in a float terminal) | Open a new auto-numbered float (lowest free id) |
-| `<M-l>` (in a float terminal) | Indexed terminal picker — `<CR>`/`<M-1>`..`<M-9>` jump, `<C-d>` kill |
+| `<M-l>` (in a float terminal) | Indexed terminal picker — `<CR>`/`<M-1>`..`<M-9>` jump, `<C-x>` kill |
 
 **Tips:**
 - **Hide vs close**: `<C-\>` hides the terminal (state persists). `<C-d>`
@@ -2245,7 +2247,7 @@ that persists state across hides, plus a VS Code-style bottom panel.
 - **Open a new terminal in place**: `<M-n>` opens the lowest free id in the
   1-99 pool without leaving the float buffer.
 - **Switch between terminals**: `<M-l>` opens an indexed picker over the open
-  floats — `<M-1>`..`<M-9>` jumps to that row, `<C-d>` kills and refreshes
+  floats — `<M-1>`..`<M-9>` jumps to that row, `<C-x>` kills and refreshes
   (same shape as the sidekick session picker; both use `pickers/common.lua`'s
   `indexed_select()`). `:TermSelect` remains the plain built-in.
 - **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` are float-only**: the bottom panel is
@@ -2288,7 +2290,7 @@ own equivalents (mini.notify, ...).
 
 Under `<leader>b` (Buffer) rather than `<leader>u` (Utilities) — open to
 remapping these if they stop feeling right. The `<leader>b` which-key popup
-now tells the whole buffer story: `<leader>bb` picker, `<leader>bd` close,
+now tells the whole buffer story: `<leader>bb` picker, `<leader>bx` close,
 `<leader>bo` close others, plus these two scratch maps.
 
 **Tips:**
@@ -2655,7 +2657,7 @@ session**: the CLI session whose window you last entered (default: the
 pre-warmed `claude`). The pool is flat — a session's *name prefix* carries
 its agent (`claude 2`, `cursor: tests`) and drives which binary spawns, and
 every key below works the same on both agents. `<leader>aa` toggles the
-active session, `<leader>ad` kills it, and **all send keys, `<leader>ao`,
+active session, `<leader>ax` kills it, and **all send keys, `<leader>ao`,
 `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several sessions
 running, sends never stop to ask which one.
 
@@ -2670,7 +2672,7 @@ sequences are non-contiguous by design (`cursor 3`). A typed label makes a
 reusable named session (`claude: tests`, `cursor: docs`) that re-attaches if
 you type the same label again.
 `<leader>al` opens a snacks picker over running sessions to **switch**
-(`<CR>`, which also makes that session active) or **kill** (`<C-d>`) one;
+(`<CR>`, which also makes that session active) or **kill** (`<C-x>`) one;
 rows are numbered and `<M-1>`..`<M-9>` confirms that row directly.
 Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
 place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
@@ -2681,7 +2683,7 @@ cycling and the picker are pool-wide; bare-first naming applies, so it can
 resurrect a dead bare `cursor` rather than numbering), and `<M-a>` hides the
 panel (the `<leader>aa` toggle)
 without first escaping terminal mode. Kill stays on the deliberate
-`<leader>ad` path — there's no fast in-panel teardown.
+`<leader>ax` path — there's no fast in-panel teardown.
 In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
 instead of hitting the unmodifiable terminal buffer: `u` sends Ctrl+_
 (Claude's input-undo — vim's own `u` would just throw E21 here; the
@@ -2722,7 +2724,7 @@ without the mux backend.
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New agent session — agent picker, blank label = auto-named, typed = reusable |
-| `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`) or kill (`<C-d>`) a running CLI session (indexed picker) |
+| `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`) or kill (`<C-x>`) a running CLI session (indexed picker) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
@@ -2731,7 +2733,7 @@ without the mux backend.
 | `u` (in CLI, normal mode) | Undo prompt input — Ctrl+_ in claude; Ctrl+U kill-line in cursor (no true undo there) |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |
-| `<leader>ad` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
+| `<leader>ax` | Kill active CLI session (tears down process + buffer; floating confirm popup) |
 | `<leader>ao` | Select prompt |
 | `<leader>at` | Send `@file#L<n>` cursor ref (normal) or `@file#L<a>-<b>` selection ref (visual) |
 | `<leader>ap` | Send file path to CLI (`p` = path, matches `yp`/`yP` yanks) |
@@ -2742,7 +2744,7 @@ without the mux backend.
 | `<leader>ab` | Pick open buffers to send as `@relpath` mentions (all preselected; `<Tab>` toggle, `<C-a>` all) |
 | `<leader>as` (visual) | Send the literal selected text (visual `<leader>at` sends a ref instead) |
 | `<leader>aq` | Send quickfix list |
-| `<M-a>` (in picker) | Send picker selection(s) to CLI as `@path`/`@path#L<n>` refs |
+| `<C-CR>` (in picker) | Send picker selection(s) to CLI as `@path`/`@path#L<n>` refs |
 
 `<leader>af`/`<leader>ac` send a `@file#L<start>-<end>` ref for the
 function/class at the cursor (resolved via `nvim-treesitter-textobjects`,

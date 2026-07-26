@@ -25,7 +25,7 @@ function M.quick_pick_actions()
 end
 
 --- Compact previewless switch-or-kill picker over a small live list: row-index
---- column, <M-1>..<M-9> quick-pick, optional <C-d> kill with in-place refresh.
+--- column, <M-1>..<M-9> quick-pick, optional <C-x> kill with in-place refresh.
 --- Used by terminal.lua (select_term) and ai.lua (M.switch).
 ---
 --- spec:
@@ -34,7 +34,7 @@ end
 ---                          (re-runs after every kill)
 ---   format(item, picker) — row chunks after the index column
 ---   confirm(picker, item)— <CR>; <M-N> quick-pick routes through it
----   kill(item)           — optional <C-d>; must tear down synchronously
+---   kill(item)           — optional <C-x>; must tear down synchronously
 ---                          (the refresh reads post-kill state)
 function M.indexed_select(spec)
   local qp_actions, qp_keys = M.quick_pick_actions()
@@ -48,8 +48,9 @@ function M.indexed_select(spec)
         picker:find()  -- refresh the list
       end,
     }, actions)
-    -- Shadows list_scroll_down here only (same trade as the buffer picker).
-    keys['<C-d>'] = { 'kill_item', mode = { 'i', 'n' } }
+    -- <C-x> tears the item down (matches the buffer/scratch/marks delete key);
+    -- <C-d> stays the global list-scroll.
+    keys['<C-x>'] = { 'kill_item', mode = { 'i', 'n' } }
   end
   return Snacks.picker.pick({
     source = spec.source,

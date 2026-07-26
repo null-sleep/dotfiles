@@ -298,7 +298,7 @@ vim.api.nvim_create_autocmd('User', {
         M._forget(name)
       end
     end
-    -- Active session died (self-exit, <C-d>, <leader>ad) → repoint to a
+    -- Active session died (self-exit, <C-x> in the picker, <leader>ax) → repoint to a
     -- survivor so a summon reattaches instead of spawning fresh. No
     -- `~= 'claude'` guard: a dying built-in `claude` is a no-op in _forget
     -- above (it only GCs dynamic names), so this branch is the *only* place a
@@ -350,9 +350,9 @@ vim.api.nvim_create_autocmd('FileType', {
     -- escaping terminal mode via jj/jk — the common "stash the chat" action.
     -- toggle_active targets M.active, which the WinEnter stamp keeps equal to
     -- the focused session, so this hides the one you're in. Kill stays on the
-    -- deliberate <leader>ad path (confirm-guarded) — no fast in-panel teardown.
-    -- (Buffer-local to this CLI terminal; doesn't clash with the global
-    -- <M-a> send-to-sidekick picker action, which lives in picker windows.)
+    -- deliberate <leader>ax path (confirm-guarded) — no fast in-panel teardown.
+    -- (Buffer-local to this CLI terminal; the picker's send-to-sidekick action
+    -- is a separate key, <C-CR>, so there's no <M-a> collision to worry about.)
     vim.keymap.set({ 't', 'n' }, '<M-a>', function() require('ai').toggle_active() end,
       { buffer = args.buf, desc = 'AI: Hide CLI panel (toggle)' })
 
@@ -685,7 +685,7 @@ function M.toggle_active()
   require('sidekick.cli').toggle({ name = M.active, focus = true })
 end
 
--- <leader>ad target: tear down the active session specifically (avoids the
+-- <leader>ax target: tear down the active session specifically (avoids the
 -- unfiltered cli.close() → disambiguation-picker behaviour with 2+ sessions).
 -- Reset M.active synchronously (cli.close is async — two scheduled hops); the
 -- detach sweep still GCs the dynamic name after close's detach event fires.
@@ -712,7 +712,7 @@ function M.focus()
 end
 
 -- <leader>al: indexed_select picker over running sessions. <CR>/<M-1>..<M-9>
--- show/focus (making it active); <C-d> tears one down.
+-- show/focus (making it active); <C-x> tears one down.
 function M.switch()
   local State = require('sidekick.cli.state')
 
@@ -754,7 +754,7 @@ function M.switch()
       -- before it runs would re-route to this dead-but-still-registered name
       -- → select({auto=true}) → a *fresh* session respawns under it (the
       -- exact surprise the sweep exists to prevent). _forget is a no-op on
-      -- built-ins, so <C-d> on the default `claude` won't unregister it.
+      -- built-ins, so <C-x> on the default `claude` won't unregister it.
       -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
       -- <leader>aa reattaches; done before State.detach, excluding this name,
       -- while it's still started=true. Sets active before _forget runs, so

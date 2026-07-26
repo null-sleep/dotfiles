@@ -20,13 +20,13 @@ the CLI session whose window you last entered (default: the pre-warmed
 - `<leader>al` — **switch** between currently-running CLI sessions via a
   **custom picker** (shipped on snacks — today `pickers/common.lua`'s
   `indexed_select`). `<CR>` shows/focuses the session (making it active);
-  **`<C-d>` tears down** the highlighted session (the delete convention shared
+  **`<C-x>` tears down** the highlighted session (the delete convention shared
   with the buffer picker). Torn-down dynamic names are GC'd from `cli.tools` synchronously
-  in the `<C-d>` handler (the detach sweep is the backstop for self-exits).
-- `<leader>ad` — kill the **active** session (was: kill the single CLI),
+  in the `<C-x>` handler (the detach sweep is the backstop for self-exits).
+- `<leader>ax` — kill the **active** session (was: kill the single CLI),
   behind the existing confirm popup.
 - **All context-send keys (`<leader>at/ap/af/ac/ae/ab/aq`), `<leader>ao`
-  (prompt), `<M-a>` in pickers, and `<C-.>`/`<leader>ai` (focus) route to the
+  (prompt), `<C-CR>` in pickers, and `<C-.>`/`<leader>ai` (focus) route to the
   active session.** Without routing, sidekick pops a disambiguation picker on
   *every* send/focus the moment a second session is attached (see Context) —
   the biggest day-to-day behavior change multi-session would otherwise cause.
@@ -158,7 +158,7 @@ Two consequences:
 ### With 2+ attached sessions, every unfiltered keymap pops a picker
 
 All current entry points besides `<leader>aa` — `<C-.>`/`<leader>ai`
-(`focus()`), every send key, `<leader>ao`'s default prompt callback, `<M-a>`
+(`focus()`), every send key, `<leader>ao`'s default prompt callback, `<C-CR>`
 in pickers — call `State.with` with **no name filter**. With
 `#attached > 1`, state.lua:165 shows the disambiguation select on **every
 invocation**: "send this to Claude" becomes a two-step flow the moment a
@@ -167,7 +167,7 @@ of the core design, not a follow-up: `filter_opts` (cli/init.lua:48) already
 threads `opts.name` into the filter for `send`/`focus`/`toggle`/`close`, so
 routing is just passing `name = M.active`.
 
-### The switch picker: custom picker (needed for `<C-d>` delete)
+### The switch picker: custom picker (needed for `<C-x>` delete)
 
 Two facts force a hand-rolled picker:
 
@@ -175,7 +175,7 @@ Two facts force a hand-rolled picker:
    calls `vim.ui.select(tools, opts, on_select)` — there is **no** native
    picker integration and **no** custom-action hook. (The `picker = 'snacks'`
    in `ai.lua` only routes `vim.ui.select` through the snacks select UI,
-   which presents choices and returns one — it can't bind `<C-d>` to a delete
+   which presents choices and returns one — it can't bind `<C-x>` to a delete
    action per call.) So a delete-in-picker affordance cannot hang off
    `select()`.
 2. `sidekick.cli.Filter.name` is an **exact** match (`filter.name ==
@@ -183,12 +183,12 @@ Two facts force a hand-rolled picker:
    to `claude*` anyway.
 
 **Decision (reverses the earlier "no hand-rolled picker" note):** because the
-user wants `<C-d>` to delete sessions from the switcher, `<leader>al` becomes a
+user wants `<C-x>` to delete sessions from the switcher, `<leader>al` becomes a
 **custom picker** (originally specced on telescope; shipped on snacks) built on
 `require('sidekick.cli.state').get({ started = true })` (state.lua:69, public):
 
 - `<CR>` → set `M.active`, then `cli.show({ name, focus = true })`.
-- `<C-d>` → **synchronous teardown + refresh** (see next section), then
+- `<C-x>` → **synchronous teardown + refresh** (see next section), then
   `picker:refresh(finder())` in place. `M.active` reset and name GC also happen
   synchronously here (not just in the sweep) — otherwise a send in the gap
   before the scheduled sweep re-routes to the dead name and respawns it.
@@ -199,20 +199,20 @@ same name possible in two cwds, name-only entries would be indistinguishable.
 Scope stays **all running in-nvim sidekick sessions** (not claude-only) per the
 user's preference — Copilot/Codex started in this nvim appear too.
 
-### `<C-d>` teardown must be synchronous — `cli.close()` is two hops late
+### `<C-x>` teardown must be synchronous — `cli.close()` is two hops late
 
 `cli.close({name})` → `State.with(State.detach, …)`, and `state.lua` wraps
 both `cb` (line 145) and `use` (line 148) in `vim.schedule_wrap` — so the
 actual detach runs **two main-loop ticks after `cli.close` returns**. A
 `picker:refresh()` issued right after `cli.close` re-reads
 `State.get({started = true})` while the session is still alive: the killed
-entry stays in the list and a second `<C-d>` double-fires.
+entry stays in the list and a second `<C-x>` double-fires.
 
 Fix: call `require('sidekick.cli.state').detach(entry.value)` **directly** in
-the `<C-d>` handler. It is synchronous — `terminal:close()` removes the
+the `<C-x>` handler. It is synchronous — `terminal:close()` removes the
 terminal from `M.terminals` inline (terminal.lua:455); only the
 `SidekickCliDetach` *event* is scheduled — so the refresh on the very next
-line reads post-kill state. (`<leader>ad` can keep `cli.close({name})`:
+line reads post-kill state. (`<leader>ax` can keep `cli.close({name})`:
 nothing observes it synchronously there.)
 
 ### What the switcher does NOT show — and one tmux gotcha to know
@@ -276,7 +276,7 @@ documentation anchors, not runtime dependencies — they drift, they don't break
 
 - **Active-session routing (user-decided).** The session in use right now is
   the "active" one, and *everything* targets it: `<leader>aa` toggle,
-  `<leader>ad` kill, all sends, `<leader>ao`, `<M-a>`, `<C-.>`/`<leader>ai`
+  `<leader>ax` kill, all sends, `<leader>ao`, `<C-CR>`, `<C-.>`/`<leader>ai`
   focus. No disambiguation pickers in the hot path — *except* the documented
   same-name-in-two-cwds edge (Known edges), which is name-filter-wide: it hits
   sends/`ad`/focus too, not only `<leader>aa`. `<leader>al`/`<leader>an`
@@ -488,16 +488,16 @@ parts prove more annoying than a fixed cap.
   one-line filter in the WinEnter callback.)
 - **Strictly claude-only switch picker.** `<leader>al`'s custom picker lists
   all *in-nvim* running sidekick sessions (the `started` filter), not just
-  `claude*`. Now that the picker is hand-rolled (for `<C-d>` delete),
+  `claude*`. Now that the picker is hand-rolled (for `<C-x>` delete),
   claude-only would be a trivial `tool.name:match('^claude')`, but the user
   confirmed all-sessions is fine. See "What the switcher does NOT show" for why
   external sessions don't leak in the zellij setup.
-- **Hanging `<C-d>` off sidekick's `select()`.** Not possible — `select()` is
+- **Hanging `<C-x>` off sidekick's `select()`.** Not possible — `select()` is
   `vim.ui.select` with no action hooks (see "The switch picker"); the custom
   picker is the reason `<leader>al` doesn't reuse `select()`.
-- **`cli.close()` in the `<C-d>` handler.** Two `vim.schedule` hops late for a
-  same-tick `picker:refresh` (see "`<C-d>` teardown must be synchronous");
-  `State.detach(entry.value)` is the synchronous equivalent. `<leader>ad`
+- **`cli.close()` in the `<C-x>` handler.** Two `vim.schedule` hops late for a
+  same-tick `picker:refresh` (see "`<C-x>` teardown must be synchronous");
+  `State.detach(entry.value)` is the synchronous equivalent. `<leader>ax`
   keeps `cli.close({name})` since nothing there needs same-tick state.
 - **Rejecting long labels outright.** `'claude: '` alone is 8 chars, so a hard
   `#name < 16` cap would limit labels to 7 chars. Warn-and-proceed instead;

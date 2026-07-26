@@ -45,7 +45,7 @@ ergonomics**: a snacks sidebar is floating windows that `<C-h>`/`<C-l>`
 motion dies — and it has no open-buffer highlight or modified-buffer marker,
 both deliberately tuned here, with no snacks equivalent at any amount of
 config. Daily-driver regressions, traded for daily-driver gains
-(fuzzy-filter-in-tree, multi-select bulk ops plus `<M-a>`
+(fuzzy-filter-in-tree, multi-select bulk ops plus `<C-CR>`
 send-selection-to-sidekick, diagnostics, file watching). Taste, not
 capability — the same standard the picker migration was held to, and this one
 clears it less convincingly.
@@ -93,7 +93,7 @@ decide.
 | Open-buffer highlight | yes (`NvimTreeOpenedHL`) | no |
 | Fuzzy filter in the tree | weak (`live_filter`) | strong — it *is* the picker input; `<leader>/` greps the dir |
 | Multi-select bulk ops | no | yes (`<Tab>` select, then `m`/`c`/`d`) |
-| Send files to sidekick | no | yes — `<M-a>` inherited free, on a multi-selection |
+| Send files to sidekick | no | yes — bound to `<C-CR>`, on a multi-selection |
 | Trash on delete | yes | yes, but silent hard-delete fallback if no trash cmd resolves [1] |
 | File watching | no | yes |
 | Preview pane | no | yes (`P`) |

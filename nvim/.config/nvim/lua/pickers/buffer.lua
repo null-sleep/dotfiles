@@ -26,16 +26,12 @@ function M.open()
     vim.api.nvim_list_bufs())
   local idx_width = math.max(1, #tostring(listed))
 
+  -- <C-x> deletes the highlighted buffer (or all multi-selected) without
+  -- closing the picker — the buffers source's own default, left in place so it
+  -- matches every other delete-capable picker (scratch/marks/git branches) and
+  -- keeps <C-d> as the global list-scroll. See GUIDE "Inside a picker".
   local qp_actions, qp_keys = common.quick_pick_actions()
-  local keys = vim.tbl_extend('force', qp_keys, {
-    -- Delete the highlighted buffer (or all multi-selected) without closing
-    -- the picker; shadows the default list_scroll_down in this picker only.
-    ['<C-d>'] = { 'bufdelete', mode = { 'i', 'n' } },
-    -- The buffers source binds <c-x> to bufdelete by default; restore the
-    -- global meaning (horizontal split, pairs with <C-s>/<C-v>) so the only
-    -- delete key is <C-d>.
-    ['<C-x>'] = { 'edit_split', mode = { 'i', 'n' } },
-  })
+  local keys = qp_keys
 
   Snacks.picker.buffers({
     sort_lastused = false,

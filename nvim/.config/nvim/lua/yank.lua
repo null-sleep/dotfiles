@@ -78,38 +78,31 @@ function M.claude_ref_absolute()
   copy('@' .. vim.fn.expand('%:p') .. ':' .. format_range(s, e))
 end
 
--- Yank: GitHub permalink to the current visual selection, pinned to HEAD's
--- commit SHA, e.g. "https://github.com/owner/repo/blob/<sha>/foo/bar.lua#L42-L58".
-function M.github_url()
-  local root = git_root()
-  if not root then
-    vim.notify('Not in a git repo', vim.log.levels.ERROR)
-    return
-  end
-
+-- Build a GitHub permalink for an absolute file path, pinned to HEAD's commit
+-- SHA, with an optional #L line (or #La-Lb range). Returns the URL, or nil + an
+-- error message. Shared by M.github_url (current buffer) and the picker's
+-- copy_github_url action (an arbitrary item path + its row).
+function M.github_url_for(abs, s, e)
+  local root = git(vim.fn.fnamemodify(abs, ':h'), 'rev-parse', '--show-toplevel')
+  if not root then return nil, 'Not in a git repo' end
   local remote = git(root, 'remote', 'get-url', 'origin')
-  if not remote then
-    vim.notify('No origin remote', vim.log.levels.ERROR)
-    return
-  end
-
+  if not remote then return nil, 'No origin remote' end
   local owner, repo = remote:match('github%.com[:/]([^/]+)/(.+)$')
-  if not owner then
-    vim.notify('Not a GitHub remote: ' .. remote, vim.log.levels.ERROR)
-    return
-  end
+  if not owner then return nil, 'Not a GitHub remote: ' .. remote end
   repo = repo:gsub('%.git$', '')
-
   local sha = git(root, 'rev-parse', 'HEAD')
-  if not sha then
-    vim.notify('Could not read HEAD SHA', vim.log.levels.ERROR)
-    return
-  end
+  if not sha then return nil, 'Could not read HEAD SHA' end
+  local path = abs:sub(#root + 2)
+  local frag = ''
+  if s then frag = (not e or s == e) and ('#L' .. s) or ('#L' .. s .. '-L' .. e) end
+  return string.format('https://github.com/%s/%s/blob/%s/%s%s', owner, repo, sha, path, frag)
+end
 
-  local path = repo_relative_path()
-  local s, e = visual_range()
-  local frag = s == e and ('#L' .. s) or ('#L' .. s .. '-L' .. e)
-  copy(string.format('https://github.com/%s/%s/blob/%s/%s%s', owner, repo, sha, path, frag))
+-- Yank: GitHub permalink to the current visual selection, e.g.
+-- "https://github.com/owner/repo/blob/<sha>/foo/bar.lua#L42-L58".
+function M.github_url()
+  local url, err = M.github_url_for(vim.fn.expand('%:p'), visual_range())
+  if url then copy(url) else vim.notify(err, vim.log.levels.ERROR) end
 end
 
 return M

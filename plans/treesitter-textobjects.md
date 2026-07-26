@@ -12,7 +12,7 @@
 
 - Plugin is pinned to `main` branch — do not change this; `master` is the frozen old API and is incompatible with this config's treesitter setup.
 - `]c`/`[c` are owned by gitsigns (hunk nav, `git.lua:23,30`) — never use them for class navigation. Use `]k`/`[k` for class jumps.
-- `<leader>a*` namespace is fully owned by AI/sidekick (`keymaps.lua` — `<leader>aa`, `<leader>ai`, `<leader>an`, `<leader>al`, `<leader>ad`, `<leader>ao`, `<leader>at`, `<leader>ap`, `<leader>af`, `<leader>ac`, `<leader>ae`, `<leader>ab`, `<leader>aq`). Parameter swap must use a different prefix.
+- `<leader>a*` namespace is fully owned by AI/sidekick (`keymaps.lua` — `<leader>aa`, `<leader>ai`, `<leader>an`, `<leader>al`, `<leader>ax`, `<leader>ao`, `<leader>at`, `<leader>ap`, `<leader>af`, `<leader>ac`, `<leader>ae`, `<leader>ab`, `<leader>aq`). Parameter swap must use a different prefix.
 - One module per concern — new code goes in `lua/treesitter_textobjects.lua`, not inlined into `plugins.lua` or `init.lua`'s treesitter block.
 - Every keymap must have a `desc` string (surfaces in which-key and `<leader>sk`).
 - Update `GUIDE.md` in the same commit as the implementation (nvim CLAUDE.md rule).

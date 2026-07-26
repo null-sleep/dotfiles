@@ -50,7 +50,7 @@ one (which session).
 Cursor is **just another named session** alongside `claude`, `claude 2`:
 `cursor`, `cursor 2`. All generic keys already work on it once it's active —
 `<leader>aa` toggle, `<leader>al` picker (already shows name + cwd, so mixed
-tools display fine), `<leader>ad` kill, `<M-]>`/`<M-[>` cycle, sends. No
+tools display fine), `<leader>ax` kill, `<M-]>`/`<M-[>` cycle, sends. No
 grouping layer, no per-tool active-session memory. The session **name carries
 the tool identity**, and (unlike today) actually drives the binary.
 
@@ -295,7 +295,7 @@ display name to `Cursor` (naive title-casing yields "Cursor-agent CLI").
 
 `<leader>an` desc → agent-picker wording; the section-header comment
 de-clauded; the stale `<leader>as` reservation comment rewritten (cursor now
-*is* in `cli.tools`; the launcher stays unbound by design); the `<leader>ad`
+*is* in `cli.tools`; the launcher stays unbound by design); the `<leader>ax`
 confirm comment's "Claude conversation" generalized.
 
 ### Docs (same commit as the code)
@@ -330,7 +330,7 @@ Manual:
    rewrite); if cursor-agent doesn't resolve it, add a minimal cursor
    `format` shim (claude's `:L` → `#L` gsub) and record the outcome here.
 6. `<leader>al` lists mixed sessions; `<M-]>`/`<M-[>` cycle across agents.
-7. Kill the last cursor session (`<leader>ad`) → active falls back to claude.
+7. Kill the last cursor session (`<leader>ax`) → active falls back to claude.
 8. Missing binary (strip `~/.local/bin` from PATH): pick cursor → clear
    notify, `M.active` unchanged, nothing leaked (check `<leader>al`).
 9. Pre-warm still warms exactly one claude with a cursor session alive.

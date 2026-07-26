@@ -56,8 +56,8 @@ end
 
 -- Send the picker's current item (or multi-selection) to the active sidekick
 -- CLI as space-separated `@path`/`@path#L<n>` mentions (ai_context.lua — the
--- same shape as the <leader>a* sends); the sidekick README's <a-a>
--- integration, bound to <M-a> here.
+-- same shape as the <leader>a* sends). Bound to <C-CR>: Ctrl+Enter = send,
+-- joining the picker's Enter family (<CR> open, <S-CR> pick-window).
 -- util.path() returns nil for non-file items (help tags, keymaps, ...), so
 -- those are skipped and the action no-ops gracefully on them.
 local function send_to_sidekick(picker)
@@ -76,16 +76,12 @@ local function send_to_sidekick(picker)
   end
 end
 
--- Copy the item's path, cwd-relative — what the list shows, and what `yp` yanks
--- for the open buffer (yank.lua). Can't just yank item.file: it's the finder's
--- raw output, cwd-relative for files/grep but absolute for buffers/recent/
--- lsp_symbols/diagnostics, and absent on `lines` items (buffer-scoped, .buf
--- only). Snacks' formatter hides that by rendering util.path() against
--- picker:cwd(), so the wrong path would *look* right on screen.
---
--- Register '+' is explicit: `clipboard` is unset here (configs.lua), so the
--- unnamed register snacks' stock `yank` defaults to is not the system clipboard.
-local function copy_path(picker, item)
+-- Yank the item's path to the '+' register (clipboard is unset in configs.lua,
+-- so the unnamed register snacks' stock yank uses wouldn't reach the system
+-- clipboard). copy_path is cwd-relative, copy_path_full absolute; both append
+-- `:<line>` on positioned rows (grep/LSP/symbols). util.path() normalizes the
+-- source's mixed relative/absolute output; ':p' / relpath then force the form.
+local function yank_path(picker, item, full)
   local path = Snacks.picker.util.path(item)
   if not path and item and item.buf then
     path = vim.api.nvim_buf_get_name(item.buf)
@@ -94,10 +90,36 @@ local function copy_path(picker, item)
     vim.notify('No path for this item', vim.log.levels.WARN)
     return
   end
-  local rel = vim.fs.relpath(picker:cwd(), path) or path
+  local abs = vim.fn.fnamemodify(path, ':p')
+  local out = full and abs or (vim.fs.relpath(picker:cwd(), abs) or abs)
+  if item.pos and item.pos[1] then out = out .. ':' .. item.pos[1] end
   picker:close()
-  vim.fn.setreg('+', rel)
-  vim.notify('Copied: ' .. rel)
+  vim.fn.setreg('+', out)
+  vim.notify('Copied: ' .. out)
+end
+local function copy_path(picker, item) yank_path(picker, item, false) end
+local function copy_path_full(picker, item) yank_path(picker, item, true) end
+
+-- Copy the item's GitHub permalink (HEAD-pinned, #L<line> on positioned rows) —
+-- the picker twin of the `yu` buffer yank, reusing yank.lua's URL builder.
+local function copy_github_url(picker, item)
+  local path = Snacks.picker.util.path(item)
+  if not path and item and item.buf then
+    path = vim.api.nvim_buf_get_name(item.buf)
+  end
+  if not path or path == '' then
+    vim.notify('No path for this item', vim.log.levels.WARN)
+    return
+  end
+  local url, err = require('yank').github_url_for(vim.fn.fnamemodify(path, ':p'),
+    item.pos and item.pos[1])
+  if not url then
+    vim.notify(err, vim.log.levels.ERROR)
+    return
+  end
+  picker:close()
+  vim.fn.setreg('+', url)
+  vim.notify('Copied: ' .. url)
 end
 
 require('snacks').setup({
@@ -140,6 +162,8 @@ require('snacks').setup({
       confirm = confirm_and_scroll,
       send_to_sidekick = send_to_sidekick,
       copy_path = copy_path,
+      copy_path_full = copy_path_full,
+      copy_github_url = copy_github_url,
     },
     win = {
       input = {
@@ -147,7 +171,7 @@ require('snacks').setup({
           -- One-press close from insert mode. 'cancel', not 'close': cancel
           -- re-pins focus to the launch window before closing.
           ['<Esc>'] = { 'cancel', mode = { 'n', 'i' } },
-          ['<M-a>'] = { 'send_to_sidekick', mode = { 'i', 'n' } },
+          ['<C-CR>'] = { 'send_to_sidekick', mode = { 'i', 'n' } },
           -- <C-h> aliases the default `?` help popup (shows this picker's
           -- live keymaps); shadows the global "move to left split" <C-h>
           -- only while the picker input is focused.
@@ -155,12 +179,25 @@ require('snacks').setup({
           -- Shadows the global <C-y> (scroll up one line) only while the
           -- picker input is focused — same trade as <C-h> above.
           ['<C-y>'] = { 'copy_path', mode = { 'i', 'n' } },
+          -- <C-S-Y> yanks the absolute path (same shadow trade). The undo
+          -- source reclaims it for yank_removed per-source (GUIDE "Undo history").
+          ['<C-S-Y>'] = { 'copy_path_full', mode = { 'i', 'n' } },
+          -- Send results to the location list (snacks built-in loclist), the
+          -- window-local twin of the default <C-q> qflist. Shadows the global
+          -- <C-l> move-to-right-split while the input is focused (as <C-h> does).
+          ['<C-l>'] = { 'loclist', mode = { 'i', 'n' } },
+          -- <C-S-U> yanks the item's GitHub permalink (u = url) — the picker twin
+          -- of the `yu` buffer yank, in the <C-y>/<C-S-Y> Ctrl-yank family.
+          ['<C-S-U>'] = { 'copy_github_url', mode = { 'i', 'n' } },
         },
       },
       list = {
         keys = {
-          ['<M-a>'] = 'send_to_sidekick',
+          ['<C-CR>'] = 'send_to_sidekick',
           ['<C-y>'] = 'copy_path',
+          ['<C-S-Y>'] = 'copy_path_full',
+          ['<C-l>'] = 'loclist',
+          ['<C-S-U>'] = 'copy_github_url',
         },
       },
     },

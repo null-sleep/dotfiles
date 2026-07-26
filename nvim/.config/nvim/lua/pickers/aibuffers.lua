@@ -13,7 +13,7 @@
 --   public post-matcher hook (fires immediately if already done) — because
 --   `list:select_all()` on a not-yet-populated list is a no-op.
 --
---   Deliberately no <M-N> quick-pick / <C-d>, unlike the other pickers here:
+--   Deliberately no <M-N> quick-pick / <C-x> kill, unlike the other pickers here:
 --   quick_pick_actions() does view(i) + confirm, and confirm reads the whole
 --   multi-selection — with every row preselected, <M-3> would send ALL
 --   buffers, not row 3.

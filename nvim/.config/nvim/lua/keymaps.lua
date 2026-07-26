@@ -246,15 +246,13 @@ vim.keymap.set('n', '<leader>uo', open_in_typora, { desc = 'Utilities: Open in T
 
 -- Quit
 vim.api.nvim_create_user_command('Q', 'qa', {})
--- Close buffer without closing the window/pane. mini.bufremove picks a
--- replacement buffer for every window showing it (alternate, then most
--- recent, then a scratch buffer) so all splits stay open.
--- <leader>bd matches the common convention (LazyVim, bufdelete.nvim, etc.) and
--- is the only close-buffer key -- <leader>qq below is Session/Quit, not Buffer.
+-- Close the buffer, keep the window/split: mini.bufremove swaps in a
+-- replacement for every window showing it. <leader>bx (not the standard
+-- <leader>bd) — x is this config's unified close/kill key (picker <C-x>, <leader>ax).
 local close_buffer = function()
   require('mini.bufremove').delete(0, false)
 end
-vim.keymap.set('n', '<leader>bd', close_buffer, { desc = 'Buffer: Close' })
+vim.keymap.set('n', '<leader>bx', close_buffer, { desc = 'Buffer: Close' })
 
 -- <leader>qq: quit nvim entirely (what its letters actually suggest). The
 -- floating confirm popup (utils.confirm — y confirms, anything else is No)
@@ -411,19 +409,16 @@ vim.keymap.set('n', '<leader>an',
   { desc = 'AI: New agent session (claude/cursor picker)' })
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
-  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-d> kill
+  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-x> kill
 -- No NORMAL-mode <leader>as (sidekick's tool launcher), even with two agents
 -- in cli.tools: <leader>an's picker is the single creation door, and a
 -- per-agent summon key would break the flat-pool symmetry
 -- (plans/sidekick-cursor-support.md, Decision 2). The visual-mode <leader>as
 -- below is separate — this reservation is normal-mode only.
--- close() kills the terminal process, deletes the buffer, and detaches the
--- session. This is not "hide" — it's "tear down." Use <leader>aa (toggle) to
--- show/hide without losing state. Guarded with a floating confirm popup
--- (utils.confirm — y confirms, anything else is No): <leader>ad sits one key
--- from <leader>aa, so a typo shouldn't be able to silently discard a running
--- agent conversation.
-vim.keymap.set('n', '<leader>ad', function()
+-- Tear down the active session: close() kills the process, wipes the buffer,
+-- and detaches — not "hide" (<leader>aa toggles that). Confirm-guarded so a
+-- stray press can't discard a running conversation. <leader>ax: x = close/kill.
+vim.keymap.set('n', '<leader>ax', function()
   require('utils').confirm('Kill active CLI session? (Tears down the terminal and session state)',
     function() require('ai').kill_active() end)
 end, { desc = 'AI: Kill active CLI session' })

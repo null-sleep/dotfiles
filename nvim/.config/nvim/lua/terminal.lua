@@ -78,7 +78,7 @@ end
 -- just the bottom panel (id 100). The go-run/clippy-fix/rust-run floats
 -- (ids 101/102) are NOT hidden, so they DO appear in this picker, on purpose:
 -- jumping back to a run's output is useful (see gotargets.lua's id comment).
--- <CR>/<M-1>..<M-9> jump; <C-d> kills (process + buffer).
+-- <CR>/<M-1>..<M-9> jump; <C-x> kills (process + buffer).
 local function select_term()
   local terminal = require('toggleterm.terminal')
   if #terminal.get_all() == 0 then
@@ -89,7 +89,7 @@ local function select_term()
     source = 'toggleterm',
     title = 'Terminals',
     finder = function()
-      -- Re-runs after each <C-d> kill, so query live state.
+      -- Re-runs after each <C-x> kill, so query live state.
       return vim.tbl_map(function(t)
         return { text = t.id .. ' ' .. t:_display_name(), term = t }
       end, terminal.get_all())
