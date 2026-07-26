@@ -287,18 +287,25 @@ local function build_results()
   if not found_tree then return nil end
 
   -- Merge built-in commands not covered by which-key presets (builtins.lua).
-  -- All normal-mode; skip any whose lhs a real mapping already claimed.
+  -- All normal-mode. An *unscoped* builtin whose lhs a real normal keymap already
+  -- claims is a duplicate → skip it. A *scoped* builtin (a picker-local action) is
+  -- a distinct context, kept even when the bare chord is also a real keymap (e.g.
+  -- <C-l> = move-right-split globally AND, in a picker, loclist). Dedup builtins on
+  -- (lhs, scope), so an overloaded chord (<C-y> scroll / copy-path / undo-yank)
+  -- gets one row per meaning, told apart by the scope column.
   local ok, builtins = pcall(require, 'builtins')
   if ok and builtins then
-    local mapped = {}
+    local real, seen = {}, {}
     for _, r in ipairs(results) do
-      if vim.tbl_contains(r.modes, 'n') then mapped[r.keys] = true end
+      if vim.tbl_contains(r.modes, 'n') then real[r.keys] = true end
     end
     for _, entry in ipairs(builtins) do
       -- Normalize to match which-key's internal format (e.g. <C-l> → <C-L>)
       local norm = vim.fn.keytrans(vim.api.nvim_replace_termcodes(entry.lhs, true, true, true))
-      if not mapped[norm] and not mapped[entry.lhs] then
-        mapped[entry.lhs] = true
+      local dedup = norm .. '\0' .. (entry.scope or '')
+      local dup_real = not entry.scope and (real[norm] or real[entry.lhs])
+      if not seen[dedup] and not dup_real then
+        seen[dedup] = true
         local tags, derived = resolve_tags(entry.lhs, entry.desc, tags_map)
         local grp = entry.group or ''
         results[#results + 1] = {
