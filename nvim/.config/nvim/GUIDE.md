@@ -797,6 +797,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>bo` | Close all other listed buffers (skips modified and special/non-code buffers, reports counts) | keymaps.lua |
 | `<leader>qq` | Quit all (`:qa`, behind a floating confirm popup — `y` confirms, anything else is No) — grouped under the `Session/Quit` which-key label alongside `<leader>qs/qS/ql/qd` (see [Session](#session)) | keymaps.lua |
 | `<C-h/j/k/l>` | Split navigation | keymaps.lua |
+| `<A-h/j/k/l>` | Resize split (narrower / shorter / taller / wider), repeatable without re-pressing `<C-w>` | keymaps.lua |
 | Visual-mode indent | Indent selection, keeps it selected for repeat | keymaps.lua |
 | `<leader>td` | Toggle diagnostics (virtual_text + signs) | keymaps.lua |
 | `<leader>tn` | Toggle relative line numbers (`number` stays on, so the cursor line shows its absolute number) | keymaps.lua |

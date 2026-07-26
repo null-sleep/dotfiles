@@ -128,8 +128,6 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
 -- <A-j>/<A-k> do nothing between two side-by-side vertical splits, since both
 -- already span full height) — same <C-w> resize commands, just repeatable
 -- without re-pressing the <C-w> prefix each time.
--- Speculative: unclear yet if these get reached for vs. the mouse/existing
--- <C-w> commands. May remap to something else later if they go unused.
 vim.keymap.set('n', '<A-h>', '<cmd>vertical resize -2<CR>', { desc = 'Split: narrower' })
 vim.keymap.set('n', '<A-j>', '<cmd>resize -2<CR>',          { desc = 'Split: shorter' })
 vim.keymap.set('n', '<A-k>', '<cmd>resize +2<CR>',          { desc = 'Split: taller' })
