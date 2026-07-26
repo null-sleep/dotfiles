@@ -804,7 +804,7 @@ Keys with no single feature section of their own — mostly `keymaps.lua`:
 | `<leader>tq` | Toggle the quickfix window — `]q`/`[q` walk entries, `]Q`/`[Q` the history stack; see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
 | `<leader>tl` | Toggle the location-list window (window-local; `<leader>cd` fills it) — see [Quickfix & location lists](#quickfix-loclist) | keymaps.lua |
 | `<leader>tp` | Toggle the snacks Lua profiler — stopping opens a picker over the trace (group/sort/filter it with `Snacks.profiler.scratch()`); the session runs slower while it's on, and the instrumentation stays wrapped until you restart nvim | picker.lua |
-| `yp` / `yc` / `yu` | Yank relative path / Claude @-reference / GitHub permalink (in a picker: `<C-S-U>` for the item under the cursor) | keymaps.lua / yank.lua |
+| `yp`/`yP` / `yc`/`yC` / `yu` | Yank relative / absolute path (`yp`/`yP`); Claude @-reference, relative / absolute path (`yc`/`yC`); GitHub permalink (`yu`) — in a picker, `<C-S-U>` yanks the item under the cursor | keymaps.lua / yank.lua |
 | `<leader>uo` / `:Typora` | Open the current file in the Typora app (saves pending changes first) | keymaps.lua |
 | `<leader>up` / `:PackUpdate` | Update all plugins with no confirmation, then commit the lockfile — see [Updating plugins](#updating-plugins) | plugins.lua |
 | `jj` / `jk` (insert mode) | Exit to normal mode | keymaps.lua |

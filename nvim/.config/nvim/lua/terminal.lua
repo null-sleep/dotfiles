@@ -139,7 +139,7 @@ local function ensure_bottom_term()
         -- Buffer-local terminal-mode toggle: pressing the key inside the panel
         -- hides it, without shadowing <C-/> etc. in the float / sidekick CLI.
         for _, lhs in ipairs(bottom_panel_keys) do
-          vim.keymap.set('t', lhs, toggle_bottom_term, { buffer = term.bufnr })
+          vim.keymap.set('t', lhs, toggle_bottom_term, { buffer = term.bufnr, desc = 'Terminal: Hide bottom panel' })
         end
       end,
     })
@@ -194,7 +194,6 @@ vim.api.nvim_create_autocmd('TermOpen', {
   callback = function()
     -- Skip sidekick CLI buffers — sidekick manages its own keymaps.
     if vim.bo.filetype == 'sidekick_terminal' then return end
-    local opts = { buffer = 0 }
     utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
     -- Cycle/new/select are float-pool concepts — skip them in the bottom
     -- panel (id 100), which is deliberately a single dedicated terminal, not
@@ -204,17 +203,17 @@ vim.api.nvim_create_autocmd('TermOpen', {
     if vim.b.toggle_number ~= 100 then
       -- Mirror the sidekick CLI's session keys (ai.lua) for muscle-memory
       -- symmetry; each set is buffer-local to its own terminal kind.
-      vim.keymap.set({ 't', 'n' }, '<M-]>', function() cycle_term(1)  end, opts)
-      vim.keymap.set({ 't', 'n' }, '<M-[>', function() cycle_term(-1) end, opts)
-      vim.keymap.set({ 't', 'n' }, '<M-n>', new_term, opts)
-      vim.keymap.set({ 't', 'n' }, '<M-l>', select_term, opts)
+      vim.keymap.set({ 't', 'n' }, '<M-]>', function() cycle_term(1)  end, { buffer = 0, desc = 'Terminal: Next float' })
+      vim.keymap.set({ 't', 'n' }, '<M-[>', function() cycle_term(-1) end, { buffer = 0, desc = 'Terminal: Previous float' })
+      vim.keymap.set({ 't', 'n' }, '<M-n>', new_term, { buffer = 0, desc = 'Terminal: New float' })
+      vim.keymap.set({ 't', 'n' }, '<M-l>', select_term, { buffer = 0, desc = 'Terminal: Select float (picker)' })
     end
     -- Shift+Enter: send a linefeed so the running program inserts a newline.
     -- CLIs treat \r (<CR>) as "submit" and \n as "newline". Needs a terminal
     -- that transmits Shift+Enter distinctly (iTerm2 requires CSI u enabled).
     vim.keymap.set('t', '<S-CR>', function()
       vim.fn.chansend(vim.b.terminal_job_id, '\n')
-    end, opts)
+    end, { buffer = 0, desc = 'Terminal: Send linefeed (newline)' })
   end,
 })
 

@@ -32,16 +32,15 @@ end
 -- (Esc is forwarded to Claude for interrupts). Callers add their own
 -- buffer-specific extras (<C-]> cycling, <S-CR>) next to their call site.
 function M.term_nav_keymaps(buf, opts)
-  local o = { buffer = buf }
   if opts and opts.esc then
-    vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], o)
+    vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { buffer = buf, desc = 'Terminal: Exit to normal mode' })
   end
-  vim.keymap.set('t', 'jj',    [[<C-\><C-n>]], o)
-  vim.keymap.set('t', 'jk',    [[<C-\><C-n>]], o)
-  vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], o)
-  vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], o)
-  vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], o)
-  vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], o)
+  vim.keymap.set('t', 'jj',    [[<C-\><C-n>]],       { buffer = buf, desc = 'Terminal: Exit to normal mode' })
+  vim.keymap.set('t', 'jk',    [[<C-\><C-n>]],       { buffer = buf, desc = 'Terminal: Exit to normal mode' })
+  vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], { buffer = buf, desc = 'Terminal: Move to left split' })
+  vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], { buffer = buf, desc = 'Terminal: Move to split below' })
+  vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], { buffer = buf, desc = 'Terminal: Move to split above' })
+  vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], { buffer = buf, desc = 'Terminal: Move to right split' })
 end
 
 -- Build a keymap action that runs a shell command in a reusable floating
