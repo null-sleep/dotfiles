@@ -269,8 +269,6 @@ Grouped by state, not priority.
   (`<leader>1`–`<leader>5`).
 - [treesitter-textobjects.md](treesitter-textobjects.md) — semantic
   select/move/swap text objects (`af`/`if`/`ac`/…), plus a LazyVim mini.ai delta.
-- [quickfix-improvements.md](quickfix-improvements.md) — quicker.nvim / nvim-bqf
-  for a real, prunable quickfix panel.
 - [neovide-path-env.md](neovide-path-env.md) — a stow-managed `~/.zshenv` so
   GUI-launched Neovide inherits the terminal PATH (LSPs/formatters).
 - [ghostty-followups.md](ghostty-followups.md) — successor to the now-deleted

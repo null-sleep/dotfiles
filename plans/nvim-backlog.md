@@ -72,8 +72,9 @@ picker-resume (`Snacks.picker.resume()`, `keymaps.lua`) — use `<leader>sR`.
   existing LSP setup. (Also relevant to the unified-edgebar entry below.) The
   LazyVim/LunarVim passes both *rejected* trouble for now — loclist + the
   picker + satellite marks cover the diagnostics-list workflow, and
-  `plans/quickfix-improvements.md` owns list ergonomics; reconsider only if
-  that plan stalls or the problems-panel/references ask below wins out.
+  quicker.nvim now covers quickfix/loclist list ergonomics (landed — see
+  GUIDE.md "Quickfix & location lists"); reconsider only if the
+  problems-panel/references ask below wins out.
   - https://github.com/folke/trouble.nvim
 - **Unified stacked edgebar** → `edgy.nvim` (folded in from the deleted
   `unified-sidebar-panel.md`, 2026-07-18; full research in git history)
@@ -191,7 +192,7 @@ flow. No native Neovim equivalent (vim's closest is `:s`, macros, or visual-bloc
 
 ## JetBrains
 
-**Status:** research / not started
+**Status:** quickfix loop landed (quicker.nvim, 2026-07-27); Harpoon2 track open
 **Date:** 2026-07-04
 
 JetBrains IDEs let a single "Find in Files" search become a saved, persistent
@@ -207,28 +208,30 @@ it's just not wired up to the picker or pruned with a plugin yet.
    with the picker migration; see GUIDE.md "Picker (snacks.nvim)".
 2. `:copen` opens it as a persistent panel. `]q`/`[q` (or `:cnext`/`:cprev`)
    cycle entries; `<CR>` on a line jumps there while the panel stays open.
-3. **Dismissing entries** — the quickfix window is an editable buffer: `dd` a
-   line to remove it, then `:cbuffer` re-parses the buffer back into the
-   quickfix list. Pure vim, prunes the list down to "only the relevant hits."
+3. **Dismissing entries** — ✅ landed via quicker.nvim: the window is editable
+   and `dd` / visual `d` prune entries in one gesture (no `:cbuffer` dance).
+   See GUIDE.md "Quickfix & location lists".
 4. Quickfix lists are stacked — `:colder`/`:cnewer` moves between previous
    searches, like flipping between saved search tabs.
 5. Once pruned, `:cfdo <cmd>` runs a command across every remaining entry —
    the batch-action equivalent of "select the relevant ones, then act."
 
-### Top pick: `nvim-bqf` for the panel UX
-Turns the quickfix window into the JetBrains-style panel directly: interactive
-fuzzy-filter/delete of entries, live preview pane, sign toggling — without the
-`dd` + `:cbuffer` dance above.
-- https://github.com/kevinhwang91/nvim-bqf
+### Landed: `quicker.nvim` for the panel UX
+Editable, styled quickfix/loclist window (2026-07-27): `dd`/visual `d` prune
+entries in one gesture, edit-text + `:w` writes back to files, `>`/`<` context
+lines, `follow` tracks the cursor. See GUIDE.md "Quickfix & location lists".
+`nvim-bqf` was the original top pick but was declined — its preview + fzf-filter
+mostly duplicate the snacks pickers this config already uses.
+- https://github.com/stevearc/quicker.nvim
 
 ### Alt: `trouble.nvim`
 Sidebar-styled list (diagnostics/qf/loclist) instead of the classic quickfix
 window. Already on the list above for VS Code's problems panel — would cover
-both asks if installed. Less delete-oriented than bqf, more of a live-view.
+both asks if installed. Less delete-oriented than quicker, more of a live-view.
 - https://github.com/folke/trouble.nvim
 
 ### Related: Harpoon2 for the "keepers," once pruned
-Quickfix (and even a bqf-filtered qflist) is still ephemeral — it's overwritten
+Quickfix (and even a quicker-pruned qflist) is still ephemeral — it's overwritten
 by the next search and doesn't survive a session restart. Once you've dismissed
 the noise and are left with a handful of genuinely relevant locations,
 `plans/harpoon2.md` (planned, not yet installed — no `harpoon` entry in
@@ -242,20 +245,21 @@ several sessions.
 - see `plans/harpoon2.md` for the existing implementation plan
 
 ### Gaps in the current config
-Step 1 (seeding) is **already done** — `<C-q>` → `qflist` is a stock snacks
-binding in both the input and list windows, so it came free with the picker
-migration and works in every source. What's missing is everything downstream of
-it: no qf-pruning plugin, and no `:cbuffer`-reload keymap for the
-zero-dependency dismiss loop. Harpoon2 is a fully separate, already-planned
-addition (see above) — not required for the quickfix workflow itself.
+Step 1 (seeding) is **done** — `<C-q>` → `qflist` is a stock snacks binding in
+both the input and list windows, so it came free with the picker migration and
+works in every source. Step 3 (pruning) is now **done** too — quicker.nvim
+makes the window editable and `dd`/visual `d` prune entries directly (no
+`:cbuffer` keymap needed). What's left is cross-session persistence of the
+*kept* results: Harpoon2, a fully separate, already-planned addition (see
+above) — not required for the quickfix workflow itself.
 
 ### Recommendation / priority
-1. Add a `:cbuffer`-reload keymap in the qf window as the zero-dependency
-   dismiss workflow. (Seeding the list is already covered — see Gaps above.)
-2. `nvim-bqf` — if the native `dd`+`:cbuffer` loop feels clunky in practice.
-3. Revisit `trouble.nvim` decision jointly with the VS Code problems-panel ask
+1. ✅ Quickfix pruning — landed via quicker.nvim (editable buffer + `dd`/visual
+   `d` deletion), which superseded both the `:cbuffer`-reload keymap idea and
+   nvim-bqf (declined).
+2. Revisit `trouble.nvim` decision jointly with the VS Code problems-panel ask
    above, since one install would serve both.
-4. Harpoon2 — separate track, already planned in `plans/harpoon2.md`; worth
+3. Harpoon2 — separate track, already planned in `plans/harpoon2.md`; worth
    implementing regardless, and complements this workflow for cross-session
    bookmarking of the results you kept.
 
@@ -338,9 +342,8 @@ Ordered by expected payoff:
 - **Diagnostics picker** — `Snacks.picker.diagnostics()` /
   `diagnostics_buffer()`. There is no diagnostics *list* of any kind today
   (no trouble, no qflist wiring), so this is the cheapest path to
-  project-wide-problems browsing. Overlaps the trouble.nvim /
-  `plans/quickfix-improvements.md` asks — do this first and see if either is
-  still wanted.
+  project-wide-problems browsing. Overlaps the trouble.nvim ask above — do this
+  first and see if that's still wanted.
 - **`Snacks.picker.undo()`** — undotree as a picker (diff preview per undo
   state), no new plugin. Nothing covers this today.
 - **Git history pickers** — `git_log_file()` (current file's history),
