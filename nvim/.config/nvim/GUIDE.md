@@ -1920,33 +1920,25 @@ results found".
 
 ### The list window is editable (quicker.nvim)
 
-Both `<leader>tq` and `<leader>tl` open a [quicker.nvim](https://github.com/stevearc/quicker.nvim)
-window (setup in `quickfix.lua`) — the same list, better styled (treesitter/LSP
-highlighting, file grouping) and, unlike the stock window, **editable**. Three
-things it buys you, all inside the list window:
+`<leader>tq`/`<leader>tl` open a [quicker.nvim](https://github.com/stevearc/quicker.nvim)
+window (setup in `quickfix.lua`): the same list, better styled, and **editable**.
 
-- **`dd` / visual `d`, then `:w`** — *removes* those entries from the list. No
-  file is touched; this only prunes the list.
-- **Edit an item's text, then `:w`** — *writes the change back to the source
-  file*, a visual `:cdo s/…/…/` for project-wide edits. `autosave =
-  'unmodified'` writes the file for you unless you have unsaved changes in it,
-  in which case it's left for you to `:w`.
-- **`>` / `<`** — *expand / collapse context*: show ±2 lines around each match
-  inline, to review hits without jumping out.
+- **`dd` / visual `d`** — prune entries, applied immediately (no `:w`, no file
+  touched). quicker only removes, never adds or reorders.
+- **Edit an item's text, then `:w`** — writes the change back to the source
+  file, a visual `:cdo`. `autosave = 'unmodified'` saves that file too unless
+  it has unsaved changes, which it leaves for you.
+- **`>` / `<`** — expand/collapse ±2 context lines around each match.
 
-**Nothing happens until you `:w` — and the `:w` must be in the list window.**
-Editing text or `dd`-ing lines only *stages* the change in the quickfix buffer;
-quicker applies it (edits back to files, entries pruned) on save. So the flow is
-always *edit in the list → `:w` there*. Saving the code window instead does
-nothing, and a bare edit with no save is a no-op — the source file stays as it
-was. (This is also why the qf buffer is excluded from auto-save in
-`autosave.lua`: the `:w` is a deliberate gate, so a half-finished project-wide
-edit is never flushed to your files on an idle timer.)
+A text edit only reaches the file on `:w`, and the `:w` must be **in the list
+window** (deletion is the exception — it self-applies). The qf buffer is
+excluded from auto-save (`autosave.lua`) so that save gate isn't bypassed on an
+idle timer. Browse/filter with the snacks pickers (`<leader>sq`/`<leader>sQ`);
+mutate in the quicker window.
 
-So pruning junk from a big result set is just `dd` + `:w`, and a project-wide
-rename can be done by editing the text in the list window instead of `:cdo`.
-The snacks pickers (`<leader>sq`/`<leader>sQ`) stay the way to *browse and
-filter* a list; the quicker window is where you *mutate* it.
+`follow` is on: while the window is open, the list highlights the entry nearest
+your cursor (scrolling it into view) as you move through the code — a live
+"you are here" in the result set.
 
 ## Clipboard split
 
