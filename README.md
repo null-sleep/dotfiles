@@ -98,6 +98,7 @@ cd ~/src/dotfiles
 stow nvim
 stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
+stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 # Optional — only if you uncommented its formula in the Brewfile:
@@ -157,7 +158,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:Mason` | LSP servers/tools show installed, not failed ([Languages](#languages)) |
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
-| `cursor-agent` | statusline renders (model / branch / ctx%) ([Cursor CLI](#cursor-cli-cursor-agent)) |
+| `cursor-agent` | statusline renders (model / ctx% / growth bars) ([Cursor CLI](#cursor-cli-cursor-agent)) |
 
 If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
@@ -234,7 +235,7 @@ per filetype and which binaries are detected on `$PATH`.
 
 ## Claude Code
 
-The `claude` stow package manages the status line script — a custom status bar that displays model name, git branch, context window %, session/monthly cost, and per-message context growth bars — plus a custom **Catppuccin Latte** color theme.
+The `claude` stow package manages the status line script — a custom status bar that displays model name (with a fast-mode/effort flag), context window %, message count, per-message context growth bars, and a right-aligned 5h/7d rate-limit cluster with reset countdown (set `CLAUDE_STATUSLINE_MODE=cost` for session/monthly cost instead) — plus a custom **Catppuccin Latte** color theme.
 
 ### Setup
 
@@ -627,10 +628,10 @@ native select-to-copy works as-is.)
 ### Status line
 
 `cursor-agent` gets a custom status line matching the Claude Code one for the
-fields Cursor's payload provides — model name, git branch, context %, and a
-per-message context-growth sparkline. No cost or rate-limit segments (absent
-from Cursor's stdin payload); the script is a trimmed fork of
-`claude/.claude/statusline-command.sh`.
+fields Cursor's payload provides — model name, context %, and a per-message
+context-growth sparkline. No branch (dropped 2026-07-22, matching the Claude
+line) and no cost or rate-limit segments (absent from Cursor's stdin payload);
+the script is a trimmed fork of `claude/.claude/statusline-command.sh`.
 
 ```bash
 stow --no-folding cursor    # --no-folding: never fold a pre-existing ~/.cursor/
@@ -1133,7 +1134,8 @@ The `docker` CLI talks to Colima's daemon automatically.
 
 Instead of passing flags every time, bake the defaults into a template that
 Colima applies to any **newly created** profile. A plain `colima start` then
-picks up the same CPU/memory/arch/vz config as the `colima_start` helper.
+picks up the same CPU/memory/arch/vz config as the flag-laden `colima start`
+commands above.
 
 ```bash
 # Generate the default template at ~/.colima/_templates/default.yaml,
