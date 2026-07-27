@@ -54,6 +54,14 @@ local function confirm_and_scroll(picker, item, action)
   vim.fn.winrestview({ topline = math.max(1, vim.fn.line('.') - offset) })
 end
 
+-- Line number for a positioned row, nil otherwise. pos can carry lnum 0 (e.g.
+-- file-only quickfix entries) — treat that as unpositioned, like upstream's
+-- `item.pos[1] > 0` guard, so yanks/sends don't emit a bogus `:0`.
+local function item_lnum(item)
+  local lnum = item and item.pos and item.pos[1]
+  return lnum and lnum > 0 and lnum or nil
+end
+
 -- Send the picker's current item (or multi-selection) to the active sidekick
 -- CLI as space-separated `@path`/`@path#L<n>` mentions (ai_context.lua — the
 -- same shape as the <leader>a* sends). Bound to <C-CR>: Ctrl+Enter = send,
@@ -66,8 +74,8 @@ local function send_to_sidekick(picker)
   for _, item in ipairs(items) do
     local path = Snacks.picker.util.path(item)
     if path then
-      -- nil pos (e.g. plain file items) → ref() emits a bare `@path`.
-      refs[#refs + 1] = require('ai_context').ref(path, picker:cwd(), item.pos and item.pos[1])
+      -- nil lnum (e.g. plain file items) → ref() emits a bare `@path`.
+      refs[#refs + 1] = require('ai_context').ref(path, picker:cwd(), item_lnum(item))
     end
   end
   picker:close()
@@ -92,7 +100,8 @@ local function yank_path(picker, item, full)
   end
   local abs = vim.fn.fnamemodify(path, ':p')
   local out = full and abs or (vim.fs.relpath(picker:cwd(), abs) or abs)
-  if item.pos and item.pos[1] then out = out .. ':' .. item.pos[1] end
+  local lnum = item_lnum(item)
+  if lnum then out = out .. ':' .. lnum end
   picker:close()
   vim.fn.setreg('+', out)
   vim.notify('Copied: ' .. out)
@@ -112,7 +121,7 @@ local function copy_github_url(picker, item)
     return
   end
   local url, err = require('yank').github_url_for(vim.fn.fnamemodify(path, ':p'),
-    item.pos and item.pos[1])
+    item_lnum(item))
   if not url then
     vim.notify(err, vim.log.levels.ERROR)
     return

@@ -27,8 +27,8 @@ return {
   -- in picker.lua's win.input.keys. Several overload chords that mean something
   -- else outside a picker (<C-y> scroll, <C-x> decrement, <C-l> move-split); the
   -- <leader>sk merge keys on (lhs, scope), so each meaning gets its own row.
-  { lhs = '<C-y>',   group = 'Yank',     scope = 'picker', desc = 'Copy the item path, cwd-relative (with :line on grep/LSP rows)' },
-  { lhs = '<C-S-Y>', group = 'Yank',     scope = 'picker', desc = 'Copy the item path, absolute (with :line on grep/LSP rows)' },
+  { lhs = '<C-y>',   group = 'Yank',     scope = 'picker', desc = 'Copy the item path, cwd-relative (with :line on positioned rows)' },
+  { lhs = '<C-S-Y>', group = 'Yank',     scope = 'picker', desc = 'Copy the item path, absolute (with :line on positioned rows)' },
   { lhs = '<C-S-U>', group = 'Yank',     scope = 'picker', desc = 'Copy the item GitHub permalink (HEAD-pinned)' },
   { lhs = '<C-q>',   group = 'Quickfix', scope = 'picker', desc = 'Send the selection (or all results) to the quickfix list' },
   { lhs = '<C-l>',   group = 'Quickfix', scope = 'picker', desc = 'Send the selection (or all results) to the location list' },
