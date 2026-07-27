@@ -290,13 +290,15 @@ vim.keymap.set('n', '<leader>td', function()
 end, { desc = 'Toggle: Diagnostics' })
 
 -- Toggle the quickfix window via quicker.nvim (editable + styled; see
--- quickfix.lua). Empty-list guard: quicker.toggle would open a blank window, so
--- when the window isn't already up and the list is empty, notify instead.
+-- quickfix.lua). focus = true lands the cursor in the list like :copen did —
+-- quicker's default jumps back to the code window. Empty-list guard:
+-- quicker.toggle would open a blank window, so when the window isn't already
+-- up and the list is empty, notify instead.
 vim.keymap.set('n', '<leader>tq', function()
   if vim.fn.getqflist({ winid = 0 }).winid == 0 and vim.fn.getqflist({ size = 0 }).size == 0 then
     vim.notify('Quickfix list is empty')
   else
-    require('quicker').toggle()
+    require('quicker').toggle({ focus = true })
   end
 end, { desc = 'Toggle: Quickfix window' })
 
@@ -305,7 +307,7 @@ vim.keymap.set('n', '<leader>tl', function()
   if vim.fn.getloclist(0, { winid = 0 }).winid == 0 and vim.fn.getloclist(0, { size = 0 }).size == 0 then
     vim.notify('Location list is empty')
   else
-    require('quicker').toggle({ loclist = true })
+    require('quicker').toggle({ loclist = true, focus = true })
   end
 end, { desc = 'Toggle: Location list window' })
 
