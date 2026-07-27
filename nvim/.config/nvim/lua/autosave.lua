@@ -13,9 +13,12 @@ require('auto-save').setup({
   debounce_delay = 1000,  -- ms to wait after last change before saving (matches VS Code setting)
   -- Skip auto-save for special UI buffers where saving mid-edit would cause
   -- problems (e.g. gitcommit would save an incomplete message), and for
-  -- read-only buffers like help pages and diffs.
+  -- read-only buffers like help pages and diffs. `qf`: quicker.nvim makes the
+  -- quickfix window a modifiable buffer named `quickfix-<n>` (quickfix.lua) —
+  -- auto-saving it dumps the list to a stray real file in the cwd and applies
+  -- the edits before the deliberate `:w` that's meant to gate them.
   condition = function(buf)
-    local excluded = { 'oil', 'snacks_picker_input', 'mason', 'gitcommit', 'gitrebase', 'harpoon', 'grug-far' }
+    local excluded = { 'oil', 'snacks_picker_input', 'mason', 'gitcommit', 'gitrebase', 'harpoon', 'grug-far', 'qf' }
     local ft = vim.bo[buf].filetype
     for _, v in ipairs(excluded) do
       if ft == v then return false end

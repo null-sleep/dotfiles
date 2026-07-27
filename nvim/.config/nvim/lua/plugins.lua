@@ -56,6 +56,8 @@ vim.pack.add(vim.list_extend({
   -- Pins special windows (nvim-tree, aerial, toggleterm, neotest, quickfix...)
   -- so a stray :e/buffer-jump can't hijack them and load an unrelated file.
   { src = gh('stevearc/stickybuf.nvim') },
+  -- Editable, better-styled quickfix/loclist window (setup in quickfix.lua).
+  { src = gh('stevearc/quicker.nvim') },
 
   -- Git
   { src = gh('lewis6991/gitsigns.nvim') },

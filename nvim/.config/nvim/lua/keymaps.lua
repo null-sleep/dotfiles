@@ -30,7 +30,7 @@ vim.keymap.set('n', '<leader>so', function() Snacks.picker.recent() end, { desc 
 vim.keymap.set('n', '<leader>st', function() require('pickers.theme').open() end,
   { desc = 'Search: Themes' })
 -- <C-q> from a picker fills these lists; these read them back with fuzzy
--- filter + preview. Raw window: <leader>tq. See GUIDE.md "Quickfix & location lists".
+-- filter + preview. List window (editable): <leader>tq. See GUIDE.md "Quickfix & location lists".
 vim.keymap.set('n', '<leader>sq', function() Snacks.picker.qflist() end,
   { desc = 'Search: Quickfix list' })
 vim.keymap.set('n', '<leader>sl', function() Snacks.picker.loclist() end,
@@ -289,28 +289,23 @@ vim.keymap.set('n', '<leader>td', function()
   })
 end, { desc = 'Toggle: Diagnostics' })
 
--- Toggle the quickfix window; winid == 0 means "not open" (:help getqflist()).
--- Empty-list guard: :copen would open a blank split. botright matches the
--- window snacks' own <C-q> action opens, so both keys land the same split.
+-- Toggle the quickfix window via quicker.nvim (editable + styled; see
+-- quickfix.lua). Empty-list guard: quicker.toggle would open a blank window, so
+-- when the window isn't already up and the list is empty, notify instead.
 vim.keymap.set('n', '<leader>tq', function()
-  if vim.fn.getqflist({ winid = 0 }).winid ~= 0 then
-    vim.cmd('cclose')
-  elseif vim.fn.getqflist({ size = 0 }).size == 0 then
+  if vim.fn.getqflist({ winid = 0 }).winid == 0 and vim.fn.getqflist({ size = 0 }).size == 0 then
     vim.notify('Quickfix list is empty')
   else
-    vim.cmd('botright copen')
+    require('quicker').toggle()
   end
 end, { desc = 'Toggle: Quickfix window' })
 
--- Loclist twin of <leader>tq, on the current window's list. No botright:
--- a loclist window is window-scoped, unlike the full-width quickfix split.
+-- Loclist twin of <leader>tq, on the current window's list.
 vim.keymap.set('n', '<leader>tl', function()
-  if vim.fn.getloclist(0, { winid = 0 }).winid ~= 0 then
-    vim.cmd('lclose')
-  elseif vim.fn.getloclist(0, { size = 0 }).size == 0 then
+  if vim.fn.getloclist(0, { winid = 0 }).winid == 0 and vim.fn.getloclist(0, { size = 0 }).size == 0 then
     vim.notify('Location list is empty')
   else
-    vim.cmd('lopen')
+    require('quicker').toggle({ loclist = true })
   end
 end, { desc = 'Toggle: Location list window' })
 

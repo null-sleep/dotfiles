@@ -70,6 +70,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, `<leader><leader>` smart, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`gb`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
+- **`quickfix.lua`** — quicker.nvim setup: an editable, better-styled quickfix/loclist window (the `<leader>tq`/`<leader>tl` toggles in `keymaps.lua` route through its `toggle()`). Editable buffer — `dd` + `:w` prunes an entry, editing item text + `:w` writes back to the file (`autosave = 'unmodified'`); `>`/`<` expand/collapse context lines. Browsing/filtering still goes through the snacks pickers (`pickers/qfhistory.lua`). Named `quickfix.lua`, not `quicker.lua`, so `require('quicker')` resolves to the plugin
 - **`structural_select.lua`** — Helix-style structural (treesitter) selection: `<M-o>`/`<M-i>` grow/shrink the visual selection by syntax node, via the core `vim.treesitter` API (no extra plugin — replaces the incremental-selection module removed by nvim-treesitter's `main`-branch rewrite)
 - **`pickers/buffer.lua`** — Custom snacks buffer picker (`<leader>bb`, aliased as `<leader>m`): row-index column replaces the bufnr column, `<M-1>`..`<M-9>` jumps to that row, `<C-x>` deletes the highlighted/selected buffers; stable bufnr row order (`sort_lastused` off)
 - **`pickers/gitstatus.lua`** — snacks git-status picker (`<leader>sm`): wraps the builtin `git_status` source (diff preview, `<tab>` staging toggle with auto-refresh) adding a row-index column, `<M-1>`..`<M-9>` quick-pick, repo resolution from the current buffer's directory, and a "No changes found" notify instead of an empty picker; a count prefix (`5<leader>sm`) switches to the builtin `git_diff` source instead, for the last N commits' diff plus uncommitted changes
@@ -160,7 +161,7 @@ headless / under claude-nvim.
 ### Load order
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
-outline -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
+outline -> quickfix -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> grugfar -> titling -> whichkey -> autosave -> filetree ->
 animations -> neovide -> cleanup.
@@ -1916,6 +1917,36 @@ window's location-list stack.
 (auto-mapped; see `autocmds.lua`). On an empty list `<leader>tq` notifies
 instead of opening a blank split, and `<leader>sq` shows snacks' own "No
 results found".
+
+### The list window is editable (quicker.nvim)
+
+Both `<leader>tq` and `<leader>tl` open a [quicker.nvim](https://github.com/stevearc/quicker.nvim)
+window (setup in `quickfix.lua`) — the same list, better styled (treesitter/LSP
+highlighting, file grouping) and, unlike the stock window, **editable**. Three
+things it buys you, all inside the list window:
+
+- **`dd` / visual `d`, then `:w`** — *removes* those entries from the list. No
+  file is touched; this only prunes the list.
+- **Edit an item's text, then `:w`** — *writes the change back to the source
+  file*, a visual `:cdo s/…/…/` for project-wide edits. `autosave =
+  'unmodified'` writes the file for you unless you have unsaved changes in it,
+  in which case it's left for you to `:w`.
+- **`>` / `<`** — *expand / collapse context*: show ±2 lines around each match
+  inline, to review hits without jumping out.
+
+**Nothing happens until you `:w` — and the `:w` must be in the list window.**
+Editing text or `dd`-ing lines only *stages* the change in the quickfix buffer;
+quicker applies it (edits back to files, entries pruned) on save. So the flow is
+always *edit in the list → `:w` there*. Saving the code window instead does
+nothing, and a bare edit with no save is a no-op — the source file stays as it
+was. (This is also why the qf buffer is excluded from auto-save in
+`autosave.lua`: the `:w` is a deliberate gate, so a half-finished project-wide
+edit is never flushed to your files on an idle timer.)
+
+So pruning junk from a big result set is just `dd` + `:w`, and a project-wide
+rename can be done by editing the text in the list window instead of `:cdo`.
+The snacks pickers (`<leader>sq`/`<leader>sQ`) stay the way to *browse and
+filter* a list; the quicker window is where you *mutate* it.
 
 ## Clipboard split
 

@@ -18,7 +18,7 @@
       "version": "1.0.0 - 2.0.0"
     },
     "catppuccin": {
-      "rev": "058e83dc009e4dd62f30807054de9cc849699e27",
+      "rev": "79e2049a0fdf7ec840f8463fe1d962c94493196b",
       "src": "https://github.com/catppuccin/nvim"
     },
     "cinnamon.nvim": {
@@ -42,7 +42,7 @@
       "src": "https://github.com/Mofiqul/dracula.nvim"
     },
     "everforest-nvim": {
-      "rev": "d235ca0aa6a29546e661a020e2618612acbbffbe",
+      "rev": "a0e9edc57379e8feafc6ba207c26dbb12fc1b6d8",
       "src": "https://github.com/neanias/everforest-nvim"
     },
     "flatten.nvim": {
@@ -122,11 +122,11 @@
       "src": "https://github.com/miikanissi/modus-themes.nvim"
     },
     "neogit": {
-      "rev": "9abecb022a581e3a333430a4490f45c784aef5c9",
+      "rev": "57c9f8ee784bcd07141bf7fa958b5c5bb1420de8",
       "src": "https://github.com/NeogitOrg/neogit"
     },
     "neotest": {
-      "rev": "4e2cd42c4252ee9d2435571d9adcdbc1d47931fe",
+      "rev": "1c529a1ef9c82e8131e872368415cecc2bb86ea2",
       "src": "https://github.com/nvim-neotest/neotest"
     },
     "neotest-golang": {
@@ -175,7 +175,7 @@
       "src": "https://github.com/antosha417/nvim-lsp-file-operations"
     },
     "nvim-lspconfig": {
-      "rev": "b89138d9af0a96e6048e202a15765fc6b6416bd4",
+      "rev": "7ab79bb1b57160a537f427ac8a6026102f12b701",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -187,7 +187,7 @@
       "src": "https://github.com/nvim-tree/nvim-tree.lua"
     },
     "nvim-treesitter": {
-      "rev": "7248feaca45e4d944591497964bc19afa89ad1c6",
+      "rev": "61df84986b4b4ec469ee745a182e433d49f8c27e",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter",
       "version": "'main'"
     },
@@ -209,7 +209,7 @@
       "src": "https://github.com/olimorris/onedarkpro.nvim"
     },
     "oxocarbon.nvim": {
-      "rev": "cf49e389c22dab56224e43ae16422ddcd5b61b28",
+      "rev": "cad101019701846b1c69747e4cae3c460376d674",
       "src": "https://github.com/nyoom-engineering/oxocarbon.nvim"
     },
     "persistence.nvim": {
@@ -219,6 +219,10 @@
     "plenary.nvim": {
       "rev": "74b06c6c75e4eeb3108ec01852001636d85a932b",
       "src": "https://github.com/nvim-lua/plenary.nvim"
+    },
+    "quicker.nvim": {
+      "rev": "4a6883cb13fe097a20a046eb55f6dffd239276e3",
+      "src": "https://github.com/stevearc/quicker.nvim"
     },
     "render-markdown.nvim": {
       "rev": "f422cb5c6855f150e2ddcfaf44e7157b98b34f6a",
