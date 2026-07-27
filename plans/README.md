@@ -119,9 +119,6 @@ off or delete them as they land; add new ones freely.
   in-editor, and selection/open-file context is shared automatically instead
   of via explicit `<leader>at`/`<leader>ap` sends. Would complement, not
   replace, the sidekick setup in `ai.lua`; evaluate coexistence first.
-- [ ] **Evaluate [grug-far.nvim](https://github.com/MagicDuck/grug-far.nvim)** —
-  already the top pick for multibuffer-style search & replace in
-  [nvim-backlog.md](nvim-backlog.md) (Zed gap analysis); not yet installed.
 - [ ] **Evaluate [flash.nvim](https://github.com/folke/flash.nvim)** — labeled
   jump motion, already scoped in [nvim-backlog.md](nvim-backlog.md) ("Editing
   power & motions"): `s` labeled jump, `S` treesitter-node select, `r`/`R`
@@ -146,6 +143,26 @@ off or delete them as they land; add new ones freely.
   `[project.scripts]`? `python -m pkg`?), which is what finally binds
   `<leader>dR` for Python; (2) whether `dap-python.debug_selection()` (debug a
   visual selection — no neotest equivalent) deserves a key.
+
+## Known fragility
+
+Deliberate dependencies on other plugins' *private* internals. Each breaks
+silently (or throws) when upstream refactors — nothing else will flag them, so
+re-check this list after a `:PackUpdate`. Add an entry whenever a change
+knowingly reaches into private API.
+
+- **`picker.lua` → snacks picker internals (two monkey-patches).**
+  `Snacks.picker.format.filename` is wrapped relying on the private
+  `{ '', resolve = fn }` chunk shape (path-width cap), and
+  `Snacks.picker.preview.file` is wrapped copying upstream's
+  `preview_title`/`title` precedence (full path in the preview border). A
+  snacks refactor makes both stop applying *silently* — paths expand to full
+  width, preview titles revert to basename. Check: open `<leader>sg`, confirm
+  paths are capped and the preview border shows the item's path.
+- **`grugfar.lua` → grug-far private fields.** The `<localleader>S`
+  search/replace swap reads `inst._context` / `inst._buf` and the internal
+  `grug-far.inputs` module, with no pcall — an upstream rename throws on
+  keypress. Check: `<leader>sR`, type something in search, `<localleader>S`.
 
 ---
 
@@ -246,7 +263,8 @@ Grouped by state, not priority.
   (`cursor-agent`) as a second agent beside Claude in the flat session pool
   (`<leader>an` agent picker is the single creation door, agent-aware
   naming/fork, pool-wide switch/cycle). UX locked 2026-07-21 (rev. 2026-07-22);
-  implementation not started.
+  implemented 2026-07-22, all manual verification passed — remaining open items
+  (interim `u` handling, hardcoded picker ranking) tracked in the plan.
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.
