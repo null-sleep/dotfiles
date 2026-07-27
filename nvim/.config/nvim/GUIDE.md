@@ -1859,6 +1859,10 @@ active list, **capital walks whole lists** in the stack.
 | Fuzzy-filter + preview entries | `<leader>sq` | `<leader>sl` |
 | Open the list window | `<leader>tq` | `<leader>tl` |
 
+`:grep`/`:lgrep` run ripgrep (`grepprg`, `configs.lua`) — fast, smart-case,
+`.gitignore`-aware — and auto-open the list. Quote a phrase (`:grep 'foo bar'`),
+since a bare second word is read as a path.
+
 All of `]q`/`[q`/`]Q`/`[Q` (and the loclist twins) wrap around at the ends and
 notify on an empty list instead of raising a raw `E42`/`E553`. Entry moves
 take a count like the built-ins they shadow (`3]q` skips three). A stack hop

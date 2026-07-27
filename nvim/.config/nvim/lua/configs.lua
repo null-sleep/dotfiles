@@ -7,6 +7,10 @@ local opt = vim.opt
 opt.number = true                      -- show line numbers; toggle relative with <leader>tn
 opt.ignorecase = true                  -- case-insensitive search...
 opt.smartcase = true                   -- ...unless you type a capital
+-- :grep/:lgrep → ripgrep: fast, .gitignore-aware, and smart-case (matches the
+-- search options above). grepformat parses rg --vimgrep's file:line:col:text.
+opt.grepprg = 'rg --vimgrep --smart-case'
+opt.grepformat = '%f:%l:%c:%m'
 opt.expandtab = true                   -- use spaces instead of tabs
 opt.tabstop = 4                        -- Tab key inserts 4 spaces (default 8)
 opt.shiftwidth = 4                     -- indent by 4 spaces
@@ -77,6 +81,23 @@ _G._checktime_timer:start(2000, 2000, vim.schedule_wrap(function()
     vim.cmd('checktime')
   end
 end))
+
+-- Open the list after :grep/:lgrep, which otherwise fill it invisibly and just
+-- jump to the first match. cwindow/lwindow open only when there are matches;
+-- scoped to grep so :make and other quickfix commands are untouched.
+local grep_group = vim.api.nvim_create_augroup('UserGrepQuickfix', { clear = true })
+vim.api.nvim_create_autocmd('QuickFixCmdPost', {
+  group = grep_group,
+  pattern = { 'grep', 'grepadd' },
+  desc = 'Open the quickfix window after :grep',
+  command = 'cwindow',
+})
+vim.api.nvim_create_autocmd('QuickFixCmdPost', {
+  group = grep_group,
+  pattern = { 'lgrep', 'lgrepadd' },
+  desc = 'Open the location window after :lgrep',
+  command = 'lwindow',
+})
 
 opt.whichwrap:append('<,>,[,],h,l')    -- cursor wraps to next/prev line at end/start
 opt.wrap = true                        -- wrap long lines
