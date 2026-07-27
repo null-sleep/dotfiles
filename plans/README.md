@@ -19,6 +19,14 @@ off or delete them as they land; add new ones freely.
   mangles multi-line copies](#ghostty-copy-on-select-mangles-multi-line-copies)
   below; still unverified whether it's Ghostty-wide or specific to the Claude
   Code pane.
+- [ ] **Adopt zmx for persistent terminal sessions** — nvim terminals and
+  sidekick Claude sessions currently die with nvim, and Ghostty restores layout
+  but not contents; all three are the same root cause (the client owns the PTY).
+  Background, goals, and open questions in
+  [zmx-session-persistence.md](zmx-session-persistence.md) (2026-07-26).
+  Reboot ending every session is accepted and out of scope. Next step is a
+  spec: session naming, lifecycle/reaping, and the Ghostty launch shape — not
+  installing anything yet.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Fuzzy-filter the grep-selection picker (`<leader>ss`) on the whole
@@ -278,6 +286,14 @@ Grouped by state, not priority.
   LunarVim comparison passes + the old TODO wishlist; 2026-07-18 it also
   absorbed the edgy.nvim unified-edgebar research, the sidekick split↔float
   toggle sketch, and keymap-tracker's Track C2/C3 promotion candidates).
+- [zmx-session-persistence.md](zmx-session-persistence.md) — background +
+  motivation (no spec yet, 2026-07-26): adopt [zmx](https://github.com/neurosnap/zmx)
+  so the shell outlives its client — nvim terminals and Claude sessions survive
+  `:qa` and crashes, and Ghostty gets contents back to pair with the layout
+  `window-save-state` already restores. Persistence without a multiplexer; it
+  re-hydrates clients using Ghostty's own extracted VT engine. Carries the
+  Ghostty #1847 status (open 2 years, no maintainer design engagement) so that
+  isn't re-researched.
 - [dap-breakpoint-persistence.md](dap-breakpoint-persistence.md) — research:
   persist nvim-dap breakpoints across restarts (plugin pair vs an ~80-line
   DIY, git-root-keyed); read harpoon2's storage model before deciding.
