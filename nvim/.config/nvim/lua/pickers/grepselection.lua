@@ -7,7 +7,8 @@
 -- newline breaks the parser. `rg --json --multiline` instead emits each
 -- match as one JSON line regardless of span, keeping parsing safe.
 -- --fixed-strings makes the selection literal: no regex escaping, no word
--- boundaries, you find precisely what you selected.
+-- boundaries. --smart-case still applies, so an all-lowercase selection
+-- matches case-insensitively (mirrors snacks' grep defaults).
 
 local M = {}
 
