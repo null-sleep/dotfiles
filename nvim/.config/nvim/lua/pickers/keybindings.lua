@@ -373,6 +373,16 @@ function M.open()
     confirm = function(picker, item)
       picker:close()
       if not item then return end
+      -- Scoped rows (picker/undo/...) aren't real normal-mode maps — feeding
+      -- the chord would run its *global* meaning (<C-l> = move-split, not
+      -- send-to-loclist). Report, don't misfire.
+      if item.scope then
+        vim.notify(
+          ('%s is %s-scoped — it only works inside that context'):format(
+            item.keys, item.scope),
+          vim.log.levels.WARN)
+        return
+      end
       -- The picker closes back into normal mode, so feeding a visual/insert lhs
       -- would run whatever those keys mean in normal mode. Report, don't misfire.
       if not vim.tbl_contains(item.modes, 'n') then

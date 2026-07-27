@@ -289,7 +289,10 @@ looking up (visual `Cmd+C`, insert `jk`). It now walks all six modes.
 
 `<CR>` still executes normal-mode maps only: the picker closes back into normal
 mode, so feeding a visual lhs would silently run whatever those keys mean in
-normal mode. Other modes report where to press them instead.
+normal mode. Other modes report where to press them instead, and so do scoped
+rows (keys confined to a picker/panel) — feeding those chords would run their
+*global* meaning, e.g. `<C-l>` moving to the right split instead of
+send-to-loclist.
 
 Ranking is on typed input alone: it opts out of `picker.lua`'s global frecency
 boost (a keymap you keep picking is one you already know), and mode names stay
