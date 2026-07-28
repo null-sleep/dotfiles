@@ -81,18 +81,12 @@ picker-resume (`Snacks.picker.resume()`, `keymaps.lua`) — use `<leader>sR`.
   GUIDE.md "Quickfix & location lists"); reconsider only if the
   problems-panel/references ask below wins out.
   - https://github.com/folke/trouble.nvim
-- **Unified stacked edgebar** → `edgy.nvim` (folded in from the deleted
-  `unified-sidebar-panel.md`, 2026-07-18; full research in git history)
-  One docked edgebar hosting tree + outline + git + terminal as stacked,
-  collapsible, pinnable sections (`]w`/`[w` navigate the stack). The narrower
-  swap-in-place half (file-tree↔outline mutual exclusion) already shipped as a
-  manual wrapper — see GUIDE.md. Caveat: edgy docks by filetype, and nvim-tree
-  aggressively manages its own window (width, `QuitPre` auto-close) — either
-  relax that and let edgy own layout, or switch to neo-tree (what edgy is
-  documented against; note `telescope-vs-snacks-picker.md` §6 chose to *keep*
-  nvim-tree, so a neo-tree switch reopens that verdict). Open decisions:
-  nvim-tree vs neo-tree; fold the bottom terminal panel into edgy or leave it
-  standalone.
+- **Unified stacked edgebar** → `edgy.nvim` — promoted to its own plan,
+  `plans/edgy-ui-ux.md` (2026-07-27): per-edge UI/UX evaluation with a staged
+  bottom → left → right trial and kill criteria. That doc carries the caveats
+  this entry used to hold (nvim-tree vs neo-tree, filetype routing, the
+  sidekick incumbent). History: folded in here from the deleted
+  `unified-sidebar-panel.md` 2026-07-18; full research in git history.
   - https://github.com/folke/edgy.nvim
 - ✅ **Done: Outline panel** → `stevearc/aerial.nvim` (2026-07-03,
   `lua/outline.lua`; `<leader>o`/`<leader>O`, `]a`/`[a` — see GUIDE.md).

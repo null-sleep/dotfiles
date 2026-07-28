@@ -110,6 +110,12 @@ off or delete them as they land; add new ones freely.
   turned a 65ms backend scan into a ~590ms freeze — do it before enabling mux.
   See "Performance" in
   [sidekick-multi-claude-sessions.md](sidekick-multi-claude-sessions.md).
+- [ ] **Evaluate [edgy.nvim](https://github.com/folke/edgy.nvim) per-edge** —
+  UI/UX evaluation plan in [edgy-ui-ux.md](edgy-ui-ux.md) (2026-07-27):
+  staged bottom → left → right trial, verdict per edge. Start with Stage 0
+  (`splitkeep = "screen"` + a run-output marker filetype), which pays off
+  even if edgy is rejected. Supersedes nvim-backlog.md's one-paragraph
+  "Unified stacked edgebar" entry.
 - [ ] **Evaluate [avante.nvim](https://github.com/yetone/avante.nvim)** — a
   Cursor-style AI plugin (inline suggest + one-click apply, "Zen Mode" agent,
   multi-provider, project `avante.md` instructions). Overlaps sidekick.nvim
@@ -320,6 +326,11 @@ Grouped by state, not priority.
   LunarVim comparison passes + the old TODO wishlist; 2026-07-18 it also
   absorbed the edgy.nvim unified-edgebar research, the sidekick split↔float
   toggle sketch, and keymap-tracker's Track C2/C3 promotion candidates).
+- [edgy-ui-ux.md](edgy-ui-ux.md) — per-edge UI/UX evaluation of edgy.nvim
+  (2026-07-27): what each screen edge gains, the hand-rolled layout code a
+  successful adoption would delete (`buffers.lua` coordinator, QuitPre
+  sidebars-quit, stickybuf, sidekick's edge promotion), staged trial with
+  kill criteria. Expected verdict: bottom likely, left maybe, right no.
 - [zmx-session-persistence.md](zmx-session-persistence.md) — background +
   motivation (no spec yet, 2026-07-26): adopt [zmx](https://github.com/neurosnap/zmx)
   so the shell outlives its client — nvim terminals and Claude sessions survive
