@@ -5,6 +5,7 @@ require('plugins')
 require('picker')              -- snacks.nvim setup: picker (fuzzy finder) + scratch + indent modules
 require('treesitter_context')  -- sticky scope header (VS Code-style sticky scroll)
 require('outline')             -- outline sidebar + nav popup (aerial.nvim)
+require('breadcrumbs')         -- dropbar.nvim: winbar symbol path (<leader>tw) — on trial
 require('quickfix')            -- quicker.nvim: editable, styled quickfix/loclist window
 require('structural_select')   -- Helix-style <M-o>/<M-i> expand/shrink selection
 require('keymaps')

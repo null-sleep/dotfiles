@@ -80,6 +80,7 @@ local keywords = {
   ['<leader>tg'] = 'indent guides scope lines snacks toggle blankline ibl',
   ['<leader>tb'] = 'git blame inline current line toggle gitsigns annotation',
   ['<leader>th'] = 'hover hold auto documentation cursorhold toggle lsp',
+  ['<leader>tw'] = 'breadcrumbs winbar dropbar symbol path zed toggle',
   ['<leader>sd'] = 'document symbols outline current buffer lsp functions',
   ['<leader>uo'] = 'open typora markdown gui external app preview',
   ['<leader>O']  = 'outline nav popup aerial miller columns symbols drill',

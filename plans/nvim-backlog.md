@@ -66,6 +66,11 @@ picker-resume (`Snacks.picker.resume()`, `keymaps.lua`) — use `<leader>sR`.
   navigation. No breadcrumb exists today. Native winbar + LSP/treesitter, low
   cost. Easy win right after grug-far.
   - Tried and removed (2026-07-03): didn't like it in practice.
+  - Retrying (2026-07-28) behind a `<leader>tw` toggle, to A/B in place —
+    `lua/breadcrumbs.lua`, GUIDE.md "Breadcrumbs (dropbar)". Question is
+    whether it earns its row against the treesitter-context sticky header,
+    which shows the same chain; the two stack rather than conflict, costing up
+    to 4 rows off the top of every window. Verdict goes here.
   - https://github.com/Bekaboo/dropbar.nvim
 - **Diagnostics / references panel** → `trouble.nvim`
   Zed's problems panel and "find all references in a multibuffer." Pairs with the

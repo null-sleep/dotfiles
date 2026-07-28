@@ -53,6 +53,9 @@ vim.pack.add(vim.list_extend({
   -- Zed/VS Code-style outline sidebar: collapsible symbol tree for the current
   -- buffer, treesitter-first so it works with no LSP attached.
   { src = gh('stevearc/aerial.nvim') },
+  -- Zed-style winbar breadcrumb (module > Class > method), clickable. On trial —
+  -- setup + toggle in breadcrumbs.lua.
+  { src = gh('Bekaboo/dropbar.nvim') },
   -- Pins special windows (nvim-tree, aerial, toggleterm, neotest, quickfix...)
   -- so a stray :e/buffer-jump can't hijack them and load an unrelated file.
   { src = gh('stevearc/stickybuf.nvim') },

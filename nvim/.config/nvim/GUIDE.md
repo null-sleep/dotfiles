@@ -41,6 +41,7 @@ Requires a Nerd Font for statusline separators and completion icons.
   - [Window/tab title](#window-tab-title)
   - [File Explorer (nvim-tree)](#file-explorer)
   - [Outline (aerial)](#outline-aerial)
+  - [Breadcrumbs (dropbar)](#breadcrumbs-dropbar)
   - [Terminal (toggleterm.nvim)](#terminal)
   - [Scratch buffers (snacks.nvim)](#scratch-buffers)
   - [Indent guides (snacks.nvim)](#indent-guides)
@@ -67,6 +68,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autocmds.lua`** — General editor autocmds not owned by a feature module, all under one `UserAutocmds` augroup: create missing parent dirs on save (skips `scheme://` buffers); restore last cursor position on file open (see [Design Decisions](#design-decisions) → "Cursor-restore rides BufReadPost"); flash yanked text (`vim.hl.on_yank`); map `q` to close transient help/quickfix windows (skips any buffer already binding `q`); quit nvim when only sidebars remain (see [Design Decisions](#design-decisions) → "Quit nvim when only sidebars remain")
 - **`plugins.lua`** — `vim.pack.add` declarations for all plugins (including theme sources from `themes.lua`), orphan plugin detection, treesitter parser management (plus `nvim-treesitter-textobjects`, packadd'd here so sidekick's `{function}`/`{class}` context queries land on the runtimepath — no dedicated config module), render-markdown, autopairs (`check_ts = true`: treesitter-aware, skips pairing inside strings/comments), flatten.nvim (nested-nvim routing — see Design Decisions)
 - **`treesitter_context.lua`** — nvim-treesitter-context: sticky scope header (VS Code-style sticky scroll) — pins the enclosing function/class/if/loop signature to the top of every visible window while scrolling (`multiwindow`, so a split keeps its header while focus is elsewhere). No keymaps; passive display feature
+- **`breadcrumbs.lua`** — dropbar.nvim: Zed-style winbar breadcrumb (`module > Class > method`), each crumb clickable into a dropdown menu. `<leader>tw` toggles it. **On trial** — see [Breadcrumbs (dropbar)](#breadcrumbs-dropbar)
 - **`keymaps.lua`** — Global keymaps: pickers (`<leader>s*`, `<leader><leader>` smart, snacks), clipboard-aware yank, split navigation, buffer navigation (`H`/`L`/`gb`/`<leader>m`/`<leader>bb`/`<leader>bo`), visual indent, diagnostic toggle, yank helpers (`yp`, `yc`, `yu`, etc.)
 - **`edit.lua`** — Editing utilities consumed by keymaps.lua (required from there, not init.lua — no Load-order entry): strip-trailing-whitespace (`<leader>us`, `:StripWS`) and pasted-terminal-text reflow (`<leader>uc`, `:CleanPaste`)
 - **`outline.lua`** — aerial.nvim symbol-outline setup: docked sidebar (`<leader>o`) and floating nav popup (`<leader>O`) with code preview; buffer-local `]a`/`[a` symbol nav (no aerial picker keymap — `<leader>sd` covers picker-style symbol search)
@@ -161,7 +163,7 @@ headless / under claude-nvim.
 ### Load order
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
-outline -> quickfix -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
+outline -> breadcrumbs -> quickfix -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
 golang -> testing -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> grugfar -> titling -> whichkey -> autosave -> filetree ->
 animations -> neovide -> cleanup.
@@ -760,6 +762,7 @@ get you there, plus the *defined in* file for a quick source jump.
 | `<leader>p*`, `gd`/`gD`/`gy`/`gri`/`grr`/`gai`/`gao` | LSP goto / peek floats / call hierarchy | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>ca`/`ce`/`cd`, `K`, `<C-s>` | LSP hover / actions / diagnostics | lsp.lua | [LSP](#lsp) → Keymaps |
 | `<leader>o`/`O`, `]a`/`[a`, `zh` | Symbol outline (aerial) | outline.lua | [Outline (aerial)](#outline-aerial) |
+| `<leader>tw` | Winbar breadcrumb toggle (dropbar) | breadcrumbs.lua | [Breadcrumbs (dropbar)](#breadcrumbs-dropbar) |
 | `<leader>h*` | Git hunk stage/reset/blame | git.lua | [Git (Neogit)](#git-neogit) → Which git tool to use |
 | `<leader>G*` | Neogit popups | gitui.lua | [Git (Neogit)](#git-neogit) → Opening it |
 | `<leader>v*` | Diffview entry points | gitui.lua | [Reviewing diffs](#reviewing-diffs) → Command reference |
@@ -2240,6 +2243,46 @@ left-edge sidebar is ever open at a time. Pressed from inside the aerial
 sidebar itself, `<leader>o`/`<leader>O` just close it (normal toggle-off). See
 [Design Decisions](#design-decisions) → "Non-code buffer exceptions need a
 shared predicate" and "Left-edge sidebars swap into each other".
+
+
+<a id="breadcrumbs-dropbar"></a>
+## Breadcrumbs (dropbar)
+
+**On trial (2026-07-28)**, a first attempt having been reverted on 2026-07-03
+("didn't like it in practice") — hence the toggle. Verdict goes in
+`plans/nvim-backlog.md`.
+
+dropbar.nvim (`breadcrumbs.lua`) puts a Zed-style symbol path in the winbar —
+`plans > nvim-backlog.md > VS Code > Other gaps` — each crumb clickable into a
+dropdown of its siblings. The path portion is cwd-relative.
+
+| Key | Action |
+|---|---|
+| `<leader>tw` | Toggle the breadcrumb on/off (all windows) |
+
+`tw` for *winbar*; `<leader>tb` is gitsigns' inline blame.
+
+### It stacks with the sticky header, it doesn't fight it
+
+`treesitter_context.lua` pins the same chain as a float, and nvim positions a
+`relative='win'` float *below* the winbar — so they stack, never overlap. They
+compete only for vertical space: up to 4 rows off the top (1 winbar +
+`max_lines = 3`), and every visible window pays it, since that module runs
+`multiwindow`. Dropping `max_lines` to 1 makes them complementary (dropbar for
+the path, the header for the immediate scope) if the duplication grates.
+
+### Excluded buffers
+
+dropbar's default enables terminal buffers, which would put a path on the
+sidekick CLI panel; `breadcrumbs.lua` wraps it with
+`require('buffers').is_special(buf)` — see [Design
+Decisions](#design-decisions) → "Non-code buffer exceptions need a shared
+predicate". Everything else follows dropbar's stock logic, including its 1 MB
+size cutoff.
+
+Toggling off clears the winbar by hand, since dropbar's `attach()` only ever
+*sets* it; the toggle matches dropbar's exact winbar string, so it can't clobber
+one something else installed.
 
 
 <a id="terminal"></a>

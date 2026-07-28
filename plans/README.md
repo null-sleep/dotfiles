@@ -27,6 +27,24 @@ off or delete them as they land; add new ones freely.
   Reboot ending every session is accepted and out of scope. Next step is a
   spec: session naming, lifecycle/reaping, and the Ghostty launch shape — not
   installing anything yet.
+- [ ] **Evaluate the dropbar breadcrumb, and tune what it shows per filetype** —
+  on trial 2026-07-28 behind `<leader>tw` (2nd attempt; first reverted
+  2026-07-03). Two decisions, in order:
+  1. *Does it earn its row?* It duplicates the treesitter-context sticky
+     header's scope chain; the two stack, but cost up to 4 rows off the top of
+     **every** window (1 winbar + `max_lines = 3`, multiwindow). If the
+     duplication is the problem rather than dropbar itself, try `max_lines = 1`
+     before dropping either.
+  2. *If it stays, tune the contents.* `bar.sources` is already a
+     `fun(buf, win)` upstream, so per-filetype content is a supported hook —
+     stock is `path + markdown` / `terminal` / `path + (lsp || treesitter)`.
+     Knobs: drop `path` where the statusline already shows the filename;
+     `sources.path.max_depth` (16); `sources.lsp.valid_symbols` and
+     `sources.treesitter.valid_types` to cut noisy kinds down to the
+     `module > Class > method` spine; `bar.truncate`.
+  Verdict → [nvim-backlog.md](nvim-backlog.md)'s dropbar entry; setup in
+  `nvim/.config/nvim/lua/breadcrumbs.lua`, prose in [GUIDE.md → Breadcrumbs
+  (dropbar)](../nvim/.config/nvim/GUIDE.md#breadcrumbs-dropbar).
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Fuzzy-filter the grep-selection picker (`<leader>ss`) on the whole
