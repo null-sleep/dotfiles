@@ -177,6 +177,10 @@ document is confusing when tables sit side by side.
 
 ### Other recurring conventions this config follows
 
+- **Run output routes through `utils.split_terminal_action`** — any new
+  language's `<leader>cR`/`<leader>co` shows its output via this helper,
+  never its own float or split (`rust.lua` and `pickers/gotargets.lua` are
+  the reference callers).
 - **Topic files avoid shadowing a plugin's own Lua module name** — e.g.
   `gitui.lua` (not `neogit.lua`, since Neogit's own module is `neogit`),
   `outline.lua` (not `aerial.lua`), `debugging.lua` (not `dap.lua`),

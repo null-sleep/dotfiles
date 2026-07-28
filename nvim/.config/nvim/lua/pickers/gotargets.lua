@@ -17,9 +17,6 @@ local common = require('pickers.common')
 
 local M = {}
 
--- Fixed float-terminal id for `go run` output (see run_target for why).
-local RUN_TERM_ID = 101
-
 -- Most recent { item, root } sent to `run`, so <leader>co (M.rerun_last) can
 -- re-run it without the picker.
 local last_run
@@ -66,30 +63,15 @@ local function debug_target(item, root)
   }, { filetype = 'go' })
 end
 
--- Fixed high id, same convention as terminal.lua's bottom panel (id = 100):
--- without an explicit id, toggleterm hands out the lowest free integer, so
--- this terminal would collide with the 1-99 pool reserved for
--- count-addressable floats (2<C-\>, 3<C-\>) — and its id would shift between
--- runs, since shutdown() frees it again. That is ALL the id buys: the
--- <C-]> cycle filters on `hidden`, not id, so this (non-hidden) terminal
--- stays in the cycle — deliberately; cycling back to the program's output is
--- useful. Shutdown-then-recreate-then-toggle (and never killing a still-live
--- run on re-press) is shared with rust.lua's clippy-fix terminal — see
--- utils.lua's float_terminal_action.
-local run_target = require('utils').float_terminal_action(RUN_TERM_ID, function(item, root)
+-- Run output: a bottom-split terminal buffer via utils.split_terminal_action,
+-- shared with rust.lua's runnables. `q` hides it; output survives exit. A
+-- still-live run (say, a server) is re-shown, never killed — a new selection
+-- notifies instead of launching.
+local run_target = require('utils').split_terminal_action(function(item, root)
   -- `go run <import-path>` from the module root reaches any main package in the
   -- module, from any buffer — which is exactly what a hand-rolled `go run .`
   -- could not do (plans/go-run-debug-test.md, Alternatives).
-  -- close_on_exit = false so output survives exit; `q`/<C-\> dismiss the float.
-  return {
-    cmd = 'go run ' .. vim.fn.shellescape(item.importpath),
-    dir = root,
-    close_on_exit = false,
-    on_open = function(t)
-      vim.keymap.set('n', 'q', function() t:close() end,
-        { buffer = t.bufnr, nowait = true, desc = 'Hide Go run output' })
-    end,
-  }
+  return { cmd = 'go run ' .. vim.fn.shellescape(item.importpath), dir = root }
 end)
 
 --- @param mode 'debug'|'run'
@@ -213,7 +195,7 @@ function M.open(mode)
     confirm = function(picker, item)
       picker:close()
       if not item then return end
-      -- Close first, then launch on the next tick: dap-ui / toggleterm both
+      -- Close first, then launch on the next tick: dap-ui / the run split both
       -- open windows, and doing that while the picker's floats are still up
       -- lands the new window in the wrong place (same close-then-schedule dance
       -- snacks' own ui_select uses, picker/select.lua:56-63).

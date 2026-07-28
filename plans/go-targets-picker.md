@@ -5,8 +5,9 @@
 > `<leader>dR` debugs and `<leader>cR` runs any `main` package in the module,
 > from any buffer. Two review findings changed the shipped code from the sketch
 > below: the run terminal takes a fixed `id = 101` (an unset id lands in
-> `terminal.lua`'s reserved 1-99 count-addressable pool), and the abort handler
-> is registered *before* the spawn is scheduled. Kept as the decision record —
+> `terminal.lua`'s reserved 1-99 count-addressable pool; since 2026-07-27 run
+> output is a bottom-split buffer via `utils.split_terminal_action`, no id),
+> and the abort handler is registered *before* the spawn is scheduled. Kept as the decision record —
 > the `go list -e` exit-code trap and delve's `program`-must-be-a-folder contract
 > are the parts worth re-reading before touching this code.
 > A post-ship review (2026-07-13) upheld the design but recorded five
@@ -255,6 +256,8 @@ git history.
 
 Shipped as specced: same picker, `<leader>cR` confirm runs `go run` in a
 toggleterm split instead of launching delve. Full rationale in git history.
+(Since 2026-07-27 output goes to a bottom-split buffer via
+`utils.split_terminal_action`; picker and targeting unchanged.)
 
 <a id="decision-main-only"></a>
 ### 3. Main packages only — tests stay with neotest
@@ -395,15 +398,18 @@ macOS) with `cmd/foo`, `cmd/bar`, and an `internal/util` library + test.
   bypass all of it by calling `run()` directly, which is why `{ filetype = 'go' }`
   is passed explicitly. If stepping into a frame with no source path ever
   highlights as the wrong language, this is the knob.
-- **toggleterm float reuse.** `run_term:shutdown()` on a second run kills a still-
-  running program without asking. That is the intended edit-run loop behavior
-  (and matches how most run integrations behave), but it means `<leader>cR` twice
-  in a row silently drops the first process. If that bites, switch to a
-  count-addressed terminal id instead of a single shared one. **As shipped**, the
-  run terminal took a fixed `id = 101` — but per **finding 4** (see [Open
-  items](#open-items)) that id does *not* keep it out of the `<C-]>` cycle
-  (`cycle_term` filters on `hidden`, not id range); the in-code comment about the
-  id/`<C-]>` relationship is wrong and needs either a reword or `hidden = true`.
+- **toggleterm float reuse.** [Stale: the shipped code soon grew a no-kill
+  guard (a second `<leader>cR` re-shows a live run), and since 2026-07-27 run
+  output doesn't use toggleterm at all.] `run_term:shutdown()` on a second run kills
+  a still-running program without asking. That is the intended edit-run loop
+  behavior (and matches how most run integrations behave), but it means
+  `<leader>cR` twice in a row silently drops the first process. If that bites,
+  switch to a count-addressed terminal id instead of a single shared one. **As
+  shipped**, the run terminal took a fixed `id = 101` — but per **finding 4**
+  (see [Open items](#open-items)) that id does *not* keep it out of the `<C-]>`
+  cycle (`cycle_term` filters on `hidden`, not id range); the in-code comment
+  about the id/`<C-]>` relationship is wrong and needs either a reword or
+  `hidden = true`.
 - **The `format` icon** (`󰟓`, nf-md-language_go) assumes a Nerd Font, which this
   config already requires everywhere (`pickers/symbols.lua:110-138` does the
   same). Fine, but don't put it in a GUIDE table cell — the repo `CLAUDE.md`'s

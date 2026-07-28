@@ -52,7 +52,7 @@ vim.api.nvim_create_autocmd('FileType', {
     end
     map('<leader>cR', function() require('pickers.gotargets').open('run') end,
       'Go: Runnables (run)')
-    -- Re-run the last target in the float, no picker (mirrors Rust's <leader>co).
+    -- Re-run the last target in the split, no picker (mirrors Rust's <leader>co).
     -- See GUIDE.md "Run output can't be re-shown, only re-run".
     map('<leader>co', function() require('pickers.gotargets').rerun_last() end,
       'Go: Re-run last target (no picker)')

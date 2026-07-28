@@ -9,21 +9,16 @@
 -- eager plugin/ dir), so setting it first is the safe, self-consistent order. The
 -- one hard rule from the docs is: never set it from after/ftplugin/rust.lua.
 
--- `cargo run` output float for runnables — same fixed-id toggleterm pattern as
--- Go's <leader>cR (gotargets.lua, id 101; ids 100/101/102 are the reserved
--- pool, see terminal.lua). `q`/<C-\> dismiss it. `require`s are inside the
--- builder: it runs at runnable time, after the packadd below puts rustaceanvim
--- (an opt package) on the runtimepath.
-local RUN_TERM_ID = 102
-local run_output = require('utils').float_terminal_action(RUN_TERM_ID, function(command, args, cwd, opts)
+-- `cargo run` output for runnables — a bottom-split terminal buffer via
+-- utils.split_terminal_action, shared with Go's <leader>cR (gotargets.lua).
+-- `q` hides it. `require`s are inside the builder: it runs at runnable time,
+-- after the packadd below puts rustaceanvim (an opt package) on the
+-- runtimepath.
+local run_output = require('utils').split_terminal_action(function(command, args, cwd, opts)
   return {
     cmd = require('rustaceanvim.shell').make_command_from_args(command, args),
     dir = cwd,
     env = opts and opts.env,
-    on_open = function(t)
-      vim.keymap.set('n', 'q', function() t:close() end,
-        { buffer = t.bufnr, nowait = true, desc = 'Hide Rust run output' })
-    end,
   }
 end)
 
@@ -72,9 +67,9 @@ vim.g.rustaceanvim = {
     end,
   },
   tools = {
-    -- Route <leader>cR runnables to the float above instead of the default
-    -- bottom split. test_executor stays at its default (neotest), so `cargo
-    -- test` runnables still go to the test UI, not this float.
+    -- Route <leader>cR runnables to the bottom-split buffer above instead of
+    -- the default executor. test_executor stays at its default (neotest), so
+    -- `cargo test` runnables still go to the test UI, not this split.
     executor = { execute_command = run_output },
   },
   -- dap = {} accepts rustaceanvim's default adapter, which auto-detects Mason's
@@ -236,11 +231,10 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'TermClose', 'TermLeave' }, {
 -- in one shot (rustc's Applicability::MachineApplicable set — ambiguous/
 -- semantics-changing suggestions are skipped, same as running it by hand).
 -- See plans/rustrover-nvim-parity.md §1. Fixed id 102 (see utils.lua's
--- float_terminal_action — same convention as terminal.lua (100) /
--- gotargets.lua's run terminal (101)); it also guarantees a re-press never
--- kills a fix still in progress, which matters here since --fix rewrites
--- source files on disk (unlike gotargets.lua's `go run`, which has no
--- on-disk side effects to corrupt).
+-- float_terminal_action — same high-id convention as terminal.lua's bottom
+-- panel, id 100); the helper also guarantees a re-press never kills a fix
+-- still in progress, which matters here since --fix rewrites source files
+-- on disk.
 local clippy_fix_action = require('utils').float_terminal_action(102, function()
   local root = vim.fs.root(0, { 'Cargo.toml' })
   if not root then
@@ -276,9 +270,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('<leader>cp', function() require('actions-preview').code_actions() end,
       'Rust: Code action preview (diff, ungrouped)')
     map('<leader>cR', function() vim.cmd.RustLsp('runnables') end,            'Rust: Runnables (run)')
-    -- Re-run the last runnable in the float, no picker (bang = execute_last_-
+    -- Re-run the last runnable in the split, no picker (bang = execute_last_-
     -- runnable; falls back to the picker if nothing's run yet). Re-run, not
-    -- re-show — a dismissed run's buffer is gone.
+    -- re-show — a dismissed finished run's buffer is gone.
     -- See GUIDE.md "Run output can't be re-shown, only re-run".
     map('<leader>co', function() vim.cmd('RustLsp! run') end,
       'Rust: Re-run last runnable (no picker)')

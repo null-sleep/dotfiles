@@ -512,6 +512,13 @@ callers — so the line above is the only ordering constraint added.
 
 ### 6. NEW `lua/runner.lua` — the shared run-output float
 
+> **Stale as of 2026-07-27:** run output now goes through
+> `utils.split_terminal_action` (a bottom-split scratch terminal buffer,
+> per-caller, collision-free). A Python `<leader>cR` should call that helper;
+> this section's `runner.lua` extraction is obsolete, as is every other
+> `runner.lua`/id-101 mention in this plan (change table, commit sequence,
+> stage-3 checklist).
+
 `pickers/gotargets.lua:62-89` owns a toggleterm float at the fixed id `101`, in a
 module-local `run_term` handle, shut down before each new run. Python's
 `<leader>cR` needs the same, and **two modules each calling

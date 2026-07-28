@@ -50,38 +50,27 @@ end
 -- `id` must be a fixed high id, per terminal.lua's convention: numbers
 -- 1-99 are reserved for count-addressable float terminals (2<C-\>, 3<C-\>),
 -- so anything reused across invocations needs a high, stable id of its own.
--- `get_spec(...)` is called fresh on every run that actually needs one (not
+-- `get_spec()` is called fresh on every run that actually needs one (not
 -- while a previous run is still live) and must return a toggleterm Terminal
 -- spec table (cmd/dir/etc.), or nil to abort (e.g. no project root found).
--- Any extra args passed to the returned action are forwarded to get_spec —
--- gotargets.lua's picker needs this to pass the just-selected item/root in.
 --
 -- Why the running-job check: naively shutdown()-ing on every call kills
--- whatever is still running in the terminal. Harmless for `go run` (no
--- on-disk side effects), but genuinely dangerous for something like
--- `cargo clippy --fix`, which rewrites source files on disk — an abrupt
--- kill mid-write can leave a file partially rewritten.
+-- whatever is still running in the terminal — genuinely dangerous for the
+-- sole caller, rust.lua's `cargo clippy --fix` (<leader>cF), which rewrites
+-- source files on disk; an abrupt kill mid-write can leave a file partially
+-- rewritten. Run output uses split_terminal_action below instead.
 ---@param id integer
----@param get_spec fun(...): table?
----@return fun(...)
+---@param get_spec fun(): table?
+---@return fun()
 function M.float_terminal_action(id, get_spec)
   local term
-  return function(...)
+  return function()
     if term and term.job_id and vim.fn.jobwait({ term.job_id }, 0)[1] == -1 then
-      -- Args present = the caller passed a fresh selection (gotargets' picker),
-      -- which is being dropped in favor of the live run — say so, or the keymap
-      -- reads as broken. Argless = a bare keymap re-press (clippy's <leader>cF;
-      -- Neovim invokes keymap callbacks with no args), where toggling
-      -- visibility is the whole point — stay silent. If a future caller
-      -- doesn't fit this split, don't overload arg-count further.
-      if select('#', ...) > 0 then
-        vim.notify('Previous run still live — showing it instead; exit it to start a new run',
-          vim.log.levels.INFO)
-      end
+      -- Still running: a re-press just toggles visibility.
       term:toggle()
       return
     end
-    local spec = get_spec(...)
+    local spec = get_spec()
     if not spec then
       return
     end
@@ -96,6 +85,64 @@ function M.float_terminal_action(id, get_spec)
     end
     term = Terminal:new(spec)
     term:toggle()
+  end
+end
+
+-- Build an action that runs a shell command in a scratch terminal buffer
+-- shown in a full-width bottom split — the shared run-output surface for
+-- <leader>cR/<leader>co (rust.lua, pickers/gotargets.lua).
+--
+-- A still-live run is never killed: invoking again re-shows its buffer
+-- (re-split if `q` hid it). A finished run's buffer is replaced on the next
+-- invocation. Extra args to the returned action are forwarded to get_spec —
+-- gotargets' picker passes the selected item/root in.
+---@param get_spec fun(...): { cmd: string|string[], dir?: string, env?: table }? nil aborts (e.g. no project root)
+---@return fun(...)
+function M.split_terminal_action(get_spec)
+  local buf, job
+  local function open_split(b)
+    vim.api.nvim_open_win(b, true, {
+      split = 'below',
+      win = -1, -- editor-level (full-width) split, not a split of the current window
+      height = math.floor(vim.o.lines * 0.3), -- same height as terminal.lua's bottom panel
+    })
+  end
+  return function(...)
+    -- Re-show, never kill. The buf check keeps a force-wiped buffer (whose
+    -- job hasn't been reaped yet) from blocking a fresh run.
+    if job and vim.fn.jobwait({ job }, 0)[1] == -1
+        and buf and vim.api.nvim_buf_is_valid(buf) then
+      vim.notify('Previous run still live — showing it instead; exit it to start a new run',
+        vim.log.levels.INFO)
+      local win = vim.fn.bufwinid(buf)
+      if win == -1 then
+        open_split(buf)
+      else
+        vim.api.nvim_set_current_win(win)
+      end
+      return
+    end
+    local spec = get_spec(...)
+    if not spec then
+      return
+    end
+    -- jobstart() throws on a missing cwd — check before destroying the
+    -- previous output.
+    if spec.dir and not vim.uv.fs_stat(spec.dir) then
+      vim.notify('Run directory no longer exists: ' .. spec.dir, vim.log.levels.ERROR)
+      return
+    end
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end
+    buf = vim.api.nvim_create_buf(false, true) -- scratch: unlisted, bufhidden=hide
+    open_split(buf)
+    -- term = true runs the job in the current buffer (the scratch buffer
+    -- open_split just entered); output survives job exit.
+    job = vim.fn.jobstart(spec.cmd, { term = true, cwd = spec.dir, env = spec.env })
+    -- pcall: close() errors if this is somehow the last window.
+    vim.keymap.set('n', 'q', function() pcall(vim.cmd.close) end,
+      { buffer = buf, nowait = true, desc = 'Hide run output' })
   end
 end
 

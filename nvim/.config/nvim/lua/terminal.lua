@@ -64,7 +64,7 @@ end
 
 -- Open a new auto-numbered terminal: lowest free id in the 1-99 pool.
 -- Capped at 99 so an exhausted pool never climbs into the bottom panel's
--- id (100) or the go-run/clippy-fix floats' ids (101/102).
+-- id (100) or the clippy-fix float's id (102).
 local function new_term()
   local used = {}
   for _, t in ipairs(require('toggleterm.terminal').get_all(true)) do used[t.id] = true end
@@ -75,9 +75,9 @@ end
 
 -- <M-l>: indexed_select picker (pickers/common.lua) over the float pool.
 -- get_all() (no arg) skips only terminals created with hidden = true — here
--- just the bottom panel (id 100). The go-run/clippy-fix/rust-run floats
--- (ids 101/102) are NOT hidden, so they DO appear in this picker, on purpose:
--- jumping back to a run's output is useful (see gotargets.lua's id comment).
+-- just the bottom panel (id 100). The clippy-fix float (id 102, rust.lua) is
+-- NOT hidden, so it DOES appear in this picker, on purpose: jumping back to
+-- its output is useful. (Run output is a plain split buffer, never here.)
 -- <CR>/<M-1>..<M-9> jump; <C-x> kills (process + buffer).
 local function select_term()
   local terminal = require('toggleterm.terminal')
@@ -184,10 +184,11 @@ function toggle_bottom_term()
   term:open(math.floor(vim.o.lines * 0.3))
 end
 
--- Terminal-mode keymaps — only for toggleterm buffers (not sidekick CLI).
+-- Terminal-mode keymaps — for every terminal buffer (not sidekick CLI):
+-- nav/escape apply to all, the float-pool keys only to pool floats.
 -- NOTE: cycling is M-based because a C-based pair can't work — <C-[> is the
--- same keycode as <Esc>. Wraps around; the bottom panel opts out (id == 100
--- guard below).
+-- same keycode as <Esc>. Wraps around; the bottom panel and non-toggleterm
+-- terminals opt out (toggle_number guard below).
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('UserTermKeymaps', { clear = true }),
   desc = 'Terminal keymaps: Esc, split navigation, terminal cycling/switching',
@@ -196,11 +197,12 @@ vim.api.nvim_create_autocmd('TermOpen', {
     if vim.bo.filetype == 'sidekick_terminal' then return end
     utils.term_nav_keymaps(0, { esc = true }) -- <Esc>/jj/jk exit, <C-h/j/k/l> nav
     -- Cycle/new/select are float-pool concepts — skip them in the bottom
-    -- panel (id 100), which is deliberately a single dedicated terminal, not
-    -- a member of the pool. Without this guard, <C-]> inside the panel would
-    -- find no matching id in cycle_term's terms list (get_all() excludes
-    -- hidden terminals) and swap two unrelated background floats instead.
-    if vim.b.toggle_number ~= 100 then
+    -- panel (id 100, deliberately a single dedicated terminal) and in
+    -- non-toggleterm terminals (toggle_number nil — e.g. the run-output
+    -- split). Without this guard, <M-]> in either would find no matching id
+    -- in cycle_term's terms list (get_all() excludes hidden terminals) and
+    -- swap two unrelated background floats instead.
+    if vim.b.toggle_number and vim.b.toggle_number ~= 100 then
       -- Mirror the sidekick CLI's session keys (ai.lua) for muscle-memory
       -- symmetry; each set is buffer-local to its own terminal kind.
       vim.keymap.set({ 't', 'n' }, '<M-]>', function() cycle_term(1)  end, { buffer = 0, desc = 'Terminal: Next float' })

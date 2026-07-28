@@ -496,25 +496,23 @@ GUIDE.md "Large files".
   float (sidekick disables it there); the pre-warm flow is already
   float-compatible.
 
-- **Run-output as an IDE-style bottom panel (alt to the float)** — 2026-07-21.
-  Rust and Go `<leader>cR` both run in a toggleterm **float** (`rust.lua` id
-  102, `gotargets.lua` id 101, via `utils.float_terminal_action`). A persistent
-  **bottom panel** (VS Code / JetBrains model) is the alternative if the
-  centered float starts feeling like it covers the code. Sketch: a fixed-id
-  *horizontal* toggleterm (same shape as `terminal.lua`'s id-100 panel); route
-  both `get_spec`s through it via `direction = 'horizontal'`. Cleanest as a
-  shared `float` vs `bottom` knob rather than hardcoding. Not pursued; revisit
-  if the overlay proves annoying.
+- ✅ **Run-output as an IDE-style bottom panel (alt to the float)** —
+  2026-07-21; shipped 2026-07-27 as `utils.split_terminal_action`: a scratch
+  terminal buffer in an editor-level bottom split, used by both `rust.lua`
+  and `gotargets.lua` (run output is read, not interacted with, so no modal
+  overlay). `float_terminal_action` remains for clippy-fix only; this also
+  dissolved an id collision (the run and clippy-fix floats both claimed
+  id 102).
 
 - **Persistent, re-showable run output (snapshot to a scratch buffer)** —
-  2026-07-21. `<leader>co` re-*runs* rather than re-*shows*, because a dismissed
-  float buffer is wiped by Neovim's C-level window-close teardown (root-cause in
-  GUIDE.md → Design Decisions → "Run output can't be re-shown, only re-run").
-  For true peek-after-dismiss, snapshot the run's lines into a scratch buffer we
-  own (`nvim_buf_get_lines` on `TermClose` → `buftype=nofile`/`bufhidden=hide`;
-  `<leader>co` floats *that*). Costs: plain text (no ANSI colour), frozen at
-  exit, extra buffer per id. Not worth it for quick runs where re-running is
-  instant; revisit if a slow/expensive run makes re-execution costly.
+  2026-07-21. `<leader>co` re-*runs* rather than re-*shows*: a dismissed
+  *finished* run's terminal buffer is wiped by Neovim's window-close teardown
+  (GUIDE.md → Design Decisions → "Run output can't be re-shown, only re-run";
+  a still-live run IS re-shown). For true peek-after-dismiss, snapshot the
+  run's lines into a scratch buffer we own (`nvim_buf_get_lines` on
+  `TermClose`; `<leader>co` shows *that*). Costs: plain text (no ANSI
+  colour), frozen at exit. Not worth it while re-running is instant; revisit
+  if a slow run makes re-execution costly.
 
 ## Learning / practice notes
 

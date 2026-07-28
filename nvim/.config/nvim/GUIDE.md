@@ -82,7 +82,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
 - **`debugging.lua`** — nvim-dap + nvim-dap-ui + nvim-dap-virtual-text + nvim-nio: debug engine and docked UI (auto-opens/closes with the session), inline variable values during a session, breakpoint signs, `<leader>d*` + `<F5>`/`<F9>`–`<F12>` keymaps. Owns only the generic engine, UI, signs, and keymaps — no language's adapter lives here; Rust's comes from rustaceanvim (`rust.lua`), Go's from nvim-dap-go (`golang.lua`). Named to avoid shadowing `require('dap')` / `require('debug')`
 - **`golang.lua`** — Go's language module, the mirror of `rust.lua`: pcall-guarded `nvim-dap-go` setup (the delve adapter + seven `dap.configurations.go` launch configs) plus buffer-local `FileType go` keymaps (`<leader>dR` debug targets, `<leader>cR` run targets). Named `golang.lua`, not `go.lua` — `require('go')` is ray-x/go.nvim's own module name, so taking it would shadow that plugin (same rule as `debugging.lua`-not-`dap.lua`)
-- **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a toggleterm float
+- **`pickers/gotargets.lua`** — custom snacks picker: an async `go list -e` enumerates the current module's `main` packages, then confirm either launches the picked one under delve (`dap.run`) or `go run`s it in a bottom-split terminal buffer (`utils.split_terminal_action`)
 - **`testing.lua`** — neotest (extensible framework): test runner UI. Rust via rustaceanvim's adapter, Go via neotest-golang (gotestsum runner); `<leader>n*` keymaps (run nearest/file/last, debug nearest, summary, output)
 - **`format.lua`** — conform.nvim: per-filetype formatter chains, format-on-save toggle (`<leader>tf`), manual format (`<leader>cf`)
 - **`linting.lua`** — nvim-lint: CLI linters that catch what the LSP servers don't (ruff, golangci-lint, credo, yamllint, checkmake), run on save/read; lint-on-save toggle (`<leader>tL`), manual lint (`<leader>cl`). Named `linting.lua`, not `lint.lua` — the plugin's own module is `lint`
@@ -91,7 +91,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`git.lua`** — gitsigns: hunk signs, hunk navigation (`]c`/`[c`), staging/reset/blame keymaps (`<leader>h*`); satellite.nvim scrollbar with git/diagnostic/search marks; FileType autocmd for `gitcommit`/`gitrebase` adds `<leader>w` (confirm) and `<leader>x` (abort)
 - **`gitui.lua`** — Neogit (Magit-style git dashboard) + diffview.nvim: on-demand status buffer, shell-aligned `<leader>G*` popups, `kind='tab'`, signs disabled (gitsigns owns the gutter). Named `gitui` not `neogit` to avoid shadowing the plugin's own `neogit` Lua module
 - **`filetree.lua`** — nvim-tree: sidebar file tree with git status, LSP diagnostics, modified indicators, trash-on-delete; custom `on_attach` adds `l`/`h` navigation; `<leader>e` toggles tree and reveals current file. Also wires nvim-lsp-file-operations (event half — subscribes to nvim-tree's rename/move/delete events so in-tree renames rewrite imports; capability half in `lsp.lua`). (The "quit nvim when only sidebars remain" autocmd used to live here nvim-tree-only; it's now generalized to all sidebars in `autocmds.lua`.)
-- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (toggleterm only, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; float-only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
+- **`terminal.lua`** — toggleterm.nvim: floating terminal (85% of window), `<C-\>` toggle from any mode; VS Code-style bottom panel (dedicated horizontal terminal, `<C-/>` / `<C-_>`, pre-warmed, hides from within, deliberately a single instance with no cycle/new/select keys); TermOpen autocmd (every terminal buffer, skips sidekick) sets terminal-mode keymaps (`<Esc>` exits to normal, `<C-h/j/k/l>` navigate splits; pool floats only: `<M-]>`/`<M-[>` cycle floats, `<M-n>` new auto-numbered float, `<M-l>` indexed terminal picker)
 - **`scratch.lua`** — Keymaps for the snacks.nvim scratch module: floating, persistent scratchpad keyed by cwd/branch/count (`<leader>bs` toggle, `<leader>bS` select/list). Module options live in `picker.lua`'s shared snacks setup
 - **`grugfar.lua`** — grug-far.nvim setup + the `<leader>sR` (`n`+`x`) entry key for interactive project-wide find & replace (the editable counterpart to the read-only snacks grep pickers). Lazy-loads the plugin (`packadd` + `setup()`) on first press, keeping only the keymap eager; close remapped to `q`, in-buffer editing on `<localleader>` (`\`). See the [grug-far](#grug-far) section. Named `grugfar` (no hyphen) to avoid shadowing the plugin's own `grug-far` Lua module
 - **`picker.lua`** — snacks.nvim setup (the single `require('snacks').setup()` call): `picker` module global config (flex-parity layout flipping at 160 columns, frecency ranking, left-truncated + width-capped file paths + full path in the preview border — see [Path display](#picker-path-display), custom `<CR>` confirm that scrolls the cursor ~20% from the top, `<C-CR>` send-to-sidekick action, `<C-y>` copy-path action, `<Esc>` one-press cancel, `<C-h>` help alias, hidden-files/`node_modules` source opts) plus the `scratch` and `indent` module options (keymaps for those stay in `scratch.lua`/`keymaps.lua`)
@@ -108,7 +108,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/theme.lua`** — Custom snacks picker for live theme preview with restore-on-cancel
 - **`pickers/qfhistory.lua`** — snacks picker over the quickfix / location-list history stack (`<leader>sQ` / `<leader>sL`): lists all N remembered lists (title + size, current marked `●`) and activates the chosen one via `:{nr}chistory` / `:{nr}lhistory`; built on `common.indexed_select`, captures the origin window so the window-local loclist opens in the right place. Lazy-required
 - **`spell.lua`** — Spell helpers: `add_word()` wraps `zg` to skip duplicates before appending to the personal dictionary
-- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ax`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — reusable run-in-a-floating-terminal keymap action shared by `rust.lua`'s clippy-fix and `pickers/gotargets.lua`'s Go run terminal (toggles an already-running job instead of killing it, and notifies when that drops a fresh picker selection)
+- **`utils.lua`** — `gh()` URL builder, async nvim update check via Homebrew, `is_tmp_path()` — shared throwaway-directory test used by `session.lua` (don't save a session there) and `cleanup.lua` (sweep the ones already saved), `confirm()` floating yes/no popup for destructive keymaps (`<leader>qq`/`<leader>ax`; single-keypress `y` confirms, anything else — `n`/`q`/`<Esc>`/`<CR>`/losing focus — is No), `float_terminal_action()` — floating-toggleterm keymap action used by `rust.lua`'s clippy-fix (toggles an already-running job instead of killing it), and `split_terminal_action()` — run output (`<leader>cR`/`<leader>co`, `rust.lua` + `pickers/gotargets.lua`) in a bottom-split scratch terminal buffer; both never kill a live run
 - **`cleanup.lua`** — `:Cleanup` and the weekly unattended sweep (`auto()`, armed in `configs.lua`): prunes stale undo files, sessions, leftover shada temps, and oversized logs. Rules are mtime-based on purpose — see [On-disk state](#on-disk-state) for why undo can't be pruned by "is the source gone?"
 - **`buffers.lua`** — Shared buffer classification: `special_filetypes` registry + `is_special(buf)` — "is this a non-code panel/terminal/CLI buffer?" Canonical home for the guard used by `<leader>o`/`<leader>O` (outline.lua) and `gb` (alternate-buffer toggle, keymaps.lua). Also a narrower `sidebar_filetypes` + `is_sidebar(buf)` (docked nav panels only — a strict subset that excludes terminals/CLI), used by the sidebar auto-quit autocmd, plus the left-edge sidebar coordinator (`is_sidebar_visible`/`close_other_sidebars`) the panel toggles swap through
 - **`yank.lua`** — Yank helpers: relative/absolute paths, Claude @-references, GitHub permalinks
@@ -712,25 +712,22 @@ registers, and fires, last — the winning write on every attach.
 
 ### Run output can't be re-shown, only re-run
 
-`<leader>cR`'s output float can be **dismissed** (`q`/`<C-\>`) but not re-shown,
-so `<leader>co` **re-runs** the last target rather than restoring old output.
-Two dead ends, kept so they aren't re-attempted:
+`<leader>cR`'s output split can be **dismissed** (`q`), but a *finished* run
+can't be re-shown: Neovim wipes a finished-terminal buffer when its window
+closes (`BufWinLeave → BufHidden → BufUnload → BufWipeout`, C-level, no Lua
+caller in the trace; `bufhidden = 'hide'` doesn't prevent it, and it only
+happens interactively — headless repros pass). So `<leader>co` **re-runs**
+the last target instead of restoring old output (`RustLsp! run` for Rust,
+`gotargets.rerun_last` for Go). A still-*live* run is the exception: its
+buffer survives hiding, and `<leader>cR`/`<leader>co` bring it back
+(`utils.lua`'s `split_terminal_action`).
 
-1. **toggleterm delists on job-exit** — a `TermClose` autocmd calls
-   `delete(term.id)`, so `get(id)` is `nil` for any finished run (even with
-   `close_on_exit = false`). Holding the `Terminal` object sidesteps this.
-2. **The buffer is wiped on hide anyway.** Closing the float fires
-   `BufWinLeave → BufHidden → BufUnload → BufWipeout` — Neovim's C-level
-   teardown of a finished-terminal buffer (no Lua caller in the trace).
-   `bufhidden = 'hide'` doesn't stop it, and it only happens interactively, not
-   headless — which is why it survived every headless repro. (`stickybuf`
-   ruled out: `prev_bufhidden` stayed `unset`.)
+True peek-after-dismiss would need a snapshot of the output into a buffer we
+own — not built; see `plans/nvim-backlog.md`.
 
-So `<leader>co` maps to a no-picker re-run (`RustLsp! run` for Rust,
-`gotargets.rerun_last` for Go) — reliable, and a fast edit→re-run loop. True
-peek-after-dismiss would need a buffer we own, never routed through a closing
-window (snapshot the lines into a scratch buffer on exit) — not built; see
-`plans/nvim-backlog.md`.
+Any future language's `<leader>cR`/`<leader>co` routes through
+`split_terminal_action` too — one run-output surface, same semantics
+everywhere.
 
 
 ## Keymap index
@@ -2281,9 +2278,9 @@ that persists state across hides, plus a VS Code-style bottom panel.
   floats — `<M-1>`..`<M-9>` jumps to that row, `<C-x>` kills and refreshes
   (same shape as the sidekick session picker; both use `pickers/common.lua`'s
   `indexed_select()`). `:TermSelect` remains the plain built-in.
-- **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` are float-only**: the bottom panel is
-  deliberately a single dedicated terminal, so none of these bind inside it —
-  only `<Esc>`/`jj`/`jk`, `<C-h/j/k/l>`, and `<S-CR>` do.
+- **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` are float-only**: neither the bottom
+  panel (deliberately a single dedicated terminal) nor the run-output split
+  binds them — only `<Esc>`/`jj`/`jk`, `<C-h/j/k/l>`, and `<S-CR>` do.
 - **`<M-]>`/`<M-[>`/`<M-n>`/`<M-l>` mirror the sidekick CLI**: the same
   session keys as [AI (sidekick.nvim)](#ai-sidekick), for muscle-memory
   symmetry; each set is buffer-local to its own terminal kind.
@@ -3019,13 +3016,14 @@ it would also hide genuine "can't find your Cargo.toml" errors in real projects)
 ### Running a program
 
 - **`<leader>cR`** — runnables picker; select the binary → runs `cargo run` in a
-  **floating terminal** (workspace-aware `-p`). One float, reused across runs;
-  dismiss with `<C-\>`/`q`. A custom `tools.executor` in `rust.lua` routed
-  through `utils.float_terminal_action` (id 102), shared with Go's `<leader>cR`.
+  **terminal buffer in a bottom split** (workspace-aware `-p`). One buffer,
+  replaced on each run; hide with `q`. A custom `tools.executor` in `rust.lua`
+  routed through `utils.split_terminal_action`, shared with Go's `<leader>cR` —
+  a second press while a run is still live re-shows it, never kills it.
   `cargo test` runnables still go to neotest (`test_executor` unchanged).
-- **`<leader>co`** — re-run the *last* runnable in that float, no picker
+- **`<leader>co`** — re-run the *last* runnable in that split, no picker
   (`RustLsp! run`); falls back to the picker if nothing's run yet. Re-run, not
-  re-show — a dismissed run's output is gone (see [Design
+  re-show — a dismissed finished run's output is gone (see [Design
   Decisions](#design-decisions) → "Run output can't be re-shown, only re-run").
   Same in Go.
 - **`grx`** on the `fn main` line — runs the `▶ Run` codelens directly.
@@ -3120,8 +3118,7 @@ fixing diagnostics one at a time as you happen to visit each file.
 `<leader>cF` runs `cargo clippy --fix --workspace --allow-dirty
 --allow-staged` in a floating terminal (fixed id 102, outside the 1-99 pool
 `terminal.lua`'s count-addressable float terminals use, same convention as
-the Go run terminal in `pickers/gotargets.lua` (101)) from the nearest
-`Cargo.toml`'s directory.
+the bottom panel's id 100) from the nearest `Cargo.toml`'s directory.
 This applies every lint rustc marks `Applicability::MachineApplicable`
 across the whole workspace in one pass — it skips ambiguous or
 semantics-changing suggestions, which still need a manual look. `checkOnSave`
@@ -3133,10 +3130,7 @@ terminal's visibility instead of restarting it — deliberately: `--fix`
 rewrites source files on disk, so killing it mid-write (the naive
 shutdown-and-recreate a second press would otherwise do) risks leaving a
 file partially rewritten. It only shuts down and starts a fresh run once the
-previous one has actually exited (`utils.lua`'s `float_terminal_action`,
-shared with the Go run terminal in `pickers/gotargets.lua` — which notifies
-when it drops a fresh selection this way; a bare re-press here stays silent,
-since toggling visibility is the point).
+previous one has actually exited (`utils.lua`'s `float_terminal_action`).
 
 ### Code action preview
 
@@ -3169,7 +3163,7 @@ the manual, on-demand fallback.
 | `<leader>ca` | Code action (rustaceanvim grouped variant) |
 | `<leader>cp` | Code action preview — flat list, diff shown before applying |
 | `<leader>cR` | Runnables — run a binary/target |
-| `<leader>co` | Re-run the last runnable in the float, no picker (`RustLsp! run`) |
+| `<leader>co` | Re-run the last runnable in the split, no picker (`RustLsp! run`) |
 | `<leader>cm` | Expand macro under cursor |
 | `<leader>cC` | Open the crate's `Cargo.toml` |
 | `<leader>cs` | Structural search & replace (SSR) — prompts for a query |
@@ -3314,22 +3308,17 @@ exactly that gap.
 
 **Run a program** — **`<leader>cR`**: the same picker, titled *Go
 runnables*; pick a `main` package and it runs `go run <import-path>` in a
-float terminal (toggleterm) from the module root — reaching any main package
-in the module, from any buffer, including a library file (the case a
-hand-rolled `go run .` could never serve). The terminal is reused, never
-stacked — but what a second `<leader>cR` does depends on whether the previous
-run is still alive. Still running (say, a server): your new selection is
-**not** launched — the existing terminal is toggled back into view with a
-notify saying so; exit the running program first to actually start the new
-one (deliberate, via `utils.lua`'s `float_terminal_action` — the same
-no-kill guard that protects Rust's clippy `--fix` from being killed
-mid-write). Already exited: the old terminal is shut down and the new
-selection runs in a fresh one. It does **not** close on exit
-(`close_on_exit = false`), so the program's output stays on screen after it
-finishes; dismiss it with `<C-\>`/`q`. **`<leader>co`** re-runs the *last* target
-in that float, no picker (`gotargets.rerun_last`) — the Go mirror of Rust's
-`<leader>co`; re-run, not re-show (see [Design Decisions](#design-decisions) →
-"Run output can't be re-shown, only re-run").
+terminal buffer in a bottom split from the module root — reaching any main
+package in the module, from any buffer, including a library file (the case a
+hand-rolled `go run .` could never serve). One output surface, replaced on
+each run; output stays after the program exits, `q` hides it. A still-live
+run (say, a server) is never killed: a second `<leader>cR` re-shows it with
+a notify and your new selection is **not** launched — exit the program first
+(`utils.lua`'s `split_terminal_action`). **`<leader>co`** re-runs the *last*
+target in that split, no picker (`gotargets.rerun_last`) — the Go mirror of
+Rust's `<leader>co`; re-run, not re-show (see [Design
+Decisions](#design-decisions) → "Run output can't be re-shown, only
+re-run").
 
 **It passes no arguments.** `<leader>cR` runs the package bare. For a program
 that needs argv, open a terminal (`<C-/>`) and run `go run ./cmd/foo -flag`
@@ -3352,7 +3341,7 @@ ever lingers, `<leader>du` toggles it.
 |---|---|
 | `<leader>dR` | Debuggables — pick a `main` package, debug it under delve |
 | `<leader>cR` | Runnables — pick a `main` package, `go run` it in a terminal |
-| `<leader>co` | Re-run the last `run` target in the float, no picker |
+| `<leader>co` | Re-run the last `run` target in the split, no picker |
 
 The global Debug and Test keymap tables live in
 [Debugging](#debugging) → Keymaps and [Testing](#testing) → Keymaps.
