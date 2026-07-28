@@ -8,6 +8,9 @@
       "Bash(git -C * ls-files *)",
       "Bash(git -C * blame *)",
 
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git rev-parse *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
@@ -25,6 +28,8 @@
       "Bash(git remote *)",
       "Bash(git ls-remote *)",
       "Bash(git check-ignore *)",
+      "Bash(git cherry-pick --continue *)",
+      "Bash(git cherry-pick --abort *)",
 
       "Bash(gh api *)",
       "Bash(gh pr *)",
