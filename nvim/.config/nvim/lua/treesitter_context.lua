@@ -10,6 +10,9 @@ require('treesitter-context').setup({
   max_lines           = 3,        -- cap the sticky header at 3 lines; deeper nesting is trimmed
   multiline_threshold = 1,        -- collapse a multi-line signature down to a single header line
   mode                = 'cursor', -- track the scope the *cursor* is in, not the window topline
+  multiwindow         = true,     -- header in every visible window, not just the focused one
+                                  -- (default false suppresses it whenever focus sits in a split,
+                                  -- e.g. the sidekick CLI terminal)
   trim_scope          = 'outer',  -- over max_lines, drop the outermost (least-relevant) contexts
   separator           = nil,      -- no drawn separator line; rely on the TreesitterContext hl group
 })
