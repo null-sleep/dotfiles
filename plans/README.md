@@ -29,16 +29,18 @@ off or delete them as they land; add new ones freely.
      edit. 0x1F is right per vendor docs + pi-tui's decoder, but neither was
      pressed for real. If opencode misbehaves, do **not** try Ctrl+Z — that's
      its `terminal_suspend` (only its Windows build reuses `ctrl+z` for undo).
-  4. **Context refs on the new agents** — *partly answered 2026-08-07, now a
-     decision rather than an unknown.* `<leader>at`/`af`/`ac` send
-     `ai_context.lua`'s Claude-native `@file#L<n>` globally. Claude documents
-     that shape and cursor was verified to parse it, but **opencode** wants
-     `#a-b` (no `L`) and its own issue tracker says line ranges aren't
-     reachable from the TUI at all, and **pi** documents no range syntax —
-     `@` is whole-file fuzzy attach. So on those two the path should still
-     resolve while the range degrades to a text hint. Confirm that's what
-     actually happens; if the range instead breaks the whole mention, the fix
-     is a per-agent context override instead of the current global one.
+  4. ~~**Context refs on the new agents.**~~ *Closed 2026-08-07 — no change
+     needed, nothing to test.* `<leader>at`/`af`/`ac` send `ai_context.lua`'s
+     `@file#L<n>` globally, and the worry was that opencode/pi would choke on
+     the `#L` suffix. They can't: **neither resolves a pasted `@` ref into an
+     attachment at all.** pi calls `processFileArguments` only on command-line
+     `@file` args (`main.js:141`) — its TUI `@` is an autocomplete trigger with
+     no post-submit text scan. opencode is the same by its own issue tracker
+     (#2129): a literal `@path:10:20` doesn't pre-create an attachment, "the
+     agent will usually naturally make the tool call to read the file". So on
+     those two the ref is text the model acts on, and the shape only has to be
+     legible — which `#L` is, while also being the machine-parsed form on
+     claude and cursor. Per-agent overrides would buy nothing.
 - [ ] **Verify the opencode + pi themes by eye** — both were wired into the
   `theme` switcher on 2026-08-07 but neither could be confirmed from an agent
   session: opencode's appearance detection needs a real terminal to answer its
