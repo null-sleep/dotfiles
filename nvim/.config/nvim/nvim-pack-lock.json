@@ -30,7 +30,7 @@
       "src": "https://github.com/stevearc/conform.nvim"
     },
     "cyberdream.nvim": {
-      "rev": "b9cc88378b776f33d3ea77164716f37c3f13ef72",
+      "rev": "d0e6e837b0248e3507f3a295deb4661221610e78",
       "src": "https://github.com/scottmckendry/cyberdream.nvim"
     },
     "diffview.nvim": {
@@ -70,7 +70,7 @@
       "src": "https://github.com/rmagatti/goto-preview"
     },
     "grug-far.nvim": {
-      "rev": "1cc080f55706b38aabfa97d40acb6adf59ac4a5a",
+      "rev": "6e05398cf6cad05b3fb46569db96b1ccfcbbd402",
       "src": "https://github.com/MagicDuck/grug-far.nvim"
     },
     "gruvbox.nvim": {
@@ -90,7 +90,7 @@
       "src": "https://github.com/nvim-lualine/lualine.nvim"
     },
     "mason-lspconfig.nvim": {
-      "rev": "7adc933dabcc7c86ae6b07aff7ee68eac398491f",
+      "rev": "67029ccdac1ef8941e13b826417bc0ffac24cc86",
       "src": "https://github.com/mason-org/mason-lspconfig.nvim"
     },
     "mason-tool-installer.nvim": {
@@ -134,7 +134,7 @@
       "src": "https://github.com/nvim-neotest/neotest"
     },
     "neotest-golang": {
-      "rev": "5b15cab0e2475b036c2e2067b2a973b9e4ea3180",
+      "rev": "05cd7bf89a146cf1fa2848a9fe277a1e68a3a51d",
       "src": "https://github.com/fredrikaverpil/neotest-golang",
       "version": "2.0.0 - 3.0.0"
     },
@@ -179,7 +179,7 @@
       "src": "https://github.com/antosha417/nvim-lsp-file-operations"
     },
     "nvim-lspconfig": {
-      "rev": "7ab79bb1b57160a537f427ac8a6026102f12b701",
+      "rev": "43ed3797b266e1ee8d222e491379ad471c9d3146",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -187,16 +187,16 @@
       "src": "https://github.com/nvim-neotest/nvim-nio"
     },
     "nvim-tree.lua": {
-      "rev": "4213bd6eabac38b16dd6615002b6243b23cf3bf6",
+      "rev": "b2aadda94b107480c48e548d6db51c6840b7b33c",
       "src": "https://github.com/nvim-tree/nvim-tree.lua"
     },
     "nvim-treesitter": {
-      "rev": "61df84986b4b4ec469ee745a182e433d49f8c27e",
+      "rev": "3d3321b560a63ff92a8692401f303a5123336b86",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter",
       "version": "'main'"
     },
     "nvim-treesitter-context": {
-      "rev": "b311b30818951d01f7b4bf650521b868b3fece16",
+      "rev": "f3061339b8eaf9fda873600bc425b8d2d8502533",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter-context"
     },
     "nvim-treesitter-textobjects": {
@@ -213,7 +213,7 @@
       "src": "https://github.com/olimorris/onedarkpro.nvim"
     },
     "oxocarbon.nvim": {
-      "rev": "cad101019701846b1c69747e4cae3c460376d674",
+      "rev": "488dca6e3ff01acd88a648b83244073037261e64",
       "src": "https://github.com/nyoom-engineering/oxocarbon.nvim"
     },
     "persistence.nvim": {
@@ -237,7 +237,7 @@
       "src": "https://github.com/rose-pine/neovim"
     },
     "rustaceanvim": {
-      "rev": "5a3a4158857ee1f7ec839b6ddd87cc0083a19c5f",
+      "rev": "f4051fb4662c43a568ce809a37e47c0f4e3d7a31",
       "src": "https://github.com/mrcjkb/rustaceanvim",
       "version": "9.0.0 - 10.0.0"
     },
