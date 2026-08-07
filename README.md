@@ -433,7 +433,7 @@ theme            # toggle dark/light (pins, like dark/light below)
 theme dark       # PIN dark everywhere (turns macOS Auto OFF)
 theme light      # PIN light everywhere (turns macOS Auto OFF)
 theme auto       # hand control back to macOS Auto (sunset/sunrise); everything follows
-theme follow     # match Claude+nvim to current macOS appearance (don't set macOS)
+theme follow     # match Claude+nvim+pi to current macOS appearance (don't set macOS)
 theme watch      # daemon loop used by the auto-follow LaunchAgent (see below)
 theme status     # show appearance, macOS mode (auto/pinned), and follower state
 ```
@@ -441,16 +441,17 @@ theme status     # show appearance, macOS mode (auto/pinned), and follower state
 **Three modes — `dark` · `light` · `auto`:**
 
 - **`dark` / `light`** *pin* that appearance everywhere at once: macOS Auto is
-  switched **off**, the macOS appearance is set to the fixed value, and Claude +
-  nvim are swapped to match. It stays put until you change it again — exactly like
-  choosing Light or Dark in **System Settings → Appearance**.
+  switched **off**, the macOS appearance is set to the fixed value, and
+  Claude + nvim + pi are swapped to match. It stays put until you change it
+  again — exactly like choosing Light or Dark in **System Settings → Appearance**.
 - **`auto`** hands the wheel back to macOS: it re-enables native **Auto**
-  (sunset/sunrise), and Claude + nvim follow via the [watch
+  (sunset/sunrise), and Claude + nvim + pi follow via the [watch
   LaunchAgent](#auto-follow-on-macos-appearance-changes). One caveat — the macOS
   Auto flag governs *future* evaluations, so macOS applies the schedule at the
   next sunrise/sunset (or when you next click **Auto** in System Settings); it
-  doesn't retroactively repaint the current desktop. `theme auto` syncs Claude +
-  nvim to the present appearance immediately so nothing is out of step meanwhile.
+  doesn't retroactively repaint the current desktop. `theme auto` syncs
+  Claude + nvim + pi to the present appearance immediately so nothing is out of
+  step meanwhile.
 
 The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 `zsh/.local/bin/theme` to change it):
@@ -516,10 +517,10 @@ control System Events (to set the appearance) — grant it.
 Appearance → Auto**) hands control back to macOS, which then flips its appearance
 **on its own** — dark at sunset, light at sunrise — or via a Control Center
 toggle. Ghostty follows those native flips automatically, but nothing would tell
-Claude or nvim. The **theme-follow LaunchAgent** closes that gap: it keeps `theme
-watch` running, which polls the macOS appearance and runs `theme follow` on every
-flip — so Claude + nvim track macOS no matter *who* changed it. This is what makes
-`theme auto` "follow macOS everywhere."
+Claude, nvim, or pi. The **theme-follow LaunchAgent** closes that gap: it keeps
+`theme watch` running, which polls the macOS appearance and runs `theme follow`
+on every flip — so Claude + nvim + pi track macOS no matter *who* changed it.
+This is what makes `theme auto` "follow macOS everywhere."
 
 ```bash
 stow --no-folding macos             # symlink the plist into ~/Library/LaunchAgents/
@@ -534,7 +535,8 @@ other app's plist would then land in your dotfiles. `--no-folding` makes stow
 create the real directory and link only the plist file.
 
 After this the whole chain is automatic: macOS flips (on a schedule or by hand)
-→ Ghostty recolors natively, and the follower repaints Claude + nvim to match.
+→ Ghostty recolors natively, and the follower repaints Claude + nvim + pi to
+match.
 
 - **No Automation prompt, no loop.** `watch`/`follow` read the appearance with
   `defaults read -g AppleInterfaceStyle` (not `osascript`), so the agent runs
@@ -744,6 +746,7 @@ stow --no-folding opencode
 Both are in the [`Brewfile`](Brewfile), so `brew bundle` covers the install on
 a fresh machine.
 
+<a id="opencode-whats-managed"></a>
 ### What's managed
 
 | File | Method |
@@ -835,6 +838,7 @@ touches the stow-managed `~/.local/bin` and needs no gitignore entry. Update
 with `npm update -g @earendil-works/pi-coding-agent` (`pi update` also works,
 but let npm own a package npm installed).
 
+<a id="pi-whats-managed"></a>
 ### What's managed
 
 The `pi` package stows **only the theme palettes**. Everything else in
