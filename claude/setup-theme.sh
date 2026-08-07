@@ -36,6 +36,14 @@ fi
 if [ ! -e "$ACTIVE_FILE" ]; then
   if [ -x "$THEME_BIN" ]; then
     "$THEME_BIN" seed
+    # seed warns but doesn't fail when the pair's palette isn't in THEMES_DIR
+    # (the compgen guard above only proves *some* JSON exists) — don't pin
+    # settings at a slot that never materialized.
+    if [ ! -e "$ACTIVE_FILE" ]; then
+      echo "Error: 'theme seed' did not create $ACTIVE_FILE — is the pair's palette stowed?"
+      echo "Leaving settings.json untouched; fix the stow and re-run."
+      exit 1
+    fi
   else
     echo "Warning: $THEME_BIN not found — active.json not seeded."
     echo "Run 'theme seed' after stowing the zsh package, or Claude will fall"
@@ -55,7 +63,8 @@ if [ "$current" = "$THEME" ]; then
 else
   [ -n "$current" ] && echo "Changing theme from '$current' to '$THEME'..." \
                     || echo "Setting theme to '$THEME'..."
-  jq --arg t "$THEME" '.theme = $t' "$SETTINGS" > "${SETTINGS}.tmp" \
-    && mv "${SETTINGS}.tmp" "$SETTINGS"
+  tmp="$(mktemp "${SETTINGS}.XXXXXX")"
+  jq --arg t "$THEME" '.theme = $t' "$SETTINGS" > "$tmp" \
+    && mv "$tmp" "$SETTINGS" || { rm -f "$tmp"; exit 1; }
   echo "Done. Use 'theme dark|light|toggle' to switch."
 fi

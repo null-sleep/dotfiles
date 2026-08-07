@@ -63,9 +63,10 @@ if [ -n "$current_theme" ] && [ "$current_theme" != "$THEME_SLOT" ]; then
   echo "Repointing theme from '$current_theme' to '$THEME_SLOT' (the switcher's slot)."
 fi
 
+tmp="$(mktemp "${SETTINGS}.XXXXXX")"
 jq --argjson defaults "$DEFAULTS" --arg slot "$THEME_SLOT" \
-  '($defaults * .) | .theme = $slot' "$SETTINGS" >"${SETTINGS}.tmp" \
-  && mv "${SETTINGS}.tmp" "$SETTINGS"
+  '($defaults * .) | .theme = $slot' "$SETTINGS" >"$tmp" \
+  && mv "$tmp" "$SETTINGS" || { rm -f "$tmp"; exit 1; }
 
 echo "Seeded pi defaults in $SETTINGS:"
 jq -r 'to_entries[] | "  \(.key) = \(.value|tostring)"' "$SETTINGS"
@@ -83,6 +84,10 @@ elif [ -e "$ACTIVE_FILE" ]; then
   echo "Theme: $ACTIVE_FILE already exists — left as-is."
 elif [ -x "$THEME_BIN" ]; then
   "$THEME_BIN" seed
+  # seed warns but doesn't fail when the pi palette isn't in THEMES_DIR — say
+  # so here, since settings.json above already points at the empty slot.
+  [ -e "$ACTIVE_FILE" ] \
+    || echo "Warning: 'theme seed' did not create $ACTIVE_FILE — is the pi palette stowed?"
 else
   echo "Warning: $THEME_BIN not found — active.json not seeded."
   echo "Run 'theme seed' after stowing the zsh package."
