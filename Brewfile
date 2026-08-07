@@ -14,7 +14,8 @@
 #   • nvim LSP servers/formatters — Mason, inside nvim (Languages section)
 #   • cursor-agent CLI            — cursor.com/cli install script; self-updates
 #                                   (README → "Cursor CLI (cursor-agent)")
-#   • pi coding agent             — npm install -g (README → "pi")
+#   • pi coding agent             — npm install -g + pi/setup-settings.sh
+#                                   (README → "pi")
 
 #-----------------------------------------------------------------------------
 # Taps
