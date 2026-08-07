@@ -22,6 +22,9 @@ set -euo pipefail
 SETTINGS="$HOME/.pi/agent/settings.json"
 THEMES_DIR="$HOME/.pi/agent/themes"
 ACTIVE_FILE="$THEMES_DIR/active.json"
+# The switcher itself, from the repo — resolved relative to this script so it
+# works before `stow zsh` has put `theme` on PATH.
+THEME_BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/zsh/.local/bin/theme"
 
 # Fill-in-only defaults: set when missing, never overwritten. A model or
 # thinking level you change later survives a re-run.
@@ -68,29 +71,21 @@ echo "Seeded pi defaults in $SETTINGS:"
 jq -r 'to_entries[] | "  \(.key) = \(.value|tostring)"' "$SETTINGS"
 
 # Seed themes/active.json so `"theme": "active"` resolves on first launch.
-# Seeded from the CURRENT macOS appearance, not a fixed light default — setting
-# up a machine that's already in dark mode would otherwise leave pi light until
-# the next `theme` flip. Read via `defaults` (no Automation prompt), matching
-# the reader in zsh/.local/bin/theme.
-case "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" in
-  [Dd]ark*) seed=dracula ;;
-  *)        seed=catppuccin-latte ;;
-esac
-SEED_FILE="$THEMES_DIR/$seed.json"
-
-if [ ! -e "$SEED_FILE" ]; then
-  echo
-  echo "Warning: $SEED_FILE not found — run 'stow --no-folding pi' from the repo"
-  echo "root first, then re-run this script, or pi will fall back to its"
+# `theme seed` owns the palette choice — the pair lives only in that script's
+# LIGHT/DARK arrays — and matches the current macOS appearance, so a machine set
+# up in dark mode doesn't start light.
+echo
+if ! compgen -G "$THEMES_DIR/*.json" >/dev/null; then
+  echo "Warning: no theme files in $THEMES_DIR — run 'stow --no-folding pi' from"
+  echo "the repo root first, then re-run this script, or pi will fall back to its"
   echo "built-in theme because \"active\" resolves to nothing."
 elif [ -e "$ACTIVE_FILE" ]; then
   echo "Theme: $ACTIVE_FILE already exists — left as-is."
+elif [ -x "$THEME_BIN" ]; then
+  "$THEME_BIN" seed
 else
-  # Atomic write, and rewrite `name` to match the pinned slot. Same as the
-  # `theme` script does on every switch.
-  tmp="$(mktemp "$THEMES_DIR/.active.XXXXXX")"
-  jq '.name = "active"' "$SEED_FILE" >"$tmp" && mv -f "$tmp" "$ACTIVE_FILE"
-  echo "Theme: seeded $ACTIVE_FILE from $seed (current macOS appearance)."
+  echo "Warning: $THEME_BIN not found — active.json not seeded."
+  echo "Run 'theme seed' after stowing the zsh package."
 fi
 
 echo

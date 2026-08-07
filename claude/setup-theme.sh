@@ -14,31 +14,33 @@ set -euo pipefail
 SETTINGS="$HOME/.claude/settings.json"
 THEME="custom:active"
 THEMES_DIR="$HOME/.claude/themes"
-# KEEP IN SYNC: the light slug in zsh/.local/bin/theme's LIGHT array — if the
-# theme pair changes there, change this seed too or a fresh machine seeds a
-# palette the switcher never uses.
-DEFAULT_FILE="$THEMES_DIR/catppuccin-latte.json"   # seed for active.json
 ACTIVE_FILE="$THEMES_DIR/active.json"
+# Repo-relative so it works before `stow zsh` puts `theme` on PATH.
+THEME_BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/zsh/.local/bin/theme"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "Error: jq is required. Install with: brew install jq"
   exit 1
 fi
 
-# Don't point settings.json at a theme that isn't stowed yet — run `stow claude` first.
-if [ ! -e "$DEFAULT_FILE" ]; then
-  echo "Error: default theme file not found at $DEFAULT_FILE"
-  echo "Run 'stow claude' from the repo root first, then re-run this script."
+# Don't point settings.json at themes that aren't stowed yet — run `stow claude` first.
+if ! compgen -G "$THEMES_DIR/*.json" >/dev/null; then
+  echo "Error: no theme files found in $THEMES_DIR"
+  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
   exit 1
 fi
 
-# Seed active.json (a real file, not stowed) so "custom:active" resolves. Don't
-# clobber an existing active.json — it holds whatever mode you last switched to.
-# Atomic write (temp + mv): replaces a symlink instead of writing through it.
+# Seed active.json (a real file, not stowed) so "custom:active" resolves.
+# `theme seed` owns the palette choice — the pair lives only in that script's
+# LIGHT/DARK arrays — and matches the current macOS appearance.
 if [ ! -e "$ACTIVE_FILE" ]; then
-  tmp="$(mktemp "$THEMES_DIR/.active.XXXXXX")"
-  cp -fL "$DEFAULT_FILE" "$tmp" && mv -f "$tmp" "$ACTIVE_FILE"
-  echo "Seeded $ACTIVE_FILE from $(basename "$DEFAULT_FILE")."
+  if [ -x "$THEME_BIN" ]; then
+    "$THEME_BIN" seed
+  else
+    echo "Warning: $THEME_BIN not found — active.json not seeded."
+    echo "Run 'theme seed' after stowing the zsh package, or Claude will fall"
+    echo "back to its built-in theme because 'custom:active' resolves to nothing."
+  fi
 fi
 
 if [ ! -f "$SETTINGS" ]; then

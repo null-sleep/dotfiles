@@ -13,6 +13,7 @@
 #   theme light      # PIN light everywhere (turns macOS Auto OFF)
 #   theme auto       # hand control back to macOS Auto (sunset/sunrise); follow it
 #   theme follow     # match Claude+nvim+pi to current macOS appearance (don't set macOS)
+#   theme seed       # create only MISSING per-tool theme files (first-run setup)
 #   theme watch      # daemon: follow macOS appearance changes forever (LaunchAgent)
 #   theme status
 #
@@ -76,14 +77,13 @@ PI_THEMES="$HOME/.pi/agent/themes"
 JQ="$(command -v jq 2>/dev/null || echo /opt/homebrew/bin/jq)"
 
 # --- predefined pair -------------------------------------------------------
-# KEEP IN SYNC: claude/setup-theme.sh and pi/setup-settings.sh both seed their
-# active.json from the LIGHT slug — update all three together.
-# The pi column is a filename in ~/.pi/agent/themes/, not a built-in name.
+# The ONLY place the pair is defined — setup scripts call `theme seed` rather
+# than restating it. The pi column is a filename in ~/.pi/agent/themes/.
 #         Claude slug        nvim variant       macOS dark  pi theme file
 LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false"     "catppuccin-latte" )
 DARK=(    "dracula"          "dracula"          "true"      "dracula"          )
 
-usage() { echo "usage: theme [dark|light|auto|toggle|follow|watch|status]" >&2; exit "${1:-2}"; }
+usage() { echo "usage: theme [dark|light|auto|toggle|follow|seed|watch|status]" >&2; exit "${1:-2}"; }
 
 help() {
   cat <<'EOF'
@@ -100,6 +100,8 @@ COMMANDS
   light     PIN light everywhere (turns macOS Auto OFF).
   auto      Hand control back to macOS Auto (sunset/sunrise) and follow it.
   follow    Match Claude+nvim+pi to the current macOS appearance (don't set macOS).
+  seed      First-run setup: create only the per-tool theme files that are
+            missing, from the current macOS appearance. Never overwrites.
   watch     Daemon: follow macOS appearance changes forever (LaunchAgent).
   status    Show current appearance, mode, and per-tool state.
   -h, --help   Show this help.
@@ -187,8 +189,10 @@ pi_active_name() {
 # in System Settings. With pin=0 it leaves macOS untouched: that's `follow`, which
 # switches Claude+nvim+pi to *match* an appearance macOS already moved to. It must not
 # write macOS back, or it would fight Auto mode and risk a flip loop with watch.
+# seed=1 (the `seed` command) only creates what's missing — nothing existing is
+# overwritten. It's what the per-tool setup scripts call on a fresh machine.
 apply_mode() {
-  local mode="$1" pin="$2" claude_slug nvim_variant macos_dark pi_theme tmp
+  local mode="$1" pin="$2" seed="${3:-0}" claude_slug nvim_variant macos_dark pi_theme tmp report=""
   if [ "$mode" = dark ]; then
     claude_slug="${DARK[0]}";  nvim_variant="${DARK[1]}";  macos_dark="${DARK[2]}";  pi_theme="${DARK[3]}"
   else
@@ -209,18 +213,27 @@ apply_mode() {
   # temp file in the same dir then atomically mv into place: Claude watches the
   # dir, so a plain cp's truncate-then-stream window could be read as empty/partial
   # JSON; mv also *replaces* a symlink rather than writing through it into the repo.
-  if [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
+  if [ "$seed" = 1 ] && [ -e "$CLAUDE_THEMES/active.json" ]; then
+    report="$report claude:kept"
+  elif [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
     tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
       && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
       && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
+      && report="$report claude:$claude_slug" \
       || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; }
   else
     echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
+    report="$report claude:missing"
   fi
 
   # 3) Neovim — write the state file; running instances live-apply via themes.watch().
-  mkdir -p "$(dirname "$NVIM_STATE")"
-  printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
+  if [ "$seed" = 1 ] && [ -s "$NVIM_STATE" ]; then
+    report="$report nvim:kept"
+  else
+    mkdir -p "$(dirname "$NVIM_STATE")"
+    printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
+    report="$report nvim:$nvim_variant"
+  fi
 
   # 4) pi — same active-slot trick as Claude: settings.json pins the fixed theme
   # name "active" and we swap what themes/active.json *contains*. pi hot-reloads
@@ -228,17 +241,26 @@ apply_mode() {
   # live. The `name` field is rewritten to "active" on the way in — the source
   # files keep their honest names so they stay individually selectable in pi's
   # theme picker, and pi requires theme names to be unique.
-  if [ -e "$PI_THEMES/$pi_theme.json" ] && [ -x "$JQ" ]; then
+  if [ "$seed" = 1 ] && [ -e "$PI_THEMES/active.json" ]; then
+    report="$report pi:kept"
+  elif [ -e "$PI_THEMES/$pi_theme.json" ] && [ -x "$JQ" ]; then
     tmp="$(mktemp "$PI_THEMES/.active.XXXXXX")" \
       && "$JQ" '.name = "active"' "$PI_THEMES/$pi_theme.json" >"$tmp" \
       && mv -f "$tmp" "$PI_THEMES/active.json" \
+      && report="$report pi:$pi_theme" \
       || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi active.json" >&2; }
+  else
+    report="$report pi:not-installed"
   fi
 
   # opencode is NOT touched: its `system` theme rides the terminal's own palette
   # (like Starship), so Ghostty's light/dark swap recolors it for free.
 
-  echo "theme → $mode  (claude:$claude_slug · nvim:$nvim_variant · pi:$pi_theme · macOS-dark:$macos_dark)"
+  if [ "$seed" = 1 ]; then
+    echo "theme seed → $mode ($(echo "$report" | sed 's/^ *//; s/ / · /g'))"
+  else
+    echo "theme → $mode  (claude:$claude_slug · nvim:$nvim_variant · pi:$pi_theme · macOS-dark:$macos_dark)"
+  fi
 }
 
 mode="${1:-toggle}"
@@ -272,6 +294,11 @@ case "$mode" in
   follow)
     # Match Claude+nvim+pi to whatever macOS currently is, without touching macOS.
     apply_mode "$(macos_appearance_fast)" 0 ;;
+  seed)
+    # First-run setup, called by claude/setup-theme.sh and pi/setup-settings.sh
+    # so neither has to restate the pair. Fills in missing per-tool theme files
+    # from the current appearance; never overwrites, never touches macOS.
+    apply_mode "$(macos_appearance_fast)" 0 1 ;;
   watch)
     # Daemon loop (run by the LaunchAgent): poll the macOS appearance and apply
     # only on a *change*. The Automation-free reader lets it run unattended, and
