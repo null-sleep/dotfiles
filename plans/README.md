@@ -79,7 +79,14 @@ off or delete them as they land; add new ones freely.
   premise the [Unified theme switching](../README.md#unified-theme-switching)
   section is built on, and applies equally to opencode, which rides the same
   terminal palette.
-- [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
+- [ ] **Restow pi on any machine deployed at 85823a2** — for the few commits
+  before 141c441, pi was a full stow package including `settings.json`, so a
+  machine set up in that window has `~/.pi/agent/settings.json` symlinked into
+  the repo — pi would write its runtime state (`lastChangelogVersion`,
+  `/settings` edits) straight into the working tree. After pulling: `stow -R
+  --no-folding pi` then `bash pi/setup-settings.sh`. Machines set up before or
+  after the window are unaffected; delete this once every machine has pulled
+  past it (2026-08-07).
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes
   as a single line. When re-enabling, the value must be `clipboard`, not
