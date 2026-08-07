@@ -58,7 +58,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -704,15 +704,17 @@ it as a first-class built-in provider and read the same environment variable,
 so one key powers both and neither needs a custom base URL or provider block.
 
 **Put the key in `~/.zshenv`** — a file this repo deliberately does **not**
-track, because it holds a live credential:
+track, because it holds a live credential. `bash ~/src/dotfiles/zsh/setup-zshenv.sh`
+creates it with an empty key if it doesn't already exist (idempotent — leaves
+an existing file alone), then fill in the value by hand:
 
 ```bash
-# ~/.zshenv — create by hand on each machine; never committed
-export OPENROUTER_API_KEY="sk-or-v1-…"   # key from https://openrouter.ai/keys
+bash ~/src/dotfiles/zsh/setup-zshenv.sh
 ```
 
 ```bash
-chmod 600 ~/.zshenv
+# ~/.zshenv — not stowed, never committed
+export OPENROUTER_API_KEY="sk-or-v1-…"   # key from https://openrouter.ai/keys
 ```
 
 `~/.zshenv` rather than the stowed [`zsh`](#zsh) config: it's the one startup
