@@ -56,7 +56,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -102,6 +102,7 @@ stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
+stow --no-folding pi         # theme palettes only — see the pi section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 # Optional — only if you uncommented its formula in the Brewfile:
@@ -421,8 +422,8 @@ by the script at all**: Ghostty follows the macOS appearance natively (see
 below), so flipping the system appearance recolors every window — new *and*
 existing. [opencode](#opencode) rides along the same way.
 
-Claude Code and Neovim switch **live, no restarts**; pi applies on its next
-session (see [How each tool switches live](#how-each-tool-switches-live)).
+Claude Code, Neovim, and pi all switch **live, no restarts** (see [How each
+tool switches live](#how-each-tool-switches-live)).
 
 ```bash
 theme            # toggle dark/light (pins, like dark/light below)
@@ -451,11 +452,11 @@ theme status     # show appearance, macOS mode (auto/pinned), and follower state
 The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 `zsh/.local/bin/theme` to change it):
 
-| Mode  | Claude theme       | nvim variant       | pi theme      | macOS appearance |
-|-------|--------------------|--------------------|---------------|------------------|
-| light | `catppuccin-latte` | `catppuccin-latte` | `light`       | light (pinned)   |
-| dark  | `dracula`          | `dracula`          | `dark`        | dark (pinned)    |
-| auto  | follows macOS      | follows macOS      | follows macOS | Auto (schedule)  |
+| Mode  | Claude theme       | nvim variant       | pi theme           | macOS appearance |
+|-------|--------------------|--------------------|--------------------|------------------|
+| light | `catppuccin-latte` | `catppuccin-latte` | `catppuccin-latte` | light (pinned)   |
+| dark  | `dracula`          | `dracula`          | `dracula`          | dark (pinned)    |
+| auto  | follows macOS      | follows macOS      | follows macOS      | Auto (schedule)  |
 
 Ghostty and opencode aren't in the table because the script never touches them
 — both take their colors from the macOS appearance / terminal palette directly.
@@ -489,10 +490,11 @@ setup. It recolors all windows the moment macOS switches.
   the background once at startup (an OSC 11 query), so already-open sessions
   keep the colors they launched with; new ones are correct. (See
   [opencode](#opencode).)
-- **pi** — the script rewrites the `theme` key in `~/.pi/agent/settings.json`
-  to pi's built-in `light`/`dark`. This is the one tool that does **not** switch
-  live: pi exposes no palette file to hot-swap the way Claude does, so a running
-  session keeps its theme and the next one picks up the change. (See
+- **pi** — the same active-slot indirection as Claude Code. `settings.json`
+  pins the fixed theme name `active`, and the script overwrites
+  `~/.pi/agent/themes/active.json` with the chosen palette; pi hot-reloads the
+  active theme file, so running sessions recolor. The palettes are ports of the
+  pair above, tracked in this repo (`pi/.pi/agent/themes/`). (See
   [pi](#pi).)
 - **Neovim** — the script writes the variant to nvim's theme state file
   (`~/.local/share/nvim/theme.txt`); every running instance live-applies it via
@@ -803,7 +805,9 @@ rather not use the environment variable.
 
 ```bash
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-# Seed ~/.pi/agent/settings.json with this repo's defaults (one-time)
+cd ~/src/dotfiles
+stow --no-folding pi         # themes only — see below
+# Seed ~/.pi/agent/settings.json + themes/active.json (one-time)
 bash ~/src/dotfiles/pi/setup-settings.sh
 ```
 
@@ -815,27 +819,29 @@ but let npm own a package npm installed).
 
 ### What's managed
 
-**pi is not a stow package** — nothing here is symlinked.
+The `pi` package stows **only the theme palettes**. Everything else in
+`~/.pi/agent/` is machine-local, because pi writes to it.
 
 | File | Method |
 |---|---|
+| `~/.pi/agent/themes/catppuccin-latte.json`, `dracula.json` | Symlinked via stow (`--no-folding`) |
+| `~/.pi/agent/themes/active.json` | Written by the [`theme`](#unified-theme-switching) switcher; not tracked |
 | `~/.pi/agent/settings.json` | Seeded by `setup-settings.sh`; machine-local |
 | `~/.pi/agent/auth.json` | **Not** tracked — credentials, written by `/login` |
 | `~/.pi/agent/trust.json` | **Not** tracked — per-project trust decisions |
 
-**Why `settings.json` isn't stowed:** pi *writes* to it. It stamps
-`lastChangelogVersion` after an update, `/settings` edits land there, and the
-[`theme`](#unified-theme-switching) script rewrites the `theme` key on every
-light/dark flip. Through a stow symlink all of that would be written straight
-into this repo — a theme toggle would show up as a git diff. So the file stays
-machine-local and `setup-settings.sh` merges in only the keys this repo cares
-about, the same split already used for `~/.claude/settings.json` and
+**Why `settings.json` isn't stowed:** pi *writes* to it — it stamps
+`lastChangelogVersion` after an update, and `/settings` edits land there.
+Through a stow symlink that would be written straight into this repo. So the
+file stays machine-local and `setup-settings.sh` merges in only the keys this
+repo cares about, the same split already used for `~/.claude/settings.json` and
 `~/.cursor/cli-config.json`.
 
-The script is idempotent and **fill-in-only** (`jq '$defaults * .'`): it sets
-keys that are missing and leaves anything you've since changed alone, so
-re-running it won't stomp a model or theme you picked by hand. It seeds
-OpenRouter as the provider plus the default model, thinking level, and theme.
+The script is **fill-in-only** for the model keys (`jq '$defaults * .'`): it
+sets what's missing and leaves anything you've since changed alone, so
+re-running won't stomp a model you picked by hand. `theme` is the one exception
+— it's forced back to `active`, since that's the slot the switcher writes into
+and pointing it at a real theme name would break the switch.
 
 `models.json` — pi's custom-provider mechanism — is deliberately absent:
 OpenRouter is a built-in provider, so it's only needed for OpenAI-compatible
@@ -843,17 +849,22 @@ endpoints pi doesn't already know about.
 
 ### Theme
 
-`theme dark|light` rewrites `settings.json`'s `theme` key to pi's built-in
-`dark`/`light` alongside Claude Code and Neovim ([Unified theme
-switching](#unified-theme-switching)). pi is the **one tool in this setup that
-doesn't switch live** — it exposes no palette file to hot-swap the way Claude's
-`active.json` does, so a running session keeps its theme and the next one picks
-up the change.
+pi switches **live**, using the same indirection as [Claude
+Code](#theme): `settings.json` pins the fixed theme name `active`, and
+`theme dark|light` overwrites `~/.pi/agent/themes/active.json` with the chosen
+palette. pi hot-reloads the active theme file when it changes, so running
+sessions recolor without a restart ([Unified theme
+switching](#unified-theme-switching)).
 
-pi does support custom themes (`~/.pi/agent/themes/*.json`, 51 color tokens)
-and documents hot-reloading the active theme file when it changes — the same
-trick Claude Code uses. Wiring that up would make pi switch live too; it's
-untried here.
+The two palettes are ports of this setup's pair, written against pi's theme
+schema (51 required color tokens) and tracked in `pi/.pi/agent/themes/`. They
+keep their real names in that directory so they stay individually selectable in
+pi's `/settings` picker; the switcher rewrites `name` to `active` as it copies,
+because pi requires theme names to be unique.
+
+`setup-settings.sh` seeds `active.json` from the **current** macOS appearance,
+so a machine set up in dark mode starts on Dracula rather than defaulting to
+light and staying there until the first flip.
 
 Useful commands: `pi --list-models` (empty means the key isn't resolving),
 `Ctrl+L` or `/model` to switch model, `Shift+Tab` to cycle thinking level, and

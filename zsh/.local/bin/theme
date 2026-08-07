@@ -58,15 +58,15 @@
 #   opencode: NOT touched by this script, same as Ghostty. Its `system` theme
 #            paints from the terminal's own ANSI palette, so Ghostty's swap
 #            recolors it for free — see README → "opencode".
-#   pi     : the `theme` key in ~/.pi/agent/settings.json is rewritten to pi's
-#            built-in "light"/"dark". pi exposes no palette file to hot-swap the
-#            way Claude does, so this applies to the NEXT pi session — running
-#            ones keep the theme they started with.
+#   pi     : same shape as Claude — settings.json pins the fixed theme name
+#            "active" and ~/.pi/agent/themes/active.json is overwritten with the
+#            chosen palette. pi hot-reloads the active theme file, so running
+#            sessions recolor live.
 set -uo pipefail
 
 CLAUDE_THEMES="$HOME/.claude/themes"
 NVIM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/theme.txt"
-PI_SETTINGS="$HOME/.pi/agent/settings.json"
+PI_THEMES="$HOME/.pi/agent/themes"
 
 # jq, resolved once with an explicit fallback. `watch` runs under launchd, whose
 # PATH is just /usr/bin:/bin:/usr/sbin:/sbin — macOS 15+ ships jq at /usr/bin/jq
@@ -76,11 +76,12 @@ PI_SETTINGS="$HOME/.pi/agent/settings.json"
 JQ="$(command -v jq 2>/dev/null || echo /opt/homebrew/bin/jq)"
 
 # --- predefined pair -------------------------------------------------------
-# KEEP IN SYNC: claude/setup-theme.sh seeds active.json from the LIGHT Claude
-# slug (its DEFAULT_FILE) — update both together.
-#         Claude slug        nvim variant       macOS dark  pi theme
-LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false"     "light" )
-DARK=(    "dracula"          "dracula"          "true"      "dark"  )
+# KEEP IN SYNC: claude/setup-theme.sh and pi/setup-settings.sh both seed their
+# active.json from the LIGHT slug — update all three together.
+# The pi column is a filename in ~/.pi/agent/themes/, not a built-in name.
+#         Claude slug        nvim variant       macOS dark  pi theme file
+LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false"     "catppuccin-latte" )
+DARK=(    "dracula"          "dracula"          "true"      "dracula"          )
 
 usage() { echo "usage: theme [dark|light|auto|toggle|follow|watch|status]" >&2; exit "${1:-2}"; }
 
@@ -164,6 +165,22 @@ macos_scheduled_mode() {
   esac
 }
 
+# Which source palette pi's active.json currently holds. active.json is a copy
+# with its `name` rewritten, so identify it by comparing the colors block
+# against each source theme rather than reading a name that's always "active".
+pi_active_name() {
+  local f
+  [ -x "$JQ" ] || { echo '(jq missing)'; return; }
+  [ -f "$PI_THEMES/active.json" ] || { echo '(pi not set up)'; return; }
+  for f in "$PI_THEMES"/*.json; do
+    [ "$f" = "$PI_THEMES/active.json" ] && continue
+    if "$JQ" -e --slurpfile a "$PI_THEMES/active.json" '.colors == $a[0].colors' "$f" >/dev/null 2>&1; then
+      basename "$f" .json; return
+    fi
+  done
+  echo '(custom)'
+}
+
 # Apply a resolved mode (dark|light) to Claude + Neovim. With pin=1 it also PINS
 # the macOS appearance — the hand-driven path (`theme dark|light`): it turns macOS
 # Auto OFF and sets the fixed appearance, so it stays put like picking Light/Dark
@@ -205,17 +222,17 @@ apply_mode() {
   mkdir -p "$(dirname "$NVIM_STATE")"
   printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
 
-  # 4) pi — rewrite the `theme` key in its settings file (pi's built-in "light"
-  # and "dark"). Unlike Claude, pi has no palette file we can swap, so this is a
-  # settings edit and it lands for the NEXT pi session, not running ones. Only
-  # touched when the file already exists, so a machine without pi is a no-op.
-  # settings.json is machine-local by design (pi writes to it) — see
-  # pi/setup-settings.sh — so this never dirties the repo.
-  if [ -f "$PI_SETTINGS" ] && [ -x "$JQ" ]; then
-    tmp="$(mktemp "${PI_SETTINGS%/*}/.settings.XXXXXX")" \
-      && "$JQ" --arg t "$pi_theme" '.theme = $t' "$PI_SETTINGS" >"$tmp" \
-      && mv -f "$tmp" "$PI_SETTINGS" \
-      || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi settings" >&2; }
+  # 4) pi — same active-slot trick as Claude: settings.json pins the fixed theme
+  # name "active" and we swap what themes/active.json *contains*. pi hot-reloads
+  # the active custom theme file when it changes, so running sessions recolor
+  # live. The `name` field is rewritten to "active" on the way in — the source
+  # files keep their honest names so they stay individually selectable in pi's
+  # theme picker, and pi requires theme names to be unique.
+  if [ -e "$PI_THEMES/$pi_theme.json" ] && [ -x "$JQ" ]; then
+    tmp="$(mktemp "$PI_THEMES/.active.XXXXXX")" \
+      && "$JQ" '.name = "active"' "$PI_THEMES/$pi_theme.json" >"$tmp" \
+      && mv -f "$tmp" "$PI_THEMES/active.json" \
+      || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi active.json" >&2; }
   fi
 
   # opencode is NOT touched: its `system` theme rides the terminal's own palette
@@ -274,7 +291,7 @@ case "$mode" in
     echo "macOS mode:       $([ "$(defaults read -g AppleInterfaceStyleSwitchesAutomatically 2>/dev/null)" = 1 ] && echo 'auto (sunset/sunrise)' || echo 'pinned')"
     echo "nvim state:       $(cat "$NVIM_STATE" 2>/dev/null || echo '(unset)')"
     echo "claude active:    $(readlink "$CLAUDE_THEMES/active.json" 2>/dev/null || echo 'real file')"
-    echo "pi theme:         $([ -f "$PI_SETTINGS" ] && [ -x "$JQ" ] && "$JQ" -r '.theme // "(unset)"' "$PI_SETTINGS" 2>/dev/null || echo '(pi not set up)')"
+    echo "pi active:        $(pi_active_name)"
     echo "follower:         $(launchctl print "gui/$(id -u)/com.dhruv.theme-follow" >/dev/null 2>&1 && echo 'loaded' || echo 'not loaded')"
     exit 0 ;;
   *) usage ;;
