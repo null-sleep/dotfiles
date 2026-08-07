@@ -36,6 +36,9 @@ end
 ---   confirm(picker, item)— <CR>; <M-N> quick-pick routes through it
 ---   kill(item)           — optional <C-x>; must tear down synchronously
 ---                          (the refresh reads post-kill state)
+---   rename(picker, item) — optional <C-r>; unlike kill, owns its own refresh
+---                          (it may prompt async, so close-prompt-reopen is
+---                          the hook's job)
 function M.indexed_select(spec)
   local qp_actions, qp_keys = M.quick_pick_actions()
   local keys = vim.tbl_extend('force', {}, qp_keys)
@@ -51,6 +54,19 @@ function M.indexed_select(spec)
     -- <C-x> tears the item down (matches the buffer/scratch/marks delete key);
     -- <C-d> stays the global list-scroll.
     keys['<C-x>'] = { 'kill_item', mode = { 'i', 'n' } }
+  end
+  if spec.rename then
+    actions = vim.tbl_extend('force', {
+      rename_item = function(picker, item)
+        if item then spec.rename(picker, item) end
+      end,
+    }, actions)
+    -- nowait: snacks binds <C-r> as an insert-mode PREFIX (<C-r>%, <C-r><C-w>,
+    -- ...), so a bare <C-r> here would sit out 'timeoutlen' on every press.
+    -- nowait resolves it immediately, giving up those register-insert chords in
+    -- this picker only — no loss in a short switch list. Snacks does the same
+    -- for its own <C-r> git_restore.
+    keys['<C-r>'] = { 'rename_item', mode = { 'i', 'n' }, nowait = true }
   end
   return Snacks.picker.pick({
     source = spec.source,

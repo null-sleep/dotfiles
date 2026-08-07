@@ -22,8 +22,9 @@ end
 -- real definitions at the bottom never run). `active` defaults to the primary
 -- agent so everything works before any session is entered; `_dynamic` maps
 -- names we registered → 'registered' | 'started' (only these are ever removed
--- from cli.tools).
-local M = { active = PRIMARY, _dynamic = {} }
+-- from cli.tools). `_labels` maps a session name → its cosmetic display label
+-- (see M.rename); like _dynamic, per-nvim-run state, lost on a re-source.
+local M = { active = PRIMARY, _dynamic = {}, _labels = {} }
 
 -- Change the active session and remember the one we left, so <C-]> can toggle
 -- back to it. Every user-driven switch routes through this.
@@ -70,7 +71,7 @@ local function not_ready(...)
 end
 M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
   not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
-M.cycle, M.new_auto, M.toggle_last = not_ready, not_ready, not_ready
+M.cycle, M.new_auto, M.toggle_last, M.rename = not_ready, not_ready, not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -298,6 +299,14 @@ vim.api.nvim_create_autocmd('User', {
         M._forget(name)
       end
     end
+    -- Same sweep for labels, minus the phase check: M.rename only labels a
+    -- running session, so none can be in flight. Here and not in _forget,
+    -- which skips built-ins — a label on the bare `claude` would otherwise
+    -- outlive its session and re-attach to the next one. Also frees the
+    -- string it reserved in the name/label namespace.
+    for name in pairs(M._labels) do
+      if #State.get({ name = name, started = true }) == 0 then M._labels[name] = nil end
+    end
     -- Active session died (self-exit, <C-x> in the picker, <leader>ax) → repoint to a
     -- survivor so a summon reattaches instead of spawning fresh. No
     -- `~= 'claude'` guard: a dying built-in `claude` is a no-op in _forget
@@ -361,6 +370,15 @@ vim.api.nvim_create_autocmd('FileType', {
     -- jj/jk -> <leader>al round-trip. Same in-panel ergonomic as <M-]>/<M-n>.
     vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
       { buffer = args.buf, desc = 'AI: Switch/kill CLI session picker' })
+
+    -- <M-r> labels the session you're in (the <leader>ar prompt), same family
+    -- as <M-n>/<M-l>. Not <C-r> — that's the picker's rename key, and reusing
+    -- it here would read as one binding. Deliberately not mirrored into
+    -- toggleterm's <M-*> set: toggleterm has its own _display_name().
+    vim.keymap.set({ 't', 'n' }, '<M-r>', function()
+      local ai = require('ai')
+      ai.rename(ai.active)
+    end, { buffer = args.buf, desc = 'AI: Label the active CLI session' })
 
     -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
     local function send_to_claude(seq)
@@ -556,6 +574,28 @@ if not cursor_ok or type(cursor_cfg.cmd) ~= 'table' or cursor_cfg.cmd[1] ~= 'cur
     vim.log.levels.ERROR)
 end
 
+-- The display namespace is flat: a <leader>al row renders `label or name`, so
+-- one string must never mean two sessions. Guarded from both sides — a label
+-- may not shadow a name (M.rename), and a session may not be born under a live
+-- label (create_session/auto_name). Guarding only the first direction lets the
+-- collision reappear later: label one 'claude 3', then <M-n> auto-names the
+-- next fork 'claude 3'.
+--
+-- cli.tools, not running sessions: the stricter set (a registered-but-unstarted
+-- name is still spawnable, so it stays reserved), and external discovery is
+-- stubbed off above, so nothing running can be missing from it.
+local function name_taken(str)
+  return require('sidekick.config').cli.tools[str] ~= nil
+end
+
+-- Already some *other* session's label? Returns that session's name, so the
+-- caller's notify can say what it collided with.
+local function label_taken(str, except)
+  for name, label in pairs(M._labels) do
+    if label == str and name ~= except then return name end
+  end
+end
+
 -- Auto numbers climb monotonically and never refill a freed number (delete
 -- 'claude 2', fork again → next unused, not the gap). One global counter
 -- across agents, so per-agent sequences are non-contiguous ('claude 2',
@@ -573,6 +613,10 @@ function M._next_auto_name(agent)
     end
   end
   n = n + 1
+  -- Step over numbers a label has claimed. No name_taken check needed — n
+  -- already exceeds every existing '<agent> N', so candidates from here up are
+  -- name-free. Terminates: _labels is finite.
+  while label_taken(agent .. ' ' .. n) do n = n + 1 end
   M._auto_seq = n
   return agent .. ' ' .. n
 end
@@ -582,7 +626,8 @@ end
 -- registration needed); otherwise the next global number. So an <M-n> fork
 -- can resurrect a dead bare name instead of numbering.
 local function auto_name(agent)
-  if #require('sidekick.cli.state').get({ name = agent, started = true }) == 0 then
+  if #require('sidekick.cli.state').get({ name = agent, started = true }) == 0
+     and not label_taken(agent) then   -- a label owns the bare name → number instead
     return agent
   end
   return M._next_auto_name(agent)
@@ -613,6 +658,16 @@ local function create_session(name)
   if not agent then
     vim.notify(('sidekick: session name %q has no agent prefix — refusing to spawn'):format(name),
       vim.log.levels.ERROR)
+    return
+  end
+  -- Namespace guard, also BEFORE set_active (same reasoning as the binary
+  -- check below). A repeat *name* still re-attaches ("labels are reusable");
+  -- only a collision with someone's *label* is refused, since the picker would
+  -- then show that string twice.
+  local owner = label_taken(name)
+  if owner then
+    vim.notify(('sidekick: %q is already the label of %s — pick another name'):format(name, owner),
+      vim.log.levels.WARN)
     return
   end
   local preset = require('sidekick.cli.tool').get(agent).config
@@ -681,6 +736,41 @@ function M.new_session()
   end)
 end
 
+-- <leader>ar / <M-r> / <C-r> in the picker: set or clear a session's display
+-- label. Cosmetic only — it changes how M.switch renders a row and nothing
+-- else; identity stays the tool name, which every route/cycle/kill path keys
+-- off. Hence no >=16-char warning: unlike a <leader>an label, this string never
+-- reaches Session.sid. on_done fires on every outcome including the refusals,
+-- so the picker caller can reopen itself either way.
+function M.rename(name, on_done)
+  -- Refuse a name with nothing running under it. M.active is PRIMARY before any
+  -- session exists (and fallback_active returns PRIMARY when none survive), so
+  -- a cold-start <leader>ar would label a never-started 'claude' that nothing
+  -- reclaims — the GC sweep runs on SidekickCliDetach, which never fires for a
+  -- session that never attached. This is also what keeps that sweep simple:
+  -- every label belongs to a running session, so none can be swept mid-spawn.
+  if #require('sidekick.cli.state').get({ name = name, started = true }) == 0 then
+    vim.notify(('sidekick: no running session named %q to label'):format(name), vim.log.levels.WARN)
+    return
+  end
+  vim.ui.input({ prompt = ('Label for %s: '):format(name), default = M._labels[name] or '' }, function(input)
+    if input == nil then return end                       -- <Esc> cancels
+    if input == '' or input == name then
+      M._labels[name] = nil                               -- blank (or its own name) clears
+    elseif name_taken(input) then
+      vim.notify(('sidekick: %q is a session name — pick another label'):format(input), vim.log.levels.WARN)
+    else
+      local owner = label_taken(input, name)
+      if owner then
+        vim.notify(('sidekick: %q is already the label of %s'):format(input, owner), vim.log.levels.WARN)
+      else
+        M._labels[name] = input
+      end
+    end
+    if on_done then on_done() end
+  end)
+end
+
 function M.toggle_active()
   require('sidekick.cli').toggle({ name = M.active, focus = true })
 end
@@ -721,7 +811,13 @@ function M.switch()
       -- cwd in the display: same-named sessions in two cwds are otherwise
       -- indistinguishable (see Known edges).
       local cwd = s.session and vim.fn.fnamemodify(s.session.cwd, ':~') or ''
-      return { text = s.tool.name .. ' ' .. cwd, name = s.tool.name, cwd = cwd, state = s }
+      local label = M._labels[s.tool.name]
+      -- Label and name both go in `text` (the field snacks matches on), so a
+      -- labelled row is still findable by its raw name.
+      return {
+        text = (label and label .. ' ' or '') .. s.tool.name .. ' ' .. cwd,
+        label = label, name = s.tool.name, cwd = cwd, state = s,
+      }
     end, State.get({ started = true }))              -- running sessions only
   end
 
@@ -729,12 +825,13 @@ function M.switch()
     source = 'sidekick_sessions',
     title = 'Sidekick sessions',
     finder = items,
+    -- Label bright, raw name demoted beside it: the name carries the agent, so
+    -- hiding it behind a label would lose which AI a row is.
     format = function(item)
-      return {
-        { item.name },
-        { '  ' },
-        { item.cwd, 'Comment' },
-      }
+      local ret = { { item.label or item.name } }
+      if item.label then vim.list_extend(ret, { { '  ' }, { item.name, 'Comment' } }) end
+      vim.list_extend(ret, { { '  ' }, { item.cwd, 'Comment' } })
+      return ret
     end,
     confirm = function(picker, item)
       picker:close()
@@ -762,6 +859,14 @@ function M.switch()
       if M.active == name then M.active = fallback_active(name) end
       State.detach(item.state)
       M._forget(name)
+    end,
+    -- Close, prompt, reopen — not an in-place picker:find(). vim.ui.input
+    -- resolves async and snacks owns the picker's own input window, so
+    -- prompting over a live picker is the jank-prone path. Reopening also makes
+    -- labelling several sessions in a row cheap.
+    rename = function(picker, item)
+      picker:close()
+      M.rename(item.name, function() M.switch() end)
     end,
   })
 end

@@ -404,7 +404,13 @@ vim.keymap.set('n', '<leader>an',
   { desc = 'AI: New agent session (claude/cursor picker)' })
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
-  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-x> kill
+  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-x> kill, <C-r> label
+-- Label the active session so <leader>al can tell auto-named forks apart.
+-- Cosmetic only — identity stays the tool name.
+vim.keymap.set('n', '<leader>ar', function()
+  local ai = require('ai')
+  ai.rename(ai.active)
+end, { desc = 'AI: Label the active CLI session' })
 -- No NORMAL-mode <leader>as (sidekick's tool launcher), even with two agents
 -- in cli.tools: <leader>an's picker is the single creation door, and a
 -- per-agent summon key would break the flat-pool symmetry

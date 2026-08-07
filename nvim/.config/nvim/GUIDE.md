@@ -2743,16 +2743,18 @@ sequences are non-contiguous by design (`cursor 3`). A typed label makes a
 reusable named session (`claude: tests`, `cursor: docs`) that re-attaches if
 you type the same label again.
 `<leader>al` opens a snacks picker over running sessions to **switch**
-(`<CR>`, which also makes that session active) or **kill** (`<C-x>`) one;
-rows are numbered and `<M-1>`..`<M-9>` confirms that row directly.
+(`<CR>`, which also makes that session active), **kill** (`<C-x>`) or
+**label** (`<C-r>`) one; rows are numbered and `<M-1>`..`<M-9>` confirms that
+row directly.
 Inside the CLI, `<M-]>`/`<M-[>` cycle to the next/previous running session in
 place without leaving terminal mode (no `jj`/`jk` + `<leader>al` round-trip);
 `<M-l>` opens the same switch/kill picker in place; `<C-]>` toggles back to
 the last-used session (alt-tab style), `<M-n>` forks a new auto-named session
 of the **active session's agent** in place (the one agent-scoped nav key —
 cycling and the picker are pool-wide; bare-first naming applies, so it can
-resurrect a dead bare `cursor` rather than numbering), and `<M-a>` hides the
-panel (the `<leader>aa` toggle)
+resurrect a dead bare `cursor` rather than numbering), `<M-r>` labels the
+session you're in (see below), and `<M-a>` hides the panel (the `<leader>aa`
+toggle)
 without first escaping terminal mode. Kill stays on the deliberate
 `<leader>ax` path — there's no fast in-panel teardown.
 In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
@@ -2789,17 +2791,34 @@ very long label (≥16 chars) warns that reusing it from a different project
 dir collapses to the same session. Nothing persists across an nvim restart
 without the mux backend.
 
+**Labels** (`<leader>ar`, `<M-r>` in the CLI, `<C-r>` in the `<leader>al`
+picker) rename a session's *picker row*, nothing else — auto-named forks like
+`claude 2` are otherwise indistinguishable. A label is cosmetic: identity stays
+the tool name, so every route/cycle/kill path is unaffected, and the raw name
+still renders dimmed beside the label (it carries the agent). The picker
+matches on either string. Blank input — or retyping the session's own name —
+clears the label. Labels are dropped when their session dies and don't survive
+an nvim restart. Because a row displays `label or name`, **labels and names
+share one namespace**: a label can't shadow a session name or another label,
+and a new session can't be created under a live label — so auto-numbering steps
+over label-occupied numbers (label something `claude 3` and the next `<M-n>`
+fork becomes `claude 4`). Collisions are refused with a notify. Note this is a
+label, not a rename: re-entering a label at `<leader>an` still spawns a new
+session, since that reuse works on names.
+
 | Keymap | Action |
 |---|---|
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
 | `<leader>ai` | Focus active CLI (cross-terminal fallback for `<C-.>`) |
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New agent session — agent picker, blank label = auto-named, typed = reusable |
-| `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`) or kill (`<C-x>`) a running CLI session (indexed picker) |
+| `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
+| `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
+| `<M-r>` (in CLI) | Label the session you're in, in place (the `<leader>ar` prompt) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
 | `u` (in CLI, normal mode) | Undo prompt input — Ctrl+_ in claude; Ctrl+U kill-line in cursor (no true undo there) |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
