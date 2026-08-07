@@ -64,13 +64,14 @@ end
 
 -- `#L`, not `:` — that's Claude Code's documented mention shape
 -- (@file#L100-110), what ai_context.lua's M.ref already emits for the
--- <leader>a* sends, and what GitHub permalinks use, so one yank pastes
--- everywhere. Not routed through ai_context.M.ref on purpose: that one is
--- cwd-relative and self-quotes, while these are repo-relative (or absolute)
--- for sharing outside this checkout. Only claude and cursor resolve a line
--- range at all — opencode wants `#a-b` without the L and may not accept it
--- from the TUI, pi has no range syntax — so on those the path still resolves
--- and the range reads as a hint.
+-- <leader>a* sends. Single-line refs (#L42) also match GitHub's permalink
+-- fragment; ranges don't (GitHub wants #L42-L58 — see github_url_for below).
+-- Not routed through ai_context.M.ref on purpose: that one is cwd-relative
+-- and self-quotes, while these are repo-relative (or absolute) for sharing
+-- outside this checkout. Only claude and cursor resolve a line range at all —
+-- opencode wants `#a-b` without the L and may not accept it from the TUI, pi
+-- has no range syntax — so on those the path still resolves and the range
+-- reads as a hint.
 
 -- Yank: Claude @-mention reference for the current visual selection, e.g.
 -- "@foo/bar.lua#L42-58". Falls back to absolute path outside a repo.
