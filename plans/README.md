@@ -45,19 +45,18 @@ off or delete them as they land; add new ones freely.
   Verdict → [nvim-backlog.md](nvim-backlog.md)'s dropbar entry; setup in
   `nvim/.config/nvim/lua/breadcrumbs.lua`, prose in [GUIDE.md → Breadcrumbs
   (dropbar)](../nvim/.config/nvim/GUIDE.md#breadcrumbs-dropbar).
-- [ ] **Wire opencode and pi into theme-follow** — both agents were added
-  2026-08-06 with a *static* theme (opencode `catppuccin-latte` in
-  `opencode/.config/opencode/tui.json`, pi `"light"` in
-  `pi/.pi/agent/settings.json`), so they don't flip with the system light/dark
-  switch the way Claude Code and nvim do via `zsh/.local/bin/theme` +
-  `macos/Library/LaunchAgents/com.dhruv.theme-follow.plist`. The catch found
-  while planning: the two take different vocabularies — opencode wants a named
-  theme (`catppuccin-latte` / `catppuccin-mocha`, `system` also exists and may
-  make opencode a no-op here), while pi's `theme` key only accepts
-  `"dark"`/`"light"` unless a custom theme is registered via its `themes`
-  setting. So the shim needs a per-tool mapping, not one shared theme name.
-  Check whether opencode's `system` theme already tracks macOS appearance
-  before writing any code for that half.
+- [ ] **Make pi switch themes live** — pi is the only tool in the `theme` script
+  that doesn't recolor a *running* session: `zsh/.local/bin/theme` rewrites the
+  `theme` key in `~/.pi/agent/settings.json`, which pi reads at startup, so a
+  flip lands on the next session (shipped 2026-08-07). pi does document
+  hot-reloading the *active custom theme file* when it changes — the same
+  mechanism Claude Code's `active.json` uses — so the upgrade is: author
+  Catppuccin Latte + Dracula as pi themes (51 color tokens, schema in
+  `$(npm prefix -g)/lib/node_modules/@earendil-works/pi-coding-agent/docs/themes.md`),
+  pin `"theme": "active"`, and have the script swap `active.json` instead of
+  editing settings. Verify the hot reload actually fires before committing to
+  it — opencode's docs promised custom-theme support that its binary doesn't
+  implement, so treat the claim as unverified.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Fuzzy-filter the grep-selection picker (`<leader>ss`) on the whole
