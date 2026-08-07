@@ -57,7 +57,7 @@ wk.add({
   -- `<leader>?` global mappings list). Active in normal and visual modes.
   { 'yp',  desc = 'Yank: Relative path',                    mode = { 'n', 'x' } },
   { 'yP',  desc = 'Yank: Absolute path',                    mode = { 'n', 'x' } },
-  { 'yc',  desc = 'Yank: Claude reference (@path:lines)',   mode = { 'n', 'x' } },
+  { 'yc',  desc = 'Yank: Claude reference (@path#Llines)',  mode = { 'n', 'x' } },
   { 'yC',  desc = 'Yank: Claude reference (absolute path)', mode = { 'n', 'x' } },
   { 'yu',  desc = 'Yank: GitHub permalink',                 mode = { 'n', 'x' } },
 })

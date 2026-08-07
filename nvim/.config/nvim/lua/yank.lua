@@ -62,20 +62,30 @@ function M.absolute_path()
   copy(vim.fn.expand('%:p'))
 end
 
+-- `#L`, not `:` — that's Claude Code's documented mention shape
+-- (@file#L100-110), what ai_context.lua's M.ref already emits for the
+-- <leader>a* sends, and what GitHub permalinks use, so one yank pastes
+-- everywhere. Not routed through ai_context.M.ref on purpose: that one is
+-- cwd-relative and self-quotes, while these are repo-relative (or absolute)
+-- for sharing outside this checkout. Only claude and cursor resolve a line
+-- range at all — opencode wants `#a-b` without the L and may not accept it
+-- from the TUI, pi has no range syntax — so on those the path still resolves
+-- and the range reads as a hint.
+
 -- Yank: Claude @-mention reference for the current visual selection, e.g.
--- "@foo/bar.lua:42-58". Falls back to absolute path outside a repo.
+-- "@foo/bar.lua#L42-58". Falls back to absolute path outside a repo.
 function M.claude_ref()
   local path = repo_relative_path() or vim.fn.expand('%:p')
   local s, e = visual_range()
-  copy('@' .. path .. ':' .. format_range(s, e))
+  copy('@' .. path .. '#L' .. format_range(s, e))
 end
 
 -- Yank: Claude @-mention reference using the absolute path, e.g.
--- "@/Users/dhruv/foo/bar.lua:42-58". Useful when sharing across repos or when
+-- "@/Users/dhruv/foo/bar.lua#L42-58". Useful when sharing across repos or when
 -- the relative path would be ambiguous.
 function M.claude_ref_absolute()
   local s, e = visual_range()
-  copy('@' .. vim.fn.expand('%:p') .. ':' .. format_range(s, e))
+  copy('@' .. vim.fn.expand('%:p') .. '#L' .. format_range(s, e))
 end
 
 -- Build a GitHub permalink for an absolute file path, pinned to HEAD's commit

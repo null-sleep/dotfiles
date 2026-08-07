@@ -29,11 +29,16 @@ off or delete them as they land; add new ones freely.
      edit. 0x1F is right per vendor docs + pi-tui's decoder, but neither was
      pressed for real. If opencode misbehaves, do **not** try Ctrl+Z — that's
      its `terminal_suspend` (only its Windows build reuses `ctrl+z` for undo).
-  4. **Context refs on the new agents.** `<leader>at`/`af`/`ac` send
-     `ai_context.lua`'s Claude-native `@file#L<n>`; cursor was verified to
-     parse it, opencode and pi never were. If they don't resolve it, the fix is
-     a per-agent context override rather than the current global one — see the
-     `yank.lua` `#L` item below, same family.
+  4. **Context refs on the new agents** — *partly answered 2026-08-07, now a
+     decision rather than an unknown.* `<leader>at`/`af`/`ac` send
+     `ai_context.lua`'s Claude-native `@file#L<n>` globally. Claude documents
+     that shape and cursor was verified to parse it, but **opencode** wants
+     `#a-b` (no `L`) and its own issue tracker says line ranges aren't
+     reachable from the TUI at all, and **pi** documents no range syntax —
+     `@` is whole-file fuzzy attach. So on those two the path should still
+     resolve while the range degrades to a text hint. Confirm that's what
+     actually happens; if the range instead breaks the whole mention, the fix
+     is a per-agent context override instead of the current global one.
 - [ ] **Verify the opencode + pi themes by eye** — both were wired into the
   `theme` switcher on 2026-08-07 but neither could be confirmed from an agent
   session: opencode's appearance detection needs a real terminal to answer its
@@ -142,16 +147,14 @@ off or delete them as they land; add new ones freely.
   picker's **abort/kill**: `<leader>dR` on a big module, `<Esc>` mid-load, then
   `pgrep -f "go list"` — nothing should linger. See
   [go-run-debug-test.md](go-run-debug-test.md) → Verification.
-- [ ] **Unify yank.lua's `yc`/`yC` ref format with sidekick's `#L`** — `yc`/`yC`
-  in `nvim/.config/nvim/lua/yank.lua` emit `@path:42-58` (colon, no `L`), while
-  sidekick / `ai_context.lua` emit `@path#L42-58`. Both are readable and Cursor
-  parses either (noted 2026-07-21 while designing
-  [sidekick-cursor-support.md](sidekick-cursor-support.md)), so this is a
-  pre-existing repo inconsistency, unrelated to the Cursor work — worth a
-  separate pass sometime to prefer one shape (`#L`) everywhere, not part of that
-  change. Wider since 2026-08-07: `ai_context.lua`'s overrides are global, so
-  the Claude-native `#L` shape now also goes to `opencode` and `pi`, neither
-  verified to parse it (see the verification item at the top).
+- [x] **Unify yank.lua's `yc`/`yC` ref format with sidekick's `#L`** — done
+  2026-08-07. They emitted `@path:42-58` while `ai_context.lua` emitted
+  `@path#L42-58`; the colon shape turned out to be documented nowhere, and
+  `@file#L100-110` is Claude Code's actual mention syntax, so `yc`/`yC` were
+  producing a "Claude reference" Claude doesn't parse as a range. Both now emit
+  `#L`, which also matches GitHub permalinks. Not routed through
+  `ai_context.M.ref` on purpose — that one is cwd-relative and self-quotes,
+  while `yc`/`yC` are repo-relative/absolute for sharing outside the checkout.
 - [ ] **Collapse the sidekick detach sweep's 9 `State.get` calls into 1** — all
   9 filter the same snapshot, so the sweep re-scans the world 9× for nothing.
   Harmless today (~0.05ms/call post-`88cb662`), but it's the multiplier that
