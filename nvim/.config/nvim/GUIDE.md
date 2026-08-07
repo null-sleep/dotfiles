@@ -2860,6 +2860,16 @@ unreliable cross-language name extraction) with Claude Code's native `#L`
 mention shape (`{quickfix}` included); diagnostics and `{buffers}`/`{file}`
 still use sidekick's stock `cli/context` module.
 
+**A ref only auto-attaches on claude and cursor.** Every send key emits the
+same `@path#L…` string to whichever agent is active, but opencode and pi never
+resolve a *pasted* `@` ref into an attachment — in both, `@` is an autocomplete
+trigger that builds the attachment as you pick from its popup, and neither
+re-scans the submitted text. So on those two the ref arrives as text and the
+agent reads the file with its own tool, which it usually but not always does.
+Nothing to work around, and no better shape exists (`#L` stays the right one —
+it's machine-parsed on claude and legible everywhere); when you want the code
+itself rather than a pointer, visual `<leader>as` sends the literal selection.
+
 ### There is no inline AI completion
 
 Removed 2026-07-20, along with NES. Both were Copilot features on the same
