@@ -2760,14 +2760,13 @@ session you're in (see below), and `<M-a>` hides the panel (the `<leader>aa`
 toggle)
 without first escaping terminal mode. Kill stays on the deliberate
 `<leader>ax` path — there's no fast in-panel teardown.
-In the CLI's **normal** mode, a few keys forward raw bytes to Claude's TUI
-instead of hitting the unmodifiable terminal buffer: `u` sends Ctrl+_
-(Claude's input-undo — vim's own `u` would just throw E21 here; the
-binding is pinned in the stowed `claude/.claude/keybindings.json`),
-`p`/`P` bracketed-paste a register into the prompt (yank in a code
-buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
-PageUp/PageDown to scroll Claude's view. `u` only means undo while
-Claude's input box has focus; mid-stream or dialog states may ignore it.
+In the CLI's **normal** mode, a few keys forward raw bytes to the agent's TUI
+instead of hitting the unmodifiable terminal buffer: `u` sends the agent's
+input-undo sequence (vim's own `u` would just throw E21 here), `p`/`P`
+bracketed-paste a register into the prompt (yank in a code buffer, paste
+straight in), and `<C-u>`/`<C-d>` send PageUp/PageDown to scroll the TUI.
+`u` only means undo while the input box has focus; mid-stream or dialog
+states may ignore it.
 These byte-forwards are bound in every sidekick terminal. `p`/`P` and
 `<C-u>`/`<C-d>` are generic; only `u` branches, via an **allowlist** — an agent
 gets a real sequence only once its binding is verified, because a guessed byte
@@ -2812,6 +2811,8 @@ picker) rename a session's *picker row* and nothing else — auto-named forks
 like `claude 2` are otherwise indistinguishable. Identity stays the tool name,
 so every route/cycle/kill path is unaffected; the raw name still renders dimmed
 beside the label (it carries the agent), and the picker matches either string.
+Labels are keyed by that name too, so same-named sessions in different cwds
+share one label (and it lives until the last of them exits).
 Blank input, or retyping the session's own name, clears it. Labels die with
 their session and don't survive a restart. Since a row shows `label or name`,
 **labels and names share one namespace**: a label can't shadow a name or
@@ -2830,7 +2831,7 @@ session, since that reuse works on names.
 | `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
 | `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
-| `<M-l>` (in CLI) | Open the switch/kill session picker in place (the `<leader>al` picker) |
+| `<M-l>` (in CLI) | Open the switch/kill/label session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
 | `<M-r>` (in CLI) | Label the session you're in, in place (the `<leader>ar` prompt) |
