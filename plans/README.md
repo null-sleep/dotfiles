@@ -11,6 +11,29 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Verify the opencode + pi themes by eye** — both were wired into the
+  `theme` switcher on 2026-08-07 but neither could be confirmed from an agent
+  session: opencode's appearance detection needs a real terminal to answer its
+  OSC 11 background query (a captured pty has nothing to reply), and pi won't
+  start in a pty *and* needs `OPENROUTER_API_KEY` set. Three checks, in a real
+  Ghostty window:
+  1. **opencode follows the terminal.** `theme dark`, launch `opencode`, confirm
+     it comes up dark; `theme light`, launch a *new* one, confirm light. Already-
+     open sessions are expected NOT to change — it reads the background once at
+     startup. If it doesn't follow, the `system` theme isn't picking up
+     Ghostty's background; try `catppuccin` (true-color, adaptive, but Mocha
+     instead of Dracula on the dark side).
+  2. **pi recolors live.** With `pi` open, run `theme toggle` in another pane —
+     the running session should repaint. This is the one behavior taken purely
+     from pi's docs ("pi reloads the active custom theme file automatically");
+     if it doesn't fire, the fallback is restarting pi, and the palettes are
+     still correct. Treat the doc claim as unproven — opencode's docs promised
+     custom-theme support its binary doesn't implement.
+  3. **The ported palettes look right.** `pi/.pi/agent/themes/{catppuccin-latte,
+     dracula}.json` were validated against pi's schema (all 51 required tokens,
+     no unknown keys, every `vars` reference resolves) but never rendered. Check
+     the syntax-highlighting and diff colors in particular, since those were
+     mapped by hand rather than copied from an existing pi theme.
 - [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes
@@ -45,18 +68,6 @@ off or delete them as they land; add new ones freely.
   Verdict → [nvim-backlog.md](nvim-backlog.md)'s dropbar entry; setup in
   `nvim/.config/nvim/lua/breadcrumbs.lua`, prose in [GUIDE.md → Breadcrumbs
   (dropbar)](../nvim/.config/nvim/GUIDE.md#breadcrumbs-dropbar).
-- [ ] **Make pi switch themes live** — pi is the only tool in the `theme` script
-  that doesn't recolor a *running* session: `zsh/.local/bin/theme` rewrites the
-  `theme` key in `~/.pi/agent/settings.json`, which pi reads at startup, so a
-  flip lands on the next session (shipped 2026-08-07). pi does document
-  hot-reloading the *active custom theme file* when it changes — the same
-  mechanism Claude Code's `active.json` uses — so the upgrade is: author
-  Catppuccin Latte + Dracula as pi themes (51 color tokens, schema in
-  `$(npm prefix -g)/lib/node_modules/@earendil-works/pi-coding-agent/docs/themes.md`),
-  pin `"theme": "active"`, and have the script swap `active.json` instead of
-  editing settings. Verify the hot reload actually fires before committing to
-  it — opencode's docs promised custom-theme support that its binary doesn't
-  implement, so treat the claim as unverified.
 - [ ] **Saved picker searches** — save a search when you run it so you can
   re-run it later. A feature to add to the picker.
 - [ ] **Fuzzy-filter the grep-selection picker (`<leader>ss`) on the whole
