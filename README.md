@@ -19,7 +19,8 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Squad](#claude-squad)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [OpenRouter](#openrouter) — the model gateway behind the two agents below
-- [opencode](#opencode) · [pi](#pi)
+- [opencode](#opencode) — [Theme](#opencode-theme)
+- [pi](#pi) — [Theme](#pi-theme)
 
 *Editors*
 - [Neovim](#neovim)
@@ -270,6 +271,7 @@ alongside the synced ones.
 
 All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
 
+<a id="whats-managed"></a>
 ### What's managed
 
 | File | Method |
@@ -351,6 +353,7 @@ That command:
 
 `--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. None of these files are stowed (all machine-specific `~/.claude` state); the reproducible artifact is the one command above. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
 
+<a id="theme"></a>
 ### Theme
 
 `catppuccin-latte.json` is a custom Claude Code theme (requires Claude Code v2.1.118+) whose palette matches the Neovim `catppuccin-latte` colorscheme, including nvim's exact diff-blend values.
@@ -746,6 +749,7 @@ opencode's `{env:VAR}` substitution, and pins `autoupdate` to `false` — the
 binary is Homebrew-managed, so `brew upgrade opencode` owns the version rather
 than having opencode replace it underneath Homebrew.
 
+<a id="opencode-theme"></a>
 ### Theme
 
 `tui.json` sets the **`system`** theme (also opencode's default — pinned here so
@@ -847,10 +851,11 @@ and pointing it at a real theme name would break the switch.
 OpenRouter is a built-in provider, so it's only needed for OpenAI-compatible
 endpoints pi doesn't already know about.
 
+<a id="pi-theme"></a>
 ### Theme
 
-pi switches **live**, using the same indirection as [Claude
-Code](#theme): `settings.json` pins the fixed theme name `active`, and
+pi switches **live**, using the same indirection as [Claude Code's
+theme](#theme): `settings.json` pins the fixed theme name `active`, and
 `theme dark|light` overwrites `~/.pi/agent/themes/active.json` with the chosen
 palette. pi hot-reloads the active theme file when it changes, so running
 sessions recolor without a restart ([Unified theme
