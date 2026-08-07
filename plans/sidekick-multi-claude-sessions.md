@@ -3,6 +3,13 @@
 > **Status:** shipped; shrunk to reference core + runbook 2026-07-18. The
 > Implementation and Verification sections were removed — shipped code in
 > `ai.lua` is the source of truth (see the Implementation stub below).
+>
+> **Two terminology updates since (2026-08-07):** the pool is no longer
+> claude-only — `AGENTS` is now claude/cursor/opencode/pi, and a session's name
+> prefix picks the agent. And **"label" below always means the `<leader>an`
+> name suffix** (`claude: tests`, part of the identity); the separate cosmetic
+> *display* label added later (`<leader>ar`) is picker-only and never touches
+> the name. See GUIDE.md → AI.
 
 ## Goal
 

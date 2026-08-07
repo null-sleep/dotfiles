@@ -1,5 +1,10 @@
 # Add Cursor alongside Claude in sidekick
 
+> **Superseded in part 2026-08-07:** `opencode` and `pi` joined `AGENTS`, so
+> every "the two agents" statement below reads as four now, and the `u`
+> handling was reworked (see the `ai.lua` section). The UX decisions and their
+> rationale still hold — only the agent count changed.
+>
 > **Status:** implemented 2026-07-22, all manual verification steps passed
 > (UX locked 2026-07-21; revised 2026-07-22 — dropped the dedicated
 > `<leader>as` Cursor summon, `<leader>an`'s agent picker is now the single
@@ -277,11 +282,12 @@ Then, in file order:
 Unchanged by design: `M.send`/WinEnter routing, `show_solo`, the detach
 sweep, `<M-l>`/`<M-]>`/`<M-[>`/`<C-]>` (pool-wide), `ai_context.lua`,
 `pickers/aibuffers.lua` (routes through `ai.send`, file-only refs). The
-in-CLI `u` is per-agent since the 2026-07-22 follow-up: Ctrl+_ in claude,
-Ctrl+U (kill-line) in cursor — the original "benign no-op" assumption was
-wrong; binary inspection showed cursor-agent has no input-undo at all and
-0x1F *cycles the model* there. Details in `ai.lua`'s keymap comment and
-GUIDE.md.
+in-CLI `u` is per-agent since the 2026-07-22 follow-up — the original "benign
+no-op" assumption was wrong; binary inspection showed cursor-agent has no
+input-undo at all and 0x1F *cycles the model* there. **Superseded 2026-08-07**
+(opencode + pi joined the pool): the cursor-only denylist became an allowlist
+table, since it would have sent 0x1F to two more unverified TUIs. Current
+mapping in `ai.lua`'s `UNDO_SEQ` and GUIDE.md.
 
 ### statusline.lua
 

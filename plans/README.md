@@ -11,6 +11,29 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Verify the sidekick session labels + the 4-agent pool** — shipped
+  2026-08-07 (display labels on `<leader>ar`/`<M-r>`/`<C-r>`; `opencode` and
+  `pi` added to `AGENTS`). Everything testable headlessly passed — namespace
+  collisions both directions, label GC, auto-name skipping label-occupied
+  numbers, the four presets resolving to the right binaries. What's left needs
+  a real UI, in one `env -u NVIM nvim` session:
+  1. **`<C-r>` in the `<leader>al` picker.** It closes, prompts, then reopens
+     (`vim.ui.input` is async and snacks owns the picker's own input window).
+     Confirm the reopen isn't jarring; if a nested input turns out fine, the
+     hook can switch to an in-place `picker:find()`.
+  2. **`<M-r>` from terminal mode.** No precedent in this config for prompting
+     out of a terminal buffer, and sidekick's own WinEnter/TermEnter autocmds
+     call `startinsert`/`stopinsert` — check the input takes keystrokes and
+     returns focus in the right mode.
+  3. **`u` in an opencode and a pi panel.** Both should undo the last input
+     edit. 0x1F is right per vendor docs + pi-tui's decoder, but neither was
+     pressed for real. If opencode misbehaves, do **not** try Ctrl+Z — that's
+     its `terminal_suspend` (only its Windows build reuses `ctrl+z` for undo).
+  4. **Context refs on the new agents.** `<leader>at`/`af`/`ac` send
+     `ai_context.lua`'s Claude-native `@file#L<n>`; cursor was verified to
+     parse it, opencode and pi never were. If they don't resolve it, the fix is
+     a per-agent context override rather than the current global one — see the
+     `yank.lua` `#L` item below, same family.
 - [ ] **Verify the opencode + pi themes by eye** — both were wired into the
   `theme` switcher on 2026-08-07 but neither could be confirmed from an agent
   session: opencode's appearance detection needs a real terminal to answer its
@@ -126,7 +149,9 @@ off or delete them as they land; add new ones freely.
   [sidekick-cursor-support.md](sidekick-cursor-support.md)), so this is a
   pre-existing repo inconsistency, unrelated to the Cursor work — worth a
   separate pass sometime to prefer one shape (`#L`) everywhere, not part of that
-  change.
+  change. Wider since 2026-08-07: `ai_context.lua`'s overrides are global, so
+  the Claude-native `#L` shape now also goes to `opencode` and `pi`, neither
+  verified to parse it (see the verification item at the top).
 - [ ] **Collapse the sidekick detach sweep's 9 `State.get` calls into 1** — all
   9 filter the same snapshot, so the sweep re-scans the world 9× for nothing.
   Harmless today (~0.05ms/call post-`88cb662`), but it's the multiplier that
@@ -310,8 +335,10 @@ Grouped by state, not priority.
   (`cursor-agent`) as a second agent beside Claude in the flat session pool
   (`<leader>an` agent picker is the single creation door, agent-aware
   naming/fork, pool-wide switch/cycle). UX locked 2026-07-21 (rev. 2026-07-22);
-  implemented 2026-07-22, all manual verification passed — remaining open items
-  (interim `u` handling, hardcoded picker ranking) tracked in the plan.
+  implemented 2026-07-22, all manual verification passed. **Partly superseded
+  2026-08-07** — `opencode` and `pi` joined `AGENTS` (so "the two agents" reads
+  as four) and the `u` handling became an allowlist table; the UX rationale
+  still holds. Only open item left from it: the hardcoded picker ranking.
 - [rustrover-nvim-parity.md](rustrover-nvim-parity.md) — how much of RustRover's
   edge (SSR, batch clippy fixes, refactor previews, debugger visuals, DB/HTTP/
   coverage tooling) can be closed in the existing rustaceanvim setup.
