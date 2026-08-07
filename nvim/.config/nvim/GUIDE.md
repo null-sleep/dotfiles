@@ -672,9 +672,10 @@ the UI thread, and two of them shell out — neither of which we asked for:
 
 So `State.get` cost 40.8ms, and the detach sweep — 9 of them with 3 forked
 sessions — froze nvim for **~370ms**. `ai.lua` stubs those backends'
-`sessions()` to `{}` and prunes `cli.tools` to the two agents (`claude`,
-`cursor`): now **0.05ms**. Stubbing only disables discovery of *externally
-started* sessions; starting and attaching from nvim is untouched.
+`sessions()` to `{}` and prunes `cli.tools` to the agent set (`claude`,
+`cursor`, `opencode`, `pi`): now **0.05ms**. Stubbing only disables discovery
+of *externally started* sessions, which is why `opencode` stays stubbed even
+as an agent — sessions we spawn go through the terminal backend like the rest.
 
 Three traps if you revisit this:
 
@@ -688,11 +689,11 @@ Three traps if you revisit this:
 - **Stub, never `nil`.** `Session.new` asserts `backends[name]` exists, so
   nil-ing tmux would hard-error if mux is ever enabled.
 
-Pruning to the two agents also means no other spec is ever `dofile`d, so no
-future upstream tool can reintroduce this. `cursor`'s spec is safe to keep —
-bare `cmd`/`is_proc`/`url`, no `sessions()` scanner; check that before ever
-keeping a third preset. The tool launcher (formerly `<leader>as`) stays
-unbound even with two tools — a UX choice now, not a perf one (see
+Pruning to the agent set also means no other spec is ever `dofile`d, so no
+future upstream tool can reintroduce this. `cursor`'s and `pi`'s specs are safe
+to keep — bare `cmd`/`is_proc`/`url`, no `sessions()` scanner; check that before
+adding any further preset. The tool launcher (formerly `<leader>as`) stays
+unbound however many tools there are — a UX choice now, not a perf one (see
 [AI (sidekick.nvim)](#ai-sidekick)).
 
 ### Rust keymaps fire on LspAttach, not FileType
@@ -2722,20 +2723,22 @@ with it. `ai.lua` pins `nes = { enabled = false }` rather than deleting the
 block, because sidekick's default is on and the literal `false` is what stops it
 registering a per-keystroke `vim.on_key` handler for a dead feature.
 
-**CLI integration** — runs one or more agent CLI sessions (Claude Code and
-Cursor's `cursor-agent`) in terminal splits, organized around the **active
-session**: the CLI session whose window you last entered (default: the
-pre-warmed `claude`). The pool is flat — a session's *name prefix* carries
-its agent (`claude 2`, `cursor: tests`) and drives which binary spawns, and
-every key below works the same on both agents. `<leader>aa` toggles the
+**CLI integration** — runs one or more agent CLI sessions in terminal splits,
+organized around the **active session**: the CLI session whose window you
+last entered (default: the pre-warmed `claude`). Four agents are registered —
+Claude Code, Cursor's `cursor-agent`, `opencode` and `pi`. The pool is flat —
+a session's *name prefix* carries its agent (`claude 2`, `cursor: tests`,
+`opencode: api`) and drives which binary spawns, and every key below works
+the same on all four. `<leader>aa` toggles the
 active session, `<leader>ax` kills it, and **all send keys, `<leader>ao`,
 `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several sessions
 running, sends never stop to ask which one.
 
 `<leader>an` spawns a **new** session in two steps: an agent picker
 (the first item is highlighted, so plain `<CR>` confirms it — one extra
-Enter vs the old claude-only flow, accepted; `cursor` is currently ranked
-first as a trial, TODO in `ai.lua` to revisit), then a label prompt; `<Esc>`
+Enter vs the old claude-only flow, accepted; the order is `cursor`, `claude`,
+`opencode`, `pi` — `cursor` ranked first as a trial, TODO in `ai.lua` to
+revisit), then a label prompt; `<Esc>`
 cancels either step. A blank label auto-names the session: the bare agent
 name (`cursor`) if nothing is running under it, else a number from a counter
 shared across agents that never refills a freed number — so per-agent
@@ -2765,12 +2768,24 @@ binding is pinned in the stowed `claude/.claude/keybindings.json`),
 buffer, paste straight into Claude), and `<C-u>`/`<C-d>` send
 PageUp/PageDown to scroll Claude's view. `u` only means undo while
 Claude's input box has focus; mid-stream or dialog states may ignore it.
-These byte-forwards are bound in every sidekick terminal but tuned for
-Claude's TUI — in a cursor panel `u` sends Ctrl+U (kill-line) instead:
-cursor-agent has no true input-undo, and Claude's Ctrl+_ byte would cycle
-the model there. The kill is unrecoverable and takes one line per press on
-multi-line drafts.
-There is **no tool launcher**: even with two agents in `cli.tools`,
+These byte-forwards are bound in every sidekick terminal. `p`/`P` and
+`<C-u>`/`<C-d>` are generic; only `u` branches, via an **allowlist** — an agent
+gets a real sequence only once its binding is verified, because a guessed byte
+does real damage (Claude's Ctrl+_ cycles the model in cursor):
+
+| Agent | `u` sends | Source |
+|---|---|---|
+| claude | 0x1F | pinned in the stowed `claude/.claude/keybindings.json` |
+| pi | 0x1F | stock `tui.editor.undo` = `ctrl+-` |
+| opencode | 0x1F | stock `input_undo` = `ctrl+-,super+z` |
+| cursor | 0x15 | fallback — cursor has no input-undo at all |
+
+One byte covers three agents: 0x1F *is* `ctrl+-` on the wire (`0x5F & 0x1F`),
+and only claude needs its binding pinned. **Don't send Ctrl+Z (0x1A) to
+opencode** — that's its `terminal_suspend`; only the Windows build reuses
+`ctrl+z` for undo. The Ctrl+U fallback is a kill-line: unrecoverable, one line
+per press.
+There is **no tool launcher**: however many agents are in `cli.tools`,
 sidekick's launcher (formerly `<leader>as`) stays unbound — `<leader>an`'s
 agent picker is the single creation door, and a per-agent summon key would
 break the flat-pool symmetry. See "Sidekick's session backends shell out on
@@ -2782,28 +2797,28 @@ dynamically-registered tool name cloned from **its own agent's preset** —
 the name's leading token picks the preset (strictly anchored, so
 `claude: cursor-migration` stays claude). A missing agent binary notifies
 and aborts instead of spawning a terminal that dies instantly. Only the
-primary `claude` is pre-warmed — cursor sessions and claude forks cold-start
-(~1–2s) on first open. Killing a session auto-unregisters its dynamic name
-(a detach sweep); re-creating that name starts a **fresh** conversation (no
-resume), and killing the last cursor session falls back to claude — the
-deliberate home-base asymmetry (see `plans/sidekick-cursor-support.md`). A
+primary `claude` is pre-warmed — every other agent's sessions and claude's own
+forks cold-start (~1–2s) on first open. Killing a session auto-unregisters its
+dynamic name (a detach sweep); re-creating that name starts a **fresh**
+conversation (no resume), and killing the last non-claude session falls back to
+claude — the deliberate home-base asymmetry (see
+`plans/sidekick-cursor-support.md`). A
 very long label (≥16 chars) warns that reusing it from a different project
 dir collapses to the same session. Nothing persists across an nvim restart
 without the mux backend.
 
 **Labels** (`<leader>ar`, `<M-r>` in the CLI, `<C-r>` in the `<leader>al`
-picker) rename a session's *picker row*, nothing else — auto-named forks like
-`claude 2` are otherwise indistinguishable. A label is cosmetic: identity stays
-the tool name, so every route/cycle/kill path is unaffected, and the raw name
-still renders dimmed beside the label (it carries the agent). The picker
-matches on either string. Blank input — or retyping the session's own name —
-clears the label. Labels are dropped when their session dies and don't survive
-an nvim restart. Because a row displays `label or name`, **labels and names
-share one namespace**: a label can't shadow a session name or another label,
-and a new session can't be created under a live label — so auto-numbering steps
-over label-occupied numbers (label something `claude 3` and the next `<M-n>`
-fork becomes `claude 4`). Collisions are refused with a notify. Note this is a
-label, not a rename: re-entering a label at `<leader>an` still spawns a new
+picker) rename a session's *picker row* and nothing else — auto-named forks
+like `claude 2` are otherwise indistinguishable. Identity stays the tool name,
+so every route/cycle/kill path is unaffected; the raw name still renders dimmed
+beside the label (it carries the agent), and the picker matches either string.
+Blank input, or retyping the session's own name, clears it. Labels die with
+their session and don't survive a restart. Since a row shows `label or name`,
+**labels and names share one namespace**: a label can't shadow a name or
+another label, and a session can't be created under a live label — so
+auto-numbering steps over label-occupied numbers (label one `claude 3` and the
+next `<M-n>` fork is `claude 4`). Collisions are refused with a notify. This is
+a label, not a rename: re-entering it at `<leader>an` still spawns a new
 session, since that reuse works on names.
 
 | Keymap | Action |
@@ -2820,7 +2835,7 @@ session, since that reuse works on names.
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
 | `<M-r>` (in CLI) | Label the session you're in, in place (the `<leader>ar` prompt) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
-| `u` (in CLI, normal mode) | Undo prompt input — Ctrl+_ in claude; Ctrl+U kill-line in cursor (no true undo there) |
+| `u` (in CLI, normal mode) | Undo prompt input — per-agent sequence (see the table above) |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |
 | `<leader>ax` | Kill active CLI session (tears down process + buffer; floating confirm popup) |

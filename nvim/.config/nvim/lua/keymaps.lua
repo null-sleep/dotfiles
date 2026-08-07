@@ -401,7 +401,7 @@ vim.keymap.set('n', '<leader>aa',
   { desc = 'AI: Toggle active CLI session' })
 vim.keymap.set('n', '<leader>an',
   function() require('ai').new_session() end,
-  { desc = 'AI: New agent session (claude/cursor picker)' })
+  { desc = 'AI: New agent session (agent picker)' })
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
   { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-x> kill, <C-r> label
@@ -411,8 +411,8 @@ vim.keymap.set('n', '<leader>ar', function()
   local ai = require('ai')
   ai.rename(ai.active)
 end, { desc = 'AI: Label the active CLI session' })
--- No NORMAL-mode <leader>as (sidekick's tool launcher), even with two agents
--- in cli.tools: <leader>an's picker is the single creation door, and a
+-- No NORMAL-mode <leader>as (sidekick's tool launcher), however many agents
+-- are in cli.tools: <leader>an's picker is the single creation door, and a
 -- per-agent summon key would break the flat-pool symmetry
 -- (plans/sidekick-cursor-support.md, Decision 2). The visual-mode <leader>as
 -- below is separate — this reservation is normal-mode only.

@@ -3,13 +3,14 @@
 -- the name carries the agent, the agent picks the binary (create_session).
 -- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback (the
 -- <leader>an picker ranks independently — see new_session).
-local AGENTS = { 'claude', 'cursor' }
+local AGENTS = { 'claude', 'cursor', 'opencode', 'pi' }
 local PRIMARY = AGENTS[1]
 
 -- Name → agent (the name is a session's only identity — no agent field).
 -- Strictly anchored: the next char must be ' ' or ':' so
 -- 'claude: cursor-migration' parses as claude, never cursor. nil for names
--- outside the invariant — callers must refuse, not default.
+-- outside the invariant — callers must refuse, not default. No agent name
+-- prefixes another, so iteration order doesn't matter.
 local function agent_of(name)
   if not name then return end
   for _, a in ipairs(AGENTS) do
@@ -139,12 +140,15 @@ require('sidekick').setup({
 -- Kill the shell-out session backends. State.get() runs EVERY registered
 -- backend's sessions() synchronously on the UI thread, and two of them shell
 -- out: opencode (`lsof -iTCP -sTCP:LISTEN`, 40ms) and tmux/zellij (a full `ps`
--- scan, +22ms). Neither was asked for — opencode registers itself as a *load
--- side-effect* of its tool spec, and Session.setup() registers tmux/zellij on
--- `executable(name)==1` alone, NOT on cli.mux.enabled. So State.get cost 40.8ms
--- and the detach sweep below (9 of them with 3 forked sessions) froze nvim for
--- ~370ms. Now 0.05ms. See GUIDE.md "Sidekick's session backends shell out on
--- every lookup".
+-- scan, +22ms). Neither was asked for — opencode registers its scanner as a
+-- *load side-effect* of its tool spec, and Session.setup() registers
+-- tmux/zellij on `executable(name)==1` alone, NOT on cli.mux.enabled. So
+-- State.get cost 40.8ms and the detach sweep below (9 of them with 3 forked
+-- sessions) froze nvim for ~370ms. Now 0.05ms. See GUIDE.md "Sidekick's
+-- session backends shell out on every lookup".
+-- Still stubbed now that opencode is an agent: it only drops discovery of
+-- opencode servers started *outside* nvim. Ours spawn through the terminal
+-- backend like every other agent.
 --
 -- Three constraints, each learned the hard way:
 --   * Stub sessions(), don't nil the backend — Session.new asserts it exists.
@@ -165,13 +169,13 @@ for _, name in ipairs(no_discovery) do
   if backend then backend.sessions = no_sessions end
 end
 
--- Keep only the two agents' presets: no other spec is ever dofile'd (opencode
--- proved a spec can register a scanner on load) and State.get's per-call tool
--- loop shrinks from 12 entries to 2. cursor's spec is safe to keep — bare
+-- Keep only AGENTS' presets: no other spec is ever dofile'd (opencode proved a
+-- spec can register a scanner on load) and State.get's per-call tool loop
+-- shrinks from 12 entries to 4. cursor/pi are safe to keep — bare
 -- cmd/is_proc/url, no sessions() scanner. Must run *after* the stub above —
 -- pruning first leaves the dofile cache cold, so a later tool.get('opencode')
 -- would re-register the real 40ms sessions(). The tool launcher (formerly
--- <leader>as) stays unbound even with two tools — see keymaps.lua.
+-- <leader>as) stays unbound however many tools there are — see keymaps.lua.
 local tools = require('sidekick.config').cli.tools
 for name in pairs(tools) do
   if not vim.tbl_contains(AGENTS, name) then tools[name] = nil end
@@ -299,11 +303,10 @@ vim.api.nvim_create_autocmd('User', {
         M._forget(name)
       end
     end
-    -- Same sweep for labels, minus the phase check: M.rename only labels a
-    -- running session, so none can be in flight. Here and not in _forget,
-    -- which skips built-ins — a label on the bare `claude` would otherwise
-    -- outlive its session and re-attach to the next one. Also frees the
-    -- string it reserved in the name/label namespace.
+    -- Same sweep for labels, minus the phase check (M.rename only labels a
+    -- running session, so none is in flight). Here and not in _forget, which
+    -- skips built-ins — a label on the bare `claude` would otherwise outlive
+    -- its session and re-attach to the next one.
     for name in pairs(M._labels) do
       if #State.get({ name = name, started = true }) == 0 then M._labels[name] = nil end
     end
@@ -380,7 +383,8 @@ vim.api.nvim_create_autocmd('FileType', {
       ai.rename(ai.active)
     end, { buffer = args.buf, desc = 'AI: Label the active CLI session' })
 
-    -- In normal mode, forward keys to Claude's job channel so its TUI scrolls.
+    -- In normal mode, forward raw bytes to the session's job channel. Named for
+    -- claude but agent-neutral — only `u` below branches per agent.
     local function send_to_claude(seq)
       return function()
         local session_id = vim.w[vim.api.nvim_get_current_win()].sidekick_session_id
@@ -392,26 +396,32 @@ vim.api.nvim_create_autocmd('FileType', {
       end
     end
     vim.keymap.set('n', '<C-u>', send_to_claude('\27[5~'),
-      { buffer = args.buf, desc = 'AI: Scroll Claude TUI up' })
+      { buffer = args.buf, desc = 'AI: Scroll CLI TUI up' })
     vim.keymap.set('n', '<C-d>', send_to_claude('\27[6~'),
-      { buffer = args.buf, desc = 'AI: Scroll Claude TUI down' })
+      { buffer = args.buf, desc = 'AI: Scroll CLI TUI down' })
 
-    -- u: input-undo, per agent — vim's own undo would just E21 in an
-    -- unmodifiable terminal buffer. Claude: Ctrl+_ (0x1F, chat:undo — pinned
-    -- in the stowed claude/.claude/keybindings.json), only undoes while the
-    -- input box has focus. Cursor: NO input-undo exists, and 0x1F cycles the
-    -- model there (both binary-inspected 2026-07-22) — never forward it;
-    -- Ctrl+U (0x15, kill line back from cursor) is the closest substitute.
-    -- Kill caveats: one line per press on multi-line drafts, unrecoverable.
-    -- <C-r> stays unmapped: neither agent has a redo to forward.
+    -- u: input-undo (vim's own would E21 in an unmodifiable terminal buffer).
+    -- An allowlist, never a denylist — cursor showed what an unverified TUI
+    -- does with a guessed byte: 0x1F cycles its model, and it has no undo at
+    -- all (binary-inspected 2026-07-22). 0x1F covers the other three because
+    -- it IS ctrl+- on the wire (0x5F & 0x1F), their stock undo key.
+    -- Trap: do NOT send Ctrl+Z to opencode — that's its terminal_suspend; only
+    -- its Windows build reuses ctrl+z for undo.
+    local UNDO_SEQ = {
+      claude   = '\31',  -- ctrl+_, pinned in the stowed claude keybindings.json
+      pi       = '\31',  -- stock: tui.editor.undo = ctrl+-
+      opencode = '\31',  -- stock: input_undo = "ctrl+-,super+z"
+    }
+    -- Unverified agents fall back to Ctrl+U (kill line back): safe, but
+    -- unrecoverable and one line per press. Undo only applies while the input
+    -- box has focus. <C-r> stays unmapped — no agent has a redo to forward.
     vim.keymap.set('n', 'u', function()
       local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-      local seq = (tool and agent_of(tool.name) == 'cursor') and '\21' or '\31'
-      send_to_claude(seq)()
-    end, { buffer = args.buf, desc = 'AI: Undo prompt input (Ctrl+_ claude / Ctrl+U cursor)' })
+      send_to_claude(UNDO_SEQ[tool and agent_of(tool.name)] or '\21')()
+    end, { buffer = args.buf, desc = 'AI: Undo prompt input (per-agent sequence)' })
 
     -- p/P (identical here — no before/after-line in a prompt): bracketed-paste
-    -- v:register ("ap pastes @a; default unnamed) into Claude's input;
+    -- v:register ("ap pastes @a; default unnamed) into the agent's input;
     -- bracketing makes embedded newlines insert instead of submitting.
     local function paste_to_claude()
       local text = vim.fn.getreg(vim.v.register)
@@ -562,28 +572,30 @@ if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' 
     vim.log.levels.ERROR)
 end
 
--- Same warn-loud idea for the cursor preset. tool.get never throws for a
--- missing preset — it returns `config = {}` — so the throw risk is the
--- .cmd[1] index; pcall the whole access so a reshaped upstream can't abort
--- this file before `return M` and take every AI keymap down.
-local cursor_ok, cursor_cfg = pcall(function()
-  return require('sidekick.cli.tool').get('cursor').config
-end)
-if not cursor_ok or type(cursor_cfg.cmd) ~= 'table' or cursor_cfg.cmd[1] ~= 'cursor-agent' then
-  vim.notify('sidekick: cursor preset missing/reshaped — cursor sessions may spawn the wrong binary',
-    vim.log.levels.ERROR)
+-- Same warn-loud idea for the other agents, where the preset only supplies the
+-- binary. cursor is why this exists: its binary is `cursor-agent`, not
+-- `cursor`, so a reshaped preset would silently launch the wrong thing. pcall
+-- the .cmd[1] index (tool.get returns `config = {}` rather than throwing for a
+-- missing preset) — otherwise a reshaped upstream aborts this file before
+-- `return M` and takes every AI keymap down.
+for agent, exe in pairs({ cursor = 'cursor-agent', opencode = 'opencode', pi = 'pi' }) do
+  local ok_cfg, cfg = pcall(function()
+    return require('sidekick.cli.tool').get(agent).config
+  end)
+  if not ok_cfg or type(cfg.cmd) ~= 'table' or cfg.cmd[1] ~= exe then
+    vim.notify(('sidekick: %s preset missing/reshaped — %s sessions may spawn the wrong binary'):format(agent, agent),
+      vim.log.levels.ERROR)
+  end
 end
 
 -- The display namespace is flat: a <leader>al row renders `label or name`, so
--- one string must never mean two sessions. Guarded from both sides — a label
--- may not shadow a name (M.rename), and a session may not be born under a live
--- label (create_session/auto_name). Guarding only the first direction lets the
--- collision reappear later: label one 'claude 3', then <M-n> auto-names the
--- next fork 'claude 3'.
+-- one string must never mean two sessions. Guarded both ways — a label may not
+-- shadow a name (M.rename), and a session may not be born under a live label
+-- (create_session/auto_name). Guarding only the first lets the collision
+-- reappear later: label one 'claude 3', then <M-n> names the next fork that.
 --
 -- cli.tools, not running sessions: the stricter set (a registered-but-unstarted
--- name is still spawnable, so it stays reserved), and external discovery is
--- stubbed off above, so nothing running can be missing from it.
+-- name is still spawnable, so it stays reserved).
 local function name_taken(str)
   return require('sidekick.config').cli.tools[str] ~= nil
 end
@@ -699,7 +711,7 @@ function M.new_auto()
 end
 
 -- Drop a dynamically-registered name from cli.tools. Never touches the
--- built-in bare agent names (claude/cursor) — only names create_session added.
+-- built-in bare agent names (AGENTS) — only names create_session added.
 function M._forget(name)
   if not M._dynamic[name] then return end
   require('sidekick.config').cli.tools[name] = nil
@@ -716,9 +728,10 @@ end
 -- blank = auto name (bare-first, then numbered), a repeat label re-attaches,
 -- <Esc> cancels either step.
 function M.new_session()
-  -- TODO: cursor ranked first while trialling it (<CR><CR> = new cursor
-  -- session). Consider reverting to AGENTS order (claude first) later.
-  local pick_order = { 'cursor', 'claude' }
+  -- Ranking only — AGENTS is the identity/preset set, this is picker order.
+  -- TODO: cursor first while trialling it (<CR><CR> = new cursor session);
+  -- consider reverting to AGENTS order (claude first) later.
+  local pick_order = { 'cursor', 'claude', 'opencode', 'pi' }
   vim.ui.select(pick_order, { prompt = 'New session — agent:' }, function(agent)
     if agent == nil then return end                       -- <Esc> cancels
     vim.ui.input({ prompt = ('New %s session (blank = auto): '):format(agent) }, function(input)
@@ -737,18 +750,15 @@ function M.new_session()
 end
 
 -- <leader>ar / <M-r> / <C-r> in the picker: set or clear a session's display
--- label. Cosmetic only — it changes how M.switch renders a row and nothing
--- else; identity stays the tool name, which every route/cycle/kill path keys
--- off. Hence no >=16-char warning: unlike a <leader>an label, this string never
--- reaches Session.sid. on_done fires on every outcome including the refusals,
--- so the picker caller can reopen itself either way.
+-- label. Cosmetic — it changes how M.switch renders a row and nothing else;
+-- identity stays the tool name. Hence no >=16-char warning: unlike a
+-- <leader>an label, this string never reaches Session.sid. on_done fires on
+-- every outcome including refusals, so a picker caller can always reopen.
 function M.rename(name, on_done)
-  -- Refuse a name with nothing running under it. M.active is PRIMARY before any
-  -- session exists (and fallback_active returns PRIMARY when none survive), so
-  -- a cold-start <leader>ar would label a never-started 'claude' that nothing
-  -- reclaims — the GC sweep runs on SidekickCliDetach, which never fires for a
-  -- session that never attached. This is also what keeps that sweep simple:
-  -- every label belongs to a running session, so none can be swept mid-spawn.
+  -- Refuse a name with nothing running under it: M.active is PRIMARY before any
+  -- session exists, so a cold-start <leader>ar would label a never-started
+  -- 'claude' that nothing reclaims (the sweep only runs on SidekickCliDetach).
+  -- Also what keeps that sweep simple — no label can be mid-spawn.
   if #require('sidekick.cli.state').get({ name = name, started = true }) == 0 then
     vim.notify(('sidekick: no running session named %q to label'):format(name), vim.log.levels.WARN)
     return

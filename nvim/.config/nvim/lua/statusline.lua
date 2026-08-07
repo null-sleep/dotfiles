@@ -48,7 +48,8 @@ require('lualine').setup({
           -- not a title-case rule — that would render "Cursor-agent CLI".
           local cli = bufname:match('/bin/([%w-]+)$') or bufname:match('/bin/([%w-]+):')
           local known_clis = { claude = 'Claude', copilot = 'Copilot',
-                               gemini = 'Gemini', ['cursor-agent'] = 'Cursor' }
+                               gemini = 'Gemini', ['cursor-agent'] = 'Cursor',
+                               opencode = 'Opencode', pi = 'Pi' }
           if cli and known_clis[cli] and bufname:match('^term://') then
             return known_clis[cli] .. ' CLI'
           end
