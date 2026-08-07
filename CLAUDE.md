@@ -1,7 +1,7 @@
 # dotfiles
 
 Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, macos, rcmd,
-zellij, claude, cursor, yknotify, ripgrep. NOT stow packages: `plans/` (design/feature
+zellij, claude, cursor, opencode, pi, yknotify, ripgrep. NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
 `docs/ripgrep.md` — distinct from `plans/`, which is design docs).

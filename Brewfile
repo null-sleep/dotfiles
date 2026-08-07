@@ -14,6 +14,7 @@
 #   • nvim LSP servers/formatters — Mason, inside nvim (Languages section)
 #   • cursor-agent CLI            — cursor.com/cli install script; self-updates
 #                                   (README → "Cursor CLI (cursor-agent)")
+#   • pi coding agent             — npm install -g (README → "pi")
 
 #-----------------------------------------------------------------------------
 # Taps
@@ -23,6 +24,7 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # third-party tap without a separate
                                                # `brew trust` (newer Homebrew gates these).
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
+tap "anomalyco/tap", trusted: true             # opencode formula (see coding agents below)
 
 #-----------------------------------------------------------------------------
 # Core CLI — shell, search, dotfiles management
@@ -77,6 +79,16 @@ brew "lua-language-server"
 # is a no-op on the @latest cask; run `brew upgrade --cask claude-code@latest`.
 #-----------------------------------------------------------------------------
 cask "claude-code@latest"
+
+#-----------------------------------------------------------------------------
+# OpenRouter-backed coding agents. Both read OPENROUTER_API_KEY from the
+# environment (README → "OpenRouter"). The other agent, pi, is npm-only —
+# see the header note.
+#-----------------------------------------------------------------------------
+brew "opencode"        # terminal AI coding agent; tap in Taps above. Config in
+                       # opencode/ (then `stow --no-folding opencode`). Pulls in
+                       # its own `node` — the runtime section below installs the
+                       # same formula for nvim, so this is a shared dependency.
 
 #-----------------------------------------------------------------------------
 # Claude Code token optimizer — rtk (Rust Token Killer) compresses Bash command

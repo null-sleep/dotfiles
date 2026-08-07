@@ -18,6 +18,8 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
+- [OpenRouter](#openrouter) — the model gateway behind the two agents below
+- [opencode](#opencode) · [pi](#pi)
 
 *Editors*
 - [Neovim](#neovim)
@@ -54,8 +56,8 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Neovide config symlink ([Neovide](#neovide)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `OPENROUTER_API_KEY` in `~/.zshenv` plus the pi npm install ([OpenRouter](#openrouter)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -99,6 +101,8 @@ stow nvim
 stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
+stow --no-folding opencode   # needs the opencode formula — see the opencode section
+stow --no-folding pi         # needs the pi npm package — see the pi section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 # Optional — only if you uncommented its formula in the Brewfile:
@@ -159,6 +163,9 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
 | `cursor-agent` | statusline renders (model / ctx% / growth bars) ([Cursor CLI](#cursor-cli-cursor-agent)) |
+| `printenv OPENROUTER_API_KEY` | prints a key ([OpenRouter](#openrouter)) |
+| `opencode run "say ok"` | answers via OpenRouter ([opencode](#opencode)) |
+| `pi -p "say ok"` | answers via OpenRouter ([pi](#pi)) |
 
 If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
@@ -651,6 +658,136 @@ change ever drops the block, re-run the script to restore it.
 
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
+
+## OpenRouter
+
+[OpenRouter](https://openrouter.ai) is the model gateway behind the two
+non-subscription agents here — [opencode](#opencode) and [pi](#pi). Both treat
+it as a first-class built-in provider and read the same environment variable,
+so one key powers both and neither needs a custom base URL or provider block.
+
+**Put the key in `~/.zshenv`** — a file this repo deliberately does **not**
+track, because it holds a live credential:
+
+```bash
+# ~/.zshenv — create by hand on each machine; never committed
+export OPENROUTER_API_KEY="sk-or-v1-…"   # key from https://openrouter.ai/keys
+```
+
+```bash
+chmod 600 ~/.zshenv
+```
+
+`~/.zshenv` rather than the stowed [`zsh`](#zsh) config: it's the one startup
+file zsh reads for **every** invocation — scripts, `nvim` terminals, `zellij`
+panes — not just interactive shells like `.zshrc_config.zsh`, so an agent
+launched from anywhere sees the key. Keeping it a separate untracked file also
+means the secret has no path into this repo at all.
+
+The gap: apps launched from Finder or launchd don't inherit a shell's
+environment. There, use the tool's own credential flow — `/connect` in
+opencode, `/login openrouter` in pi — which stores the key in that tool's auth
+file.
+
+Verify with `printenv OPENROUTER_API_KEY` in a **new** shell. Neither agent
+lists any models until the key resolves — that empty list is the usual symptom
+of a missing or unexported key.
+
+## opencode
+
+[opencode](https://github.com/anomalyco/opencode) — a terminal AI coding agent,
+run as `opencode` (TUI) or `opencode run "<prompt>"` (one-shot). Pointed at
+[OpenRouter](#openrouter) rather than a per-lab subscription.
+
+```bash
+brew tap anomalyco/tap
+brew install opencode
+cd ~/src/dotfiles
+stow --no-folding opencode
+```
+
+Both are in the [`Brewfile`](Brewfile), so `brew bundle` covers the install on
+a fresh machine.
+
+### What's managed
+
+| File | Method |
+|---|---|
+| `~/.config/opencode/opencode.json` | Symlinked via stow (`--no-folding`) |
+| `~/.config/opencode/tui.json` | Symlinked via stow (`--no-folding`) |
+| `~/.local/share/opencode/auth.json` | **Not** tracked — credentials, written by `/connect` |
+
+`--no-folding` matters here for the same reason it does for
+[Claude Code](#claude-code): opencode also writes `agent/`, `command/`, and
+`plugin/` subdirectories into `~/.config/opencode/`. Without the flag stow
+would replace the whole directory with one symlink into this repo, and
+everything opencode wrote afterwards would land in `~/src/dotfiles`.
+
+`opencode.json` sets the OpenRouter model, wires the API key through
+opencode's `{env:VAR}` substitution, and pins `autoupdate` to `false` — the
+binary is Homebrew-managed, so `brew upgrade opencode` owns the version rather
+than having opencode replace it underneath Homebrew. `tui.json` sets the
+`catppuccin-latte` theme, matching the rest of this machine
+([Unified theme switching](#unified-theme-switching)).
+
+**Stow before the first `opencode` run.** Started with no config present,
+opencode writes an empty `~/.config/opencode/opencode.jsonc` stub — and
+`.jsonc` **takes precedence over** the tracked `opencode.json` (verified
+2026-08-06: a `model` set in the stub wins). It won't recreate the stub once
+`opencode.json` exists, so if a machine grew one, delete it — the tracked
+`.json` should be the only config. Confirm what actually resolved with:
+
+```bash
+opencode debug config | jq '{model, autoupdate}'
+```
+
+Useful commands: `opencode models` lists what the configured providers expose
+(empty output means the key isn't resolving), `/models` switches model inside
+the TUI, and `/connect` stores a key in opencode's own auth file if you'd
+rather not use the environment variable.
+
+## pi
+
+[pi](https://pi.dev) — a minimal agent harness, run as `pi` (TUI) or
+`pi -p "<prompt>"` (non-interactive). Also pointed at
+[OpenRouter](#openrouter).
+
+**Install** — not on Homebrew; npm global, using pi's own recommended flags
+(`node` comes from the [`Brewfile`](Brewfile)):
+
+```bash
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+cd ~/src/dotfiles
+stow --no-folding pi
+```
+
+The binary lands in `$(npm prefix -g)/bin` — `/opt/homebrew/bin` with the
+brewed `node` — so unlike [cursor-agent](#cursor-cli-cursor-agent) it never
+touches the stow-managed `~/.local/bin` and needs no gitignore entry. Update
+with `npm update -g @earendil-works/pi-coding-agent` (`pi update` also works,
+but let npm own a package npm installed).
+
+### What's managed
+
+| File | Method |
+|---|---|
+| `~/.pi/agent/settings.json` | Symlinked via stow (`--no-folding`) |
+| `~/.pi/agent/auth.json` | **Not** tracked — credentials, written by `/login` |
+| `~/.pi/agent/trust.json` | **Not** tracked — per-project trust decisions |
+
+`--no-folding` again: `~/.pi/agent/` is a directory pi writes into
+(`auth.json`, `trust.json`, an `npm/` cache), not one this repo owns outright.
+
+`settings.json` sets OpenRouter as the default provider plus the default model
+and thinking level. `models.json` — pi's custom-provider mechanism — is
+deliberately absent: OpenRouter is a built-in provider, so it's only needed for
+OpenAI-compatible endpoints pi doesn't already know about.
+
+Useful commands: `pi --list-models` (empty means the key isn't resolving),
+`Ctrl+L` or `/model` to switch model, `Shift+Tab` to cycle thinking level, and
+`/login openrouter` for the OAuth flow if you'd prefer a pi-minted key over the
+environment variable. pi ships its full documentation locally — `ls
+"$(npm prefix -g)/lib/node_modules/@earendil-works/pi-coding-agent/docs"`.
 
 ## Neovim
 
