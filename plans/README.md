@@ -64,6 +64,21 @@ off or delete them as they land; add new ones freely.
      no unknown keys, every `vars` reference resolves) but never rendered. Check
      the syntax-highlighting and diff colors in particular, since those were
      mapped by hand rather than copied from an existing pi theme.
+- [ ] **Does Ghostty repaint on a scripted appearance change?** — open question
+  from 2026-08-07. After `theme light`, macOS reported light through both
+  `defaults read -g AppleInterfaceStyle` (absent) and System Events (`dark mode:
+  false`), and all three theme state files were Latte, but the Ghostty window
+  was still rendering dark. Ghostty is supposed to resolve `theme = light:…,dark:…`
+  (`ghostty/.config/ghostty/config:12`) against the system appearance on its own,
+  which is exactly why the `theme` script doesn't touch it. Unresolved whether
+  it's a stale-notification bug in Ghostty 1.3.1, something specific to
+  `osascript`-driven changes, or just a screenshot taken mid-flip. Next time it
+  happens: press **Cmd+Shift+,** (reload config) and see if it repaints. If it
+  does, the script may need to nudge Ghostty rather than assuming the native
+  follow works — which would undo the "Ghostty needs no script involvement"
+  premise the [Unified theme switching](../README.md#unified-theme-switching)
+  section is built on, and applies equally to opencode, which rides the same
+  terminal palette.
 - [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes

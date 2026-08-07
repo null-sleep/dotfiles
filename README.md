@@ -538,8 +538,20 @@ After this the whole chain is automatic: macOS flips (on a schedule or by hand)
 
 - **No Automation prompt, no loop.** `watch`/`follow` read the appearance with
   `defaults read -g AppleInterfaceStyle` (not `osascript`), so the agent runs
-  unattended; and `follow` only touches Claude + nvim — it never writes the macOS
-  appearance back, so it can't fight Auto mode or ping-pong with the watcher.
+  unattended; and `follow` only touches Claude + nvim + pi — it never writes the
+  macOS appearance back, so it can't fight Auto mode or ping-pong with the watcher.
+- **Reload the agent after editing the `theme` script.** The watcher is a
+  long-running `bash` process, and bash parses the whole loop into memory before
+  running it — so a live agent keeps executing the copy it started with,
+  however many times you edit the file underneath it. Found the hard way on
+  2026-08-07: the follower had been up for 30 days and was still running a
+  script that predated pi support, so a sunset flip would have switched Claude
+  and nvim and silently left pi behind. After any edit:
+  ```bash
+  launchctl kickstart -k "gui/$(id -u)/com.dhruv.theme-follow"
+  ```
+  `ps -o lstart -p "$(pgrep -f 'theme watch')"` tells you how stale the running
+  copy is.
 - **Portable plist.** `com.dhruv.theme-follow.plist` runs
   `zsh -c 'exec "$HOME/.local/bin/theme" watch'`, so `$HOME` expands at launch —
   the same stowed file works on any machine, no path rewriting.
@@ -549,7 +561,9 @@ After this the whole chain is automatic: macOS flips (on a schedule or by hand)
   to reload), not in `.zshrc`. `theme status` reports whether the follower is
   loaded; logs are at `/tmp/theme-follow.{out,err}.log` (chosen over
   `~/Library/Logs` because a plist log path can't expand `$HOME` and we keep the
-  plist portable). Disable with
+  plist portable). **A missing log file doesn't mean the agent is idle** —
+  macOS prunes `/tmp`, and launchd goes on writing to the unlinked file, so the
+  log silently stops appearing. Check the process, not the log. Disable with
   `launchctl bootout gui/$(id -u)/com.dhruv.theme-follow`.
 
 `macos/setup-theme-follow.sh` is `.stow-local-ignore`d (like the `claude/setup-*`
