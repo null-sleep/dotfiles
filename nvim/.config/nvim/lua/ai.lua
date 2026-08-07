@@ -5,16 +5,19 @@
 -- <leader>an picker ranks independently — see new_session).
 local AGENTS = { 'claude', 'cursor', 'opencode', 'pi' }
 local PRIMARY = AGENTS[1]
+-- Binary per agent, only where it differs from the name. Everything else about
+-- an agent is derived from AGENTS, so a fifth entry needs a line here only if
+-- its executable is named differently.
+local EXE = { cursor = 'cursor-agent' }
 
 -- Name → agent (the name is a session's only identity — no agent field).
 -- Strictly anchored: the next char must be ' ' or ':' so
 -- 'claude: cursor-migration' parses as claude, never cursor. nil for names
--- outside the invariant — callers must refuse, not default. No agent name
--- prefixes another, so iteration order doesn't matter.
+-- outside the invariant — callers must refuse, not default.
 local function agent_of(name)
   if not name then return end
   for _, a in ipairs(AGENTS) do
-    if name == a or name:find('^' .. a .. '[ :]') then return a end
+    if name == a or name:find('^' .. vim.pesc(a) .. '[ :]') then return a end
   end
 end
 
@@ -34,6 +37,13 @@ local function set_active(name)
   M.active = name
 end
 
+-- Any session running under this tool name? The module's liveness predicate —
+-- name-keyed, like all session state here.
+local function running(name)
+  return name ~= nil
+    and #require('sidekick.cli.state').get({ name = name, started = true }) > 0
+end
+
 -- Pick the session M.active should fall back to after a teardown, so a summon
 -- (<leader>aa / send / focus) reattaches to a surviving instance instead of
 -- spawning a fresh one. Prefer the alt-tab target (M._last) so you land back on
@@ -47,13 +57,8 @@ end
 -- Keyed by tool name (not session id), like the rest of this module — a
 -- same-name session in another cwd is excluded/picked by name, not disambiguated.
 local function fallback_active(exclude)
-  local State = require('sidekick.cli.state')
-  local running = function(name)
-    return name and name ~= exclude
-      and #State.get({ name = name, started = true }) > 0
-  end
-  if running(M._last) then return M._last end
-  local sessions = State.get({ started = true })
+  if M._last ~= exclude and running(M._last) then return M._last end
+  local sessions = require('sidekick.cli.state').get({ started = true })
   table.sort(sessions, function(a, b) return a.tool.name < b.tool.name end)
   for _, s in ipairs(sessions) do
     if s.tool.name ~= exclude then return s.tool.name end
@@ -298,7 +303,7 @@ vim.api.nvim_create_autocmd('User', {
     -- started session nor a terminal — the terminal check preserves genuinely
     -- in-flight spawns.
     for name, phase in pairs(M._dynamic) do
-      if #State.get({ name = name, started = true }) == 0
+      if not running(name)
          and (phase == 'started' or #State.get({ name = name, terminal = true }) == 0) then
         M._forget(name)
       end
@@ -308,7 +313,7 @@ vim.api.nvim_create_autocmd('User', {
     -- skips built-ins — a label on the bare `claude` would otherwise outlive
     -- its session and re-attach to the next one.
     for name in pairs(M._labels) do
-      if #State.get({ name = name, started = true }) == 0 then M._labels[name] = nil end
+      if not running(name) then M._labels[name] = nil end
     end
     -- Active session died (self-exit, <C-x> in the picker, <leader>ax) → repoint to a
     -- survivor so a summon reattaches instead of spawning fresh. No
@@ -317,7 +322,7 @@ vim.api.nvim_create_autocmd('User', {
     -- dead built-in `claude` gets repointed to a survivor — the guard used to
     -- suppress exactly that. When _forget already moved active to a live
     -- survivor, the started==0 check below is false, so no redundant repoint.
-    if #State.get({ name = M.active, started = true }) == 0 then
+    if not running(M.active) then
       M.active = fallback_active(M.active)
     end
   end,
@@ -372,7 +377,7 @@ vim.api.nvim_create_autocmd('FileType', {
     -- place, so you can jump to or tear down another session without the
     -- jj/jk -> <leader>al round-trip. Same in-panel ergonomic as <M-]>/<M-n>.
     vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
-      { buffer = args.buf, desc = 'AI: Switch/kill CLI session picker' })
+      { buffer = args.buf, desc = 'AI: Switch/kill/label CLI session picker' })
 
     -- <M-r> labels the session you're in (the <leader>ar prompt), same family
     -- as <M-n>/<M-l>. Not <C-r> — that's the picker's rename key, and reusing
@@ -572,13 +577,14 @@ if type(require('sidekick.cli.tool').get('claude').config.format) ~= 'function' 
     vim.log.levels.ERROR)
 end
 
--- Same warn-loud idea for the other agents, where the preset only supplies the
--- binary. cursor is why this exists: its binary is `cursor-agent`, not
--- `cursor`, so a reshaped preset would silently launch the wrong thing. pcall
--- the .cmd[1] index (tool.get returns `config = {}` rather than throwing for a
--- missing preset) — otherwise a reshaped upstream aborts this file before
--- `return M` and takes every AI keymap down.
-for agent, exe in pairs({ cursor = 'cursor-agent', opencode = 'opencode', pi = 'pi' }) do
+-- Same warn-loud idea for every agent's binary, derived from AGENTS + EXE so a
+-- new agent is covered automatically. cursor is why this exists: its binary is
+-- `cursor-agent`, not `cursor`, so a reshaped preset would silently launch the
+-- wrong thing. pcall the .cmd[1] index (tool.get returns `config = {}` rather
+-- than throwing for a missing preset) — otherwise a reshaped upstream aborts
+-- this file before `return M` and takes every AI keymap down.
+for _, agent in ipairs(AGENTS) do
+  local exe = EXE[agent] or agent
   local ok_cfg, cfg = pcall(function()
     return require('sidekick.cli.tool').get(agent).config
   end)
@@ -620,7 +626,7 @@ function M._next_auto_name(agent)
   local n = M._auto_seq or 1
   for name in pairs(tools) do
     for _, a in ipairs(AGENTS) do
-      local k = tonumber(name:match('^' .. a .. ' (%d+)$'))
+      local k = tonumber(name:match('^' .. vim.pesc(a) .. ' (%d+)$'))
       if k and k > n then n = k end
     end
   end
@@ -638,7 +644,7 @@ end
 -- registration needed); otherwise the next global number. So an <M-n> fork
 -- can resurrect a dead bare name instead of numbering.
 local function auto_name(agent)
-  if #require('sidekick.cli.state').get({ name = agent, started = true }) == 0
+  if not running(agent)
      and not label_taken(agent) then   -- a label owns the bare name → number instead
     return agent
   end
@@ -728,10 +734,14 @@ end
 -- blank = auto name (bare-first, then numbered), a repeat label re-attaches,
 -- <Esc> cancels either step.
 function M.new_session()
-  -- Ranking only — AGENTS is the identity/preset set, this is picker order.
-  -- TODO: cursor first while trialling it (<CR><CR> = new cursor session);
-  -- consider reverting to AGENTS order (claude first) later.
-  local pick_order = { 'cursor', 'claude', 'opencode', 'pi' }
+  -- Ranking only — identity stays with AGENTS; the rest follow in AGENTS
+  -- order, so a new agent shows up in the picker automatically.
+  -- TODO: cursor promoted to first while trialling it (<CR><CR> = new cursor
+  -- session); drop the promotion to restore claude-first.
+  local pick_order = { 'cursor' }
+  for _, a in ipairs(AGENTS) do
+    if a ~= 'cursor' then pick_order[#pick_order + 1] = a end
+  end
   vim.ui.select(pick_order, { prompt = 'New session — agent:' }, function(agent)
     if agent == nil then return end                       -- <Esc> cancels
     vim.ui.input({ prompt = ('New %s session (blank = auto): '):format(agent) }, function(input)
@@ -759,13 +769,19 @@ function M.rename(name, on_done)
   -- session exists, so a cold-start <leader>ar would label a never-started
   -- 'claude' that nothing reclaims (the sweep only runs on SidekickCliDetach).
   -- Also what keeps that sweep simple — no label can be mid-spawn.
-  if #require('sidekick.cli.state').get({ name = name, started = true }) == 0 then
+  if not running(name) then
     vim.notify(('sidekick: no running session named %q to label'):format(name), vim.log.levels.WARN)
     return
   end
   vim.ui.input({ prompt = ('Label for %s: '):format(name), default = M._labels[name] or '' }, function(input)
     if input == nil then return end                       -- <Esc> cancels
-    if input == '' or input == name then
+    if not running(name) then
+      -- The session can die while the prompt is up — its label sweep has
+      -- already run, so a label written now would orphan (and could re-attach
+      -- to a future same-name session).
+      vim.notify(('sidekick: %s exited while the prompt was open — label dropped'):format(name),
+        vim.log.levels.WARN)
+    elseif input == '' or input == name then
       M._labels[name] = nil                               -- blank (or its own name) clears
     elseif name_taken(input) then
       vim.notify(('sidekick: %q is a session name — pick another label'):format(input), vim.log.levels.WARN)
@@ -904,7 +920,7 @@ end
 function M.toggle_last()
   local last = M._last
   if not last or last == M.active then return end
-  if #require('sidekick.cli.state').get({ name = last, started = true }) == 0 then return end
+  if not running(last) then return end
   set_active(last)
   show_solo(last)
 end

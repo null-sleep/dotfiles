@@ -404,7 +404,7 @@ vim.keymap.set('n', '<leader>an',
   { desc = 'AI: New agent session (agent picker)' })
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
-  { desc = 'AI: Switch/kill running CLI session' })   -- <CR> switch, <C-x> kill, <C-r> label
+  { desc = 'AI: Switch/kill/label running CLI session' })   -- <CR> switch, <C-x> kill, <C-r> label
 -- Label the active session so <leader>al can tell auto-named forks apart.
 -- Cosmetic only — identity stays the tool name.
 vim.keymap.set('n', '<leader>ar', function()
