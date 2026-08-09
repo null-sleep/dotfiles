@@ -945,6 +945,11 @@ owns updates, the same designated-owner convention as brew for
   snapshots the conversation without appending to it, keeping the main
   context clean. Uses the session's current model.
 
+New to pi or the extensions, or want to use them well? See the
+example-heavy guide at [`docs/pi.md`](docs/pi.md) — core-TUI basics,
+managing extensions, per-extension usage (plan mode, subagents, `/btw`,
+LSP tools, the footer), and a gotchas cheat-sheet.
+
 ## Neovim
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
