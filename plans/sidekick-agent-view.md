@@ -37,12 +37,13 @@ insight this MVP copies.
 | Entry shortcut | `<leader>av` toggle (+ `<M-v>` inside CLI terminals) |
 | View layout | dedicated tabpage: 30-col left sidebar + main pane |
 | Selection model | explicit `<CR>` in sidebar (no live-switch on `j`/`k`) |
+| Index jumps | rows numbered 1–9: `1`–`9` in the sidebar, `<M-1>`–`<M-9>` in agent terminals |
 | Agent window | embed the real terminal buffer via `nvim_win_set_buf` |
 | Attention model | binary unread flag + running flag (cmux's two signals) |
 | Attention source | Claude Code hooks via the already-designed pipeline in [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) |
 | Acknowledgment | unread (`turn-complete`) clears on focus; urgent (needs input/permission) persists until actually answered |
 | Triage key | `<leader>aj` — jump to most recent unread |
-| Non-Claude agents | honest "no signal" (dim dot), no fake heuristics |
+| Non-Claude agents | wired natively in Phase 3 — opencode plugin (full rings), cursor hooks.json (running + done), pi extension (running + done); no polling heuristics anywhere |
 | Ambient signal | statusline unread-count badge when the view is closed |
 
 ## Architecture
@@ -147,9 +148,11 @@ transient split and embeds.
 - Rows: running sessions from `sidekick.cli.state.get({started=true})` plus
   in-flight spawns from `ai._dynamic == 'registered'`, sorted by name — the
   same order as `ai.cycle`, so `j`/`k` order equals `<M-]>`/`<M-[>` order.
-- Row = active marker (`▸`), display label (bright) with raw name demoted
+- Row = index digit (dim, rows 1–9 only; later rows get a blank column),
+  active marker (`▸`), display label (bright) with raw name demoted
   (`Comment`) — same convention as the `<leader>al` picker — and a
   right-aligned status glyph as a `virt_text_pos='right_align'` extmark.
+  The index is display order (name-sorted), so it's also cycling order.
 - Keymaps read a `rows_by_lnum` table, never parse buffer text.
 - Refresh: one debounced (single `vim.schedule` coalesce) `render()`, driven
   by `User SidekickCliAttach`/`SidekickCliDetach`, `User AgentSessionEvent`,
@@ -164,6 +167,7 @@ transient split and embeds.
 | Key | Action |
 |---|---|
 | `<CR>` | select + focus session under cursor (`set_active` + embed) |
+| `1`–`9` | select + focus row N directly (cmux's number-jump) |
 | `<M-]>` / `<M-[>` | `ai.cycle(±1)` (same keys as inside the terminal) |
 | `n` | `ai.new_session()` |
 | `r` | `ai.rename(row, refresh)` |
@@ -174,6 +178,15 @@ transient split and embeds.
 switch here is real window surgery plus `M.active`/`M._last` mutation;
 live-switching on `j`/`k` would thrash layout per keystroke and destroy the
 alt-tab pair just by browsing.
+
+**Index jumps** (cmux's `⌘1–8`, `indexed_select`'s `<M-1>`–`<M-9>`): plain
+`1`–`9` in the sidebar select row N (safe — it's a list panel, digits have
+no other job; count-prefixes are worthless in a ≤10-row list). In agent
+terminals, `<M-1>`–`<M-9>` (`{t,n}`, added to the `FileType
+sidekick_terminal` maps in `ai.lua`) switch to session N in the same
+name-sorted order — working both inside the view (via the `show_solo`
+delegate) and outside it, like `<M-]>` does today. Capped at 9 by design;
+a 10th+ session keeps `j`/`k`/`<CR>` and cycling.
 
 ### Panel registration
 
@@ -321,21 +334,124 @@ Unread beats running in display precedence. Red is reserved for a future
 `AgentviewName` → `Comment`. All links live in `themes.lua`
 `global_overrides` — no hex anywhere.
 
-Non-Claude agents (cursor, opencode, pi) show `·` no-signal in MVP. Honest
-gap over heuristics: output-churn detection needs polling and confidently
-lies (TUI spinners churn while idle). The registry is agent-agnostic
-(keyed by session name), so wiring them later is additive, not a redesign.
-Follow-up paths, in rough order of promise: pi via its extensions API
-(see plans/pi-extensions-integration.md), opencode via its plugin event
-system, and a generic OSC 9/777 listener — nvim surfaces terminal
-notification escapes to Lua via the `TermRequest` autocmd, and cmux wires
-these same agents through per-agent hook files, so both routes are proven.
+The `none` state remains for sessions that haven't produced an event yet;
+after Phase 3 all four agents emit real signals (with per-agent tiers —
+see the support matrix below). No polling heuristics anywhere: output-churn
+detection would need timers and confidently lies (TUI spinners churn while
+idle).
 
 ### Ambient badge (view closed)
 
 One statusline segment: `● N` unread count (colored urgent-if-any-urgent),
 hidden at zero, purely reactive reads — no timers. Without it the attention
 system is invisible whenever the view is closed.
+
+**Open TODO — badge UX is deliberately under-designed.** `● N` is the MVP
+floor; the user has flagged wanting more from it. Candidate upgrades to
+decide after living with the floor version (don't build speculatively):
+
+- Per-agent mini-row instead of a count: one glyph per session in list
+  order (`» ! ● ·`), doubling as an at-a-glance index map for
+  `<M-1>`–`<M-9>`.
+- Name the most urgent session: `! refactor` beats `● 2` when one agent is
+  blocked — tells you who without opening the view.
+- Split counts by tier (`! 1 ● 2`) vs. one blended count.
+- Show `running` count too, or only when nothing is unread (`» 3` as a
+  quiet "all workers busy" signal).
+- Statusline space is finite — decide against the existing segments before
+  widening (truncation rules, hide thresholds).
+
+## Phase 3 — rings for cursor / opencode / pi
+
+Researched against both cmux's shipped integrations (it wires all three via
+per-agent hook/plugin/extension files — proven ground, no polling anywhere)
+and each agent's current official docs. Every agent reuses the same
+transport: it runs inside a sidekick terminal job, so its hook/plugin
+subprocesses inherit `$NVIM` + `$SIDEKICK_SESSION` and can invoke the same
+`sidekick-notify.sh <category>` script → same RPC → same registry. The
+nvim side (`agent_events.lua`, sidebar, badge, `<leader>aj`) needs **zero
+changes** — Phase 3 is purely agent-side emitters.
+
+### Support matrix
+
+| Category | claude | opencode | cursor | pi |
+|---|---|---|---|---|
+| running (`»`) | `UserPromptSubmit` | `chat.message` hook | `beforeSubmitPrompt` | `before_agent_start` |
+| turn-complete (`●`) | `Stop` | `session.idle` event | `stop` hook | `agent_settled` (pi >= 0.80.5; else `agent_end`) |
+| needs-permission (`!`) | `Notification`/`permission_prompt` | `permission.asked` event | none (workaround only) | none |
+| needs-input (`!`) | `Notification`/`idle_prompt` | `question.asked` event | none | none |
+| session-end | `SessionEnd` | `session.deleted` | `sessionEnd` | `session_shutdown` |
+
+### opencode — full rings (best non-Claude support)
+
+A single TS plugin, stowed in the existing `opencode` stow package →
+`~/.config/opencode/plugins/nvim-notify.ts` (auto-loaded; plugins run
+in-process in the opencode server, so `process.env.NVIM` is directly
+readable and Bun's `$` shell inherits env):
+
+- `chat.message` hook → `prompt-submit`
+- `event` hook: `session.idle` → `turn-complete`, `permission.asked` →
+  `needs-permission`, `question.asked` → `needs-input`,
+  `session.deleted` → `session-end`
+- Guard: no-op unless `NVIM` + `SIDEKICK_SESSION` are set (same rule as
+  the shell script).
+- Caveats: `question.asked` is source-verified but undocumented — degrade
+  gracefully if absent; `session.idle` is marked deprecated in favor of
+  `session.status` (`status.type == "idle"`) — listen for both. In
+  client/server mode (`opencode serve`) the server's env is not the nvim
+  terminal's; sidekick launches the TUI directly, so this doesn't apply
+  here. Requires un-stubbing nothing — the `ai.lua` session-backend stub
+  only disables sidekick's *discovery* shell-outs, not the plugin.
+
+### cursor — running + done, no urgent tier
+
+Two routes; take the free one first:
+
+- **Free route (preferred): Claude-hook merging.** cursor-agent reads
+  `~/.claude/settings.json` and maps `UserPromptSubmit` →
+  `beforeSubmitPrompt` and `Stop` → `stop` — the Phase 2 hook
+  registrations fire for cursor sessions with zero new config, and the
+  script already keys the right session via `$SIDEKICK_SESSION`
+  (`"cursor 2"` etc.). Claude's `Notification` matcher events are
+  explicitly NOT merged, so no `!` tier.
+- **Fallback (if the merge proves flaky): explicit `~/.cursor/hooks.json`**
+  (`{"version":1, "hooks":{"beforeSubmitPrompt":[...], "stop":[...],
+  "sessionEnd":[...]}}`) calling the same script. Env inheritance for hook
+  subprocesses is undocumented — verify `$NVIM` arrives; if not, a
+  `sessionStart` hook can re-export env for later hooks. Would live in a
+  new `cursor` stow entry.
+- Urgent gaps: no needs-input hook exists (cursor's built-in
+  terminal-notification feature is OSC-based — a future `TermRequest`
+  listener could catch it); needs-permission only via a
+  `beforeShellExecution` side-effect pattern — deferred, telemetry-grade.
+
+### pi — running + done via a stowed extension
+
+A TypeScript extension in the existing `pi/` stow package →
+`~/.pi/agent/extensions/nvim-notify.ts` (cmux ships exactly this shape;
+extensions dir is stow-safe — pi only owns `settings.json`, which stays
+machine-local per the package's existing rule):
+
+- `pi.on('before_agent_start')` → `prompt-submit`
+- `agent_settled` + `ctx.isIdle()` → `turn-complete` (pi >= 0.80.5;
+  `agent_end` fallback for older versions — cmux version-detects, we can
+  just require a floor version since this repo pins pi's install)
+- `session_start` / `session_shutdown` → bookkeeping
+- Extension spawns the shared shell script; same env guard. No permission/
+  question events in pi's vocabulary today → no `!` tier.
+- Coordinate with plans/pi-extensions-integration.md (the `@narumitw`
+  extension batch) so both land through the same `pi/` package
+  conventions.
+
+### What this changes elsewhere
+
+- The `·` no-signal glyph stops meaning "agent has no integration" and
+  just means "no event yet this session".
+- The support-tier asymmetry is honest UI: a cursor/pi session can show
+  `»`/`●`/`○` but never `!` — document that in GUIDE.md so absence of `!`
+  isn't read as "nothing needed".
+- Statusline badge, `<leader>aj`, ack semantics: unchanged — they consume
+  the registry, which is agent-agnostic by construction.
 
 ## Implementation order
 
@@ -352,7 +468,11 @@ system is invisible whenever the view is closed.
 3. **Phase 2b** — `agent_events.lua` (+ `init.lua` require — must be loaded
    for the `v:lua` RPC to resolve), env injection in `ai.lua`,
    `M.clear` wired into `_forget`/kills, `<leader>aj`, statusline badge.
-4. **Docs, same change as each phase** — GUIDE.md Architecture bullets +
+4. **Phase 3** — one agent at a time, in payoff order: opencode plugin
+   (full rings) → pi extension → cursor (verify the free Claude-hook merge
+   before writing any hooks.json). Each lands in its own stow package with
+   its README.md section updated in the same change.
+5. **Docs, same change as each phase** — GUIDE.md Architecture bullets +
    Load order + keymap rows in the `## AI (sidekick.nvim)` section table;
    this plan's entry in plans/README.md.
 
@@ -364,7 +484,7 @@ system is invisible whenever the view is closed.
 | `lua/agent_events.lua` | new — registry, state machine, ack, API | ~150 |
 | `claude/.claude/hooks/sidekick-notify.sh` | new — shared hook script | ~30 |
 | `claude/.claude/settings.json` | new in stow — 5 hook registrations | ~45 |
-| `lua/ai.lua` | delegates, guards, env injection, `M.kill`, `<M-v>` | ~30 |
+| `lua/ai.lua` | delegates, guards, env injection, `M.kill`, `M.open_index(n)`, `<M-v>`, `<M-1>`–`<M-9>` | ~40 |
 | `lua/keymaps.lua` | `<leader>av`, `<leader>aj` | ~8 |
 | `lua/buffers.lua` | `special_filetypes.agentview` | 1 |
 | `lua/plugins.lua` | stickybuf `get_auto_pin` arm | 3 |
@@ -372,6 +492,9 @@ system is invisible whenever the view is closed.
 | `lua/themes.lua` | 9 linked `Agentview*` groups | ~10 |
 | `lua/statusline.lua` | unread badge segment | ~15 |
 | `lua/init.lua` | `require('agent_events')` | 1 |
+| `opencode/.config/opencode/plugins/nvim-notify.ts` | new (Phase 3) — full-ring plugin | ~40 |
+| `pi/.pi/agent/extensions/nvim-notify.ts` | new (Phase 3) — running/done extension | ~35 |
+| `cursor` stow entry (`.cursor/hooks.json`) | only if the Claude-hook merge proves flaky | ~15 |
 
 ## Verification
 
@@ -379,7 +502,9 @@ system is invisible whenever the view is closed.
    row, main pane shows the active agent, stamps present (`:echo
    w:sidekick_session_id`).
 2. `<M-]>`/`<M-[>` in the main pane and `<CR>` in the sidebar cycle
-   correctly; `▸` and cursor row track.
+   correctly; `▸` and cursor row track. `3` in the sidebar and `<M-3>` in
+   the main pane both land on row 3; `<M-3>` from a terminal outside the
+   view switches the solo column to session 3.
 3. Exit restores tab 1 exactly, including a previously-open right CLI
    column at its remembered width (guard 4).
 4. Start a new session from inside the view (`n`): no three-column reflow
@@ -399,11 +524,21 @@ system is invisible whenever the view is closed.
    next active, no stale row.
 10. Re-source `init.lua` with the view open: no duplicate autocmds, panel
     still functional (augroup clear, buffer reuse).
+11. Phase 3, opencode: prompt in an opencode session → `»`; let it finish
+    → `●`; trigger a permission ask → `!`; all in the right row only.
+12. Phase 3, cursor: confirm the Claude-hook merge fires our script
+    (`beforeSubmitPrompt`/`stop` → `»`/`●`) with `$NVIM` +
+    `$SIDEKICK_SESSION` intact in the hook's env; if not, fall back to
+    explicit hooks.json and retest.
+13. Phase 3, pi: prompt → `»`, settle → `●`; extension no-ops cleanly for
+    pi runs outside sidekick (env guard).
 
 ## Out of scope (MVP)
 
 - Spinner animation, desktop notifications, per-category mute rules.
-- Attention signals for cursor/opencode/pi (OSC follow-up).
+- Urgent (`!`) tier for cursor (no needs-input hook exists; its built-in
+  OSC terminal notifications via a `TermRequest` listener is the future
+  path) and for pi (no permission/question events in its vocabulary yet).
 - Notification history/preview text in rows (cmux shows last-notification
   previews; needs payload fields confirmed first).
 - `SubagentStop`/`SessionStart` categories; `StopFailure` (add when its

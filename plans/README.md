@@ -13,10 +13,12 @@ off or delete them as they land; add new ones freely.
 
 - [ ] **Build the agent view MVP** — cmux-style dashboard:
   [sidekick-agent-view.md](sidekick-agent-view.md) (planned 2026-08-08,
-  UX mockup reviewed via artifact). Phase 1 (view/sidebar/cycling) ships
-  standalone; Phase 2 (attention rings) implements
+  UX mockup reviewed via artifact). Phase 1 (view/sidebar/cycling + 1–9
+  index jumps) ships standalone; Phase 2 (attention rings) implements
   [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)'s
-  pipeline with the MVP hook cut.
+  pipeline with the MVP hook cut; Phase 3 wires rings for opencode
+  (plugin, full), cursor (Claude-hook merge, running/done), pi (extension,
+  running/done). Open TODO inside the plan: ambient-badge UX beyond `● N`.
 - [ ] **Verify the sidekick session labels + the 4-agent pool** — shipped
   2026-08-07 (display labels on `<leader>ar`/`<M-r>`/`<C-r>`; `opencode` and
   `pi` added to `AGENTS`). Everything testable headlessly passed — namespace
