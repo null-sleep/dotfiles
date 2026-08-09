@@ -103,7 +103,7 @@ stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
-stow --no-folding pi         # theme palettes only — see the pi section
+stow --no-folding pi         # themes + minimal footer extension — see the pi section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 # Optional — only if you uncommented its formula in the Brewfile:
@@ -163,7 +163,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:Mason` | LSP servers/tools show installed, not failed ([Languages](#languages)) |
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
-| `cursor-agent` | statusline renders (model / ctx% / growth bars) ([Cursor CLI](#cursor-cli-cursor-agent)) |
+| `cursor-agent` | statusline renders (model / ctx% / CH% / growth bars) ([Cursor CLI](#cursor-cli-cursor-agent)) |
 | `printenv OPENROUTER_API_KEY` | prints a key ([OpenRouter](#openrouter)) |
 | `opencode run "say ok"` | answers via OpenRouter ([opencode](#opencode)) |
 | `pi -p "say ok"` | answers via OpenRouter ([pi](#pi)) |
@@ -672,12 +672,15 @@ native select-to-copy works as-is.)
 ### Status line
 
 `cursor-agent` gets a custom status line matching the Claude Code one for the
-fields Cursor's payload provides — model name, context %, message count, and a
-per-message context-growth sparkline. It uses Cursor's `render_width_chars` to
-drop whole low-priority segments on narrow terminals. No branch (dropped
-2026-07-22, matching the Claude line) and no cache, cost, or rate-limit segments
-(absent from Cursor's stdin payload); the script is a trimmed fork of
-`claude/.claude/statusline-command.sh`. Run `bash
+fields Cursor's payload provides — model name (with the same `Name (1M context)`
+→ `Name [1M]` compaction), context %, cache-hit rate, message count, and a
+per-message context-growth sparkline. Cache hit rate uses the same
+`cache_read / (input + cache_read + cache_creation)` formula as Claude. It uses
+Cursor's `render_width_chars` to drop whole low-priority segments on narrow
+terminals (`bars → messages → cache → model`; ctx is retained). No branch
+(dropped 2026-07-22, matching the Claude line) and no cost, fast/effort, or
+rate-limit segments (absent from Cursor's stdin payload); the script is a
+trimmed fork of `claude/.claude/statusline-command.sh`. Run `bash
 ~/.cursor/statusline-command.sh --status` with a piped payload, or after a
 normal render to replay its reduced cached payload, for field and width
 diagnostics.

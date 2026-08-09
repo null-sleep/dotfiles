@@ -62,6 +62,15 @@ function summarizeUsage(entries: readonly SessionEntry[]) {
   return { cost, latestCacheHitRate };
 }
 
+/** Assistant messages on the active branch — survives resume; hidden at zero. */
+function countTurns(entries: readonly SessionEntry[]): number {
+  let n = 0;
+  for (const entry of entries) {
+    if (entry.type === "message" && entry.message.role === "assistant") n++;
+  }
+  return n;
+}
+
 function shortenModel(id: string): string {
   const withoutProvider = id.includes("/") ? id.slice(id.lastIndexOf("/") + 1) : id;
   return withoutProvider
@@ -129,8 +138,10 @@ function renderMainLine(
     });
   }
 
-  const turnText = `#${turnCount}`;
-  left.push({ name: "turn", text: turnText, styled: theme.fg("dim", turnText) });
+  if (turnCount > 0) {
+    const turnText = `#${turnCount}`;
+    left.push({ name: "turn", text: turnText, styled: theme.fg("dim", turnText) });
+  }
 
   const costText = `$${usage.cost.toFixed(usage.cost >= 1 ? 2 : 3)}`;
   const cost: Segment = { name: "cost", text: costText, styled: theme.fg("dim", costText) };
@@ -182,8 +193,13 @@ export default function claudeFooter(pi: ExtensionAPI) {
 
   const refresh = () => requestRender?.();
 
+  const syncTurnCount = (ctx: ExtensionContext) => {
+    turnCount = countTurns(ctx.sessionManager.getBranch());
+  };
+
   const install = (ctx: ExtensionContext) => {
     activeSession = ctx.sessionManager;
+    syncTurnCount(ctx);
     ctx.ui.setFooter((tui, theme, footerData) => {
       requestRender = () => tui.requestRender();
       const unsubscribe = footerData.onBranchChange(refresh);
@@ -203,10 +219,7 @@ export default function claudeFooter(pi: ExtensionAPI) {
     });
   };
 
-  pi.on("session_start", (_event, ctx) => {
-    turnCount = 0;
-    install(ctx);
-  });
+  pi.on("session_start", (_event, ctx) => install(ctx));
   pi.on("session_tree", (_event, ctx) => install(ctx));
   pi.on("session_shutdown", (_event, ctx) => {
     if (ctx.sessionManager !== activeSession) return;
@@ -216,10 +229,14 @@ export default function claudeFooter(pi: ExtensionAPI) {
   });
   pi.on("turn_start", (_event, ctx) => {
     if (ctx.sessionManager !== activeSession) return;
-    turnCount += 1;
+    // Assistant message is not in the branch yet; preview the upcoming count.
+    turnCount = countTurns(ctx.sessionManager.getBranch()) + 1;
     refresh();
   });
-  pi.on("turn_end", refresh);
+  pi.on("turn_end", (_event, ctx) => {
+    if (ctx.sessionManager === activeSession) syncTurnCount(ctx);
+    refresh();
+  });
   pi.on("message_end", refresh);
   pi.on("model_select", refresh);
   pi.on("thinking_level_select", refresh);

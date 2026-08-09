@@ -9,10 +9,17 @@ strip() { sed "s/${ESC}\\[[0-9;]*m//g"; }
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
 CLAUDE='{"session_id":"s","model":{"display_name":"Opus (1M context)"},"context_window":{"used_percentage":75,"current_usage":{"input_tokens":100,"cache_read_input_tokens":800,"cache_creation_input_tokens":100}},"fast_mode":true,"effort":{"level":"high"},"rate_limits":{"five_hour":{"used_percentage":55},"seven_day":{"used_percentage":10}}}'
-CURSOR='{"session_id":"c","model":{"display_name":"Auto"},"render_width_chars":12,"context_window":{"used_percentage":54,"current_usage":{"input_tokens":100}}}'
+CURSOR_WIDE='{"session_id":"c","model":{"display_name":"Auto (1M context)"},"render_width_chars":80,"context_window":{"used_percentage":54,"current_usage":{"input_tokens":100,"cache_read_input_tokens":800,"cache_creation_input_tokens":100}}}'
+CURSOR='{"session_id":"c","model":{"display_name":"Auto (1M context)"},"render_width_chars":12,"context_window":{"used_percentage":54,"current_usage":{"input_tokens":100,"cache_read_input_tokens":800,"cache_creation_input_tokens":100}}}'
 
 wide=$(printf '%s' "$CLAUDE" | COLUMNS=120 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
 printf '%s' "$wide" | grep -q 'Opus \[1M\].*⚡hi.*ctx:75%.*CH80%.*#1.*5h:55%.*7d:10%' || fail "wide Claude segments"
+
+# Pruning must work under macOS /bin/sh and BSD find (no GNU -mmin/-maxdepth).
+printf '1\n' >"$XDG_CACHE_HOME/claude-statusline/growth-stale"
+touch -t 202001010000 "$XDG_CACHE_HOME/claude-statusline/growth-stale"
+printf '%s' "$CLAUDE" | COLUMNS=120 sh "$ROOT/claude/.claude/statusline-command.sh" >/dev/null
+[ ! -e "$XDG_CACHE_HOME/claude-statusline/growth-stale" ] || fail "Claude stale-history pruning"
 
 narrow=$(printf '%s' "$CLAUDE" | COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
 [ "$narrow" = 'ctx:75%' ] || fail "Claude narrow retention: $narrow"
@@ -21,8 +28,20 @@ diag=$(printf '%s' "$CLAUDE" | COLUMNS=20 sh "$ROOT/claude/.claude/statusline-co
 printf '%s' "$diag" | grep -q '^shed limit7 flag msgs cache limit5 model$' || fail "Claude shed order"
 printf '%s' "$diag" | grep -q 'segment flag .*width=4.*measured=3' || fail "wide glyph diagnostic"
 
+cursor_wide=$(printf '%s' "$CURSOR_WIDE" | sh "$ROOT/cursor/.cursor/statusline-command.sh" | strip)
+printf '%s' "$cursor_wide" | grep -q 'Auto \[1M\].*ctx:54%.*CH80%.*#1' || fail "wide Cursor segments: $cursor_wide"
+
+printf '1\n' >"$XDG_CACHE_HOME/cursor-statusline/growth-stale"
+touch -t 202001010000 "$XDG_CACHE_HOME/cursor-statusline/growth-stale"
+printf '%s' "$CURSOR_WIDE" | sh "$ROOT/cursor/.cursor/statusline-command.sh" >/dev/null
+[ ! -e "$XDG_CACHE_HOME/cursor-statusline/growth-stale" ] || fail "Cursor stale-history pruning"
+
 cursor=$(printf '%s' "$CURSOR" | sh "$ROOT/cursor/.cursor/statusline-command.sh" | strip)
+# render_width_chars=12 retains ctx only (same shed priority as Claude's left cluster).
 [ "$cursor" = 'ctx:54%' ] || fail "Cursor width shedding: $cursor"
+
+cursor_diag=$(printf '%s' "$CURSOR" | sh "$ROOT/cursor/.cursor/statusline-command.sh" --status)
+printf '%s' "$cursor_diag" | grep -q '^shed msgs cache model$' || fail "Cursor shed order"
 
 # A second distinct sample produces a one-cell bar, which sheds before messages.
 BARS1='{"session_id":"bars","model":{"display_name":"Auto"},"context_window":{"used_percentage":10,"current_usage":{"input_tokens":100}}}'

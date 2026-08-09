@@ -83,11 +83,9 @@ current_input=$((input_tokens + cache_read + cache_create))
 msg_count="" bars="" bar_count=0 last_msg_cost="" monthly_cost=""
 HISTORY_FILE="$STATE_DIR/growth-${session_id}"
 if [ "$DIAG" -eq 0 ]; then
-  CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
-  if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then
-    find "$STATE_DIR" -maxdepth 1 \( -name 'growth-*' -o -name 'prevcost-*' \) -mtime +7 -delete 2>/dev/null
-    touch "$CLEANUP_STAMP"
-  fi
+  # Run this small direct-file sweep per render: BSD find lacks GNU's -mmin
+  # and -maxdepth options, and these are the only scratch-file patterns here.
+  find "$STATE_DIR"/growth-* "$STATE_DIR"/prevcost-* -type f -mtime +7 -delete 2>/dev/null
   if [ -n "$session_id" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then
     last_val=$(tail -1 "$HISTORY_FILE" 2>/dev/null || printf '')
     [ "$last_val" = "$current_input" ] || printf '%s\n' "$current_input" >>"$HISTORY_FILE"

@@ -2,16 +2,21 @@
 # =============================================================================
 # Cursor CLI status line  —  fork of claude/.claude/statusline-command.sh
 # =============================================================================
-#     Auto  ctx:54%  #2 ▁▂▃
+#     Auto  ctx:54%  CH80%  #2 ▁▂▃
 #
-# Declarative segments: model / context used % / message count / per-message
-# context-growth bars (last ≤15). Narrow widths shed bars → messages → model;
-# ctx is retained. Cursor supplies render_width_chars, so no terminal probe or
-# extra right margin is used. The configured Cursor padding remains separate.
+# Declarative segments: model / context used % / cache-hit rate / message count /
+# per-message context-growth bars (last ≤15). Narrow widths shed bars → messages
+# → cache → model; ctx is retained. Cursor supplies render_width_chars, so no
+# terminal probe or extra right margin is used. The configured Cursor padding
+# remains separate.
 #
-# No branch (dropped 2026-07-22), cost, cache-hit, fast/effort, or rate limits:
-# Cursor's thinner payload does not provide those fields. This remains a fork,
-# not a sourced library, so its divergence is explicit in the segment lists.
+# Cache hit rate uses the same formula as Claude:
+#   cache_read / (input + cache_read + cache_creation), hidden at zero total.
+# Model names of the form "Name (1M context)" compact to "Name [1M]" when present.
+#
+# No branch (dropped 2026-07-22), cost, fast/effort, or rate limits: Cursor's
+# thinner payload does not provide those fields. This remains a fork, not a
+# sourced library, so its divergence is explicit in the segment lists.
 #
 # DIAGNOSTICS: `bash statusline-command.sh --status [< payload.json]` uses piped
 # stdin or the last reduced replay payload, prints fields/widths/shedding, and
@@ -51,8 +56,9 @@ current_input=$((input_tokens+cache_read+cache_create))
 
 HISTORY_FILE="$STATE_DIR/growth-${session_id}"; msg_count="" bars="" bar_count=0
 if [ "$DIAG" -eq 0 ]; then
-  CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
-  if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then find "$STATE_DIR" -maxdepth 1 -name 'growth-*' -mtime +7 -delete 2>/dev/null; touch "$CLEANUP_STAMP"; fi
+  # Direct glob avoids GNU-only find options (-mmin and -maxdepth), keeping
+  # stale-history pruning portable to macOS's BSD find.
+  find "$STATE_DIR"/growth-* -type f -mtime +7 -delete 2>/dev/null
   if [ -n "$session_id" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then last=$(tail -1 "$HISTORY_FILE" 2>/dev/null || printf ''); [ "$last" = "$current_input" ] || printf '%s\n' "$current_input" >>"$HISTORY_FILE"; fi
 fi
 if [ -n "$session_id" ] && [ -f "$HISTORY_FILE" ]; then
@@ -63,9 +69,16 @@ fi
 
 cyan='\033[0;36m'; dim='\033[2m'; yellow='\033[0;33m'; red='\033[0;31m'; reset='\033[0m'
 add_seg(){ eval "seg_plain_$1=\$2"; eval "seg_$1=\$3"; eval "segw_$1=\$4"; eval "segsep_$1=\${5:-2}"; eval "segdrop_$1=0"; }
-SEGS="model ctx msgs bars"; SHED="bars msgs model"
-[ -n "$model" ] && add_seg model "$model" "$(printf "${cyan}%s${reset}" "$model")" "${#model}"
+SEGS="model ctx cache msgs bars"; SHED="bars msgs cache model"
+if [ -n "$model" ]; then
+  case "$model" in *" ("*" context)") _size=${model##* (}; _size=${_size%% *}; model="${model% (*} [${_size}]";; esac
+  add_seg model "$model" "$(printf "${cyan}%s${reset}" "$model")" "${#model}"
+fi
 if [ -n "$used" ]; then n=$(printf '%.0f' "$used"); [ "$n" -ge 90 ] && c=$red || { [ "$n" -ge 70 ] && c=$yellow || c=$dim; }; p="ctx:${n}%"; add_seg ctx "$p" "$(printf "ctx:${c}%s%%${reset}" "$n")" "${#p}"; fi
+if [ "$current_input" -gt 0 ] 2>/dev/null; then
+  cache_rate=$((cache_read*100/current_input)); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
+  p="CH${cache_rate}%"; add_seg cache "$p" "$(printf "${c}%s${reset}" "$p")" "${#p}"
+fi
 if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then p="#${msg_count}"; add_seg msgs "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"; fi
 [ -n "$bars" ] && add_seg bars "$bars" "$(printf "${dim}%s${reset}" "$bars")" "$bar_count" 1
 

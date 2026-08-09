@@ -15,7 +15,8 @@
 # suffix, string or object form) is skipped, so a re-run never reinstalls one
 # you've since removed the pin from, repinned, or reconfigured. The old
 # pi-statusline package is removed because the stowed claude-footer extension
-# now owns the footer; two setFooter() extensions would race.
+# now owns the footer; two setFooter() extensions would race. Requires
+# `stow --no-folding pi` first so claude-footer.ts is present before removal.
 #
 # Usage:
 #   bash ~/src/dotfiles/pi/setup-extensions.sh
@@ -45,6 +46,16 @@ command -v pi >/dev/null 2>&1 || {
   echo "Error: $SETTINGS not found — run setup-settings.sh first."
   exit 1
 }
+
+# The repo-owned footer must already be stowed before installation begins. This
+# prevents a failed/incomplete migration from changing machine-local packages
+# without the replacement footer available.
+FOOTER="$HOME/.pi/agent/extensions/claude-footer.ts"
+if [ ! -e "$FOOTER" ]; then
+  echo "Error: $FOOTER missing — stow the pi package first:"
+  echo "  cd ~/src/dotfiles && stow --no-folding pi"
+  exit 1
+fi
 
 installed=0
 skipped=0
@@ -81,6 +92,9 @@ done
 echo
 echo "Extensions: $installed installed, $skipped already present, $failed failed."
 
+# Do not remove the working legacy footer after a partial extension install.
+[ "$failed" -eq 0 ] || exit 1
+
 # Migrate machines configured before the repo-owned minimal footer replaced the
 # third-party powerline. Match pinned and object-form package entries too.
 if jq -e '
@@ -96,5 +110,3 @@ rm -f "$HOME/.pi/agent/pi-statusline.json"
 
 echo
 echo "Verify with: pi list    Update later with: pi update --extensions"
-
-[ "$failed" -eq 0 ] || exit 1
