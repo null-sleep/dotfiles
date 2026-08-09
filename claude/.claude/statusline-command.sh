@@ -159,7 +159,7 @@ fi
 if [ -n "$used" ]; then used_int=$(printf '%.0f' "$used"); c=$(pick_color "$used_int" 90 70); p="ctx:${used_int}%"; add_seg ctx L "$p" "$(printf "ctx:${c}%s%%${reset}" "$used_int")" "${#p}"; fi
 cache_total=$current_input
 if [ "$cache_total" -gt 0 ] 2>/dev/null; then
-  cache_rate=$((cache_read*100/cache_total)); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
+  cache_rate=$(( (cache_read*100 + cache_total/2) / cache_total )); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
   p="CH${cache_rate}%"; add_seg cache L "$p" "$(printf "${c}%s${reset}" "$p")" "${#p}"
 fi
 if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then p="#${msg_count}"; add_seg msgs L "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"; fi

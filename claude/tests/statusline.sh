@@ -31,6 +31,14 @@ printf '%s' "$diag" | grep -q 'segment flag .*width=4.*measured=3' || fail "wide
 cursor_wide=$(printf '%s' "$CURSOR_WIDE" | sh "$ROOT/cursor/.cursor/statusline-command.sh" | strip)
 printf '%s' "$cursor_wide" | grep -q 'Auto \[1M\].*ctx:54%.*CH80%.*#1' || fail "wide Cursor segments: $cursor_wide"
 
+# Cache-hit rate rounds half up (87.5% -> 88%), not floors (-> 87%), matching
+# the pi footer's Math.round so the three forks agree at the boundary.
+CACHE_HALF='{"model":{"display_name":"Opus"},"context_window":{"used_percentage":1,"current_usage":{"input_tokens":25,"cache_read_input_tokens":175,"cache_creation_input_tokens":0}}}'
+cache_half_claude=$(printf '%s' "$CACHE_HALF" | COLUMNS=120 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+printf '%s' "$cache_half_claude" | grep -q 'CH88%' || fail "Claude cache-hit rounding: $cache_half_claude"
+cache_half_cursor=$(printf '%s' "$CACHE_HALF" | sh "$ROOT/cursor/.cursor/statusline-command.sh" | strip)
+printf '%s' "$cache_half_cursor" | grep -q 'CH88%' || fail "Cursor cache-hit rounding: $cache_half_cursor"
+
 printf '1\n' >"$XDG_CACHE_HOME/cursor-statusline/growth-stale"
 touch -t 202001010000 "$XDG_CACHE_HOME/cursor-statusline/growth-stale"
 printf '%s' "$CURSOR_WIDE" | sh "$ROOT/cursor/.cursor/statusline-command.sh" >/dev/null

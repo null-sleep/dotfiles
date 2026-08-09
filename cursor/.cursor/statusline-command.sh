@@ -76,7 +76,7 @@ if [ -n "$model" ]; then
 fi
 if [ -n "$used" ]; then n=$(printf '%.0f' "$used"); [ "$n" -ge 90 ] && c=$red || { [ "$n" -ge 70 ] && c=$yellow || c=$dim; }; p="ctx:${n}%"; add_seg ctx "$p" "$(printf "ctx:${c}%s%%${reset}" "$n")" "${#p}"; fi
 if [ "$current_input" -gt 0 ] 2>/dev/null; then
-  cache_rate=$((cache_read*100/current_input)); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
+  cache_rate=$(( (cache_read*100 + current_input/2) / current_input )); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
   p="CH${cache_rate}%"; add_seg cache "$p" "$(printf "${c}%s${reset}" "$p")" "${#p}"
 fi
 if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then p="#${msg_count}"; add_seg msgs "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"; fi
