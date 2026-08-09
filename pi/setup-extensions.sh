@@ -49,37 +49,59 @@ command -v pi >/dev/null 2>&1 || {
 
 installed=0
 skipped=0
+failed=0
 for name in "${EXTENSIONS[@]}"; do
   src="npm:@narumitw/$name"
   # Match the entry pinned or not; object-form entries carry it in .source.
-  if jq -e --arg src "$src" '
+  # npm-source-only: a git: or local-path install of the same extension won't match.
+  rc=0
+  jq -e --arg src "$src" '
       (.packages // []) | map(if type == "object" then .source else . end)
-      | any(. == $src or startswith($src + "@"))' "$SETTINGS" >/dev/null; then
-    echo "Skip: $src already in packages"
-    skipped=$((skipped + 1))
-  else
-    pi install "$src"
-    installed=$((installed + 1))
-  fi
+      | map(select(type == "string"))
+      | any(. == $src or startswith($src + "@"))' "$SETTINGS" >/dev/null || rc=$?
+  case "$rc" in
+    0)
+      echo "Skip: $src already in packages"
+      skipped=$((skipped + 1))
+      ;;
+    1)
+      if pi install "$src"; then
+        installed=$((installed + 1))
+      else
+        echo "Warning: pi install $src failed — continuing."
+        failed=$((failed + 1))
+      fi
+      ;;
+    *)
+      echo "Error: could not read \`packages\` from $SETTINGS"
+      exit 1
+      ;;
+  esac
 done
 
 echo
-echo "Extensions: $installed installed, $skipped already present."
+echo "Extensions: $installed installed, $skipped already present, $failed failed."
 
 echo
-if [ -e "$STATUSLINE_CFG" ]; then
+if [ -e "$STATUSLINE_CFG" ] || [ -L "$STATUSLINE_CFG" ]; then
   echo "Statusline: $STATUSLINE_CFG already exists — left as-is."
 else
   # pi-statusline's upstream default segments plus `cost` — the one field a
   # pay-per-token OpenRouter setup actually wants. Machine-local, not stowed:
   # the /statusline menu rewrites this file, which would break a stow symlink.
-  cat >"$STATUSLINE_CFG" <<'EOF'
+  # Write to a temp file and mv so a crash mid-write can't leave a broken file
+  # that the [ -e ] guard above would then protect forever.
+  tmp="$(mktemp "${STATUSLINE_CFG}.XXXXXX")"
+  cat >"$tmp" <<'EOF'
 {
   "segments": ["model", "thinking", "cwd", "branch", "tools", "context", "cost", "time"]
 }
 EOF
+  mv "$tmp" "$STATUSLINE_CFG"
   echo "Statusline: seeded $STATUSLINE_CFG (default segments + cost)."
 fi
 
 echo
 echo "Verify with: pi list    Update later with: pi update --extensions"
+
+[ "$failed" -eq 0 ] || exit 1
