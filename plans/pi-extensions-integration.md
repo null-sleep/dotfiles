@@ -1,5 +1,10 @@
 # pi extensions integration — agent brief
 
+> **Outcome (2026-08-08):** shipped as seven extensions, not six — pi-btw
+> moved from the evaluate-only trio to adopted; pi-worktree and
+> pi-caffeinate were evaluated and dropped. See README.md's `## pi` →
+> `### Extensions` and `docs/pi.md` for what actually landed.
+
 Not a design doc — this is a **prompt** meant to be handed to an agent (run it
 via the `Agent` tool with `model: "fable"`, `subagent_type: "general-purpose"`)
 to plan and implement adding a set of third-party `pi` extensions to this

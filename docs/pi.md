@@ -156,8 +156,8 @@ over src and one over tests, then merge the findings". The delegation shapes:
 - `subagent` — **blocking**: single task, parallel fan-out, fan-out + an
   aggregator that merges results, or a chain where each step gets
   `{previous}`. The main agent waits; use it when the answer is needed
-  before it can continue. Hard cap of 8 parallel tasks, 10-minute default
-  timeout per child.
+  before it can continue. Max 8 tasks per call, but at most 4 children run
+  concurrently; 10-minute default timeout per child.
 - `subagent_spawn` + `subagent_send` / `subagent_manage` /
   `subagent_mailbox` — **detached**: returns an `agentId` immediately, the
   completion arrives as a message on a later turn. For broad research/review
@@ -237,8 +237,9 @@ re-list gopls/rust-analyzer/lua-language-server.
 <a id="statusline"></a>
 ## pi-statusline — the footer
 
-Replaces pi's footer with a responsive powerline. As seeded here (upstream
-"balanced" + `cost`, tokyo-night palette):
+Replaces pi's footer with a responsive powerline. Seeded here with the
+upstream "balanced" segment set + `cost` — the setup script writes segments
+only, so the palette stays pi-statusline's own tokyo-night default:
 
 ```text
 ░▒▓ 🤖 sonnet-5 🧠 med 📁 dotfiles 🌿 main ~2 ⚙ ctx 2.4%/272k 💰 $0.42 🕒 16:42

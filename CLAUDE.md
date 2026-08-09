@@ -6,7 +6,7 @@ theme palettes — pi writes to its own settings.json, so that stays
 machine-local). NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
-`docs/ripgrep.md` — distinct from `plans/`, which is design docs).
+`docs/ripgrep.md`, `docs/pi.md` — distinct from `plans/`, which is design docs).
 `README.md` is the maintained setup/reference doc for the whole repo.
 
 Editing something under `nvim/.config/nvim/`? See the nested
