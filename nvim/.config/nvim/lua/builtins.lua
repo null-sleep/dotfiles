@@ -9,6 +9,11 @@
 --
 -- The `group` field mirrors which-key group labels and is included in the
 -- search text so e.g. typing "scroll" finds all scrolling commands.
+--
+-- Entries carrying a `scope` are not built-ins at all — they're the only other
+-- registry <leader>sk reads, for keys that live somewhere other than a real
+-- nvim keymap (a picker, a panel, or Ghostty itself). Each block below says why
+-- it's here.
 
 return {
   { lhs = 'u',      group = 'Undo/Redo',           desc = 'Undo changes' },
@@ -164,6 +169,35 @@ return {
   { lhs = 'jj',        group = 'Insert Mode',         desc = 'Exit insert mode (alternative to Escape)' },
 
   { lhs = 'g?',   group = 'Explorer',  scope = 'tree', desc = 'Show all nvim-tree keybindings' },
+
+  -- Ghostty's own macOS keys (scope 'ghostty'), mirrored from README's
+  -- "Ghostty > Keymaps" table. Deliberately leaking another app's bindings into
+  -- nvim's picker: Ghostty is the primary terminal, so nvim is always open in
+  -- it and <leader>sk is the fastest place to look a chord up. The scope tags
+  -- them so the context column reads 'ghostty' and <CR> reports instead of
+  -- firing the chord's nvim meaning. Notation is Ghostty's/README's (Cmd+D),
+  -- not nvim's (<D-d>) — these are not nvim keymaps and shouldn't look like it.
+  { lhs = 'Cmd+D',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split right' },
+  { lhs = 'Cmd+Shift+D',    group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split down' },
+  { lhs = 'Cmd+[',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus previous split' },
+  { lhs = 'Cmd+]',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus next split' },
+  { lhs = 'Cmd+Option+Arrow', group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus the split in that direction' },
+  { lhs = 'Cmd+Ctrl+Arrow', group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Resize the split in that direction' },
+
+  { lhs = 'Cmd+T',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'New tab' },
+  { lhs = 'Cmd+W',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Close the current split/tab' },
+  { lhs = 'Cmd+1-8',        group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to tab by number' },
+  { lhs = 'Cmd+9',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to the last tab (not tab 9)' },
+  { lhs = 'Cmd+Shift+[',    group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle)' },
+  { lhs = 'Cmd+Shift+]',    group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle)' },
+  { lhs = 'Ctrl+Shift+Tab', group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle) — second binding' },
+  { lhs = 'Ctrl+Tab',       group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle) — second binding' },
+
+  -- The only two bindings Ghostty's config actually sets; everything above is a
+  -- Ghostty macOS default.
+  { lhs = 'Shift+Enter',    group = 'Ghostty > Config', scope = 'ghostty', desc = 'Send a literal newline (multi-line input in Claude Code/REPLs)' },
+  { lhs = 'Cmd+Ctrl+T',     group = 'Ghostty > Config', scope = 'ghostty', desc = 'Show/hide every Ghostty window, system-wide' },
+  { lhs = 'Cmd+Shift+,',    group = 'Ghostty > Config', scope = 'ghostty', desc = 'Reload the Ghostty config' },
 
   { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
   { lhs = '[s',   group = 'Spell',  desc = 'Previous misspelled word' },

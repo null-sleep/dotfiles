@@ -100,7 +100,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`titling.lua`** — Sets `'title'`/`'titlestring'` to `<project> — <file> [+]` for iTerm2/Neovide; `<leader>ut` / `:Title <name>` sets a manual override
 - **`whichkey.lua`** — which-key: group labels, explicit trigger list, yank-prefix documentation; exports `keywords` (search aliases) and a slim `tags` override table (only non-derivable extras) consumed by `pickers/keybindings.lua`
 - **`pickers/keybindings.lua`** — snacks picker that walks which-key's tree to fuzzy-search all keymaps; merges in `builtins.lua` so built-in motions are searchable too; displays 5 columns: key (dynamic width), modes (dim), icon+group breadcrumb (dim), desc, tag pills (dim). All six modes are walked, and a key mapped the same way across modes collapses into one row (`<D-s>` → `n x i`). The group column prefers a desc's own `Group: Action` prefix over the which-key ancestor group — the ancestor says where a key lives, the prefix says what it's for, and that's what you scan for (`grn` sits under the `g` prefix, so which-key calls it "Go to", but you look it up as `LSP ›`). It also covers keys with no ancestor at all (`<D-…>`, `jj`). The ancestor wins back when it already names the prefix in one of its segments, being the richer label there (`Session/Quit ›` beats the bare `Session` that `Session: Stop saving` would impose). The desc then displays without that prefix, since the column already says it (the full desc stays searchable). A prefix is only trusted when it looks like a group label — not trailing whitespace, bracket-free, short — or `Scroll down N lines (default: half screen)` would promote its sentence fragment to a heading. Tags are derived from that same prefix (`"Git hunk: Stage"` → `git hunk`) and merged with `whichkey.lua`'s small override table for non-derivable extras (rust/diff/debug/lsp/ai cross-references); a derived tag that just repeats the row's own group is hidden from the pills (still searchable), leaving pills to mean "cross-reference"
-- **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins
+- **`builtins.lua`** — Curated built-in normal-mode commands (motions, scroll, jumps) consumed by `pickers/keybindings.lua` since nvim has no API to enumerate built-ins; also the registry for `scope`d non-keymaps the picker should still surface (picker/tree-local actions, and Ghostty's own keys)
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost/QuitPre/VimSuspend (immediate) and InsertLeave/TextChanged (debounced 1s, cancelled by InsertEnter); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
@@ -283,6 +283,20 @@ text objects, z/g/window/nav) but misses fundamental built-ins like `Ctrl+d`
 or `gg` that are hardcoded in C and have no Lua representation. `builtins.lua`
 is a manually curated list cross-referenced against `:help normal-index`,
 fed into the picker so the same fuzzy search surfaces both layers.
+
+It doubles as the registry for keys that aren't nvim keymaps at all but that you
+still reach for `<leader>sk` to look up. Those carry a `scope` field naming
+where they live, which the picker shows in the context column and uses to report
+rather than fire the chord on `<CR>`:
+
+- `undo` / `picker` / `tree` — actions local to a snacks picker or the file tree.
+- `ghostty` — the terminal's own macOS keys (splits, tabs, `Shift+Enter`),
+  mirrored from README's `## Ghostty` → `### Keymaps` table. This deliberately
+  leaks another app's bindings into nvim's picker: Ghostty is the primary
+  terminal, so nvim is always running inside it and `<leader>sk` is the fastest
+  place to check a chord. They're written in Ghostty's notation (`Cmd+D`), not
+  nvim's (`<D-d>`), so they don't read as nvim keymaps. README stays canonical —
+  update it first, then mirror.
 
 ### The keymap picker walks every mode, but only runs normal-mode maps
 
@@ -1399,7 +1413,7 @@ knobs are under snacks' `formatters.file` unless noted):
 | `<leader>st` | Theme picker (live preview) — see [Themes](#themes) |
 | `<leader>sq` / `<leader>sl` | Fuzzy-filter + preview entries of the quickfix / location list — see [Quickfix & location lists](#quickfix-loclist) |
 | `<leader>sQ` / `<leader>sL` | Pick a whole list from the quickfix / location-list **history** stack — see [Quickfix & location lists](#quickfix-loclist) |
-| `<leader>sk` | Keymap picker — columns: key (dynamic width), mode/scope (the vim mode(s) — `n`/`x`/`i`/… — or, for keys confined to a picker, that picker's name like `undo` in a distinct color), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
+| `<leader>sk` | Keymap picker — columns: key (dynamic width), mode/scope (the vim mode(s) — `n`/`x`/`i`/… — or, for keys confined to a context, that context's name like `undo` or `ghostty` in a distinct color), icon+group breadcrumb (dim), desc, tag pills (dim). Covers all modes. Keys display as `<Space>…` (which-key's spelling) but `<leader>…` searches too |
 | `<leader>uu` | Undo history — browse this buffer's undo states, fuzzy-matched by the *content* of each change. See below; it's the one picker not under `<leader>s*` |
 
 ### Undo history

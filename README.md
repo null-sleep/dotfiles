@@ -1155,11 +1155,27 @@ any of them**.
 | `Cmd+Ctrl+Arrow` | Resize the split in that direction |
 | `Cmd+T` | New tab |
 | `Cmd+W` | Close the current split/tab |
-| `Cmd+1-9` | Jump to tab by number |
+| `Cmd+1-8` | Jump to tab by number |
+| `Cmd+9` | Jump to the **last** tab (not tab 9) |
 | `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Previous / next tab (same actions, second binding) |
 
-The config adds exactly **one** binding — `Shift+Enter`, which sends a literal
-newline for multi-line input in Claude Code and REPLs.
+Either tab-cycling pair is safe alongside nvim. `Cmd+*` is never sent to the
+TTY on macOS, so `Cmd+Shift+[`/`]` structurally can't reach nvim; `Ctrl+Tab`
+and `Ctrl+Shift+Tab` are swallowed by Ghostty before the shell sees them, and
+the only Tab-modifier mapping in this repo's nvim config is blink's insert-mode
+`<S-Tab>` (`nvim/.config/nvim/lua/completion.lua`), a different key.
+
+The config adds exactly **two** bindings — `Shift+Enter`, which sends a literal
+newline for multi-line input in Claude Code and REPLs, and
+`Cmd+Ctrl+T`, a system-wide show/hide toggle for every Ghostty window (needs
+macOS Accessibility permission granted to Ghostty on first load).
+
+**This table is mirrored into nvim's `<leader>sk` keymap picker**, as rows
+scoped `ghostty` — since nvim always runs inside Ghostty, that's the quickest
+place to look a chord up. The mirror lives in
+`nvim/.config/nvim/lua/builtins.lua`; this table is canonical, so edit it first
+and update those rows in the same change.
 
 ### Commands
 
