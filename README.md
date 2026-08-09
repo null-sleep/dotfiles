@@ -945,6 +945,8 @@ owns updates, the same designated-owner convention as brew for
   snapshots the conversation without appending to it, keeping the main
   context clean. Uses the session's current model.
 
+## Neovim
+
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
 
 ```bash
