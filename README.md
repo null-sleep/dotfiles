@@ -20,7 +20,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [OpenRouter](#openrouter) — the model gateway behind the two agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
-- [pi](#pi) — [Theme](#pi-theme)
+- [pi](#pi) — [Theme](#pi-theme) · [Extensions](#extensions)
 
 *Editors*
 - [Neovim](#neovim)
@@ -58,7 +58,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -832,6 +832,9 @@ cd ~/src/dotfiles
 stow --no-folding pi         # themes only — see below
 # Seed ~/.pi/agent/settings.json + themes/active.json (one-time)
 bash ~/src/dotfiles/pi/setup-settings.sh
+# Install the extension set (one-time; needs settings.json, so run it after
+# setup-settings.sh) — see Extensions below
+bash ~/src/dotfiles/pi/setup-extensions.sh
 ```
 
 The binary lands in `$(npm prefix -g)/bin` — `/opt/homebrew/bin` with the
@@ -851,6 +854,8 @@ The `pi` package stows **only the theme palettes**. Everything else in
 | `~/.pi/agent/themes/catppuccin-latte.json`, `dracula.json` | Symlinked via stow (`--no-folding`) |
 | `~/.pi/agent/themes/active.json` | Written by the [`theme`](#unified-theme-switching) switcher; not tracked |
 | `~/.pi/agent/settings.json` | Seeded by `setup-settings.sh`; machine-local |
+| `~/.pi/agent/pi-statusline.json` | Seeded by `setup-extensions.sh` (create-only); machine-local |
+| `~/.pi/agent/npm/` | **Not** tracked — extension installs, owned by `pi install` |
 | `~/.pi/agent/auth.json` | **Not** tracked — credentials, written by `/login` |
 | `~/.pi/agent/trust.json` | **Not** tracked — per-project trust decisions |
 
@@ -897,7 +902,48 @@ Useful commands: `pi --list-models` (empty means the key isn't resolving),
 environment variable. pi ships its full documentation locally — `ls
 "$(npm prefix -g)/lib/node_modules/@earendil-works/pi-coding-agent/docs"`.
 
-## Neovim
+### Extensions
+
+Seven extensions from the [@narumitw
+collection](https://github.com/narumiruna/pi-extensions), installed by
+[`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
+`setup-settings.sh` — `pi install` registers each one in `settings.json`'s
+`packages` array, so the file must exist). Idempotent: extensions already in
+`packages` are skipped, so a re-run won't reinstall or un-pin anything you've
+since changed. Entries are deliberately **unpinned**; `pi update --extensions`
+owns updates, the same designated-owner convention as brew for
+[opencode](#opencode) and npm for pi itself.
+
+- **pi-lsp** — `lsp_diagnostics` / `lsp_fix` tools plus a `/lsp` status
+  command. Installs no language servers: it uses whatever's already on PATH
+  (here: `gopls`, `rust-analyzer`, `lua-language-server`) and silently skips
+  the rest. To cover more languages, point a custom `~/.pi/agent/pi-lsp.json`
+  at mason's binaries — note a custom config *replaces* the default catalog.
+- **pi-subagents** — `/subagents` and a family of `subagent*` tools:
+  delegate isolated work to child `pi -p` processes (single, parallel,
+  chained, or detached), inheriting the OpenRouter setup. Built-in agents
+  (`scout`, `planner`, `reviewer`, `worker`) only; custom definitions would
+  go in `~/.pi/agent/agents/*.md`.
+- **pi-plan-mode** — `/plan` (or `pi --plan`): a read-only planning mode
+  enforced by real tool gating — edit/write blocked, bash run through a
+  fail-closed read-only parser. Extension tools (including subagents) are
+  disabled while planning unless opted in via `/plan tools`.
+- **pi-github-pr** — ambient statusline entry for the current branch's PR
+  (state, checks, reviews), refreshed via the authenticated `gh` CLI; needs
+  `gh auth login` done ([Git](#git)), no extra scopes.
+- **pi-usage** — `/usage` plus a statusline entry showing OpenRouter
+  **per-key spend** (today/week/month/all-time — not account credit balance;
+  that endpoint needs a management key). Reads pi's own resolved credential;
+  zero config.
+- **pi-statusline** — replaces pi's footer with a segmented powerline and
+  renders the other extensions' status entries beneath it.
+  `setup-extensions.sh` seeds `~/.pi/agent/pi-statusline.json` (create-only)
+  with the upstream default segments plus `cost`. Machine-local, not stowed:
+  the `/statusline` menu rewrites the file, which would break a stow symlink
+  — the `settings.json` rationale again.
+- **pi-btw** — `/btw`: ask a quick side question in an ephemeral thread that
+  snapshots the conversation without appending to it, keeping the main
+  context clean. Uses the session's current model.
 
 Requires Neovim >= 0.12 (uses `vim.pack`, `vim.lsp.config`, native treesitter API).
 
