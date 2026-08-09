@@ -11,6 +11,12 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Build the agent view MVP** — cmux-style dashboard:
+  [sidekick-agent-view.md](sidekick-agent-view.md) (planned 2026-08-08,
+  UX mockup reviewed via artifact). Phase 1 (view/sidebar/cycling) ships
+  standalone; Phase 2 (attention rings) implements
+  [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)'s
+  pipeline with the MVP hook cut.
 - [ ] **Verify the sidekick session labels + the 4-agent pool** — shipped
   2026-08-07 (display labels on `<leader>ar`/`<M-r>`/`<C-r>`; `opencode` and
   `pi` added to `AGENTS`). Everything testable headlessly passed — namespace
@@ -354,7 +360,12 @@ Grouped by state, not priority.
 
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
-  done / is idle (pipeline first, UI later).
+  done / is idle (pipeline first, UI later). The UI now has its own plan:
+  sidekick-agent-view.md below.
+- [sidekick-agent-view.md](sidekick-agent-view.md) — the agent view MVP:
+  `<leader>av` dedicated tabpage with a left agent-list sidebar +
+  embedded agent terminal, cycling, and binary attention glyphs consuming
+  the event pipeline (`agentview.lua` + `agent_events.lua`).
 - [sidekick-windowless-prewarm.md](sidekick-windowless-prewarm.md) — real
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.

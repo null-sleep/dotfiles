@@ -1,0 +1,411 @@
+# Plan: Agent view — cmux-style dashboard for sidekick sessions (MVP)
+
+> UX walkthrough (static mockups reviewed 2026-08-08):
+> https://claude.ai/code/artifact/93af4a5d-ed72-48ed-9518-0400679ec2bd
+
+## Problem
+
+Multiple agent CLI sessions (claude, cursor, opencode, pi — dynamically
+named "claude", "claude 2", …) run concurrently via sidekick, but the config
+only ever shows one at a time in the right column (`show_solo`), and there is
+no dedicated place to *see them all*: which exist, which is active, which
+needs attention. cmux (github.com/manaflow-ai/cmux) solves this with a left
+sidebar of agent rows plus notification rings; this plan is the nvim-native
+MVP of exactly that, scoped to the user's ask: **one leader shortcut →
+a dedicated view with a vertical agent list on the left, the selected agent's
+real terminal beside it, quick cycling, and a per-agent attention indicator.**
+Nothing else from cmux.
+
+## What cmux actually does (research findings that shaped this)
+
+- Lifecycle states `running | idle | needsInput | unknown`, set by **agent
+  hooks**, not polling — cmux only aggregates what agents announce.
+- The "notification ring" is **binary**: unread-attention → one blue ring,
+  cleared when you focus the pane. There is no done/error/idle ring-color
+  taxonomy. Activity ("running") is a separate spinner signal.
+- Attention persists until acknowledged (focus / jump / mark-read); an event
+  for the pane you're already focused on doesn't ring.
+- The triage key: jump-to-most-recent-unread.
+
+Two orthogonal signals per agent — activity and attention — is the core
+insight this MVP copies.
+
+## Decisions at a glance
+
+| Decision | Choice |
+|---|---|
+| Entry shortcut | `<leader>av` toggle (+ `<M-v>` inside CLI terminals) |
+| View layout | dedicated tabpage: 30-col left sidebar + main pane |
+| Selection model | explicit `<CR>` in sidebar (no live-switch on `j`/`k`) |
+| Agent window | embed the real terminal buffer via `nvim_win_set_buf` |
+| Attention model | binary unread flag + running flag (cmux's two signals) |
+| Attention source | Claude Code hooks via the already-designed pipeline in [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) |
+| Acknowledgment | unread (`turn-complete`) clears on focus; urgent (needs input/permission) persists until actually answered |
+| Triage key | `<leader>aj` — jump to most recent unread |
+| Non-Claude agents | honest "no signal" (dim dot), no fake heuristics |
+| Ambient signal | statusline unread-count badge when the view is closed |
+
+## Architecture
+
+Three parts, two new modules; the sidebar knows nothing about hooks and the
+event registry knows nothing about UI:
+
+```
+claude/.claude/hooks/sidekick-notify.sh  (+ settings.json registrations)
+      │  $NVIM + $SIDEKICK_SESSION env bridge (pipeline plan, unchanged)
+      ▼
+lua/agent_events.lua      state registry: unread/running per session name,
+      │                   ack API, fires User AgentSessionEvent
+      ▼
+lua/agentview.lua         the view: tabpage, sidebar buffer, embed logic
+      │                   (also consumed later by a statusline badge)
+      ▼
+lua/ai.lua                existing session layer — reused, ~15 LOC of
+                          delegates/guards added
+```
+
+`agentview.lua` degrades gracefully when `agent_events` isn't loaded
+(pcall-guarded): the view works with no attention glyphs. This makes Phase 1
+(view) shippable before Phase 2 (rings).
+
+## Phase 1 — the view (`lua/agentview.lua`)
+
+### Entry/exit
+
+- `<leader>av` (normal, global, `desc = 'AI: Agent view (toggle)'`; falls
+  under the existing `<leader>a` which-key group — no whichkey.lua change).
+  Lazy `require('agentview')` at keypress, like `pickers/*`.
+- `<M-v>` (`{ 't', 'n' }`, buffer-local) added to the `FileType
+  sidekick_terminal` autocmd in `ai.lua`, same toggle — consistent with the
+  `<M-a>`/`<M-l>`/`<M-n>` in-panel family.
+- Toggle, three states: no view tab → create it (remember `origin_tab`);
+  view tab exists but not current → switch to it and re-sync (re-embed
+  `ai.active`, redraw sidebar); currently in it → `tabclose`, return to
+  `origin_tab` if still valid.
+
+### Why a dedicated tabpage (not an in-place left panel)
+
+- "A view I enter" is a mode switch; a tabpage is nvim's native mode switch,
+  and this config already blesses own-tabpage tools (Neogit, diffview).
+- The left edge is exclusively coordinated by `buffers.lua`'s
+  nvim-tree/aerial swap machinery; an in-place panel would have to join that
+  registry and fight for the edge. A fresh tab avoids it entirely.
+- Exit = close the tab; the working tab's layout (including a right CLI
+  column) is untouched by construction.
+
+Tab structure: `tabnew` (its empty window becomes `main_win`) →
+`vim.t[tab].agentview = true` marker → `topleft 30vsplit` sidebar. Window
+opts set by win id after creation (panel convention), `winfixwidth`,
+`cursorline`, no numbers/signs, `wrap=false`.
+
+### Embedding the agent's terminal
+
+`V.embed(name)`: find the terminal by tool name, `t:hide()` if open (while
+the view owns display, sidekick owns zero windows), then
+`nvim_win_set_buf(main_win, t.buf)` and **re-stamp the window**:
+`vim.w[main_win].sidekick_cli`, `.sidekick_session_id`, plus
+`.agentview_main = true`. The stamps are window-scoped; without them the
+WinEnter active-tracker and the byte-forward keys (`u`, `p`, `<C-u>`, …)
+silently die in our window. Never `cli.show()` inside the view — sidekick's
+`open_win` would split the current tab per `layout='right'`, and a terminal
+whose window lives in another tab makes `focus()` yank the user out of the
+view.
+
+Sessions that are registered but not started are not listed; creation goes
+through sidebar `n` → `ai.new_session()`, whose `show_solo` call the
+delegate (below) routes back into the view: it opens via
+`cli.show({name=..., focus=false})` (the sanctioned auto-start door), marks
+the name pending, and the view's `SidekickCliAttach` handler hides the
+transient split and embeds.
+
+### ai.lua integration (~15 LOC, the whole trick)
+
+1. `show_solo` delegate at the top of the function:
+   `local av = package.loaded['agentview']; if av and av.is_active() then
+   return av.select(name) end` — every existing switch path (`cycle`,
+   `toggle_last`, picker, `create_session`) becomes view-aware for free.
+   `is_active()` requires the view tab to be *current*, so working in tab 1
+   while the view idles in tab 2 uses the normal right-column path.
+2. Same-pattern delegate in `M.focus` (else `<C-.>` inside the view splits
+   the view tab).
+3. Promote-autocmd guard in the `SidekickCliAttach` callback:
+   `if vim.t[current_tab].agentview then return end` — without this, a
+   session starting while the view is current gets `wincmd L`-promoted and
+   reflows the view into three columns.
+4. `remember_width` guard in `WinClosed`:
+   `if vim.w[win].agentview_main then return end` — else closing the view
+   records the huge main-pane width as the CLI column width and the next
+   `<leader>aa` opens a giant right column.
+5. Export `M._set_active = set_active`; add small public
+   `M.kill(name)` (generalizes `kill_active`) for the sidebar's `x`.
+
+### Sidebar buffer
+
+- One scratch buffer reused across open/close and re-sources (looked up by
+  name `agentview://agents`; `buftype=nofile`, `bufhidden=hide`,
+  `filetype=agentview` set last).
+- Rows: running sessions from `sidekick.cli.state.get({started=true})` plus
+  in-flight spawns from `ai._dynamic == 'registered'`, sorted by name — the
+  same order as `ai.cycle`, so `j`/`k` order equals `<M-]>`/`<M-[>` order.
+- Row = active marker (`▸`), display label (bright) with raw name demoted
+  (`Comment`) — same convention as the `<leader>al` picker — and a
+  right-aligned status glyph as a `virt_text_pos='right_align'` extmark.
+- Keymaps read a `rows_by_lnum` table, never parse buffer text.
+- Refresh: one debounced (single `vim.schedule` coalesce) `render()`, driven
+  by `User SidekickCliAttach`/`SidekickCliDetach`, `User AgentSessionEvent`,
+  and `WinEnter` (active-marker moves). No polling. Hidden panel renders
+  lazily on next open. Augroup `UserAgentview`, `clear=true`.
+- Cursor sync: when re-rendering and the sidebar is not the current window,
+  snap its cursor to `ai.active`'s row; never yank the cursor while the user
+  is browsing inside the sidebar.
+
+### In-sidebar keymaps (buffer-local, all `desc = 'AI: …'`)
+
+| Key | Action |
+|---|---|
+| `<CR>` | select + focus session under cursor (`set_active` + embed) |
+| `<M-]>` / `<M-[>` | `ai.cycle(±1)` (same keys as inside the terminal) |
+| `n` | `ai.new_session()` |
+| `r` | `ai.rename(row, refresh)` |
+| `x` | `utils.confirm` → `ai.kill(row)` |
+| `q` / `<Esc>` | close the view |
+
+**Explicit `<CR>` selection, not cmux-style live-switch on cursor move**: a
+switch here is real window surgery plus `M.active`/`M._last` mutation;
+live-switching on `j`/`k` would thrash layout per keystroke and destroy the
+alt-tab pair just by browsing.
+
+### Panel registration
+
+`special_filetypes` yes; `sidebar_filetypes` **no** (it is not a left-edge
+panel of the working tab — the tabpage decision — and must not feed the
+quit-when-only-sidebars autocmd); stickybuf `get_auto_pin` arm;
+`clamped_panels` yes (nowrap list panel). The main window gets auto-pinned
+to `sidekick_terminal` by filetype once it shows a CLI buffer; verify the
+kill-last-agent → scratch transition against the pin during testing.
+
+### Exit/cleanup/persistence
+
+- Terminals keep running on close: the view's windows were never in
+  sidekick's registry (`term.win` stayed nil after the embed-time hide), so
+  back in tab 1 `<leader>aa` opens a fresh right split at the remembered
+  width.
+- Manual `:q`/`:tabclose` needs no teardown handler — every entry point
+  validates tab/win handles and rebuilds; the `vim.t` marker dies with the
+  tab.
+- Persistence: the sidebar scratch would restore as a blank split.
+  agentview registers its own `User PersistenceSavePre` handler closing the
+  view tab (feature-local augroup; don't grow session.lua's list).
+
+### Edge cases
+
+- Zero running agents: sidebar shows `(no running agents)` + hint; `n`
+  creates one; main pane keeps a scratch with a one-line hint.
+- Killing the visible agent: the Detach sweep repoints `M.active`; the
+  view's Detach handler re-embeds the new active or falls to empty state.
+- View open in tab 2 while interacting from tab 1: tab-1 flows take the
+  normal path (`is_active()` false); the view re-syncs on every re-entry.
+
+## Phase 2 — attention rings (`lua/agent_events.lua` + hooks)
+
+The transport is the already-designed pipeline
+([sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)):
+`$SIDEKICK_SESSION` env injection per session, `$NVIM` RPC via
+`--remote-expr`, tmpfile protocol, `timeout 2`, always-exit-0. None of that
+is redesigned. What the dashboard adds on top:
+
+### Hook registrations (MVP cut — 5 entries, one shared script)
+
+| Hook | Category | Role |
+|---|---|---|
+| `Stop` | `turn-complete` | attention (medium) |
+| `Notification` matcher `permission_prompt` | `needs-permission` | attention (high) |
+| `Notification` matcher `idle_prompt` | `needs-input` | attention (high) |
+| `UserPromptSubmit` | `prompt-submit` | activity signal (added vs pipeline plan) |
+| `SessionEnd` | `session-end` | bookkeeping — clears state on `/clear`/resume, which `SidekickCliDetach` can't see |
+
+Dropped for MVP: `SubagentStop` (a ring for subagent completion trains you
+to ignore rings) and `SessionStart` (nvim already knows sessions exist
+before Claude's hook could say so).
+
+### State model (per session name)
+
+```lua
+M.sessions[name] = {
+  unread    = false,  -- the ring; cleared only by ack
+  attention = nil,    -- 'needs-permission'|'needs-input'|'turn-complete'
+  running   = false,  -- between prompt-submit and turn end
+  last      = { category, at, raw },
+}
+```
+
+Transitions (hooks arrive in temporal order; last-writer-wins):
+
+```
+prompt-submit    → running=true; unread=false, attention=nil
+                   (real interaction — the only thing that clears urgent)
+needs-permission → running stays true; unread=true   (turn blocked, not over)
+needs-input      → running=false;     unread=true
+turn-complete    → running=false;     unread=true*
+session-end      → running=false; unread=false
+ack (focus)      → clears unread ONLY when attention == 'turn-complete';
+                   urgent states are untouched by focus
+* turn-complete only: suppressed when it targets the currently-focused
+  window while nvim has OS focus (cmux's focused-pane suppression;
+  FocusGained/Lost keeps a boolean). Urgent events always set unread —
+  a block is a block regardless of where you're looking.
+```
+
+Running detection uses the `UserPromptSubmit` hook rather than nvim-side
+inference (impossible — keys go straight to the terminal job) or polling
+(banned). Glyph is static, no spinner animation. A dropped Stop RPC leaves
+a stale `running` that self-heals on the next event — accepted.
+
+### Acknowledgment — two tiers, deliberately asymmetric
+
+Looking at an agent is enough to acknowledge "I finished a turn", but NOT
+enough to resolve "I need something from you" — an urgent state must
+survive focus and only clear when the user actually responds:
+
+- **`turn-complete` (`●`)**: one `WinEnter` autocmd in `agent_events.lua`
+  (the state owner): if the entered window's `sidekick_cli` stamp names a
+  session whose attention is `turn-complete`, `M.ack`. This is why the view
+  re-stamps embedded windows.
+- **`needs-permission` / `needs-input` (`!`)**: no focus-ack. Cleared by
+  real progress only: `prompt-submit` (the user typed a prompt there), or
+  superseded by the session's next attention event (answering a permission
+  prompt resumes the turn, whose eventual `Stop` downgrades `!` to `●`).
+  Known MVP staleness: between approving a permission and the turn's next
+  event, the row still shows `!` — accepted; registering `PostToolUse` as
+  a "permission resolved" signal is the documented upgrade if this annoys
+  in practice.
+- `<leader>aj` (`desc = 'AI: Jump to unread agent'`): most-recent unread →
+  the normal show/focus path. Landing acks a `turn-complete` ring (via the
+  WinEnter above — one code path); an urgent ring stays lit until answered.
+  Repeat presses must therefore skip the currently-focused session, or an
+  unanswered `!` would trap the jump on itself. Notify + no-op when nothing
+  is unread.
+
+### API surface (UI-agnostic)
+
+```lua
+M.handle(tmpfile)               -- RPC entry + state machine
+M.status(name) -> 'urgent'|'unread'|'running'|'idle'|'none'
+M.unread_sessions() -> name[]   -- most-recent-first (jump key, badge)
+M.ack(name)                     -- no-op unless attention=='turn-complete';
+                                -- fires AgentSessionEvent kind='ack'
+M.clear(name)                   -- lifecycle GC; wired into ai._forget + kills
+```
+
+`User AgentSessionEvent` payload:
+`data = { session, kind = 'event'|'ack'|'clear', category?, unread, running }`
+— fired on every transition including acks, so the sidebar is a pure
+subscriber.
+
+### Visualization
+
+| Status | Condition | Glyph | Group | Links to |
+|---|---|---|---|---|
+| urgent | unread, needs-permission/input | `!` | `AgentviewUrgent` | `DiagnosticWarn` |
+| unread | unread, turn-complete | `●` | `AgentviewUnread` | `Special` |
+| running | not unread, running | `»` | `AgentviewRunning` | `DiagnosticOk` |
+| idle | entry exists, quiet | `○` | `AgentviewIdle` | `Comment` |
+| none | no registry entry | `·` | `AgentviewNoSignal` | `NonText` |
+| spawning | `_dynamic == 'registered'` | `…` | `AgentviewSpawning` | `NonText` |
+
+Distinct shapes (not just colors) keep the urgent/unread distinction legible
+without status text — a deliberate deviation from cmux's single-glyph ring.
+Unread beats running in display precedence. Red is reserved for a future
+`StopFailure` category; nothing here is an error. Row-part groups:
+`AgentviewActive` → `Function`, `AgentviewLabel` → `Special`,
+`AgentviewName` → `Comment`. All links live in `themes.lua`
+`global_overrides` — no hex anywhere.
+
+Non-Claude agents (cursor, opencode, pi) show `·` no-signal in MVP. Honest
+gap over heuristics: output-churn detection needs polling and confidently
+lies (TUI spinners churn while idle). The registry is agent-agnostic
+(keyed by session name), so wiring them later is additive, not a redesign.
+Follow-up paths, in rough order of promise: pi via its extensions API
+(see plans/pi-extensions-integration.md), opencode via its plugin event
+system, and a generic OSC 9/777 listener — nvim surfaces terminal
+notification escapes to Lua via the `TermRequest` autocmd, and cmux wires
+these same agents through per-agent hook files, so both routes are proven.
+
+### Ambient badge (view closed)
+
+One statusline segment: `● N` unread count (colored urgent-if-any-urgent),
+hidden at zero, purely reactive reads — no timers. Without it the attention
+system is invisible whenever the view is closed.
+
+## Implementation order
+
+1. **Phase 1** — `agentview.lua` + ai.lua delegates/guards + registrations
+   (`buffers.lua`, `plugins.lua` stickybuf, `autocmds.lua` clamp,
+   `themes.lua` groups, `keymaps.lua`). Ships standalone: view, cycling,
+   session management, no glyphs.
+2. **Phase 2a** — hook script + `settings.json` registrations in the
+   `claude` stow package (note: `claude/.claude/` has no `settings.json`
+   yet — adopt the machine-local one into stow first, via the update-config
+   flow). First run logs raw hook stdin per event type before trusting
+   field names (pipeline plan's own verification step), especially
+   `UserPromptSubmit`.
+3. **Phase 2b** — `agent_events.lua` (+ `init.lua` require — must be loaded
+   for the `v:lua` RPC to resolve), env injection in `ai.lua`,
+   `M.clear` wired into `_forget`/kills, `<leader>aj`, statusline badge.
+4. **Docs, same change as each phase** — GUIDE.md Architecture bullets +
+   Load order + keymap rows in the `## AI (sidekick.nvim)` section table;
+   this plan's entry in plans/README.md.
+
+## File-by-file (merged)
+
+| File | Change | est. LOC |
+|---|---|---|
+| `lua/agentview.lua` | new — view + sidebar + embed + refresh | ~220–260 |
+| `lua/agent_events.lua` | new — registry, state machine, ack, API | ~150 |
+| `claude/.claude/hooks/sidekick-notify.sh` | new — shared hook script | ~30 |
+| `claude/.claude/settings.json` | new in stow — 5 hook registrations | ~45 |
+| `lua/ai.lua` | delegates, guards, env injection, `M.kill`, `<M-v>` | ~30 |
+| `lua/keymaps.lua` | `<leader>av`, `<leader>aj` | ~8 |
+| `lua/buffers.lua` | `special_filetypes.agentview` | 1 |
+| `lua/plugins.lua` | stickybuf `get_auto_pin` arm | 3 |
+| `lua/autocmds.lua` | `clamped_panels.agentview` | 1 |
+| `lua/themes.lua` | 9 linked `Agentview*` groups | ~10 |
+| `lua/statusline.lua` | unread badge segment | ~15 |
+| `lua/init.lua` | `require('agent_events')` | 1 |
+
+## Verification
+
+1. `<leader>av` from a normal buffer: view opens, sidebar cursor on active
+   row, main pane shows the active agent, stamps present (`:echo
+   w:sidekick_session_id`).
+2. `<M-]>`/`<M-[>` in the main pane and `<CR>` in the sidebar cycle
+   correctly; `▸` and cursor row track.
+3. Exit restores tab 1 exactly, including a previously-open right CLI
+   column at its remembered width (guard 4).
+4. Start a new session from inside the view (`n`): no three-column reflow
+   (guard 3), transient split hidden, new agent embedded.
+5. Pipeline: with 3 claude sessions, trigger a permission prompt in one —
+   only that row shows `!`; focusing it does NOT clear the glyph; answering
+   the prompt does (downgrade to `●` on the turn's Stop, then focus-ack).
+   A `turn-complete` `●` DOES clear on focus alone. `/clear` in a session
+   resets its state without killing the row.
+6. Focused-suppression: trigger Stop while sitting in that terminal → no
+   ring; alt-tab to another app first → ring appears. A permission prompt
+   rings even while you sit in that terminal (urgent is never suppressed).
+7. `<leader>aj` picks the newest of two unread sessions, and skips the
+   session currently focused (an unanswered `!` must not trap the jump).
+8. Non-sidekick `claude` in Terminal.app: hook script no-ops (env guard).
+9. Kill the visible agent from the sidebar: confirm prompt, re-embed of
+   next active, no stale row.
+10. Re-source `init.lua` with the view open: no duplicate autocmds, panel
+    still functional (augroup clear, buffer reuse).
+
+## Out of scope (MVP)
+
+- Spinner animation, desktop notifications, per-category mute rules.
+- Attention signals for cursor/opencode/pi (OSC follow-up).
+- Notification history/preview text in rows (cmux shows last-notification
+  previews; needs payload fields confirmed first).
+- `SubagentStop`/`SessionStart` categories; `StopFailure` (add when its
+  matcher/payload is confirmed — reserve red).
+- Statusline click-to-jump; multi-agent grid layouts.
