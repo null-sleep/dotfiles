@@ -20,7 +20,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [OpenRouter](#openrouter) — the model gateway behind the two agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
-- [pi](#pi) — [Theme](#pi-theme) · [Extensions](#extensions)
+- [pi](#pi) — [Theme](#pi-theme) · [Extensions](#pi-extensions)
 
 *Editors*
 - [Neovim](#neovim)
@@ -584,10 +584,10 @@ brew install tmux gh
 # Install claude-squad and symlink as `cs`
 brew install claude-squad
 ln -s "$(brew --prefix)/bin/claude-squad" "$(brew --prefix)/bin/cs"
-
-# Auth for `gh` (push branches from sessions)
-gh auth login
 ```
+
+Pushing branches from sessions needs `gh auth login` — one-time per machine,
+see [Git](#git) if not already done.
 
 ### Keymaps
 
@@ -896,12 +896,10 @@ because pi requires theme names to be unique.
 so a machine set up in dark mode starts on Dracula rather than defaulting to
 light and staying there until the first flip.
 
-Useful commands: `pi --list-models` (empty means the key isn't resolving),
-`Ctrl+L` or `/model` to switch model, `Shift+Tab` to cycle thinking level, and
-`/login openrouter` for the OAuth flow if you'd prefer a pi-minted key over the
-environment variable. pi ships its full documentation locally — `ls
-"$(npm prefix -g)/lib/node_modules/@earendil-works/pi-coding-agent/docs"`.
+Sanity check: `pi --list-models` — empty output means the key isn't
+resolving.
 
+<a id="pi-extensions"></a>
 ### Extensions
 
 Seven extensions from the [@narumitw
@@ -1180,7 +1178,8 @@ any of them**.
 | `Cmd+1-8` | Jump to tab by number |
 | `Cmd+9` | Jump to the **last** tab (not tab 9) |
 | `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab |
-| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Previous / next tab (same actions, second binding) |
+| `Ctrl+Shift+Tab` / `Ctrl+Tab` | Previous / next tab (same actions, second binding) |
+| `Cmd+Shift+,` | Reload the Ghostty config |
 
 Either tab-cycling pair is safe alongside nvim. `Cmd+*` is never sent to the
 TTY on macOS, so `Cmd+Shift+[`/`]` structurally can't reach nvim; `Ctrl+Tab`
@@ -1441,6 +1440,17 @@ git config --global push.autoSetupRemote true
 # Default the push remote to origin
 git config --global remote.pushDefault origin
 ```
+
+`gh`, the GitHub CLI (`brew "gh"` in the [`Brewfile`](Brewfile)), also needs a
+one-time auth per machine:
+
+```bash
+gh auth login
+```
+
+Used by [Claude Squad](#claude-squad) (pushing session branches) and pi's
+[pi-github-pr extension](#pi-extensions) (ambient PR status) — no extra scopes needed
+beyond the defaults `gh auth login` grants.
 
 ### SSH for GitHub
 
