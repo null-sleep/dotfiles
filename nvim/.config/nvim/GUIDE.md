@@ -290,8 +290,8 @@ where they live, which the picker shows in the context column and uses to report
 rather than fire the chord on `<CR>`:
 
 - `undo` / `picker` / `tree` — actions local to a snacks picker or the file tree.
-- `ghostty` — the terminal's own macOS keys (splits, tabs, `Shift+Enter`),
-  mirrored from README's `## Ghostty` → `### Keymaps` table. This deliberately
+- `ghostty` — the terminal's own macOS keys (splits, tabs, config reload),
+  mirrored from README's `## Ghostty` section. This deliberately
   leaks another app's bindings into nvim's picker: Ghostty is the primary
   terminal, so nvim is always running inside it and `<leader>sk` is the fastest
   place to check a chord. They're written in Ghostty's notation (`Cmd+D`), not

@@ -171,7 +171,7 @@ return {
   { lhs = 'g?',   group = 'Explorer',  scope = 'tree', desc = 'Show all nvim-tree keybindings' },
 
   -- Ghostty's own macOS keys (scope 'ghostty'), mirrored from README's
-  -- "Ghostty > Keymaps" table. Deliberately leaking another app's bindings into
+  -- "## Ghostty" section. Deliberately leaking another app's bindings into
   -- nvim's picker: Ghostty is the primary terminal, so nvim is always open in
   -- it and <leader>sk is the fastest place to look a chord up. The scope tags
   -- them so the context column reads 'ghostty' and <CR> reports instead of
@@ -193,10 +193,6 @@ return {
   { lhs = 'Ctrl+Shift+Tab', group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle) — second binding' },
   { lhs = 'Ctrl+Tab',       group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle) — second binding' },
 
-  -- The only two bindings Ghostty's config actually sets; everything above is a
-  -- Ghostty macOS default.
-  { lhs = 'Shift+Enter',    group = 'Ghostty > Config', scope = 'ghostty', desc = 'Send a literal newline (multi-line input in Claude Code/REPLs)' },
-  { lhs = 'Cmd+Ctrl+T',     group = 'Ghostty > Config', scope = 'ghostty', desc = 'Show/hide every Ghostty window, system-wide' },
   { lhs = 'Cmd+Shift+,',    group = 'Ghostty > Config', scope = 'ghostty', desc = 'Reload the Ghostty config' },
 
   { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
