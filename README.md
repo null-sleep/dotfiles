@@ -945,10 +945,29 @@ owns updates, the same designated-owner convention as brew for
   snapshots the conversation without appending to it, keeping the main
   context clean. Uses the session's current model.
 
+### Terminal setup for pi
+
+pi needs the terminal to report `Shift+Enter` and `Option+Backspace` as
+distinct keys ([upstream
+docs](https://pi.dev/docs/latest/terminal-setup)). Two changes in this repo
+cover it:
+
+- **Ghostty** — `alt+backspace=text:\x1b\x7f` added, and the old
+  `shift+enter=text:\n` mapping removed so pi can see the chord at all. See
+  the [`## Ghostty`](#ghostty) section.
+- **JetBrains embedded terminal** — `.zshrc_config.zsh` exports
+  `PI_HARDWARE_CURSOR=1` when `$TERMINAL_EMULATOR` is `JetBrains-JediTerm`,
+  since pi hides the hardware cursor by default and JediTerm then shows no
+  caret. `Shift+Enter` is unfixable there; use Ghostty for multi-line input.
+
+Terminal.app needs no config (pi falls back to reading macOS modifier state,
+though not over SSH), and the VS Code/Cursor case is documented in
+`docs/pi.md` → *Terminal setup*.
+
 New to pi or the extensions, or want to use them well? See the
 example-heavy guide at [`docs/pi.md`](docs/pi.md) — core-TUI basics,
 managing extensions, per-extension usage (plan mode, subagents, `/btw`,
-LSP tools, the footer), and a gotchas cheat-sheet.
+LSP tools, the footer), terminal setup, and a gotchas cheat-sheet.
 
 ## Neovim
 
@@ -1119,8 +1138,11 @@ stow ghostty
 ```
 
 Settings: **Hack Nerd Font Mono 14pt**, a 125×25 window, and a blinking bar
-cursor. Option is sent as Meta on **both** left and right keys, so nvim's
-`<M-...>` mappings work. Tabs sit in the titlebar row next to the traffic
+cursor. Option is sent as Meta on **both** left and right keys
+(`macos-option-as-alt = true`), so nvim's `<M-...>` mappings work — and so do
+the Option chords every agent CLI here relies on (Claude Code's `Option+P`
+model switch, opencode's `Alt+B`/`Alt+F` word nav, `Option+Backspace`
+everywhere). Tabs sit in the titlebar row next to the traffic
 lights (`macos-titlebar-style = tabs`), and window layout is restored on every
 relaunch (`window-save-state = always`) — see
 [ghostty-followups.md](plans/ghostty-followups.md) §2.4/§2.8.
@@ -1166,10 +1188,19 @@ and `Ctrl+Shift+Tab` are swallowed by Ghostty before the shell sees them, and
 the only Tab-modifier mapping in this repo's nvim config is blink's insert-mode
 `<S-Tab>` (`nvim/.config/nvim/lua/completion.lua`), a different key.
 
-The config adds exactly **two** bindings — `Shift+Enter`, which sends a literal
-newline for multi-line input in Claude Code and REPLs, and
-`Cmd+Ctrl+T`, a system-wide show/hide toggle for every Ghostty window (needs
-macOS Accessibility permission granted to Ghostty on first load).
+The config adds exactly **two** bindings — `Option+Backspace`, which sends the
+legacy `ESC DEL` bytes so pi deletes a word backwards (under the kitty keyboard
+protocol Ghostty otherwise reports the chord as a CSI u sequence pi doesn't
+read), and `Cmd+Ctrl+T`, a system-wide show/hide toggle for every Ghostty
+window (needs macOS Accessibility permission granted to Ghostty on first load).
+
+There is deliberately **no** `Shift+Enter` binding. An earlier
+`keybind = shift+enter=text:\n` (ported from the iTerm2 profile) swallowed the
+chord and handed the app a bare linefeed, so pi and Claude Code could never see
+Shift+Enter as a distinct key; both read it natively via CSI u, as does nvim's
+terminal-mode `<S-CR>` map. Only re-add that mapping if you start using tmux.
+Both rules come from [pi's terminal-setup
+docs](https://pi.dev/docs/latest/terminal-setup).
 
 **This table is mirrored into nvim's `<leader>sk` keymap picker**, as rows
 scoped `ghostty` — since nvim always runs inside Ghostty, that's the quickest

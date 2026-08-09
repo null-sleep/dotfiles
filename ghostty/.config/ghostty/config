@@ -60,9 +60,18 @@ quit-after-last-window-closed = true
 # See plans/README.md → "Ghostty copy-on-select mangles multi-line copies".
 copy-on-select = false
 
-# Only custom keybinding ported from iTerm2: literal newline for multi-line
-# input in Claude Code / REPLs.
-keybind = shift+enter=text:\n
+# Option+Backspace = delete-word-backwards. Required by pi: under the kitty
+# keyboard protocol Ghostty reports the chord as a CSI u sequence pi doesn't
+# read, so bind the legacy ESC DEL bytes explicitly.
+# See https://pi.dev/docs/latest/terminal-setup
+keybind = alt+backspace=text:\x1b\x7f
+
+# No shift+enter binding here on purpose. It used to be `text:\n` (ported from
+# iTerm2, for multi-line input in Claude Code / REPLs), but that swallows the
+# chord and hands the app a bare linefeed — so pi and Claude Code can never see
+# Shift+Enter as a distinct key. Both read it natively via CSI u now, as does
+# nvim's terminal-mode <S-CR> map (lua/terminal.lua). pi's terminal-setup docs
+# call out removing this mapping specifically; re-add it only under tmux.
 
 # Test drive: system-wide show/hide for all Ghostty windows (not the
 # quick-terminal dropdown). Needs macOS Accessibility permission granted to

@@ -20,6 +20,7 @@ defaults + cost.
 - [pi-statusline — the footer](#statusline)
 - [pi-github-pr — ambient PR status](#github-pr)
 - [pi-usage — OpenRouter spend](#usage)
+- [Terminal setup](#terminal-setup)
 - [Gotchas cheat-sheet](#gotchas)
 - [Command quick-reference](#commands)
 
@@ -310,6 +311,54 @@ separate management key). It reuses pi's resolved credential; nothing to
 configure.
 
 ---
+
+<a id="terminal-setup"></a>
+## Terminal setup
+
+pi reads `Shift+Enter` (newline instead of submit) and `Option+Backspace`
+(delete word) as distinct keys via the kitty keyboard protocol, so what you get
+depends on the emulator. Upstream reference:
+[pi.dev/docs/latest/terminal-setup](https://pi.dev/docs/latest/terminal-setup).
+
+- **Ghostty** (the daily driver) — configured. `alt+backspace=text:\x1b\x7f` is
+  bound and the old `shift+enter=text:\n` mapping is gone, since it swallowed
+  the chord before pi could see it. Details in README's `## Ghostty` section.
+- **Terminal.app** — nothing to configure. pi turns on enhanced key reporting
+  itself, and where Terminal.app still sends a plain Return for `Shift+Enter`,
+  pi falls back to reading the macOS modifier state directly. That fallback
+  needs pi running on the same Mac as the terminal — **over SSH it can't see
+  your keyboard**, so Shift+Enter degrades to submit. Use Ghostty for remote
+  work.
+- **JetBrains (RustRover/GoLand/IDEA) embedded terminal** — JediTerm can't
+  distinguish `Shift+Enter` from `Enter` at all; there is no fix, so switch to
+  Ghostty when you need multi-line input. What *is* fixed: `.zshrc_config.zsh`
+  exports `PI_HARDWARE_CURSOR=1` when `$TERMINAL_EMULATOR` is
+  `JetBrains-JediTerm`, so pi's caret stays visible (pi hides the hardware
+  cursor by default, which reads as a missing cursor in JediTerm).
+- **VS Code / Cursor integrated terminal** — not configured here, and not
+  needed for VS Code 1.109.5+, which enables the kitty protocol by default.
+  Cursor tracks an older VS Code base, so `Shift+Enter` submits instead of
+  inserting a newline there — for pi, Claude Code, and opencode alike. Easiest
+  fix is to run Claude Code's `/terminal-setup` once inside that terminal: it
+  writes the binding below into Cursor's `keybindings.json` (leaving any
+  existing binding alone) and flips `terminal.integrated.gpuAcceleration` to
+  `"off"`. Or add it by hand to
+  `~/Library/Application Support/Cursor/User/keybindings.json` (swap `Cursor`
+  for `Code` on stock VS Code):
+
+  ```json
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "\u001b[13;2u" },
+    "when": "terminalFocus"
+  }
+  ```
+
+Claude Code and opencode want the same three things from Ghostty and are
+covered by the same config: Option-as-Meta on (their `Option+P` / `Alt+B` /
+`Alt+F` chords), no `shift+enter` override, and `Option+Backspace` reaching the
+app. Neither needs anything pi doesn't.
 
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet

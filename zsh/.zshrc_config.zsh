@@ -192,6 +192,14 @@ else
     export KUBE_EDITOR="nvim-editor"
 fi
 
+# pi in JetBrains' embedded terminal (RustRover/GoLand/IDEA all set this).
+# pi hides the hardware cursor by default for compatibility; JediTerm needs it
+# back or the caret is invisible while typing. Scoped to JediTerm so Ghostty
+# keeps pi's default. Shift+Enter is unfixable there — JediTerm can't tell it
+# from Enter — so use Ghostty for pi when you need multi-line input.
+# See https://pi.dev/docs/latest/terminal-setup
+[[ "$TERMINAL_EMULATOR" == "JetBrains-JediTerm" ]] && export PI_HARDWARE_CURSOR=1
+
 # FZF
 command -v fzf >/dev/null && source <(fzf --zsh)
 
