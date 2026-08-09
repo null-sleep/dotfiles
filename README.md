@@ -936,9 +936,10 @@ owns updates, the same designated-owner convention as brew for
 - **pi-statusline** — replaces pi's footer with a segmented powerline and
   renders the other extensions' status entries beneath it.
   `setup-extensions.sh` seeds `~/.pi/agent/pi-statusline.json` (create-only)
-  with the upstream default segments plus `cost`. Machine-local, not stowed:
-  the `/statusline` menu rewrites the file, which would break a stow symlink
-  — the `settings.json` rationale again.
+  with `model thinking context turn cost` — the same shape as this setup's
+  [Claude Code](#claude-code) status line, so the two read alike. Machine-local,
+  not stowed: the `/statusline` menu rewrites the file, which would break a stow
+  symlink — the `settings.json` rationale again.
 - **pi-btw** — `/btw`: ask a quick side question in an ephemeral thread that
   snapshots the conversation without appending to it, keeping the main
   context clean. Uses the session's current model.

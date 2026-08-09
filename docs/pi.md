@@ -237,26 +237,39 @@ re-list gopls/rust-analyzer/lua-language-server.
 <a id="statusline"></a>
 ## pi-statusline — the footer
 
-Replaces pi's footer with a responsive powerline. Seeded here with the
-upstream "balanced" segment set + `cost` — the setup script writes segments
-only, so the palette stays pi-statusline's own tokyo-night default:
+Replaces pi's footer with a responsive powerline. Seeded here with
+`model thinking context turn cost`, deliberately shaped after this setup's
+Claude Code status line so the two read alike — the setup script writes
+segments only, so the palette stays pi-statusline's own tokyo-night default:
 
 ```text
-░▒▓ 🤖 sonnet-5 🧠 med 📁 dotfiles 🌿 main ~2 ⚙ ctx 2.4%/272k 💰 $0.42 🕒 16:42
+░▒▓ 🤖 sonnet-5 🧠 med 🪟 ctx 2.4%/272k 🔁 #36 💸 $0.42
 ```
+
+Claude's line is `model · effort · ctx% · #msgs · sparkline` with a
+right-flushed `5h/7d` rate-limit cluster. `thinking` maps to its effort flag
+and `turn` to its message count; there's no sparkline segment, and `cost`
+stands in for the rate limits, which mean nothing on pay-per-token
+OpenRouter. `cwd`, `branch`, and `time` are left out for the same reason
+Claude's line omits them — Ghostty's tab title and nvim's statusline already
+carry them.
 
 Reading it:
 
-- **branch counters** — `⇡` ahead, `⇣` behind, `+` staged, `~`
-  modified/deleted, `?` untracked, `!` conflicts; a clean repo shows none.
-- **context** — `used%/window`; turns warning-colored at 70%, error at 90%.
-  `?/272k` right after a compaction is normal.
-- **tools** — takes no space when idle; shows `💭 thinking` / `⚙ <tool>`
-  with parallel counts while the agent works.
+- **context** — `used%/window`; turns warning-colored at 70%, error at 90%
+  (the same thresholds the Claude line uses). `?/272k` right after a
+  compaction is normal.
+- **turn** — the session's turn count, pi's analog of Claude's `#36`.
 - **cost** — per-session model spend, totalled the same way as pi's native
   footer (includes subagent/consultation usage).
 - Narrow terminal? Low-priority segments drop instead of clipping —
-  `context`, `model`, and `branch` survive longest.
+  `context` and `model` survive longest, `turn` goes first.
+
+Two segments worth knowing about if you re-add them: **branch** carries
+counters (`⇡` ahead, `⇣` behind, `+` staged, `~` modified/deleted, `?`
+untracked, `!` conflicts; clean shows none), and **tools** takes no space
+when idle but shows `💭 thinking` / `⚙ <tool>` with parallel counts while the
+agent works.
 
 `/statusline` opens the menu: **Appearance** (7 previewable palettes),
 **Information** (minimal / balanced / detailed segment sets), **Advanced**
