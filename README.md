@@ -243,7 +243,7 @@ per filetype and which binaries are detected on `$PATH`.
 
 ## Claude Code
 
-The `claude` stow package manages the status line script — a custom status bar that displays model name (with a fast-mode/effort flag), context window %, message count, per-message context growth bars, and a right-aligned 5h/7d rate-limit cluster with reset countdown (set `CLAUDE_STATUSLINE_MODE=cost` for session/monthly cost instead) — plus a custom **Catppuccin Latte** color theme.
+The `claude` stow package manages the status line script — a custom status bar that displays model name (with a fast-mode/effort flag), context window %, cache-hit rate, message count, per-message context growth bars, and a right-aligned 5h/7d rate-limit cluster with reset countdown (set `CLAUDE_STATUSLINE_MODE=cost` for session/monthly cost instead). On narrow terminals it drops whole low-priority segments instead of clipping the rate-limit cluster; `bash ~/.claude/statusline-command.sh --status` explains payload resolution, widths, and shedding using piped input or the last reduced payload. The package also provides a custom **Catppuccin Latte** color theme.
 
 ### Setup
 
@@ -672,10 +672,15 @@ native select-to-copy works as-is.)
 ### Status line
 
 `cursor-agent` gets a custom status line matching the Claude Code one for the
-fields Cursor's payload provides — model name, context %, and a per-message
-context-growth sparkline. No branch (dropped 2026-07-22, matching the Claude
-line) and no cost or rate-limit segments (absent from Cursor's stdin payload);
-the script is a trimmed fork of `claude/.claude/statusline-command.sh`.
+fields Cursor's payload provides — model name, context %, message count, and a
+per-message context-growth sparkline. It uses Cursor's `render_width_chars` to
+drop whole low-priority segments on narrow terminals. No branch (dropped
+2026-07-22, matching the Claude line) and no cache, cost, or rate-limit segments
+(absent from Cursor's stdin payload); the script is a trimmed fork of
+`claude/.claude/statusline-command.sh`. Run `bash
+~/.cursor/statusline-command.sh --status` with a piped payload, or after a
+normal render to replay its reduced cached payload, for field and width
+diagnostics.
 
 ```bash
 stow --no-folding cursor    # --no-folding: never fold a pre-existing ~/.cursor/
@@ -829,7 +834,7 @@ rather not use the environment variable.
 ```bash
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 cd ~/src/dotfiles
-stow --no-folding pi         # themes only — see below
+stow --no-folding pi         # themes + minimal footer extension — see below
 # Seed ~/.pi/agent/settings.json + themes/active.json (one-time)
 bash ~/src/dotfiles/pi/setup-settings.sh
 # Install the extension set (one-time; needs settings.json, so run it after
@@ -846,15 +851,15 @@ but let npm own a package npm installed).
 <a id="pi-whats-managed"></a>
 ### What's managed
 
-The `pi` package stows **only the theme palettes**. Everything else in
-`~/.pi/agent/` is machine-local, because pi writes to it.
+The `pi` package stows the theme palettes and the repo-owned minimal footer
+extension. Pi-written settings and extension install state stay machine-local.
 
 | File | Method |
 |---|---|
 | `~/.pi/agent/themes/catppuccin-latte.json`, `dracula.json` | Symlinked via stow (`--no-folding`) |
+| `~/.pi/agent/extensions/claude-footer.ts` | Symlinked via stow; minimal Claude-shaped footer |
 | `~/.pi/agent/themes/active.json` | Written by the [`theme`](#unified-theme-switching) switcher; not tracked |
 | `~/.pi/agent/settings.json` | Seeded by `setup-settings.sh`; machine-local |
-| `~/.pi/agent/pi-statusline.json` | Seeded by `setup-extensions.sh` (create-only); machine-local |
 | `~/.pi/agent/npm/` | **Not** tracked — extension installs, owned by `pi install` |
 | `~/.pi/agent/auth.json` | **Not** tracked — credentials, written by `/login` |
 | `~/.pi/agent/trust.json` | **Not** tracked — per-project trust decisions |
@@ -902,8 +907,10 @@ resolving.
 <a id="pi-extensions"></a>
 ### Extensions
 
-Seven extensions from the [@narumitw
-collection](https://github.com/narumiruna/pi-extensions), installed by
+Six extensions from the [@narumitw
+collection](https://github.com/narumiruna/pi-extensions), plus the repo-owned
+`claude-footer.ts` extension stowed with the `pi` package. The npm extensions
+are installed by
 [`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
 `setup-settings.sh` — `pi install` registers each one in `settings.json`'s
 `packages` array, so the file must exist). Idempotent: extensions already in
@@ -933,13 +940,15 @@ owns updates, the same designated-owner convention as brew for
   **per-key spend** (today/week/month/all-time — not account credit balance;
   that endpoint needs a management key). Reads pi's own resolved credential;
   zero config.
-- **pi-statusline** — replaces pi's footer with a segmented powerline and
-  renders the other extensions' status entries beneath it.
-  `setup-extensions.sh` seeds `~/.pi/agent/pi-statusline.json` (create-only)
-  with `model thinking context turn cost` — the same shape as this setup's
-  [Claude Code](#claude-code) status line, so the two read alike. Machine-local,
-  not stowed: the `/statusline` menu rewrites the file, which would break a stow
-  symlink — the `settings.json` rationale again.
+- **claude-footer.ts** — a repo-owned, stowed extension that replaces pi's
+  footer with the same minimal visual grammar as [Claude Code](#claude-code):
+  plain `model · effort · ctx% · CH% · #turn` text on the left and session cost
+  flush-right. It deliberately has no powerline blocks, lead glyph, emoji,
+  provider-spend row, cwd, or branch. Actionable extension state (plan,
+  subagents, PR) appears only when present on a dim second line; the persistent
+  pi-usage status is hidden because `/usage` remains available on demand.
+  `setup-extensions.sh` removes the superseded `pi-statusline` package and its
+  machine-local config so two extensions never compete for the footer.
 - **pi-btw** — `/btw`: ask a quick side question in an ephemeral thread that
   snapshots the conversation without appending to it, keeping the main
   context clean. Uses the session's current model.

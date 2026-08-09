@@ -1,0 +1,51 @@
+#!/bin/sh
+# Deterministic smoke/boundary tests for both statusline forks.
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+export HOME="$TMP/home" XDG_CACHE_HOME="$TMP/cache"; mkdir -p "$HOME"
+ESC=$(printf '\033')
+strip() { sed "s/${ESC}\\[[0-9;]*m//g"; }
+fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
+
+CLAUDE='{"session_id":"s","model":{"display_name":"Opus (1M context)"},"context_window":{"used_percentage":75,"current_usage":{"input_tokens":100,"cache_read_input_tokens":800,"cache_creation_input_tokens":100}},"fast_mode":true,"effort":{"level":"high"},"rate_limits":{"five_hour":{"used_percentage":55},"seven_day":{"used_percentage":10}}}'
+CURSOR='{"session_id":"c","model":{"display_name":"Auto"},"render_width_chars":12,"context_window":{"used_percentage":54,"current_usage":{"input_tokens":100}}}'
+
+wide=$(printf '%s' "$CLAUDE" | COLUMNS=120 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+printf '%s' "$wide" | grep -q 'Opus \[1M\].*⚡hi.*ctx:75%.*CH80%.*#1.*5h:55%.*7d:10%' || fail "wide Claude segments"
+
+narrow=$(printf '%s' "$CLAUDE" | COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+[ "$narrow" = 'ctx:75%' ] || fail "Claude narrow retention: $narrow"
+
+diag=$(printf '%s' "$CLAUDE" | COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh" --status)
+printf '%s' "$diag" | grep -q '^shed limit7 flag msgs cache limit5 model$' || fail "Claude shed order"
+printf '%s' "$diag" | grep -q 'segment flag .*width=4.*measured=3' || fail "wide glyph diagnostic"
+
+cursor=$(printf '%s' "$CURSOR" | sh "$ROOT/cursor/.cursor/statusline-command.sh" | strip)
+[ "$cursor" = 'ctx:54%' ] || fail "Cursor width shedding: $cursor"
+
+# A second distinct sample produces a one-cell bar, which sheds before messages.
+BARS1='{"session_id":"bars","model":{"display_name":"Auto"},"context_window":{"used_percentage":10,"current_usage":{"input_tokens":100}}}'
+BARS2='{"session_id":"bars","model":{"display_name":"Auto"},"context_window":{"used_percentage":10,"current_usage":{"input_tokens":200}}}'
+printf '%s' "$BARS1" | COLUMNS=80 sh "$ROOT/claude/.claude/statusline-command.sh" >/dev/null
+bars=$(printf '%s' "$BARS2" | COLUMNS=80 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+printf '%s' "$bars" | grep -Eq '#2 [▁▂▃▄▅▆▇█]' || fail "sparkline render: $bars"
+
+# Backslashes from payload text are data, not a second printf format language.
+slash=$(printf '%s' '{"model":{"display_name":"A\\cB"}}' | sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+[ "$slash" = 'A\cB' ] || fail "literal model backslash: $slash"
+
+# Piped diagnostics do not create state when no cache exists.
+rm -rf "$XDG_CACHE_HOME"
+printf '{}' | sh "$ROOT/cursor/.cursor/statusline-command.sh" --status >/dev/null
+[ ! -e "$XDG_CACHE_HOME/cursor-statusline" ] || fail "diagnostic wrote state"
+
+empty=$(printf '{}' | COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh")
+[ -z "$empty" ] || fail "empty payload"
+
+# Byte-oriented locales must not change declared flag fit behavior.
+locale_c=$(printf '%s' "$CLAUDE" | LC_ALL=C COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+locale_utf8=$(printf '%s' "$CLAUDE" | LC_ALL=en_US.UTF-8 COLUMNS=20 sh "$ROOT/claude/.claude/statusline-command.sh" | strip)
+[ "$locale_c" = "$locale_utf8" ] || fail "locale-dependent fit"
+
+printf 'statusline tests: ok\n'

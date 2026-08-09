@@ -2,63 +2,69 @@
 # =============================================================================
 # Claude Code status line  —  https://code.claude.com/docs/en/statusline
 # =============================================================================
-# Usage mode:  Opus 4.8 (1M context)  ctx:22%  #109 ▁▂▃        5h:10%/3h34m  7d:1%
+# Usage: Opus 4.8 [1M]  hi  ctx:22%  CH87%  #109 ▁▂▃    5h:10%/3h34m  7d:1%
 #
-# Built as a LEFT cluster ($line: model · ctx:N% · #msgs · sparkline) and a
-# RIGHT cluster ($right: 5h/7d limits, or cost) padded flush-right to the edge.
-# Segments: .model.display_name (cyan) / ⚡+effort flag (⚡ yellow when .fast_mode
-# on, .effort.level as dim shorthand: hi/med/xhi/…) /
-# .context_window.used_percentage (red≥90 yellow≥70 else
-# dim) / message count / per-message context-growth bars (last ≤15) /
-# .rate_limits.{five_hour,seven_day} (usage) or .cost (cost mode).
-# Sibling fork for Cursor: cursor/.cursor/statusline-command.sh.
+# Declarative segments are rendered as a left cluster and a right-aligned
+# usage/cost cluster. Narrow terminals shed whole segments in this order:
+# bars → 7d → flag → messages → cache → 5h/cost → model; ctx is retained.
+# Unknown width keeps the compact two-space join and sheds nothing.
 #
-# MODE ($CLAUDE_STATUSLINE_MODE): unset → usage (5h/7d %, subscription plans);
-#   "cost" → session $ / per-msg delta / month-to-date (API). Right cluster only
-#   — the left cluster is identical either way.
+# Segments: .model.display_name / ⚡+.effort.level / context used % / cache-hit
+# rate / message count / context-growth bars / 5h and 7d limits (usage mode), or
+# session/message/month cost (CLAUDE_STATUSLINE_MODE=cost). Cache hit rate is
+# cache_read / (input + cache_read + cache_creation), hidden only at zero total.
+# Branch is intentionally absent (decision 2026-07-22).
 #
-# WIRING: the statusLine block in ~/.claude/settings.json runs
-#   "bash $HOME/.claude/statusline-command.sh" (Claude expands $HOME; Cursor
-#   doesn't — hence its absolute path). Injected by claude/setup-statusline.sh;
-#   settings.json is machine-local, not stowed.
+# WIDTH: Claude exports COLUMNS. RMARGIN reserves three columns before Claude's
+# own ellipsis boundary. Widths are stored with each segment: ASCII widths use
+# shell character counts, sparkline width comes from awk, and ⚡ declares its
+# two terminal cells explicitly. The renderer never measures ANSI text.
 #
-# WIDTH: Claude captures our stdout, so `tput cols` can't see the terminal — it
-#   exports $COLUMNS/$LINES instead (v2.1.153+). Right-align pads by $COLUMNS,
-#   measuring VISIBLE width (ANSI stripped, wc -m so a 3-byte block ▁ = 1 col);
-#   RMARGIN reserves a few cols because Claude truncates ("…") before the true
-#   edge. Unknown width / too-full line → 2-space join. Tune RMARGIN if the
-#   inset looks off.
+# DIAGNOSTICS: `bash statusline-command.sh --status [< payload.json]` uses stdin
+# when piped, otherwise the last reduced payload in STATE_DIR. It prints field
+# resolution, segment declared/measured widths, and the current shed decision;
+# it does not mutate histories, cost logs, or replay state.
 #
-# PAYLOAD (JSON on stdin; used fields — full schema in the docs):
-#   .session_id                       state key (growth + prevcost files)
-#   .model.display_name               model segment ("(1M context)" → "[1M]")
-#   .context_window.used_percentage   ctx% (round %.0f)
-#   .context_window.current_usage     sparkline = input + cache_creation + cache_read
-#   .fast_mode, .effort.level         ⚡ + effort flag (after model)
-#   .cost.total_cost_usd              cost mode
-#   .rate_limits.five_hour.{used_percentage,resets_at}, .seven_day.used_percentage
-#   Present but unused: workspace, session_name, transcript_path, version,
-#   thinking, exceeds_200k_tokens, output_style.
+# WIRING: ~/.claude/settings.json runs
+#   bash $HOME/.claude/statusline-command.sh
+# via claude/setup-statusline.sh. Sibling fork: cursor/.cursor/statusline-command.sh.
 #
-# BRANCH: parsed from .worktree.branch, which the schema renamed to
-#   .workspace.git_worktree — so it reads empty and no branch shows. ACCEPTED
-#   (decision 2026-07-22, line preferred without branch); don't switch the path
-#   unless asked.
-#
-# STATE: $STATE_DIR (~/.cache, not world-shared /tmp) holds per-session scratch
-#   growth-<id> + prevcost-<id>, pruned after 7d. Cost totals persist in
-#   ~/.claude/cost-log (data, not scratch).  Input: JSON on stdin.
+# STATE: ${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline contains private,
+# per-session growth/cost scratch plus an atomically replaced reduced replay
+# payload. Scratch older than 7d is pruned. Monthly API cost lives separately
+# in ~/.claude/cost-log.
 # =============================================================================
 
-input=$(cat)
-
+umask 077
+DIAG=0
+[ "${1:-}" = "--status" ] && DIAG=1
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline"
-mkdir -p "$STATE_DIR"
+REPLAY="$STATE_DIR/last-payload.json"
+[ "$DIAG" -eq 0 ] && mkdir -p "$STATE_DIR"
 
-# Parse all top-level fields in a single jq call
-eval "$(echo "$input" | jq -r '
+if [ "$DIAG" -eq 1 ] && [ -t 0 ]; then
+  input=$(cat "$REPLAY" 2>/dev/null || printf '{}')
+else
+  input=$(cat)
+fi
+printf '%s' "$input" | jq -e . >/dev/null 2>&1 || input='{}'
+
+# Keep replay data limited to fields this script diagnoses; never cache paths or
+# transcript metadata. Diagnostic runs are read-only.
+if [ "$DIAG" -eq 0 ]; then
+  replay_tmp=$(mktemp "$STATE_DIR/last-payload.XXXXXX")
+  if printf '%s' "$input" | jq '{session_id,model:{display_name:.model.display_name},context_window:{used_percentage:.context_window.used_percentage,current_usage:{input_tokens:.context_window.current_usage.input_tokens,cache_read_input_tokens:.context_window.current_usage.cache_read_input_tokens,cache_creation_input_tokens:.context_window.current_usage.cache_creation_input_tokens}},fast_mode,effort:{level:.effort.level},cost:{total_cost_usd:.cost.total_cost_usd},rate_limits:{five_hour:{used_percentage:.rate_limits.five_hour.used_percentage,resets_at:.rate_limits.five_hour.resets_at},seven_day:{used_percentage:.rate_limits.seven_day.used_percentage}}}' >"$replay_tmp"; then
+    mv "$replay_tmp" "$REPLAY"
+  else
+    rm -f "$replay_tmp"
+  fi
+fi
+
+model="" used="" fast="false" effort="" session_id="" cost=""
+rl_5h="" rl_5h_resets="" rl_7d="" input_tokens=0 cache_read=0 cache_create=0
+# One JSON parse supplies every render field.
+eval "$(printf '%s' "$input" | jq -r '
   @sh "model=\(.model.display_name // "")",
-  @sh "branch=\(.worktree.branch // "")",
   @sh "used=\(.context_window.used_percentage // "")",
   @sh "fast=\(.fast_mode // false)",
   @sh "effort=\(.effort.level // "")",
@@ -66,272 +72,162 @@ eval "$(echo "$input" | jq -r '
   @sh "cost=\(.cost.total_cost_usd // "")",
   @sh "rl_5h=\(.rate_limits.five_hour.used_percentage // "")",
   @sh "rl_5h_resets=\(.rate_limits.five_hour.resets_at // "")",
-  @sh "rl_7d=\(.rate_limits.seven_day.used_percentage // "")"
+  @sh "rl_7d=\(.rate_limits.seven_day.used_percentage // "")",
+  @sh "input_tokens=\(.context_window.current_usage.input_tokens // 0)",
+  @sh "cache_read=\(.context_window.current_usage.cache_read_input_tokens // 0)",
+  @sh "cache_create=\(.context_window.current_usage.cache_creation_input_tokens // 0)"
 ')"
+current_input=$((input_tokens + cache_read + cache_create))
 
-# --- Cost mode: per-message delta ---
-last_msg_cost=""
-monthly_cost=""
-if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
-  if [ -n "$session_id" ] && [ -n "$cost" ] && [ "$cost" != "0" ]; then
-    PREV_COST_FILE="$STATE_DIR/prevcost-${session_id}"
-    prev_cost=$(cat "$PREV_COST_FILE" 2>/dev/null || echo "0")
-    last_msg_cost=$(awk -v c="$cost" -v p="$prev_cost" 'BEGIN { printf "%.2f", c - p }')
-    echo "$cost" > "$PREV_COST_FILE"
-
-    COST_DIR="$HOME/.claude/cost-log"
-    mkdir -p "$COST_DIR"
-    MONTH_FILE="$COST_DIR/$(date +%Y-%m).tsv"
-    if [ -f "$MONTH_FILE" ] && grep -q "^${session_id}	" "$MONTH_FILE" 2>/dev/null; then
-      # mktemp, not a fixed .tmp name: two concurrent sessions ending a
-      # message together would truncate each other's rewrite mid-mv and drop
-      # a row. mv stays atomic; last-writer-wins is fine for a cost counter.
-      month_tmp=$(mktemp "${MONTH_FILE}.XXXXXX")
-      awk -v sid="$session_id" -v c="$cost" -F'\t' 'BEGIN{OFS="\t"} $1==sid{$2=c}{print}' "$MONTH_FILE" > "$month_tmp" && mv "$month_tmp" "$MONTH_FILE"
-    else
-      printf '%s\t%s\n' "$session_id" "$cost" >> "$MONTH_FILE"
-    fi
-    monthly_cost=$(awk -F'\t' '{ sum += $2 } END { printf "%.2f", sum }' "$MONTH_FILE")
-  fi
-fi
-
-# Current context size: input_tokens from the latest API call
-# This grows each message because the full conversation is resent
-current_input=$(echo "$input" | jq -r '
-  .context_window.current_usage
-  | ((.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0))
-')
-
-# --- Context growth tracking ---
+# --- Stateful values (diagnostics may read, never write) ---
+msg_count="" bars="" bar_count=0 last_msg_cost="" monthly_cost=""
 HISTORY_FILE="$STATE_DIR/growth-${session_id}"
-bars=""
-
-# Clean up history files from old sessions (>7d), at most once per hour
-CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
-if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then
-  find "$STATE_DIR" -maxdepth 1 \( -name 'growth-*' -o -name 'prevcost-*' \) -mtime +7 -delete 2>/dev/null
-  touch "$CLEANUP_STAMP"
-fi
-
-if [ -n "$session_id" ] && [ -n "$current_input" ] && [ "$current_input" != "null" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then
-  last_val=$(tail -1 "$HISTORY_FILE" 2>/dev/null || echo "")
-  if [ "$last_val" != "$current_input" ]; then
-    echo "$current_input" >> "$HISTORY_FILE"
+if [ "$DIAG" -eq 0 ]; then
+  CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
+  if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then
+    find "$STATE_DIR" -maxdepth 1 \( -name 'growth-*' -o -name 'prevcost-*' \) -mtime +7 -delete 2>/dev/null
+    touch "$CLEANUP_STAMP"
   fi
-
-  msg_count=$(wc -l < "$HISTORY_FILE" | tr -d ' ')
-
-  bars=$(awk '
-    BEGIN { n = 0 }
-    { vals[n++] = $1 }
+  if [ -n "$session_id" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then
+    last_val=$(tail -1 "$HISTORY_FILE" 2>/dev/null || printf '')
+    [ "$last_val" = "$current_input" ] || printf '%s\n' "$current_input" >>"$HISTORY_FILE"
+  fi
+fi
+if [ -n "$session_id" ] && [ -f "$HISTORY_FILE" ]; then
+  msg_count=$(wc -l <"$HISTORY_FILE" | tr -d ' ')
+  bars_data=$(awk '
+    { v[n++]=$1 }
     END {
-      if (n < 2) exit
-
-      nd = 0
-      for (i = 1; i < n; i++) {
-        d = vals[i] - vals[i-1]
-        if (d < 0) d = 0
-        deltas[nd++] = d
-      }
-      if (nd == 0) exit
-
-      start = 0
-      if (nd > 15) start = nd - 15
-
-      max = 0
-      for (i = start; i < nd; i++) {
-        if (deltas[i] > max) max = deltas[i]
-      }
-      if (max == 0) exit
-
-      split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", blocks, " ")
-
-      result = ""
-      for (i = start; i < nd; i++) {
-        level = int((deltas[i] / max) * 7) + 1
-        if (level > 8) level = 8
-        if (level < 1) level = 1
-        result = result blocks[level]
-      }
-      printf "%s", result
-    }
-  ' "$HISTORY_FILE")
+      if (n<2) exit
+      for(i=1;i<n;i++){ d=v[i]-v[i-1]; if(d<0)d=0; delta[nd++]=d }
+      start=nd>15?nd-15:0; max=0
+      for(i=start;i<nd;i++)if(delta[i]>max)max=delta[i]
+      if(max==0)exit
+      split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █",b," "); out=""; count=0
+      for(i=start;i<nd;i++){ level=int(delta[i]/max*7)+1; if(level>8)level=8; if(level<1)level=1; out=out b[level]; count++ }
+      printf "%d %s",count,out
+    }' "$HISTORY_FILE")
+  if [ -n "$bars_data" ]; then bar_count=${bars_data%% *}; bars=${bars_data#* }; fi
 fi
 
-# --- Usage mode: 5h reset countdown ---
-resets_in=""
-if [ "$CLAUDE_STATUSLINE_MODE" != "cost" ]; then
-  if [ -n "$rl_5h_resets" ] && [ "$rl_5h_resets" != "0" ]; then
-    now=$(date +%s)
-    diff=$((rl_5h_resets - now))
-    if [ "$diff" -gt 0 ]; then
-      h=$((diff / 3600))
-      m=$(( (diff % 3600) / 60 ))
-      resets_in=$(printf "%dh%02dm" "$h" "$m")
+if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
+  if [ -n "$session_id" ] && [ -n "$cost" ] && [ "$cost" != 0 ]; then
+    PREV_COST_FILE="$STATE_DIR/prevcost-${session_id}"
+    prev_cost=$(cat "$PREV_COST_FILE" 2>/dev/null || printf 0)
+    last_msg_cost=$(awk -v c="$cost" -v p="$prev_cost" 'BEGIN{printf "%.2f",c-p}')
+    if [ "$DIAG" -eq 0 ]; then
+      printf '%s\n' "$cost" >"$PREV_COST_FILE"
+      COST_DIR="$HOME/.claude/cost-log"; mkdir -p "$COST_DIR"
+      MONTH_FILE="$COST_DIR/$(date +%Y-%m).tsv"
+      if [ -f "$MONTH_FILE" ] && grep -q "^${session_id}$(printf '\t')" "$MONTH_FILE" 2>/dev/null; then
+        month_tmp=$(mktemp "${MONTH_FILE}.XXXXXX")
+        awk -v sid="$session_id" -v c="$cost" -F '\t' 'BEGIN{OFS="\t"}$1==sid{$2=c}{print}' "$MONTH_FILE" >"$month_tmp" && mv "$month_tmp" "$MONTH_FILE"
+      else
+        printf '%s\t%s\n' "$session_id" "$cost" >>"$MONTH_FILE"
+      fi
+    else
+      MONTH_FILE="$HOME/.claude/cost-log/$(date +%Y-%m).tsv"
     fi
+    [ -f "$MONTH_FILE" ] && monthly_cost=$(awk -F '\t' '{s+=$2}END{printf "%.2f",s}' "$MONTH_FILE")
   fi
 fi
 
-# --- ANSI colors ---
-cyan='\033[0;36m'
-dim='\033[2m'
-yellow='\033[0;33m'
-red='\033[0;31m'
-reset='\033[0m'
+resets_in=""
+if [ "$CLAUDE_STATUSLINE_MODE" != "cost" ] && [ -n "$rl_5h_resets" ] && [ "$rl_5h_resets" != 0 ]; then
+  now=$(date +%s); diff=$((rl_5h_resets-now))
+  [ "$diff" -gt 0 ] && resets_in=$(printf '%dh%02dm' "$((diff/3600))" "$(((diff%3600)/60))")
+fi
 
-# Visible (printable) width of a string: strip ANSI SGR codes, then count
-# characters — not bytes — so multi-byte sparkline blocks (▁▂▃) count as 1 each.
-ESC=$(printf '\033')
-vis_width() {
-  printf '%s' "$1" | sed "s/${ESC}\[[0-9;]*m//g" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' '
+cyan='\033[0;36m'; dim='\033[2m'; yellow='\033[0;33m'; red='\033[0;31m'; reset='\033[0m'
+pick_color() { [ "$1" -ge "$2" ] && printf '%s' "$red" || { [ "$1" -ge "$3" ] && printf '%s' "$yellow" || printf '%s' "$dim"; }; }
+# add_seg NAME CLUSTER PLAIN COLORED WIDTH [separator-before]
+add_seg() {
+  eval "seg_plain_$1=\$3"; eval "seg_$1=\$4"; eval "segw_$1=\$5"
+  eval "segsep_$1=\${6:-2}"; eval "segcluster_$1=\$2"; eval "segdrop_$1=0"
 }
-
-# --- Build output line ---
-# $line is the left cluster (model, branch, ctx, #N, bars); $right is the
-# limits/cost cluster, right-aligned to the terminal edge at the end.
-line=""
-right=""
+LEFT="model flag ctx cache msgs bars"; RIGHT=""
 
 if [ -n "$model" ]; then
-  # Shorten a "(<size> context)" suffix to "[<size>]", e.g.
-  # "Opus 4.8 (1M context)" → "Opus 4.8 [1M]". Size is extracted (not hardcoded),
-  # and any other name/suffix is left untouched.
-  case "$model" in
-    *" ("*" context)")
-      _size=${model##* (}     # "1M context)"
-      _size=${_size%% *}      # "1M"
-      model="${model% (*} [${_size}]"
-      ;;
-  esac
-  line=$(printf "${cyan}%s${reset}" "$model")
+  case "$model" in *" ("*" context)") _size=${model##* (}; _size=${_size%% *}; model="${model% (*} [${_size}]";; esac
+  add_seg model L "$model" "$(printf "${cyan}%s${reset}" "$model")" "${#model}"
 fi
-
-# Fast-mode / effort flag right after the model: ⚡ (yellow — fast mode costs
-# ~3x, so it nags) when fast mode is on, then the reasoning effort level as a
-# dim shorthand. Levels: low→lo medium→med high→hi xhigh→xhi max→max
-# ultracode→uc; anything else (auto, or a future level) shows as-is.
-flag=""
-[ "$fast" = "true" ] && flag=$(printf "${yellow}⚡${reset}")
+flag_plain=""; flag=""; flag_width=0
+if [ "$fast" = true ]; then flag_plain="⚡"; flag=$(printf "${yellow}⚡${reset}"); flag_width=2; fi
 if [ -n "$effort" ]; then
-  case "$effort" in
-    low)       eff=lo ;;
-    medium)    eff=med ;;
-    high)      eff=hi ;;
-    xhigh)     eff=xhi ;;
-    max)       eff=max ;;
-    ultracode) eff=uc ;;
-    *)         eff=$effort ;;
-  esac
-  flag=$(printf "%s${dim}%s${reset}" "$flag" "$eff")
+  case "$effort" in low)eff=lo;; medium)eff=med;; high)eff=hi;; xhigh)eff=xhi;; max)eff=max;; ultracode)eff=uc;; *)eff=$effort;; esac
+  flag_plain="${flag_plain}${eff}"; flag="${flag}$(printf "${dim}%s${reset}" "$eff")"; flag_width=$((flag_width+${#eff}))
 fi
-if [ -n "$flag" ]; then
-  if [ -n "$line" ]; then
-    line=$(printf "%s  %s" "$line" "$flag")
-  else
-    line="$flag"
-  fi
+[ -n "$flag_plain" ] && add_seg flag L "$flag_plain" "$flag" "$flag_width"
+if [ -n "$used" ]; then used_int=$(printf '%.0f' "$used"); c=$(pick_color "$used_int" 90 70); p="ctx:${used_int}%"; add_seg ctx L "$p" "$(printf "ctx:${c}%s%%${reset}" "$used_int")" "${#p}"; fi
+cache_total=$current_input
+if [ "$cache_total" -gt 0 ] 2>/dev/null; then
+  cache_rate=$((cache_read*100/cache_total)); [ "$cache_rate" -ge 80 ] && c=$dim || { [ "$cache_rate" -ge 50 ] && c=$yellow || c=$red; }
+  p="CH${cache_rate}%"; add_seg cache L "$p" "$(printf "${c}%s${reset}" "$p")" "${#p}"
 fi
+if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then p="#${msg_count}"; add_seg msgs L "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"; fi
+[ -n "$bars" ] && add_seg bars L "$bars" "$(printf "${dim}%s${reset}" "$bars")" "$bar_count" 1
 
-if [ -n "$branch" ]; then
-  if [ -n "$line" ]; then
-    line=$(printf "%s  branch:%s" "$line" "$branch")
-  else
-    line=$(printf "branch:%s" "$branch")
+if [ "$CLAUDE_STATUSLINE_MODE" = cost ]; then
+  RIGHT="cost"
+  if [ -n "$cost" ] && [ "$cost" != 0 ]; then
+    p=$(printf '$%.2f' "$cost"); extra=""; [ -n "$last_msg_cost" ] && [ "$last_msg_cost" != 0.00 ] && extra=" +\$${last_msg_cost}"; p="${p}${extra}"
+    [ -n "$monthly_cost" ] && p="${p} (mo:\$${monthly_cost})"
+    add_seg cost R "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"
   fi
-fi
-
-if [ -n "$used" ]; then
-  used_int=$(printf "%.0f" "$used")
-  if [ "$used_int" -ge 90 ]; then
-    pct_color="$red"
-  elif [ "$used_int" -ge 70 ]; then
-    pct_color="$yellow"
-  else
-    pct_color="$dim"
-  fi
-  if [ -n "$line" ]; then
-    line=$(printf "%s  ctx:${pct_color}%s%%${reset}" "$line" "$used_int")
-  else
-    line=$(printf "ctx:${pct_color}%s%%${reset}" "$used_int")
-  fi
-fi
-
-# Message count and growth bars — grouped with ctx, before the limits/cost block
-if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then
-  line=$(printf "%s  ${dim}#%s${reset}" "$line" "$msg_count")
-  if [ -n "$bars" ]; then
-    line=$(printf "%s ${dim}%s${reset}" "$line" "$bars")
-  fi
-fi
-
-if [ "$CLAUDE_STATUSLINE_MODE" = "cost" ]; then
-  # Cost mode: session total, per-message delta, monthly total
-  if [ -n "$cost" ] && [ "$cost" != "0" ]; then
-    cost_fmt=$(printf '$%.2f' "$cost")
-    msg_cost_part=""
-    if [ -n "$last_msg_cost" ] && [ "$last_msg_cost" != "0.00" ]; then
-      msg_cost_part=$(printf ' +$%s' "$last_msg_cost")
-    fi
-    if [ -n "$monthly_cost" ]; then
-      right=$(printf "${dim}%s%s (mo:\$%s)${reset}" "$cost_fmt" "$msg_cost_part" "$monthly_cost")
-    else
-      right=$(printf "${dim}%s%s${reset}" "$cost_fmt" "$msg_cost_part")
-    fi
-  fi
+  SHED="bars flag msgs cache cost model"
 else
-  # Usage mode: 5h and 7d rate limit percentages
-  if [ -n "$rl_5h" ]; then
-    rl_5h_int=$(printf "%.0f" "$rl_5h")
-    if [ "$rl_5h_int" -ge 80 ]; then
-      rl_color="$red"
-    elif [ "$rl_5h_int" -ge 50 ]; then
-      rl_color="$yellow"
-    else
-      rl_color="$dim"
-    fi
-    rl_part=$(printf "${rl_color}%s%%${reset}" "$rl_5h_int")
-    if [ -n "$resets_in" ]; then
-      rl_part=$(printf "%s${dim}/%s${reset}" "$rl_part" "$resets_in")
-    fi
-    right=$(printf "5h:%s" "$rl_part")
-  fi
-
-  if [ -n "$rl_7d" ]; then
-    rl_7d_int=$(printf "%.0f" "$rl_7d")
-    if [ "$rl_7d_int" -ge 80 ]; then
-      rl7_color="$red"
-    elif [ "$rl_7d_int" -ge 50 ]; then
-      rl7_color="$yellow"
-    else
-      rl7_color="$dim"
-    fi
-    if [ -n "$right" ]; then
-      right=$(printf "%s  7d:${rl7_color}%s%%${reset}" "$right" "$rl_7d_int")
-    else
-      right=$(printf "7d:${rl7_color}%s%%${reset}" "$rl_7d_int")
-    fi
-  fi
+  RIGHT="limit5 limit7"
+  if [ -n "$rl_5h" ]; then n=$(printf '%.0f' "$rl_5h"); c=$(pick_color "$n" 80 50); p="5h:${n}%"; colored=$(printf "5h:${c}%s%%${reset}" "$n"); if [ -n "$resets_in" ]; then p="${p}/${resets_in}"; colored="${colored}$(printf "${dim}/%s${reset}" "$resets_in")"; fi; add_seg limit5 R "$p" "$colored" "${#p}"; fi
+  if [ -n "$rl_7d" ]; then n=$(printf '%.0f' "$rl_7d"); c=$(pick_color "$n" 80 50); p="7d:${n}%"; add_seg limit7 R "$p" "$(printf "7d:${c}%s%%${reset}" "$n")" "${#p}"; fi
+  SHED="bars limit7 flag msgs cache limit5 model"
 fi
 
-# Right-align $right to the edge via $COLUMNS; RMARGIN clears Claude's "…"
-# truncation. Unknown width or too-full line → 2-space join. (Why: header WIDTH.)
-COLS="${COLUMNS:-0}"
-case "$COLS" in ''|*[!0-9]*) COLS=0 ;; esac
-RMARGIN=3
-
-if [ -n "$right" ]; then
-  if [ "$COLS" -gt 0 ]; then
-    # ⚡ renders 2 cols wide but wc -m counts it as 1 char — correct by +1.
-    wide=0; case "$line" in *"⚡"*) wide=1 ;; esac
-    gap=$(( COLS - $(vis_width "$line") - wide - $(vis_width "$right") - RMARGIN ))
-    if [ "$gap" -ge 2 ]; then
-      line=$(printf "%s%*s%s" "$line" "$gap" "" "$right")
-    else
-      line=$(printf "%s  %s" "$line" "$right")
-    fi
-  else
-    line=$(printf "%s  %s" "$line" "$right")
-  fi
+# Render a cluster and publish rendered text, width, and count in globals.
+render_cluster() {
+  rc_text=""; rc_width=0; rc_count=0
+  for name in $1; do
+    eval "present=\${segw_$name+x}"; [ -n "$present" ] || continue
+    eval "drop=\$segdrop_$name"; [ "$drop" -eq 1 ] && continue
+    eval "text=\$seg_$name"; eval "w=\$segw_$name"; eval "sep=\$segsep_$name"
+    if [ "$rc_count" -gt 0 ]; then rc_text="${rc_text}$(printf '%*s' "$sep" '')"; rc_width=$((rc_width+sep)); fi
+    rc_text="${rc_text}${text}"; rc_width=$((rc_width+w)); rc_count=$((rc_count+1))
+  done
+}
+COLS="${COLUMNS:-0}"; case "$COLS" in ''|*[!0-9]*)COLS=0;; esac; RMARGIN=3; dropped=""
+fit_segments() {
+  while :; do
+    render_cluster "$LEFT"; lw=$rc_width; lc=$rc_count
+    render_cluster "$RIGHT"; rw=$rc_width; rc=$rc_count
+    between=0; [ "$lc" -gt 0 ] && [ "$rc" -gt 0 ] && between=2
+    total=$((lw+rw+between))
+    [ "$COLS" -eq 0 ] && break
+    [ "$total" -le $((COLS-RMARGIN)) ] && break
+    victim=""
+    for name in $SHED; do eval "present=\${segw_$name+x}"; eval "drop=\${segdrop_$name:-0}"; if [ -n "$present" ] && [ "$drop" -eq 0 ]; then victim=$name; break; fi; done
+    [ -n "$victim" ] || break
+    eval "segdrop_$victim=1"; dropped="${dropped}${dropped:+ }${victim}"
+  done
+}
+fit_segments
+render_cluster "$LEFT"; line=$rc_text; lw=$rc_width; lc=$rc_count
+render_cluster "$RIGHT"; right=$rc_text; rw=$rc_width; rc=$rc_count
+if [ "$lc" -gt 0 ] && [ "$rc" -gt 0 ]; then
+  if [ "$COLS" -gt 0 ]; then gap=$((COLS-lw-rw-RMARGIN)); [ "$gap" -lt 2 ] && gap=2; else gap=2; fi
+  line="${line}$(printf '%*s' "$gap" '')${right}"
+elif [ "$rc" -gt 0 ]; then
+  if [ "$COLS" -gt 0 ]; then gap=$((COLS-rw-RMARGIN)); [ "$gap" -lt 0 ] && gap=0; line="$(printf '%*s' "$gap" '')${right}"; else line=$right; fi
 fi
 
-printf "%b\n" "$line"
+ESC=$(printf '\033')
+vis_width() { printf '%s' "$1" | sed "s/${ESC}\[[0-9;]*m//g" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' '; }
+if [ "$DIAG" -eq 1 ]; then
+  field() { [ -n "$2" ] && printf 'field %-38s %s\n' "$1" "$2" || printf 'field %-38s EMPTY\n' "$1"; }
+  field '.session_id' "$session_id"; field '.model.display_name' "$model"; field '.context_window.used_percentage' "$used"
+  field '.context_window.current_usage.input_tokens' "$input_tokens"; field '.context_window.current_usage.cache_read_input_tokens' "$cache_read"; field '.context_window.current_usage.cache_creation_input_tokens' "$cache_create"
+  field '.fast_mode' "$fast"; field '.effort.level' "$effort"; field '.cost.total_cost_usd' "$cost"; field '.rate_limits.five_hour.used_percentage' "$rl_5h"; field '.rate_limits.five_hour.resets_at' "$rl_5h_resets"; field '.rate_limits.seven_day.used_percentage' "$rl_7d"
+  printf 'config mode=%s width=%s rmargin=%s\n' "${CLAUDE_STATUSLINE_MODE:-usage}" "$COLS" "$RMARGIN"
+  for name in $LEFT $RIGHT; do eval "present=\${segw_$name+x}"; [ -n "$present" ] || continue; eval "plain=\$seg_plain_$name"; eval "w=\$segw_$name"; eval "drop=\$segdrop_$name"; printf 'segment %-8s width=%-3s measured=%-3s dropped=%s text=%s\n' "$name" "$w" "$(vis_width "$plain")" "$drop" "$plain"; done
+  printf 'shed %s\n' "${dropped:-none}"; printf 'result width=%s text=%s\n' "$((lw+rw+$( [ "$lc" -gt 0 ] && [ "$rc" -gt 0 ] && printf %s "${gap:-2}" || { [ "$rc" -gt 0 ] && [ "$COLS" -gt 0 ] && printf %s "${gap:-0}" || printf 0; } )))" "$line"
+  exit 0
+fi
+printf '%s\n' "$line"

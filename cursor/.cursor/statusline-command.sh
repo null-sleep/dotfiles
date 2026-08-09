@@ -4,156 +4,90 @@
 # =============================================================================
 #     Auto  ctx:54%  #2 ▁▂▃
 #
-# Segments: .model.display_name (cyan) / .context_window.used_percentage
-# (red≥90 yellow≥70 else dim) / message count / per-message context-growth bars
-# (last ≤15). No branch (dropped 2026-07-22; cwd/git still in the payload — see
-# git history to revive). Trimmed to Cursor's thinner payload; this header is
-# the only reference (the design plan was deleted at ship), so keep it current.
+# Declarative segments: model / context used % / message count / per-message
+# context-growth bars (last ≤15). Narrow widths shed bars → messages → model;
+# ctx is retained. Cursor supplies render_width_chars, so no terminal probe or
+# extra right margin is used. The configured Cursor padding remains separate.
 #
-# WIRING: the statusLine block in ~/.cursor/cli-config.json runs
-#   "bash /Users/<you>/.cursor/statusline-command.sh" with "padding": 2.
-#   Injected by cursor/setup-statusline.sh (run after `stow --no-folding
-#   cursor`); cli-config.json is machine-local, not stowed. cursor-agent reads
-#   statusLine at session START — restart to see edits.
-#   GOTCHA: Cursor does NOT expand $HOME in the command (Claude does), so a
-#   "bash $HOME/..." command renders blank — setup injects an absolute path.
+# No branch (dropped 2026-07-22), cost, cache-hit, fast/effort, or rate limits:
+# Cursor's thinner payload does not provide those fields. This remains a fork,
+# not a sourced library, so its divergence is explicit in the segment lists.
 #
-# PAYLOAD (JSON on stdin, per refresh — fires many times per message, so the
-# sparkline dedups unchanged context; captured live 2026.07.20). Used fields:
-#   .session_id                       sparkline history key
-#   .model.display_name               model segment ("Auto")
-#   .context_window.used_percentage   ctx% — a FLOAT (5.8), round %.0f
-#   .context_window.current_usage     sparkline = input + cache_creation + cache_read
-#   Present but unused: cwd, render_width_chars (term width; future trim),
-#   transcript_path, workspace, session_name, output_style, version, autorun,
-#   context_window.{context_window_size,total_*,remaining_percentage}.
+# DIAGNOSTICS: `bash statusline-command.sh --status [< payload.json]` uses piped
+# stdin or the last reduced replay payload, prints fields/widths/shedding, and
+# does not mutate replay or growth history.
 #
-# NOT sent by Cursor (so no such segment): cost / rate_limits (Claude/Anthropic
-#   only) and model.param_summary (model is only {id,display_name}); branch's
-#   worktree.branch isn't sent either — moot, we don't show branch. NO
-#   usage/quota is possible (checked 2026-07-22): nothing in the payload,
-#   `cursor-agent about` gives only a static "Subscription Tier" via a slow
-#   network call, no local cache holds a live quota — free-plan usage lives only
-#   in Cursor's web dashboard.
+# WIRING: cursor/setup-statusline.sh injects an absolute command path and
+# "padding": 2 into machine-local ~/.cursor/cli-config.json. Cursor does not
+# expand $HOME and reads statusLine only at session start.
 #
-# STATE: per-session sparkline history in $STATE_DIR (~/.cache, not world-shared
-#   /tmp), pruned after 7d.  Input: JSON on stdin.
+# STATE: private per-session growth history and an atomically replaced reduced
+# replay payload under ${XDG_CACHE_HOME:-$HOME/.cache}/cursor-statusline.
 # =============================================================================
 
-input=$(cat)
-
+umask 077
+DIAG=0; [ "${1:-}" = "--status" ] && DIAG=1
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/cursor-statusline"
-mkdir -p "$STATE_DIR"
+REPLAY="$STATE_DIR/last-payload.json"; [ "$DIAG" -eq 0 ] && mkdir -p "$STATE_DIR"
+if [ "$DIAG" -eq 1 ] && [ -t 0 ]; then input=$(cat "$REPLAY" 2>/dev/null || printf '{}'); else input=$(cat); fi
+printf '%s' "$input" | jq -e . >/dev/null 2>&1 || input='{}'
+if [ "$DIAG" -eq 0 ]; then
+  tmp=$(mktemp "$STATE_DIR/last-payload.XXXXXX")
+  if printf '%s' "$input" | jq '{session_id,model:{display_name:.model.display_name},render_width_chars,context_window:{used_percentage:.context_window.used_percentage,current_usage:{input_tokens:.context_window.current_usage.input_tokens,cache_read_input_tokens:.context_window.current_usage.cache_read_input_tokens,cache_creation_input_tokens:.context_window.current_usage.cache_creation_input_tokens}}}' >"$tmp"; then mv "$tmp" "$REPLAY"; else rm -f "$tmp"; fi
+fi
 
-# Parse the fields we use in a single jq call. Cursor has no worktree.branch,
-# so branch is derived from cwd via git below.
-eval "$(echo "$input" | jq -r '
-  @sh "model=\(.model.display_name // "")",
-  @sh "used=\(.context_window.used_percentage // "")",
-  @sh "session_id=\(.session_id // "")"
+model="" used="" session_id="" render_width=0 input_tokens=0 cache_read=0 cache_create=0
+eval "$(printf '%s' "$input" | jq -r '
+ @sh "model=\(.model.display_name // "")",
+ @sh "used=\(.context_window.used_percentage // "")",
+ @sh "session_id=\(.session_id // "")",
+ @sh "render_width=\(.render_width_chars // 0)",
+ @sh "input_tokens=\(.context_window.current_usage.input_tokens // 0)",
+ @sh "cache_read=\(.context_window.current_usage.cache_read_input_tokens // 0)",
+ @sh "cache_create=\(.context_window.current_usage.cache_creation_input_tokens // 0)"
 ')"
+case "$render_width" in ''|*[!0-9]*)render_width=0;; esac
+current_input=$((input_tokens+cache_read+cache_create))
 
-# Current context size: input_tokens from the latest API call (matches Claude's
-# formula). Grows each message because the full conversation is resent.
-current_input=$(echo "$input" | jq -r '
-  .context_window.current_usage
-  | ((.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0))
-')
-
-# --- Context growth tracking ---
-HISTORY_FILE="$STATE_DIR/growth-${session_id}"
-bars=""
-msg_count=""
-
-# Clean up history files from old sessions (>7d), at most once per hour
-CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
-if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then
-  find "$STATE_DIR" -maxdepth 1 -name 'growth-*' -mtime +7 -delete 2>/dev/null
-  touch "$CLEANUP_STAMP"
+HISTORY_FILE="$STATE_DIR/growth-${session_id}"; msg_count="" bars="" bar_count=0
+if [ "$DIAG" -eq 0 ]; then
+  CLEANUP_STAMP="$STATE_DIR/cleanup-stamp"
+  if [ ! -f "$CLEANUP_STAMP" ] || [ "$(find "$CLEANUP_STAMP" -mmin +60 2>/dev/null)" ]; then find "$STATE_DIR" -maxdepth 1 -name 'growth-*' -mtime +7 -delete 2>/dev/null; touch "$CLEANUP_STAMP"; fi
+  if [ -n "$session_id" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then last=$(tail -1 "$HISTORY_FILE" 2>/dev/null || printf ''); [ "$last" = "$current_input" ] || printf '%s\n' "$current_input" >>"$HISTORY_FILE"; fi
+fi
+if [ -n "$session_id" ] && [ -f "$HISTORY_FILE" ]; then
+  msg_count=$(wc -l <"$HISTORY_FILE" | tr -d ' ')
+  data=$(awk '{v[n++]=$1} END{if(n<2)exit;for(i=1;i<n;i++){d=v[i]-v[i-1];if(d<0)d=0;x[k++]=d}s=k>15?k-15:0;m=0;for(i=s;i<k;i++)if(x[i]>m)m=x[i];if(m==0)exit;split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █",b," ");o="";c=0;for(i=s;i<k;i++){l=int(x[i]/m*7)+1;if(l>8)l=8;if(l<1)l=1;o=o b[l];c++}printf "%d %s",c,o}' "$HISTORY_FILE")
+  if [ -n "$data" ]; then bar_count=${data%% *}; bars=${data#* }; fi
 fi
 
-if [ -n "$session_id" ] && [ -n "$current_input" ] && [ "$current_input" != "null" ] && [ "$current_input" -gt 0 ] 2>/dev/null; then
-  last_val=$(tail -1 "$HISTORY_FILE" 2>/dev/null || echo "")
-  if [ "$last_val" != "$current_input" ]; then
-    echo "$current_input" >> "$HISTORY_FILE"
-  fi
+cyan='\033[0;36m'; dim='\033[2m'; yellow='\033[0;33m'; red='\033[0;31m'; reset='\033[0m'
+add_seg(){ eval "seg_plain_$1=\$2"; eval "seg_$1=\$3"; eval "segw_$1=\$4"; eval "segsep_$1=\${5:-2}"; eval "segdrop_$1=0"; }
+SEGS="model ctx msgs bars"; SHED="bars msgs model"
+[ -n "$model" ] && add_seg model "$model" "$(printf "${cyan}%s${reset}" "$model")" "${#model}"
+if [ -n "$used" ]; then n=$(printf '%.0f' "$used"); [ "$n" -ge 90 ] && c=$red || { [ "$n" -ge 70 ] && c=$yellow || c=$dim; }; p="ctx:${n}%"; add_seg ctx "$p" "$(printf "ctx:${c}%s%%${reset}" "$n")" "${#p}"; fi
+if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then p="#${msg_count}"; add_seg msgs "$p" "$(printf "${dim}%s${reset}" "$p")" "${#p}"; fi
+[ -n "$bars" ] && add_seg bars "$bars" "$(printf "${dim}%s${reset}" "$bars")" "$bar_count" 1
 
-  msg_count=$(wc -l < "$HISTORY_FILE" | tr -d ' ')
+render(){ out=""; outw=0; count=0; for name in $SEGS; do eval "present=\${segw_$name+x}"; [ -n "$present" ] || continue; eval "drop=\$segdrop_$name"; [ "$drop" -eq 1 ] && continue; eval "text=\$seg_$name"; eval "w=\$segw_$name"; eval "sep=\$segsep_$name"; if [ "$count" -gt 0 ]; then out="${out}$(printf '%*s' "$sep" '')"; outw=$((outw+sep)); fi; out="${out}${text}"; outw=$((outw+w)); count=$((count+1)); done; }
+dropped=""
+while :; do
+  render
+  [ "$render_width" -eq 0 ] && break
+  [ "$outw" -le "$render_width" ] && break
+  victim=""
+  for name in $SHED; do eval "present=\${segw_$name+x}"; eval "drop=\${segdrop_$name:-0}"; if [ -n "$present" ] && [ "$drop" -eq 0 ]; then victim=$name; break; fi; done
+  [ -n "$victim" ] || break
+  eval "segdrop_$victim=1"; dropped="${dropped}${dropped:+ }${victim}"
+done
+render
 
-  bars=$(awk '
-    BEGIN { n = 0 }
-    { vals[n++] = $1 }
-    END {
-      if (n < 2) exit
-
-      nd = 0
-      for (i = 1; i < n; i++) {
-        d = vals[i] - vals[i-1]
-        if (d < 0) d = 0
-        deltas[nd++] = d
-      }
-      if (nd == 0) exit
-
-      start = 0
-      if (nd > 15) start = nd - 15
-
-      max = 0
-      for (i = start; i < nd; i++) {
-        if (deltas[i] > max) max = deltas[i]
-      }
-      if (max == 0) exit
-
-      split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", blocks, " ")
-
-      result = ""
-      for (i = start; i < nd; i++) {
-        level = int((deltas[i] / max) * 7) + 1
-        if (level > 8) level = 8
-        if (level < 1) level = 1
-        result = result blocks[level]
-      }
-      printf "%s", result
-    }
-  ' "$HISTORY_FILE")
+ESC=$(printf '\033'); vis_width(){ printf '%s' "$1" | sed "s/${ESC}\[[0-9;]*m//g" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' '; }
+if [ "$DIAG" -eq 1 ]; then
+  field(){ [ -n "$2" ] && printf 'field %-45s %s\n' "$1" "$2" || printf 'field %-45s EMPTY\n' "$1"; }
+  field '.session_id' "$session_id"; field '.model.display_name' "$model"; field '.context_window.used_percentage' "$used"; field '.render_width_chars' "$render_width"; field '.context_window.current_usage.input_tokens' "$input_tokens"; field '.context_window.current_usage.cache_read_input_tokens' "$cache_read"; field '.context_window.current_usage.cache_creation_input_tokens' "$cache_create"
+  printf 'config width=%s rmargin=0 (Cursor padding is external)\n' "$render_width"
+  for name in $SEGS; do eval "present=\${segw_$name+x}"; [ -n "$present" ] || continue; eval "plain=\$seg_plain_$name"; eval "w=\$segw_$name"; eval "drop=\$segdrop_$name"; printf 'segment %-8s width=%-3s measured=%-3s dropped=%s text=%s\n' "$name" "$w" "$(vis_width "$plain")" "$drop" "$plain"; done
+  printf 'shed %s\nresult width=%s text=%s\n' "${dropped:-none}" "$outw" "$out"; exit 0
 fi
-
-# --- ANSI colors ---
-cyan='\033[0;36m'
-dim='\033[2m'
-yellow='\033[0;33m'
-red='\033[0;31m'
-reset='\033[0m'
-
-# --- Build output line ---
-line=""
-
-if [ -n "$model" ]; then
-  line=$(printf "${cyan}%s${reset}" "$model")
-fi
-
-if [ -n "$used" ]; then
-  # used_percentage is a float (e.g. 5.8) — round to a whole percent
-  used_int=$(printf "%.0f" "$used")
-  if [ "$used_int" -ge 90 ]; then
-    pct_color="$red"
-  elif [ "$used_int" -ge 70 ]; then
-    pct_color="$yellow"
-  else
-    pct_color="$dim"
-  fi
-  if [ -n "$line" ]; then
-    line=$(printf "%s  ctx:${pct_color}%s%%${reset}" "$line" "$used_int")
-  else
-    line=$(printf "ctx:${pct_color}%s%%${reset}" "$used_int")
-  fi
-fi
-
-# Append message count and growth bars
-if [ -n "$msg_count" ] && [ "$msg_count" -gt 0 ] 2>/dev/null; then
-  line=$(printf "%s  ${dim}#%s${reset}" "$line" "$msg_count")
-  if [ -n "$bars" ]; then
-    line=$(printf "%s ${dim}%s${reset}" "$line" "$bars")
-  fi
-fi
-
-printf "%b\n" "$line"
+printf '%s\n' "$out"

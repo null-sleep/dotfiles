@@ -1,7 +1,8 @@
 # pi — a practical guide
 
-How to actually use [pi](https://pi.dev) and the seven extensions this repo
-installs. Install/setup steps live in README's `## pi` section; this is the
+How to actually use [pi](https://pi.dev), the six npm extensions this repo
+installs, and its repo-owned minimal footer. Install/setup steps live in
+README's `## pi` section; this is the
 "what can it do and how do I drive it" reference. Everything here was checked
 against the installed extension READMEs (all under
 `~/.pi/agent/npm/node_modules/@narumitw/`) and this machine's config: pi on
@@ -17,7 +18,7 @@ defaults + cost.
 - [pi-subagents — delegate work](#subagents)
 - [pi-btw — side questions](#btw)
 - [pi-lsp — targeted diagnostics](#lsp)
-- [pi-statusline — the footer](#statusline)
+- [Claude-shaped footer](#statusline)
 - [pi-github-pr — ambient PR status](#github-pr)
 - [pi-usage — OpenRouter spend](#usage)
 - [Terminal setup](#terminal-setup)
@@ -33,7 +34,7 @@ defaults + cost.
    footer — those are all extensions. What core gives you: a TUI, a model
    picker, tools (`read`, `edit`, `write`, `bash`, `grep`, …), sessions.
 2. **Extensions add two kinds of things:** slash **commands** you invoke
-   (`/plan`, `/btw`, `/usage`, `/lsp`, `/statusline`, `/subagents`) and
+   (`/plan`, `/btw`, `/usage`, `/lsp`, `/subagents`) and
    **tools** the *model* invokes (`lsp_diagnostics`, `subagent`, …). For the
    tool kind, you drive them by asking — "run diagnostics on the files you
    changed", "delegate the research to a scout".
@@ -42,9 +43,9 @@ defaults + cost.
    UIs rewrite via rename, which is why none are stowed). Edits generally
    apply after `/reload` or a new session; pi-btw reads its file every
    invocation.
-4. **Extension state shows up in the footer.** pi-statusline renders the
-   other extensions' status entries (PR state, usage, plan state, subagent
-   activity) below the main powerline — the footer is the shared dashboard.
+4. **Actionable extension state shows up in the footer.** The repo-owned
+   footer renders transient PR, plan, and subagent state on a dim second line.
+   Persistent provider spend is intentionally omitted; use `/usage` on demand.
 
 <a id="core"></a>
 ## Core pi in five minutes
@@ -235,53 +236,37 @@ custom config **replaces** the entire default catalog, so it must also
 re-list gopls/rust-analyzer/lua-language-server.
 
 <a id="statusline"></a>
-## pi-statusline — the footer
+## Claude-shaped footer
 
-Replaces pi's footer with a responsive powerline. Seeded here with
-`model thinking context turn cost`, deliberately shaped after this setup's
-Claude Code status line so the two read alike — the setup script writes
-segments only, so the palette stays pi-statusline's own tokyo-night default:
+The stowed `~/.pi/agent/extensions/claude-footer.ts` replaces pi's native
+footer with a deliberately plain, one-line layout matching this setup's Claude
+Code status line:
 
 ```text
-░▒▓ 🤖 sonnet-5 🧠 med 🪟 ctx 2.4%/272k 🔁 #36 💸 $0.42
+gpt-5.6-sol-pro  med  ctx:2%  CH59%  #1                         $0.065
 ```
 
-Claude's line is `model · effort · ctx% · #msgs · sparkline` with a
-right-flushed `5h/7d` rate-limit cluster. `thinking` maps to its effort flag
-and `turn` to its message count; there's no sparkline segment, and `cost`
-stands in for the rate limits, which mean nothing on pay-per-token
-OpenRouter. `cwd`, `branch`, and `time` are left out for the same reason
-Claude's line omits them — Ghostty's tab title and nvim's statusline already
-carry them.
+- **model / effort** — provider prefix and decorative emoji are omitted;
+  thinking levels use Claude-like short forms (`med`, `hi`, `xhi`).
+- **context** — rounded used percentage, warning-colored at 70% and error at
+  90%, matching Claude. A temporary `ctx:?%` after compaction is normal.
+- **cache** — latest prompt cache-hit rate, using the same
+  `cacheRead / (input + cacheRead + cacheWrite)` formula as Claude.
+- **turn** — current session turn count, pi's analog of Claude's message count.
+- **cost** — cumulative session model spend, flush-right; this is the useful pi
+  analog of Claude's right-aligned subscription-limit cluster.
+- **narrow terminals** — whole low-priority segments disappear instead of
+  clipping. Context is retained longest.
 
-Reading it:
+There are no powerline backgrounds, lead glyphs, emoji, cwd, branch, context
+window size, or always-visible provider-spend row. Ghostty/nvim already show
+location, and `/usage` provides account/key spend on demand. Transient plan,
+subagent, and PR state still appears on a dim second line only while relevant.
 
-- **context** — `used%/window`; turns warning-colored at 70%, error at 90%
-  (the same thresholds the Claude line uses). `?/272k` right after a
-  compaction is normal.
-- **turn** — the session's turn count, pi's analog of Claude's `#36`.
-- **cost** — per-session model spend, totalled the same way as pi's native
-  footer (includes subagent/consultation usage).
-- Narrow terminal? Low-priority segments drop instead of clipping —
-  `context` and `model` survive longest, `turn` goes first.
-
-Two segments worth knowing about if you re-add them: **branch** carries
-counters (`⇡` ahead, `⇣` behind, `+` staged, `~` modified/deleted, `?`
-untracked, `!` conflicts; clean shows none), and **tools** takes no space
-when idle but shows `💭 thinking` / `⚙ <tool>` with parallel counts while the
-agent works.
-
-`/statusline` opens the menu: **Appearance** (7 previewable palettes),
-**Information** (minimal / balanced / detailed segment sets), **Advanced**
-(reorder segments, line breaks, raw JSON editor), **Status** (effective
-config + diagnostics). Every save is immediate and lands in
-`~/.pi/agent/pi-statusline.json`. Full segment list:
-`brand provider model thinking cwd branch tools context tokens cache cost time turn`.
-
-Other extensions' entries (PR, usage, plan state, subagents) render on a
-second line below the powerline with their own icons. If glyphs look broken,
-the terminal font needs Powerline symbols — not an issue with this repo's
-Ghostty setup.
+The footer is repo-owned rather than configured through `/statusline`.
+`pi/setup-extensions.sh` removes the superseded third-party `pi-statusline`
+package and `~/.pi/agent/pi-statusline.json`; edit the TypeScript extension in
+this repo for durable changes, then use `/reload` in a running pi session.
 
 <a id="github-pr"></a>
 ## pi-github-pr — ambient PR status
@@ -394,7 +379,8 @@ app. Neither needs anything pi doesn't.
   included in the footer's `cost`.
 - Extension config edits usually need `/reload` (pi-btw is the exception —
   read per invocation).
-- Don't install `pi-starship` alongside pi-statusline — both own the footer.
+- Don't install `pi-statusline`, `pi-starship`, or another footer extension
+  alongside `claude-footer.ts` — multiple `setFooter()` owners race.
 
 <a id="commands"></a>
 ## Command quick-reference
@@ -406,7 +392,6 @@ app. Neither needs anything pi doesn't.
 | `/subagents` | pi-subagents | Delegation workflow + agent manager |
 | `/btw [question]` | pi-btw | Ephemeral side thread |
 | `/lsp` | pi-lsp | Show servers and PATH availability |
-| `/statusline` | pi-statusline | Footer appearance/segments/settings |
 | `/usage` | pi-usage | Provider spend menu |
 | `/reload` | pi core | Reload extensions and their configs |
 | `pi list` | pi core | Installed extension packages |
