@@ -171,29 +171,31 @@ return {
   { lhs = 'g?',   group = 'Explorer',  scope = 'tree', desc = 'Show all nvim-tree keybindings' },
 
   -- Ghostty's own macOS keys (scope 'ghostty'), mirrored from README's
-  -- "## Ghostty" section. Deliberately leaking another app's bindings into
-  -- nvim's picker: Ghostty is the primary terminal, so nvim is always open in
-  -- it and <leader>sk is the fastest place to look a chord up. The scope tags
-  -- them so the context column reads 'ghostty' and <CR> reports instead of
-  -- firing the chord's nvim meaning. Notation is Ghostty's/README's (Cmd+D),
-  -- not nvim's (<D-d>) — these are not nvim keymaps and shouldn't look like it.
-  { lhs = 'Cmd+D',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split right' },
-  { lhs = 'Cmd+Shift+D',    group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split down' },
-  { lhs = 'Cmd+[',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus previous split' },
-  { lhs = 'Cmd+]',          group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus next split' },
+  -- `## Ghostty` → `### Keymaps` table. Deliberately leaking another app's
+  -- bindings into nvim's picker: Ghostty is the primary terminal, so nvim is
+  -- always open in it and <leader>sk is the fastest place to look a chord up.
+  -- The scope tags them so the context column reads 'ghostty' and <CR>
+  -- reports instead of firing the chord's nvim meaning. Notation is
+  -- Ghostty's/README's (Cmd+D), not nvim's (<D-d>) — these are not nvim
+  -- keymaps and shouldn't look like it. Shift+Enter and Cmd+Ctrl+T aren't
+  -- mirrored on purpose: setup facts, not chords you reach for <leader>sk for.
+  { lhs = 'Cmd+D',            group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split right' },
+  { lhs = 'Cmd+Shift+D',      group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Split down' },
+  { lhs = 'Cmd+[',            group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus previous split' },
+  { lhs = 'Cmd+]',            group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus next split' },
   { lhs = 'Cmd+Option+Arrow', group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Focus the split in that direction' },
-  { lhs = 'Cmd+Ctrl+Arrow', group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Resize the split in that direction' },
+  { lhs = 'Cmd+Ctrl+Arrow',   group = 'Ghostty > Splits', scope = 'ghostty', desc = 'Resize the split in that direction' },
 
-  { lhs = 'Cmd+T',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'New tab' },
-  { lhs = 'Cmd+W',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Close the current split/tab' },
-  { lhs = 'Cmd+1-8',        group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to tab by number' },
-  { lhs = 'Cmd+9',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to the last tab (not tab 9)' },
-  { lhs = 'Cmd+Shift+[',    group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle)' },
-  { lhs = 'Cmd+Shift+]',    group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle)' },
-  { lhs = 'Ctrl+Shift+Tab', group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle) — second binding' },
-  { lhs = 'Ctrl+Tab',       group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle) — second binding' },
+  { lhs = 'Cmd+T',            group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'New tab' },
+  { lhs = 'Cmd+W',            group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Close the current split/tab' },
+  { lhs = 'Cmd+1-8',          group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to tab by number' },
+  { lhs = 'Cmd+9',            group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Jump to the last tab (not tab 9)' },
+  { lhs = 'Cmd+Shift+[',      group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle)' },
+  { lhs = 'Cmd+Shift+]',      group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle)' },
+  { lhs = 'Ctrl+Shift+Tab',   group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Previous tab (cycle) — second binding' },
+  { lhs = 'Ctrl+Tab',         group = 'Ghostty > Tabs',   scope = 'ghostty', desc = 'Next tab (cycle) — second binding' },
 
-  { lhs = 'Cmd+Shift+,',    group = 'Ghostty > Config', scope = 'ghostty', desc = 'Reload the Ghostty config' },
+  { lhs = 'Cmd+Shift+,',      group = 'Ghostty > Config', scope = 'ghostty', desc = 'Reload the Ghostty config' },
 
   { lhs = ']s',   group = 'Spell',  desc = 'Next misspelled word' },
   { lhs = '[s',   group = 'Spell',  desc = 'Previous misspelled word' },
