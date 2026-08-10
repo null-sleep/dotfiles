@@ -2877,6 +2877,32 @@ sidebar; `<leader>aa`/`<M-a>` ("stash the agent UI") close the view. The
 view re-stamps its main window with the session's identity, which is also
 what keeps active-session tracking correct there.
 
+**Attention glyphs** (right-aligned per row, from the `agent_events.lua`
+registry — fed by Claude Code hooks through the stowed
+`claude/.claude/hooks/sidekick-notify.sh`, see the repo README):
+
+| Glyph | Meaning | Cleared by |
+|---|---|---|
+| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it** |
+| `●` | finished a turn, unread | looking at it (focus-ack), `<leader>aj`, or your next prompt |
+| `»` | working (between your prompt and the turn's end) | the turn ending |
+| `○` | quiet — has emitted events, nothing pending | — |
+| `·` | no event yet this session | — |
+| `…` | spawning, first attach not yet observed | attaching |
+
+Two deliberate asymmetries: a `●` for the session you're *currently looking
+at* (nvim focused) is suppressed — cmux's focused-pane rule — while `!` always
+rings; and only Claude sessions emit events today (cursor/opencode/pi rows
+show `·` until their Phase-3 emitters land), so absence of `!` on those
+doesn't mean nothing is needed.
+
+**`<leader>aj`** jumps to the most recently unread session (the triage key),
+skipping the session you're focused on — an unanswered `!` survives focus and
+would otherwise trap repeat presses on itself. When the view is closed, the
+statusline shows an ambient badge — `● N` unread, `! N` if any is urgent,
+nothing at zero (`statusline.lua`; the badge UX beyond a count is a
+deliberate open TODO in the plan).
+
 | Keymap | Action |
 |---|---|
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
@@ -2885,6 +2911,7 @@ what keeps active-session tracking correct there.
 | `<leader>an` | New agent session — agent picker, blank label = auto-named, typed = reusable |
 | `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
 | `<leader>av` / `<M-v>` (in CLI) | Toggle the agent view — dashboard tab with a session sidebar + embedded terminal (see above) |
+| `<leader>aj` | Jump to the most recently unread agent session (skips the one you're focused on) |
 | `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-1>`..`<M-9>` (in CLI) | Jump straight to running session N — name-sorted, the same order `<M-]>` cycles |

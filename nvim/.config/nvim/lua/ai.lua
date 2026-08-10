@@ -81,7 +81,7 @@ end
 M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
   not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
 M.cycle, M.new_auto, M.toggle_last, M.rename = not_ready, not_ready, not_ready, not_ready
-M.kill, M.open_index = not_ready, not_ready
+M.kill, M.open_index, M.jump_unread = not_ready, not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -987,6 +987,30 @@ function M.cycle(dir)
   local name = sessions[(idx - 1 + dir) % #sessions + 1].tool.name
   set_active(name)
   show_solo(name)
+end
+
+-- <leader>aj: jump to the most recently unread session (cmux's triage key),
+-- skipping the session in the focused window — an urgent ring survives focus
+-- (agent_events' ack rule), so without the skip an unanswered `!` would trap
+-- repeat presses on itself. Landing acks a turn-complete ring via the
+-- WinEnter handler; the direct ack below covers the in-view case where the
+-- embed swaps the buffer under the cursor and no WinEnter ever fires.
+function M.jump_unread()
+  local ev = package.loaded['agent_events']
+  if not ev then return end
+  local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+  local here = tool and tool.name
+  for _, name in ipairs(ev.unread_sessions()) do
+    if name ~= here and running(name) then
+      set_active(name)
+      show_solo(name)
+      local av = agentview_active()
+      if av then av.enter_main() end
+      ev.ack(name)
+      return
+    end
+  end
+  vim.notify('sidekick: no unread agent sessions', vim.log.levels.INFO)
 end
 
 -- <M-1>..<M-9> inside the CLI (and 1-9 in the agent-view sidebar): jump

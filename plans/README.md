@@ -11,14 +11,20 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Build the agent view MVP** — cmux-style dashboard:
-  [sidekick-agent-view.md](sidekick-agent-view.md) (planned 2026-08-08,
-  UX mockup reviewed via artifact). Phase 1 (view/sidebar/cycling + 1–9
-  index jumps) ships standalone; Phase 2 (attention rings) implements
-  [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)'s
-  pipeline with the MVP hook cut; Phase 3 wires rings for opencode
-  (plugin, full), cursor (Claude-hook merge, running/done), pi (extension,
-  running/done). Open TODO inside the plan: ambient-badge UX beyond `● N`.
+- [ ] **Agent view MVP — Phases 1+2 shipped 2026-08-10, Phase 3 + live
+  verification outstanding** — cmux-style dashboard:
+  [sidekick-agent-view.md](sidekick-agent-view.md). Landed on the
+  `agent-view` branch: the view (`agentview.lua`, `<leader>av`/`<M-v>`,
+  sidebar + embedded terminal, 1–9 index jumps), the
+  [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)
+  transport (stowed hook script + 5 registrations, `agent_events.lua`
+  registry — state machine verified headless incl. end-to-end RPC),
+  glyphs, `<leader>aj`, and the `● N`/`! N` statusline badge. Still to do:
+  the plan's interactive verification list (items 1–10 — rings with real
+  sessions, focused-suppression, permission-prompt persistence, layout
+  restore), then Phase 3 emitters for opencode (plugin, full rings),
+  cursor (verify the Claude-hook merge first), pi (extension). Open TODO
+  inside the plan: ambient-badge UX beyond `● N`.
 - [ ] **Verify the sidekick session labels + the 4-agent pool** — shipped
   2026-08-07 (display labels on `<leader>ar`/`<M-r>`/`<C-r>`; `opencode` and
   `pi` added to `AGENTS`). Everything testable headlessly passed — namespace

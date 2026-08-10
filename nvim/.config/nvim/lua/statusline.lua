@@ -6,6 +6,21 @@ vim.cmd.packadd('lualine.nvim')
 local round_left = ''
 local round_right = ''
 
+-- Agent unread badge (agent_events registry): '● N' unread sessions, '! N'
+-- when any is urgent (needs permission/input), empty at zero — the ambient
+-- signal for attention while the agent view is closed. Returns text + the
+-- Agentview* highlight group; purely reactive reads, no timers.
+local function agent_badge()
+  local ev = package.loaded['agent_events']
+  if not ev then return '', nil end
+  local unread = ev.unread_sessions()
+  if #unread == 0 then return '', nil end
+  for _, name in ipairs(unread) do
+    if ev.status(name) == 'urgent' then return '! ' .. #unread, 'AgentviewUrgent' end
+  end
+  return '● ' .. #unread, 'AgentviewUnread'
+end
+
 require('lualine').setup({
   options = {
     -- 'auto' reads the active colorscheme's highlight groups — no manual
@@ -67,6 +82,17 @@ require('lualine').setup({
       'diagnostics',
     },
     lualine_x = {
+      {
+        function() return (agent_badge()) end,
+        color = function()
+          local _, group = agent_badge()
+          if not group then return nil end
+          -- lualine wants a color table; resolve the linked group's fg so
+          -- the badge follows the active theme like everything else.
+          local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
+          return hl.fg and { fg = ('#%06x'):format(hl.fg) } or nil
+        end,
+      },
       'lsp_status',
     },
     lualine_y = { 'searchcount', 'progress' },
@@ -83,4 +109,13 @@ require('lualine').setup({
 
   -- Auto-hide statusline in these plugin windows and show a minimal one instead.
   extensions = { 'quickfix', 'mason' },
+})
+
+-- lualine repaints on its own cadence — refresh immediately on registry
+-- transitions so the badge appears/clears the moment an agent rings.
+vim.api.nvim_create_autocmd('User', {
+  group = vim.api.nvim_create_augroup('UserStatuslineAgentBadge', { clear = true }),
+  pattern = 'AgentSessionEvent',
+  desc = 'Statusline: refresh agent unread badge',
+  callback = function() require('lualine').refresh({ place = { 'statusline' } }) end,
 })

@@ -230,6 +230,7 @@ local function enter_main()
     vim.cmd('startinsert')
   end
 end
+M.enter_main = enter_main  -- ai.jump_unread lands in the main pane in-view
 
 -- The show_solo delegate target: switch the embedded session in place. A
 -- name with no terminal yet (fresh create_session) is the one sanctioned
