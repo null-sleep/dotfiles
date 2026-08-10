@@ -140,7 +140,19 @@ require('sidekick').setup({
     tools = (function()
       local env_tools = {}
       for _, a in ipairs(AGENTS) do
-        env_tools[a] = { env = { SIDEKICK_SESSION = a } }
+        env_tools[a] = { env = {
+          SIDEKICK_SESSION = a,
+          -- false = unset (sidekick terminal.lua), not omit: nvim's own job env
+          -- inherits vim.uv.os_environ(), so if nvim itself was launched from
+          -- inside a claude session, CLAUDE_CODE_EXECPATH would otherwise leak
+          -- into this job's env. Hook subprocesses use inherited
+          -- CLAUDE_CODE_EXECPATH to detect a NESTED claude (e.g. `claude -p`
+          -- from a Bash tool) — Claude Code injects it into tool-subprocess
+          -- envs but not hook envs (verified empirically 2026-08-10) — a leaked
+          -- value here would make every real event look nested and get
+          -- wrongly suppressed.
+          CLAUDE_CODE_EXECPATH = false,
+        } }
       end
       return env_tools
     end)(),
@@ -888,9 +900,15 @@ end
 -- active + GC synchronously too, before detach, while the target is still
 -- started=true (same reasoning as kill_active). _forget is a no-op on
 -- built-ins, so killing the default `claude` won't unregister its preset.
-function M.kill(name)
+-- `state`: an optional pre-resolved session-state object (the picker's row
+-- already holds one). Name-only State.get prefers the current-cwd session
+-- for a same-named pair in different cwds, so a by-name-only lookup can kill
+-- the wrong one — pass the exact object when the caller has it. The
+-- agent-view sidebar has no state object per row (name-keyed), so it still
+-- falls back to the lookup; accepted there.
+function M.kill(name, state)
   local State = require('sidekick.cli.state')
-  local s = State.get({ name = name, started = true })[1]
+  local s = state or State.get({ name = name, started = true })[1]
   if not s then return end
   if M.active == name then M.active = fallback_active(name) end
   State.detach(s)
@@ -960,7 +978,9 @@ function M.switch()
     end,
     -- M.kill's synchronous teardown is what keeps indexed_select's refresh
     -- reading post-kill state (detach inline, not cli.close's two hops).
-    kill = function(item) M.kill(item.name) end,
+    -- item.state: the exact session object this row was built from, so a
+    -- same-named session in another cwd can't get killed instead (see M.kill).
+    kill = function(item) M.kill(item.name, item.state) end,
     -- Close, prompt, reopen — not an in-place picker:find(). vim.ui.input
     -- resolves async and snacks owns the picker's own input window, so
     -- prompting over a live picker is the jank-prone path. Reopening also makes

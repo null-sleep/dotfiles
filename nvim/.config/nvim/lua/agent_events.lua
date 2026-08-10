@@ -23,7 +23,14 @@ local augroup = vim.api.nvim_create_augroup('UserAgentEvents', { clear = true })
 local focused = true
 vim.api.nvim_create_autocmd('FocusGained', {
   group = augroup, desc = 'Agent events: track OS focus',
-  callback = function() focused = true end,
+  callback = function()
+    focused = true
+    -- Also ack here, not just WinEnter: a turn-complete ring raised while
+    -- nvim was OS-backgrounded is otherwise stuck unread forever if you're
+    -- already sitting in that session's window on return — no WinEnter fires.
+    local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+    if tool and tool.name then M.ack(tool.name) end
+  end,
 })
 vim.api.nvim_create_autocmd('FocusLost', {
   group = augroup, desc = 'Agent events: track OS focus',
