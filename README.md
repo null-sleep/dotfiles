@@ -855,13 +855,14 @@ but let npm own a package npm installed).
 <a id="pi-whats-managed"></a>
 ### What's managed
 
-The `pi` package stows the theme palettes and the repo-owned minimal footer
-extension. Pi-written settings and extension install state stay machine-local.
+The `pi` package stows the theme palettes and the repo-owned extensions.
+Pi-written settings and extension install state stay machine-local.
 
 | File | Method |
 |---|---|
 | `~/.pi/agent/themes/catppuccin-latte.json`, `dracula.json` | Symlinked via stow (`--no-folding`) |
 | `~/.pi/agent/extensions/claude-footer.ts` | Symlinked via stow; minimal Claude-shaped footer |
+| `~/.pi/agent/extensions/nvim-notify.ts` | Symlinked via stow; agent-view attention bridge |
 | `~/.pi/agent/themes/active.json` | Written by the [`theme`](#unified-theme-switching) switcher; not tracked |
 | `~/.pi/agent/settings.json` | Seeded by `setup-settings.sh`; machine-local |
 | `~/.pi/agent/npm/` | **Not** tracked — extension installs, owned by `pi install` |
@@ -912,8 +913,11 @@ resolving.
 ### Extensions
 
 Six extensions from the [@narumitw
-collection](https://github.com/narumiruna/pi-extensions), plus the repo-owned
-`claude-footer.ts` extension stowed with the `pi` package. The npm extensions
+collection](https://github.com/narumiruna/pi-extensions), plus two repo-owned
+extensions stowed with the `pi` package: `claude-footer.ts` (the minimal
+footer) and `nvim-notify.ts` — the agent-view attention bridge, which forwards
+prompt/turn-end events to nvim's agent dashboard when pi runs inside a
+sidekick terminal (no-op elsewhere, including inside pi-subagents children). The npm extensions
 are installed by
 [`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
 `setup-settings.sh` — `pi install` registers each one in `settings.json`'s
