@@ -105,6 +105,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
 - **`agentview.lua`** — the `<leader>av` agent-view tab: sidebar of all sidekick sessions + the selected session's terminal embedded via `nvim_win_set_buf` (sidekick owns no window while the view is current — `ai.lua`'s show/focus/toggle paths delegate here). Lazy-required — no Load-order entry
+- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by Claude-Code hooks over `--remote-expr` RPC (`claude/.claude/hooks/sidekick-notify.sh`; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -165,7 +166,7 @@ headless / under claude-nvim.
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
 outline -> breadcrumbs -> quickfix -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
-golang -> testing -> ai -> format -> linting -> statusline -> session ->
+golang -> testing -> agent_events -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> grugfar -> titling -> whichkey -> autosave -> filetree ->
 animations -> neovide -> cleanup.
 
@@ -173,7 +174,10 @@ animations -> neovide -> cleanup.
 which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
 `golang.lua`'s `require('dap-go').setup()` mutates `dap.adapters` /
 `dap.configurations`, so nvim-dap needs to already be on the runtimepath —
-`debugging.lua` is what `packadd`s it.
+`debugging.lua` is what `packadd`s it. `agent_events` must precede `ai`: its
+focus/ack autocmds have to exist before `ai.lua`'s pre-warmed claude can emit
+hook events (and loading it eagerly is what makes the hooks' `v:lua` RPC
+resolve without a lazy-load race).
 
 
 ## Design Decisions

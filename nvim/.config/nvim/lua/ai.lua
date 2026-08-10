@@ -131,6 +131,19 @@ require('sidekick').setup({
         end
       end,
     },
+    -- Tag every base agent's job env with its own name: hook subprocesses
+    -- inherit it, which is how agent_events attributes an event to a session
+    -- (the pipeline's join key). Deep-merged onto the built-in presets by
+    -- name (sidekick tool.lua), so cmd/format/resume survive. Dynamic names
+    -- get their own value in create_session — this covers the bare spawns
+    -- (pre-warm, <leader>aa) that never pass through there.
+    tools = (function()
+      local env_tools = {}
+      for _, a in ipairs(AGENTS) do
+        env_tools[a] = { env = { SIDEKICK_SESSION = a } }
+      end
+      return env_tools
+    end)(),
     -- mux: leave disabled. Enable with backend = 'tmux' or 'zellij' if you want
     -- sessions to persist across nvim restarts.
     -- Claude-native @file#L context refs — overrides sidekick's built-in
@@ -324,6 +337,14 @@ vim.api.nvim_create_autocmd('User', {
     -- its session and re-attach to the next one.
     for name in pairs(M._labels) do
       if not running(name) then M._labels[name] = nil end
+    end
+    -- And for the attention registry — same built-in reasoning: _forget's
+    -- clear never fires for a dying bare `claude`.
+    local ev = package.loaded['agent_events']
+    if ev then
+      for name in pairs(ev.sessions) do
+        if not running(name) then ev.clear(name) end
+      end
     end
     -- Active session died (self-exit, <C-x> in the picker, <leader>ax) → repoint to a
     -- survivor so a summon reattaches instead of spawning fresh. No
@@ -737,6 +758,10 @@ local function create_session(name)
     -- Clone the agent's own resolved preset (claude: cmd + format +
     -- resume/continue; cursor: bare cmd) — see plan "clone the preset".
     cfg.cli.tools[name] = vim.deepcopy(preset)
+    -- The clone carries the BASE agent's SIDEKICK_SESSION — force-overwrite
+    -- with this session's own name or every fork reports as its agent.
+    cfg.cli.tools[name].env = vim.tbl_extend('force', cfg.cli.tools[name].env or {},
+      { SIDEKICK_SESSION = name })
     M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
   end
   set_active(name)  -- eager; WinEnter confirms once the window is entered
@@ -756,6 +781,10 @@ function M._forget(name)
   if not M._dynamic[name] then return end
   require('sidekick.config').cli.tools[name] = nil
   M._dynamic[name] = nil
+  -- Drop attention state with the name: a reused name (kill 'claude 2',
+  -- spawn a new 'claude 2') must not inherit the old process's ring.
+  local ev = package.loaded['agent_events']
+  if ev then ev.clear(name) end
   -- If the name we're dropping was active, repoint to a survivor rather than
   -- the hardcoded default, so a summon reattaches. Handles the *dynamic*
   -- active-death path; a dying built-in `claude` (a no-op here) is repointed by
