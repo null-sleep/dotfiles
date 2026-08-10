@@ -231,6 +231,9 @@ vim.api.nvim_create_autocmd('User', {
         vim.log.levels.ERROR)
       _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
     end
+    -- Agent view owns its tab's layout: no promote (wincmd L would reflow the
+    -- view into three columns). The view's own Attach handler hides/embeds.
+    if vim.t[vim.api.nvim_get_current_tabpage()].agentview then return end
     local cfg = require('sidekick.config').cli.win
     local layout = cfg.layout
     local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
@@ -281,6 +284,9 @@ vim.api.nvim_create_autocmd('WinClosed', {
   callback = function(args)
     local win = tonumber(args.match)
     if not (win and vim.api.nvim_win_is_valid(win)) then return end
+    -- The agent view's main pane carries the session stamps too (embed
+    -- re-stamps it), but its near-fullscreen width is not a CLI column width.
+    if vim.w[win].agentview_main then return end
     if #vim.api.nvim_list_wins() == 1 then return end
     local sid = vim.w[win].sidekick_session_id
     local term = sid and require('sidekick.cli.terminal').get(sid)
@@ -389,6 +395,10 @@ vim.api.nvim_create_autocmd('FileType', {
     -- jj/jk -> <leader>al round-trip. Same in-panel ergonomic as <M-]>/<M-n>.
     vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
       { buffer = args.buf, desc = 'AI: Switch/kill/label CLI session picker' })
+
+    -- <M-v> toggles the agent view in place — same family as <M-a>/<M-l>.
+    vim.keymap.set({ 't', 'n' }, '<M-v>', function() require('agentview').toggle() end,
+      { buffer = args.buf, desc = 'AI: Agent view (toggle)' })
 
     -- <M-r> labels the session you're in (the <leader>ar prompt), same family
     -- as <M-n>/<M-l>. Not <C-r> — that's the picker's rename key, and reusing
@@ -672,7 +682,20 @@ end
 -- synchronously via terminal:hide() — cli.hide defers two hops vs cli.show's
 -- one, so it would run show-before-hide; iterating terminals also skips the
 -- same-name disambiguation picker. hide, not close — the job stays alive.
+-- Agent-view delegate, shared by the show/focus/toggle wrappers below: while
+-- the view tab is current it owns all display, so every switch path (cycle,
+-- toggle_last, picker, create_session, open_index) must route into it — a
+-- cli.show there would split the view tab (the embedded terminal isn't in
+-- sidekick's window registry). package.loaded, not require: inert until the
+-- user has opened the view once.
+local function agentview_active()
+  local av = package.loaded['agentview']
+  return (av and av.is_active()) and av or nil
+end
+
 local function show_solo(name)
+  local av = agentview_active()
+  if av then return av.select(name) end
   for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
     if t.tool and t.tool.name ~= name then t:hide() end   -- no-op if not shown
   end
@@ -809,6 +832,10 @@ function M.rename(name, on_done)
 end
 
 function M.toggle_active()
+  -- In the view, "stash the agent UI" means leaving the view: the whole tab
+  -- IS the agent UI, and cli.toggle would open a second window instead.
+  local av = agentview_active()
+  if av then return av.toggle() end
   require('sidekick.cli').toggle({ name = M.active, focus = true })
 end
 
@@ -846,11 +873,20 @@ end
 -- Normalize a bare string like cli.send does, so a stray send('{selection}')
 -- can't blow up tbl_extend.
 function M.send(opts)
+  -- Refuse in the view: cli.send hardcodes show=true (a stray split), and
+  -- every context template renders against the current buffer — which here
+  -- is the sidebar or a terminal, never the code being discussed.
+  if agentview_active() then
+    return vim.notify('agent view: context sends read the current code buffer — close the view first',
+      vim.log.levels.WARN)
+  end
   opts = type(opts) == 'string' and { msg = opts } or opts or {}
   require('sidekick.cli').send(vim.tbl_extend('force', opts, { name = M.active }))
 end
 
 function M.focus()
+  local av = agentview_active()
+  if av then return av.focus_main() end
   require('sidekick.cli').focus({ name = M.active })
 end
 

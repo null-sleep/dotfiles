@@ -476,6 +476,9 @@ require('stickybuf').setup({
     if vim.bo[bufnr].filetype == 'grug-far' then
       return 'filetype'
     end
+    if vim.bo[bufnr].filetype == 'agentview' then
+      return 'filetype'
+    end
     return require('stickybuf').should_auto_pin(bufnr)
   end,
 })

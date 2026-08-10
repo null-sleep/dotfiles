@@ -104,6 +104,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost/QuitPre/VimSuspend (immediate) and InsertLeave/TextChanged (debounced 1s, cancelled by InsertEnter); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
+- **`agentview.lua`** — the `<leader>av` agent-view tab: sidebar of all sidekick sessions + the selected session's terminal embedded via `nvim_win_set_buf` (sidekick owns no window while the view is current — `ai.lua`'s show/focus/toggle paths delegate here). Lazy-required — no Load-order entry
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -2836,6 +2837,42 @@ next `<M-n>` fork is `claude 4`). Collisions are refused with a notify. This is
 a label, not a rename: re-entering it at `<leader>an` still spawns a new
 session, since that reuse works on names.
 
+### Agent view
+
+`<leader>av` (or `<M-v>` inside a CLI) toggles a cmux-style dashboard in its
+own **tabpage**: a 30-col sidebar listing every session — index digit,
+`▸` active marker, label with the raw name dimmed beside it (the `<leader>al`
+convention) — with the selected session's *real* terminal buffer embedded
+beside it (`agentview.lua`). A dedicated tab, not a left panel: entering the
+view is a mode switch (like Neogit/diffview), and the working tab's layout —
+including an open right CLI column — is untouched by construction. While the
+view tab is current, every switch path (`<M-]>` cycling, the `<leader>al`
+picker, `<leader>an` creation) routes into the view instead of opening
+splits; sidekick owns zero windows there. Context sends are refused inside
+the view (they'd render against the sidebar, not code) — close it first.
+Closing the view (`q`/`<Esc>`/toggle again) returns to the originating tab;
+all sessions keep running, and the normal `<leader>aa` right-column flow
+resumes as if the view never existed. Row order is name-sorted — the same
+order `<M-]>` cycles and `<M-1>`..`<M-9>` jump.
+
+In the sidebar (buffer-local):
+
+| Key | Action |
+|---|---|
+| `<CR>` | Open the session under the cursor in the main pane (makes it active) |
+| `1`..`9` | Open row N directly (digits match the `<M-N>` jumps) |
+| `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI) |
+| `n` | New session (the `<leader>an` flow; embeds once it attaches) |
+| `r` | Label the session under the cursor |
+| `x` | Kill the session under the cursor (confirm popup) |
+| `q` / `<Esc>` | Close the view |
+
+`<C-.>`/`<leader>ai` inside the view bounce between the main pane and the
+sidebar; `<leader>aa`/`<M-a>` ("stash the agent UI") close the view. The
+`u`/`p`/`<C-u>`/`<C-d>` byte-forwards work in the embedded terminal — the
+view re-stamps its main window with the session's identity, which is also
+what keeps active-session tracking correct there.
+
 | Keymap | Action |
 |---|---|
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
@@ -2843,6 +2880,7 @@ session, since that reuse works on names.
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New agent session — agent picker, blank label = auto-named, typed = reusable |
 | `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
+| `<leader>av` / `<M-v>` (in CLI) | Toggle the agent view — dashboard tab with a session sidebar + embedded terminal (see above) |
 | `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
 | `<M-1>`..`<M-9>` (in CLI) | Jump straight to running session N — name-sorted, the same order `<M-]>` cycles |

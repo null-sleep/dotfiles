@@ -21,6 +21,9 @@ M.special_filetypes = {
   toggleterm        = true,  -- terminal panel/float
   sidekick_terminal = true,  -- sidekick AI CLI
   ['grug-far']      = true,  -- find & replace panel
+  agentview         = true,  -- agent-view sidebar (NOT sidebar_filetypes: it
+                             -- lives in its own tab, never the working tab's
+                             -- edge, and must not feed the quit autocmd)
 }
 
 -- Sidebars: persistent navigation panels docked to a window edge. A STRICT
