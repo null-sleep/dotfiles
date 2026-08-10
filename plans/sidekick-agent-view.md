@@ -49,6 +49,11 @@ real UI session.
 - Bare built-ins spawn from `cli.tools.<agent> = {}` untouched, so the
   setup-block env entries (pipeline plan edit 1) are required, not
   optional, for the primary session to carry `$SIDEKICK_SESSION`.
+- **Selection model revised during live use (2026-08-10)**: `j`/`k` now
+  live-preview the row's terminal in the main pane (buffer swap only —
+  the plan's layout-surgery objection didn't survive contact with the
+  implementation); commit-as-active stays on `<CR>`/digits/pane entry.
+  See the revised "Selection model" rationale below.
 
 ### Verified headless (2026-08-10)
 
@@ -138,7 +143,7 @@ insight this MVP copies.
 |---|---|
 | Entry shortcut | `<leader>av` toggle (+ `<M-v>` inside CLI terminals) |
 | View layout | dedicated tabpage: 30-col left sidebar + main pane |
-| Selection model | explicit `<CR>` in sidebar (no live-switch on `j`/`k`) |
+| Selection model | `j`/`k` live-preview the row in the main pane (revised 2026-08-10, first live use); `<CR>`/digits/entering the pane commit it as active |
 | Index jumps | rows numbered 1–9: `1`–`9` in the sidebar, `<M-1>`–`<M-9>` in agent terminals |
 | Agent window | embed the real terminal buffer via `nvim_win_set_buf` |
 | Attention model | binary unread flag + running flag (cmux's two signals) |
@@ -276,10 +281,16 @@ transient split and embeds.
 | `x` | `utils.confirm` → `ai.kill(row)` |
 | `q` / `<Esc>` | close the view |
 
-**Explicit `<CR>` selection, not cmux-style live-switch on cursor move**: a
-switch here is real window surgery plus `M.active`/`M._last` mutation;
-live-switching on `j`/`k` would thrash layout per keystroke and destroy the
-alt-tab pair just by browsing.
+**Selection model — revised 2026-08-10 after first live use.** The plan
+originally chose explicit `<CR>` over cmux-style live-switch, fearing
+per-keystroke window surgery and `M.active`/`M._last` thrash. Half of that
+fear was wrong: inside the view a switch is just `nvim_win_set_buf` — no
+layout surgery. So `j`/`k` now **preview**: a CursorMoved handler swaps the
+row's terminal into the main pane immediately (skipping spawning rows), but
+does NOT touch `M.active`/`M._last` — the half of the objection that was
+right. Commit stays explicit: `<CR>`/digits, or entering the pane (the
+embed re-stamp makes the WinEnter tracker commit whatever you're looking
+at). Browsing and leaving keeps the pool exactly as it was.
 
 **Index jumps** (cmux's `⌘1–8`, `indexed_select`'s `<M-1>`–`<M-9>`): plain
 `1`–`9` in the sidebar select row N (safe — it's a list panel, digits have

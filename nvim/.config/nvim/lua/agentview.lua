@@ -206,6 +206,7 @@ local function embed(name)
   local s = require('sidekick.cli.state').get({ name = name, started = true })[1]
   local t = s and s.terminal
   if not (t and t.buf and vim.api.nvim_buf_is_valid(t.buf)) then return false end
+  if vim.api.nvim_win_get_buf(main_win) == t.buf then return true end  -- already shown
   if t:is_open() then t:hide() end
   vim.api.nvim_win_set_buf(main_win, t.buf)
   vim.w[main_win].sidekick_cli = t.tool
@@ -432,6 +433,23 @@ vim.api.nvim_create_autocmd({ 'WinEnter' }, {
   group = augroup,
   desc = 'Agent view: track the ▸ active marker',
   callback = schedule_render,
+})
+
+-- Live preview: browsing the sidebar with j/k swaps the row's terminal into
+-- the main pane immediately — no <CR> needed to *see* a session. A pure
+-- buffer swap (embed), NOT a commit: M.active/M._last (the <C-]> alt-tab
+-- pair) only change on <CR>/digits or on entering the pane (whose re-stamp
+-- makes the WinEnter tracker commit what you're looking at). The ▸ marker
+-- keeps showing the committed active session while previewing.
+vim.api.nvim_create_autocmd('CursorMoved', {
+  group = augroup,
+  desc = 'Agent view: preview the session under the cursor',
+  callback = function()
+    if not (sidebar_buf and vim.api.nvim_get_current_buf() == sidebar_buf) then return end
+    if not M.is_active() then return end
+    local r = rows_by_lnum[vim.api.nvim_win_get_cursor(0)[1]]
+    if r and not r.spawning then embed(r.name) end
+  end,
 })
 
 vim.api.nvim_create_autocmd('User', {

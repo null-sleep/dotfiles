@@ -2863,13 +2863,18 @@ In the sidebar (buffer-local):
 
 | Key | Action |
 |---|---|
-| `<CR>` | Open the session under the cursor in the main pane (makes it active) |
-| `1`..`9` | Open row N directly (digits match the `<M-N>` jumps) |
+| `j`/`k` (browse) | The main pane follows the cursor — each row's terminal previews immediately, no `<CR>` needed to see it |
+| `<CR>` | Commit the session under the cursor: make it active + focus the main pane |
+| `1`..`9` | Commit row N directly (digits match the `<M-N>` jumps) |
 | `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI) |
 | `n` | New session (the `<leader>an` flow; embeds once it attaches) |
 | `r` | Label the session under the cursor |
 | `x` | Kill the session under the cursor (confirm popup) |
 | `q` / `<Esc>` | Close the view |
+
+Browsing previews without committing: the **active** session (`▸`, sends,
+`<C-]>` alt-tab pair) only changes on `<CR>`/digits or on entering the main
+pane — leave the view mid-browse and the pool is exactly as you left it.
 
 `<C-.>`/`<leader>ai` inside the view bounce between the main pane and the
 sidebar; `<leader>aa`/`<M-a>` ("stash the agent UI") close the view. The
