@@ -283,20 +283,19 @@ All four setup scripts are idempotent; re-running any of them when already confi
 | `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
-| `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
-| `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
-| `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
+| `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
 
-`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `jq`-based `setup-*.sh` scripts merge just their own keys into it idempotently, so re-running any of them is a no-op.
+`settings.json` **is stowed** (adopted 2026-08 so the sidekick hook registrations sync across machines — see the nvim GUIDE's AI section). Anything genuinely per-machine belongs in `~/.claude/settings.local.json`, which stays unmanaged. The three `jq`-based `setup-*.sh` scripts still merge their keys idempotently — they resolve the symlink first and write through it (a plain `mv` onto the link path would silently de-adopt the file) — so they're no-ops on a stowed machine and still bootstrap an unstowed one. `setup-theme.sh`'s real remaining job is seeding `~/.claude/themes/active.json`; `setup-lsp-plugins.sh`'s is the server-binary checks.
 
 **`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
 
 ### Recommended manual settings
 
-A few `~/.claude/settings.json` keys are worth setting by hand on a fresh
-machine but aren't worth a `setup-*.sh` script for — either because they're a
-single key, or because whether you want them is a judgment call rather than
-a fixed default:
+Most preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`,
+`enabledPlugins`) now arrive with the stowed `settings.json` — override any of
+them per machine in `~/.claude/settings.local.json` rather than editing the
+stowed file locally. One key stays a deliberate judgment call and is *not*
+in the stowed file:
 
 - **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
   Claude Code from sending non-essential telemetry (Statsig analytics,
@@ -307,16 +306,6 @@ a fixed default:
   `claude.ai/code/artifact/…` URL. Leave it unset (the default) to keep
   artifacts working; only set it on a machine where you'd rather suppress
   telemetry than publish artifacts.
-- **`model`** — set to `"opusplan"` to use Opus while in plan mode and fall
-  back to the default model otherwise.
-- **`effortLevel`** — set to `"high"` for more thorough reasoning on
-  supported models.
-- **`tui`** — set to `"fullscreen"` for the flicker-free alt-screen renderer
-  with virtualized scrollback.
-
-(`statusLine`, `enabledPlugins`, and `theme` are **not** in this list — they're
-already handled by `setup-statusline.sh`, `setup-lsp-plugins.sh`, and
-`setup-theme.sh` above.)
 
 <a id="lsp-plugins-code-intelligence"></a>
 ### LSP plugins (code intelligence)
@@ -351,7 +340,7 @@ That command:
 - writes **`~/.claude/RTK.md`** (a short usage cheatsheet) and adds an **`@RTK.md`** reference to **`~/.claude/CLAUDE.md`** so Claude knows the meta-commands;
 - backs up the prior settings to `~/.claude/settings.json.bak` and seeds a user filter template at `~/Library/Application Support/rtk/filters.toml`.
 
-`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. None of these files are stowed (all machine-specific `~/.claude` state); the reproducible artifact is the one command above. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
+`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. The hook itself now rides in the **stowed** `settings.json`, so on a stowed machine there's usually nothing to patch; `RTK.md`, the `CLAUDE.md` reference, and `filters.toml` stay machine-local, seeded by the one command above. If `rtk init` does rewrite `settings.json`, check afterward that `~/.claude/settings.json` is still a symlink (`stow --no-folding claude` restores it — external tools that replace-by-rename silently de-adopt stowed files). **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
 
 <a id="theme"></a>
 ### Theme

@@ -6,9 +6,9 @@
 # The plugins come from the official `claude-plugins-official` marketplace, but
 # each is just a thin config wrapper — it does NOT ship the language server
 # itself. The server binary must already be on your PATH (see checks below).
-# settings.json is not stowed (machine-specific), so this script merges the
-# `enabledPlugins` keys in idempotently, exactly like setup-statusline.sh /
-# setup-theme.sh.
+# settings.json is stowed with these keys already set, so this script mostly
+# exists for the binary checks; the merge stays idempotent either way, exactly
+# like setup-statusline.sh / setup-theme.sh.
 #
 # Prerequisites (install the server binaries first):
 #   lua-language-server  brew install lua-language-server
@@ -37,6 +37,11 @@ if [ ! -f "$SETTINGS" ]; then
   echo "No settings.json found at $SETTINGS — creating minimal one"
   echo '{}' > "$SETTINGS"
 fi
+
+# settings.json is stowed (a symlink into the repo): write through the link.
+# `mv tmp` onto the link path would replace the LINK with a plain file,
+# silently de-adopting the stowed copy.
+SETTINGS="$(readlink -f "$SETTINGS")"
 
 # Merge the plugin keys into .enabledPlugins without disturbing anything else.
 patch='{}'
