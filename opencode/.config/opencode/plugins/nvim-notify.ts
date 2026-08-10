@@ -11,8 +11,13 @@ import { spawn } from "node:child_process";
 const SCRIPT = `${process.env.HOME}/.claude/hooks/sidekick-notify.sh`;
 
 export const NvimNotify: Plugin = async ({ client }) => {
-  // Same guard as the hook script: no-op outside a sidekick-managed nvim.
+  // Same guards as the hook script: no-op outside a sidekick-managed nvim,
+  // and no-op when this opencode was spawned from a claude session's tool
+  // subprocess (which inherits the sidekick env — events here would
+  // mis-attribute to the claude row). Other cross-agent nestings have no
+  // marker to key on; accepted, see the plan's accepted-risk list.
   if (!process.env.NVIM || !process.env.SIDEKICK_SESSION) return {};
+  if (process.env.CLAUDE_CODE_EXECPATH) return {};
 
   // Fire-and-forget; a notification must never block or fail a turn.
   const notify = (category: string, payload: unknown) => {
@@ -30,8 +35,11 @@ export const NvimNotify: Plugin = async ({ client }) => {
 
   // Subagent (task-tool) child sessions emit the same idle/deleted events as
   // the session the user prompted; forwarding theirs would ring `●` mid-turn.
-  // parentID discriminates. Fail-open: an SDK hiccup degrades to a stray
-  // ring, not a silently dead feature.
+  // parentID discriminates. Fail-open — an SDK hiccup degrades to a stray
+  // ring, not a silently dead feature — but only a definitive answer is
+  // cached: the client resolves errors as {data: undefined} rather than
+  // throwing, and caching that as "main" would poison the filter for the
+  // process lifetime (retry on the next event instead).
   const topLevel = new Map<string, boolean>();
   const isMain = async (id?: string) => {
     if (!id) return true;
@@ -39,13 +47,13 @@ export const NvimNotify: Plugin = async ({ client }) => {
     if (main === undefined) {
       try {
         const res = await client.session.get({ path: { id } });
-        main = !res.data?.parentID;
-      } catch {
-        main = true;
-      }
-      topLevel.set(id, main);
+        if (res.data) {
+          main = !res.data.parentID;
+          topLevel.set(id, main);
+        }
+      } catch {}
     }
-    return main;
+    return main ?? true;
   };
 
   // session.idle is deprecated in favor of session.status{type:"idle"}; both
@@ -91,7 +99,10 @@ export const NvimNotify: Plugin = async ({ client }) => {
           break;
         case "session.deleted":
           if (!p.info?.parentID) notify("session-end", event);
-          if (id) topLevel.delete(id);
+          if (id) {
+            topLevel.delete(id);
+            lastIdle.delete(id);
+          }
           break;
       }
     },

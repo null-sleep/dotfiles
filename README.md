@@ -930,7 +930,8 @@ collection](https://github.com/narumiruna/pi-extensions), plus two repo-owned
 extensions stowed with the `pi` package: `claude-footer.ts` (the minimal
 footer) and `nvim-notify.ts` — the agent-view attention bridge, which forwards
 prompt/turn-end events to nvim's agent dashboard when pi runs inside a
-sidekick terminal (no-op elsewhere, including inside pi-subagents children). The npm extensions
+sidekick terminal (no-op elsewhere, including inside pi-subagents children;
+needs pi >= 0.80.5 for the `agent_settled` event it listens on). The npm extensions
 are installed by
 [`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
 `setup-settings.sh` — `pi install` registers each one in `settings.json`'s

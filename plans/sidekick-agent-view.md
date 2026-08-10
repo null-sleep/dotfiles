@@ -45,6 +45,33 @@ the interactive checklist gained three Phase-3 items.
   injects it into tool subprocesses, and the script's nested-claude guard
   (correctly) suppresses every event otherwise. First e2e attempt read as
   "plugin broken" for exactly this reason.
+- **Review hardening (2026-08-10, adversarial Opus review of the three
+  Phase-3 commits):** the opencode `isMain` filter no longer caches a
+  failed lookup (the SDK client resolves errors as `{data: undefined}`
+  instead of throwing — caching that as "main" would poison the subagent
+  filter for the process lifetime); `lastIdle` is pruned alongside
+  `topLevel` on `session.deleted`; pi's `session_shutdown` handler skips
+  reasons `reload` (extension/settings reload — the conversation
+  continues) and `fork`, which would otherwise wipe a live ring or an
+  unseen `●`; pi's `ctx.isIdle()` comment no longer claims a filtering
+  behavior that doesn't exist (settle fires after retries/continuations
+  drain, run flag already cleared — the check is a defensive no-op);
+  both emitters gained the `CLAUDE_CODE_EXECPATH` no-op guard so an
+  opencode/pi spawned from a claude session's tool subprocess doesn't
+  mis-attribute to the claude row.
+- **Accepted: cross-agent nesting beyond claude-parented.** An agent CLI
+  launched from *another* non-claude agent's tool subprocess (pi's bash
+  runs `opencode run`, etc.) inherits `$SIDEKICK_SESSION` and would emit
+  events onto the parent's row — there is no env marker to key on for
+  the pi/opencode/cursor-parented directions (claude-parented is covered
+  by `CLAUDE_CODE_EXECPATH`, pi-under-pi by `PI_SUBAGENT_DEPTH`).
+  Accepted as rare + self-healing (the parent's own next event corrects
+  the row), same stance as the pipeline plan's lossy delivery.
+- **Deliberate drops vs. the Phase 3 spec:** pi's `session_start` is not
+  wired (no registry category maps to it — Claude's `SessionStart` was
+  dropped for the same reason); the pi >= 0.80.5 floor for
+  `agent_settled` is noted in README's pi section rather than enforced
+  (pi installs unpinned by design; 0.84.1 verified).
 
 ### Phase 3 verified headless (2026-08-10)
 
@@ -275,7 +302,7 @@ insight this MVP copies.
 | Attention source | Claude Code hooks via the already-designed pipeline in [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) |
 | Acknowledgment | unread (`turn-complete`) clears on focus; urgent (needs input/permission) persists until actually answered |
 | Triage key | `<leader>aj` — jump to most recent unread |
-| Non-Claude agents | wired natively in Phase 3 — opencode plugin (full rings), cursor hooks.json (running + done), pi extension (running + done); no polling heuristics anywhere |
+| Non-Claude agents | wired natively in Phase 3 — opencode plugin (full rings), cursor via its native Claude-hook merge (running + done + session-end, no hooks.json), pi extension (running + done); no polling heuristics anywhere |
 | Ambient signal | statusline unread-count badge when the view is closed |
 
 ## Architecture

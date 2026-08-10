@@ -2903,10 +2903,11 @@ README's per-tool sections):
 Two deliberate asymmetries: a `●` for the session you're *currently looking
 at* (nvim focused) is suppressed — cmux's focused-pane rule — while `!` always
 rings; and ring support is **tiered by agent**. Claude and opencode emit the
-full set; cursor and pi have no permission/question events in their hook
-vocabularies, so their rows can show `»`/`●`/`○` but **never `!`** — on a
-cursor or pi row, absence of `!` does not mean nothing is needed. `·` just
-means "no event yet this session".
+full set; pi has no permission/question events in its vocabulary, and
+cursor's aren't reachable through the Claude-hook merge (it deliberately
+drops `Notification`/`PermissionRequest`) — so cursor and pi rows can show
+`»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not
+mean nothing is needed. `·` just means "no event yet this session".
 
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and
