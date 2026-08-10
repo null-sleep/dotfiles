@@ -140,6 +140,92 @@ Durable knowledge that outlives this feature, worth having greppable:
   deep per-session scratchpad path fails (no socket, no clear error);
   test sockets belong in `/tmp`.
 
+## Follow-ups — UX critique (2026-08-10, design review vs live cmux)
+
+An adversarial design review of the shipped view against cmux's current
+behavior. Two research corrections first — the plan's "What cmux actually
+does" section is out of date on both:
+
+- **cmux's primary transport is OSC (9/777), not hooks** — `cmux notify`
+  is the fallback. That's how cmux supports cursor and pi rings without
+  per-agent integration files; our hook-only reading is what produced the
+  cursor/pi `!` gap, it is not a property of those agents.
+- **cmux removed focus-auto-read entirely** (issue #963 → PR #971) after
+  shipping exactly the bug we ship: a notification arriving while the
+  target pane is focused was silently dropped, unrecoverable. Their fix
+  (store unread, suppress only the desktop popup, ack only on explicit
+  action) is an inbox answer; ours should defer, not drop (below).
+
+### Ranked follow-ups
+
+1. **Repair the ack model** (highest impact — rings currently feel like
+   weather, not a system; three overlapping paths make the last-focused
+   session the one that can never ring):
+   - Focused-suppression should *defer*, not drop: on turn-complete while
+     focused+looking, set a `deferred` flag; promote to `unread` on
+     WinLeave/FocusLost; `prompt-submit` clears it. Sitting there stays
+     silent; walking away without reading rings. (~8 LOC)
+   - Replace the blanket `FocusGained` ack (destroys a ring the frame you
+     alt-tab back) with ack-on-first-interaction — `ModeChanged` into
+     terminal-mode as the proxy. Read = interaction, not presence.
+   - `agentview.embed()` acks when `main_win` is current: in-view
+     `<M-N>`/cycle/`<CR>` swaps never fire WinEnter today, so the row and
+     badge stay lit while you read the session (and its *next* turn gets
+     focus-suppressed — worst of both). `jump_unread` already
+     special-cases this; generalize it. (~2 LOC)
+   - **Manual dismiss** (quick win, ship first): `M.ack(name, {force})` +
+     a sidebar key (`<M-u>`, mirroring cmux's `⌥⌘U`). Today a stuck `!`
+     (prompt answered but turn errors, `<Esc>`'d prompt, dropped Stop
+     RPC) is permanent: `! 1` lit forever, `<leader>aj` trapped. An
+     unclearable top-severity badge is how users stop trusting rings.
+2. **Glyph column legibility**: the right-aligned extmark loses to long
+   labels (13-char label + dim name overruns 30 cols — `M.rename` has no
+   length cap) and right-alignment defeats a single vertical scan. Move
+   the glyph to a fixed *leading* column (real text, before the digit);
+   merge `·` into `○` (diagnostic distinction, not triage — 6 glyphs → 5).
+3. **Badge redesign**: `! <label> +N` / `● <label>`, not `● N` — the
+   statusline answers "is this worth interrupting for", an identity
+   question; the count is dead weight since `<leader>aj` routes anyway.
+   Truncate label ~12 cells; hide inside the view tab (sidebar already
+   says it better). Resolves the plan's open badge TODO: per-agent glyph
+   rows, tier-split counts, and running counts are all rejected (growth,
+   non-actionable distinctions, anti-signal respectively).
+4. **OSC 9/777 ingestion via `TermRequest`** (highest ceiling, own
+   follow-up plan): nvim 0.12 exposes unhandled OSC to an autocmd with
+   the terminal buffer — maps straight to a session, no env bridge, no
+   per-agent files, no nested-process guards (~15 LOC). One mechanism
+   closes the cursor/pi `!` gap AND delivers notification preview text
+   (OSC 777 `title;body` — surface in the `<leader>aj` landing notify,
+   not the 30-col sidebar). Caveats to verify: prefer hooks where both
+   exist (Claude emits OSC 9 too — dedupe or per-agent preference);
+   confirm OSC survives to nvim's parser through the direct terminal
+   backend.
+5. **Quick wins, one batch**: drop `<Esc>` as a sidebar close key (reflex
+   key tearing down the tab; keep `q`); GUIDE.md `●` wording — cleared by
+   *entering* the pane, not "looking at it" (preview deliberately doesn't
+   ack); `<leader>aj` landing notify shows `last.raw.message` when
+   present ("what is it even asking me?"); a one-line "starting…" scratch
+   when the cursor previews a spawning `…` row (main pane currently shows
+   the previous session).
+6. **Urgent-only desktop notification** (small, gated): on an urgent
+   transition while `focused == false` — the exact alt-tabbed-away case
+   the feature exists for — `osascript display notification`. Urgent-only;
+   a `●` popup per turn across four agents trains ignoring them.
+
+### Explicitly not changing (validated better-than-cmux)
+
+- `j`/`k` preview + explicit commit, including preview-not-acking — fix
+  the GUIDE wording, never the behavior.
+- Two-tier `!`/`●` asymmetry — don't flatten to cmux's binary ring, and
+  don't import post-#971 "nothing auto-reads" (right for an inbox of
+  discrete notifications, wrong for a per-session boolean — rings would
+  sit permanently lit).
+- Stable name-sorted order shared by rows/cycle/digits/picker — cmux's
+  reorder-on-notify setting would repoint `<M-N>` under time pressure;
+  never adopt. (Spawning rows staying unnumbered protects the same
+  invariant.)
+- Shapes-not-colors glyphs, the dedicated tabpage, no spinner.
+
 Shipped on the `agent-view` branch as the initial six commits below (each
 with a `Part-of:` trailer), plus follow-ups: live preview (`7b894bc`),
 column restore on close (`0ffe65d`), and — after an adversarial review by
