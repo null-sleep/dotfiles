@@ -695,6 +695,19 @@ change ever drops the block, re-run the script to restore it.
 | `~/.cursor/cli-config.json` `statusLine` block | Injected by `setup-statusline.sh` |
 | `~/.cursor/cli-config.json` itself | **Not** stowed — machine-local (auth, model prefs) |
 
+### Agent-view rings — no cursor-side config
+
+cursor-agent merges hook registrations from `~/.claude/settings.json`,
+mapping `UserPromptSubmit` → `beforeSubmitPrompt`, `Stop` → `stop`, and
+`SessionEnd` → `sessionEnd` (`Notification` is deliberately not merged).
+So inside an nvim sidekick terminal, cursor sessions get running (`»`) and
+turn-complete (`●`) glyphs in the agent view through the already-stowed
+Claude hook script, with **zero** cursor-specific files — no
+`~/.cursor/hooks.json` needed. There is no urgent (`!`) tier for cursor:
+no needs-input hook exists in its vocabulary. Verified 2026-08-10 against
+2026.08.04-aaa8809: the merge invokes the script with `$NVIM` and
+`$SIDEKICK_SESSION` intact in the hook's env.
+
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
 
