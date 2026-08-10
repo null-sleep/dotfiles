@@ -284,6 +284,7 @@ All four setup scripts are idempotent; re-running any of them when already confi
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
+| `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
 
 `settings.json` **is stowed** (adopted 2026-08 so the sidekick hook registrations sync across machines — see the nvim GUIDE's AI section). Anything genuinely per-machine belongs in `~/.claude/settings.local.json`, which stays unmanaged. The three `jq`-based `setup-*.sh` scripts still merge their keys idempotently — they resolve the symlink first and write through it (a plain `mv` onto the link path would silently de-adopt the file) — so they're no-ops on a stowed machine and still bootstrap an unstowed one. `setup-theme.sh`'s real remaining job is seeding `~/.claude/themes/active.json`; `setup-lsp-plugins.sh`'s is the server-binary checks.
 
