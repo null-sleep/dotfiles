@@ -757,6 +757,7 @@ a fresh machine.
 |---|---|
 | `~/.config/opencode/opencode.json` | Symlinked via stow (`--no-folding`) |
 | `~/.config/opencode/tui.json` | Symlinked via stow (`--no-folding`) |
+| `~/.config/opencode/plugins/nvim-notify.ts` | Symlinked via stow (`--no-folding`) |
 | `~/.local/share/opencode/auth.json` | **Not** tracked — credentials, written by `/connect` |
 
 `--no-folding` matters here for the same reason it does for
@@ -769,6 +770,12 @@ everything opencode wrote afterwards would land in `~/src/dotfiles`.
 opencode's `{env:VAR}` substitution, and pins `autoupdate` to `false` — the
 binary is Homebrew-managed, so `brew upgrade opencode` owns the version rather
 than having opencode replace it underneath Homebrew.
+
+`plugins/nvim-notify.ts` is the agent-view attention bridge: when opencode
+runs inside an nvim sidekick terminal, it forwards prompt/turn-end/
+permission/question events to nvim's agent dashboard (nvim GUIDE.md → the
+`## AI (sidekick.nvim)` section). Outside sidekick it's a no-op, so the same
+config is safe in a plain terminal.
 
 <a id="opencode-theme"></a>
 ### Theme
