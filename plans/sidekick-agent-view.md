@@ -89,7 +89,56 @@ the interactive checklist gained three Phase-3 items.
   `beforeSubmitPrompt`/`stop` pair errored out headlessly (usage limit
   killed the turn pre-submission) — interactive item 12 remains.
 
-## Status — Phases 1+2 landed (2026-08-10, ~midnight EDT)
+### Field notes — non-obvious facts learned along the way (Phase 3)
+
+Durable knowledge that outlives this feature, worth having greppable:
+
+- **cursor-agent treats `~/.claude/` as a first-class config source**, not
+  just for hooks: the bundle also reads `.claude/settings.json` for
+  `enabledPlugins`, discovers skills from `~/.claude/skills` (alongside
+  `.codex/skills` and `.agents/skills`), and its workspace-sync patterns
+  include `**/.claude/**/*.json`. Changing anything in the claude stow
+  package can therefore change cursor-agent's behavior — the hook merge
+  that Phase 3 rides on is one instance of a broader pattern.
+- **cursor hooks fire on error paths**: the usage-limit run never submitted
+  a prompt, yet `sessionEnd` still arrived (`final_status: "error"`,
+  `reason: "error"` in the payload). Lifecycle hooks are reliable even
+  when the turn dies pre-submission; per-turn hooks are not.
+- **opencode's plugin loader normalizes the bus for you**: raw v2 events
+  carry `data`, but the loader re-wraps them as
+  `{id, type, properties: <data>}` before calling the `event` hook — so a
+  plugin only ever sees `properties`-shaped payloads even though the
+  binary's internal vocabulary is v2. (The plugin keeps a `?? ev.data`
+  fallback as forward-compat, currently dead code.)
+- **opencode calls every exported function of a plugin module** — no
+  default export or naming convention required — and loads from both
+  `plugin/` and `plugins/` (symlinks followed). A second, separate
+  "config-plugin" loader globs the same files expecting an
+  `{id, effect|setup}` shape and silently ignores modules that don't
+  match, so one file can serve either system without breaking the other.
+- **The opencode SDK client doesn't throw**: generated methods default to
+  `ThrowOnError = false`, resolving errors as `{data: undefined, error}`.
+  A `try/catch` around an SDK call is almost always dead code — check
+  `res.data` instead. This exact trap produced the isMain cache-poisoning
+  bug the review caught.
+- **pi's `agent_settled` is genuinely terminal**: retries, auto-compaction,
+  and queued continuations all drain inside the run loop before settle is
+  emitted, and the running flag clears first — so `ctx.isIdle()` is
+  unconditionally true at settle time. Any "wait for the real end of the
+  turn" logic should key on `agent_settled` alone, no idle-check needed.
+- **pi-subagents has two transports with different extension semantics**:
+  the default subprocess transport spawns full pi processes (inheriting
+  env, hence the `PI_SUBAGENT_DEPTH` guard), while the in-process
+  transport builds child sessions with `noExtensions: true` — in-process
+  children can never fire an extension, guarded or not.
+- **`pi -p` loses its shutdown race roughly half the time**: the
+  `session_shutdown(quit)` emit races process exit, so session-end
+  delivery from one-shot runs is best-effort (observed both outcomes).
+  Anything depending on session-end must tolerate its absence — the
+  registry does, via the nvim-side Detach sweep.
+- **macOS unix sockets cap at ~104 bytes of path**: `nvim --listen` into a
+  deep per-session scratchpad path fails (no socket, no clear error);
+  test sockets belong in `/tmp`.
 
 Shipped on the `agent-view` branch as the initial six commits below (each
 with a `Part-of:` trailer), plus follow-ups: live preview (`7b894bc`),
