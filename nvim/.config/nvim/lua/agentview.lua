@@ -207,8 +207,11 @@ local function embed(name)
   local s = require('sidekick.cli.state').get({ name = name, started = true })[1]
   local t = s and s.terminal
   if not (t and t.buf and vim.api.nvim_buf_is_valid(t.buf)) then return false end
-  if vim.api.nvim_win_get_buf(main_win) == t.buf then return true end  -- already shown
+  -- Before the already-shown short-circuit: a window for this session can be
+  -- open elsewhere (e.g. re-embedding after <leader>aa opened it in another
+  -- tab) even while it's already the main pane's buffer here — reclaim it.
   if t:is_open() then t:hide() end
+  if vim.api.nvim_win_get_buf(main_win) == t.buf then return true end  -- already shown
   vim.api.nvim_win_set_buf(main_win, t.buf)
   vim.w[main_win].sidekick_cli = t.tool
   vim.w[main_win].sidekick_session_id = t.id
@@ -258,8 +261,11 @@ function M.focus_main()
   end
 end
 
+-- 0 (current window), not sidebar_win: these keymaps are buffer-local, so
+-- they can fire in any window showing agentview://agents — a stale cached
+-- handle would read the wrong cursor.
 local function row_under_cursor()
-  return rows_by_lnum[vim.api.nvim_win_get_cursor(sidebar_win)[1]]
+  return rows_by_lnum[vim.api.nvim_win_get_cursor(0)[1]]
 end
 
 local function activate(r)
@@ -295,6 +301,20 @@ local function sidebar_keymaps(buf)
     if not r or r.spawning then return end
     utils.confirm(('Kill session %s?'):format(r.name), function()
       require('ai').kill(r.name)
+      -- render()'s cursor-snap self-skips while the sidebar is current (j/k
+      -- browsing must not be yanked) — but a kill is a commit, not a browse.
+      -- Schedule past the Detach handler's own render (kill's State.detach
+      -- queues that event via vim.schedule too, ahead of this one).
+      vim.schedule(function()
+        if not (sidebar_win and vim.api.nvim_win_is_valid(sidebar_win)) then return end
+        local active = require('ai').active
+        for lnum, row in pairs(rows_by_lnum) do
+          if row.name == active then
+            pcall(vim.api.nvim_win_set_cursor, sidebar_win, { lnum, 0 })
+            break
+          end
+        end
+      end)
     end)
   end, 'AI: Kill session under cursor')
   map('q', function() M.close() end, 'AI: Close agent view')
@@ -368,7 +388,10 @@ function M.open()
   -- Embedding hides the active session's window wherever it is — including
   -- an open <leader>aa column in this tab. Remember that it was open so
   -- close() can put it back instead of leaving the working tab column-less.
-  restore_solo = solo_open_in(vim.api.nvim_get_current_tabpage())
+  -- `or` keeps an already-true flag alive: re-entering the view from its own
+  -- origin tab, the column the first open() hid is gone, so this would
+  -- otherwise recompute false and close() would lose the restore.
+  restore_solo = restore_solo or solo_open_in(vim.api.nvim_get_current_tabpage())
   local t = find_tab()
   if t then
     if adopt(t) then
@@ -382,7 +405,11 @@ function M.open()
     -- Structure broken (a window was :q'd): close the remnant, rebuild.
     origin_tab = vim.api.nvim_get_current_tabpage() ~= t
       and vim.api.nvim_get_current_tabpage() or origin_tab
-    pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
+    if not pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose') then
+      -- Only tab left, tabclose refused: strip the marker so find_tab()
+      -- doesn't hand back this broken remnant forever.
+      vim.t[t].agentview = nil
+    end
   else
     origin_tab = vim.api.nvim_get_current_tabpage()
   end
@@ -394,6 +421,7 @@ end
 function M.close()
   local t = find_tab()
   if not t then return end
+  pending = nil  -- an abandoned mid-spawn name must not auto-embed on a later reuse
   if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
   pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
   if origin_tab and vim.api.nvim_tabpage_is_valid(origin_tab) then
@@ -428,21 +456,31 @@ vim.api.nvim_create_autocmd('User', {
   desc = 'Agent view: hide transient spawn windows, embed pending session',
   callback = function(args)
     if not M.is_active() then return schedule_render() end
-    local term = require('sidekick.cli.terminal').get(args.data.id)
-    -- Any sidekick window materializing in the view tab (spawn split, a late
-    -- pre-warm float) violates "the view owns display" — hide it. The job is
-    -- untouched; ai.lua's promote already skipped this tab (its agentview
-    -- guard), so nothing was reflowed.
-    if term and term.win and vim.api.nvim_win_is_valid(term.win)
-       and term.win ~= main_win
-       and vim.api.nvim_win_get_tabpage(term.win) == tab then
-      term:hide()
-    end
-    if term and term.tool and term.tool.name == pending then
-      pending = nil
-      embed(term.tool.name)
-    end
-    schedule_render()
+    local id = args.data.id
+    -- Emitted synchronously from inside Session.attach — state.lua's
+    -- M.attach hasn't called terminal:show() yet at this point, it does so
+    -- right after Session.attach returns. Hiding the window here (pre-show)
+    -- would just make that unconditional show() open a fresh split. Defer
+    -- everything to after it, re-resolving state fresh since a scheduled
+    -- tick can land after the view itself closed.
+    vim.schedule(function()
+      if not M.is_active() then return end
+      local term = require('sidekick.cli.terminal').get(id)
+      -- Any sidekick window materializing in the view tab (spawn split, a late
+      -- pre-warm float) violates "the view owns display" — hide it. The job is
+      -- untouched; ai.lua's promote already skipped this tab (its agentview
+      -- guard), so nothing was reflowed.
+      if term and term.win and vim.api.nvim_win_is_valid(term.win)
+         and term.win ~= main_win
+         and vim.api.nvim_win_get_tabpage(term.win) == tab then
+        term:hide()
+      end
+      if term and term.tool and term.tool.name == pending then
+        pending = nil
+        embed(term.tool.name)
+      end
+      schedule_render()
+    end)
   end,
 })
 
@@ -451,7 +489,11 @@ vim.api.nvim_create_autocmd('User', {
   pattern = 'SidekickCliDetach',
   desc = 'Agent view: re-embed after a session dies',
   callback = function()
-    if not find_tab() or not (main_win and vim.api.nvim_win_is_valid(main_win)) then return end
+    if not find_tab() then return end
+    -- Only re-embed when the view tab is actually current: a session dying
+    -- while the view idles in a background tab must not yank the focused
+    -- tab's CLI column out from under the user (embed() would hide it).
+    if not M.is_active() then return schedule_render() end
     -- ai.lua's detach sweep (same event, registered earlier) already
     -- repointed M.active to a survivor.
     sync()
@@ -496,7 +538,15 @@ vim.api.nvim_create_autocmd('User', {
   pattern = 'PersistenceSavePre',
   desc = 'Agent view: close before session save',
   callback = function()
-    M.close()
+    -- Not M.close(): a save must not change the recorded current tab or
+    -- open/close any other window (origin_tab switch, restore_solo re-show).
+    -- Just remove the view tab so it isn't serialized.
+    local t = find_tab()
+    if t then
+      if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
+      pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
+    end
+    restore_solo, pending = nil, nil
     for _, b in ipairs({ sidebar_buf, empty_buf }) do
       if b and vim.api.nvim_buf_is_valid(b) then
         pcall(vim.api.nvim_buf_delete, b, { force = true })
