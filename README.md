@@ -262,12 +262,12 @@ bash ~/src/dotfiles/claude/setup-review-pr.sh
 rtk init -g --auto-patch
 ```
 
-The `--no-folding` flag is important: it keeps `~/.claude/themes/` and
-`~/.claude/skills/` as **real directories** with only the repo's individual
-files symlinked in, so any machine-local themes or skills already there coexist
-untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
-with a single directory symlink (a "fold"), which can't hold local files
-alongside the synced ones.
+The `--no-folding` flag is important: it keeps `~/.claude/themes/`,
+`~/.claude/skills/`, and `~/.claude/hooks/` as **real directories** with only
+the repo's individual files symlinked in, so any machine-local themes, skills,
+or hooks already there coexist untouched. Without it, stow would replace a
+non-existent `~/.claude/themes/` with a single directory symlink (a "fold"),
+which can't hold local files alongside the synced ones.
 
 All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
 
@@ -286,6 +286,8 @@ All four setup scripts are idempotent; re-running any of them when already confi
 | `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
 | `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
 
+`~/.claude/hooks/sidekick-notify.sh` depends on `jq` and coreutils' `timeout` — both no-op-guard-checked at the top of the script, so a machine missing either just gets no agent-view attention glyphs rather than a broken hook; `jq` and `coreutils` are both in the Brewfile.
+
 `settings.json` **is stowed** (adopted 2026-08 so the sidekick hook registrations sync across machines — see the nvim GUIDE's AI section). Anything genuinely per-machine belongs in `~/.claude/settings.local.json`, which stays unmanaged. The three `jq`-based `setup-*.sh` scripts still merge their keys idempotently — they resolve the symlink first and write through it (a plain `mv` onto the link path would silently de-adopt the file) — so they're no-ops on a stowed machine and still bootstrap an unstowed one. `setup-theme.sh`'s real remaining job is seeding `~/.claude/themes/active.json`; `setup-lsp-plugins.sh`'s is the server-binary checks.
 
 **`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
@@ -295,8 +297,10 @@ All four setup scripts are idempotent; re-running any of them when already confi
 Most preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`,
 `enabledPlugins`) now arrive with the stowed `settings.json` — override any of
 them per machine in `~/.claude/settings.local.json` rather than editing the
-stowed file locally. One key stays a deliberate judgment call and is *not*
-in the stowed file:
+stowed file locally. Notably, the stowed file pins `model` (currently
+`opus[1m]`), so a fresh machine inherits that model choice too; override it in
+`settings.local.json` if a machine should default to something else. One key
+stays a deliberate judgment call and is *not* in the stowed file:
 
 - **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
   Claude Code from sending non-essential telemetry (Statsig analytics,
@@ -341,7 +345,7 @@ That command:
 - writes **`~/.claude/RTK.md`** (a short usage cheatsheet) and adds an **`@RTK.md`** reference to **`~/.claude/CLAUDE.md`** so Claude knows the meta-commands;
 - backs up the prior settings to `~/.claude/settings.json.bak` and seeds a user filter template at `~/Library/Application Support/rtk/filters.toml`.
 
-`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. The hook itself now rides in the **stowed** `settings.json`, so on a stowed machine there's usually nothing to patch; `RTK.md`, the `CLAUDE.md` reference, and `filters.toml` stay machine-local, seeded by the one command above. If `rtk init` does rewrite `settings.json`, check afterward that `~/.claude/settings.json` is still a symlink (`stow --no-folding claude` restores it — external tools that replace-by-rename silently de-adopt stowed files). **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
+`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. The hook itself now rides in the **stowed** `settings.json`, so on a stowed machine there's usually nothing to patch; `RTK.md`, the `CLAUDE.md` reference, and `filters.toml` stay machine-local, seeded by the one command above. If `rtk init` does rewrite `settings.json`, check afterward that `~/.claude/settings.json` is still a symlink — external tools that replace-by-rename silently de-adopt stowed files, and once that happens a plain `stow --no-folding claude` won't fix it: stow sees a real file already at the target and aborts rather than overwriting it. Recover with `rm ~/.claude/settings.json && stow --no-folding claude`. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
 
 <a id="theme"></a>
 ### Theme
@@ -386,9 +390,9 @@ Use `stow -R --no-folding claude` (not a plain `stow claude`):
   previous `stow claude`), `-R` unfolds it into a real directory before
   relinking. It works whether the target is currently a real dir, a folded
   symlink, or was never stowed.
-- **`--no-folding`** keeps `~/.claude/themes/` and `~/.claude/skills/` as real
-  directories, so the existing folders and any machine-local files in them are
-  preserved.
+- **`--no-folding`** keeps `~/.claude/themes/`, `~/.claude/skills/`, and
+  `~/.claude/hooks/` as real directories, so the existing folders and any
+  machine-local files in them are preserved.
 - **Non-destructive**: if that machine already has a real `catppuccin-latte.json`
   or its own `nvim-theme-to-claude/` skill, stow aborts without touching
   anything. To merge instead, move the local file aside, or run

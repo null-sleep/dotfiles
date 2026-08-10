@@ -34,13 +34,15 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 if [ ! -f "$SETTINGS" ]; then
-  echo "No settings.json found at $SETTINGS — creating minimal one"
-  echo '{}' > "$SETTINGS"
+  echo "Error: no settings.json found at $SETTINGS."
+  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
+  exit 1
 fi
 
 # settings.json is stowed (a symlink into the repo): write through the link.
 # `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy.
+# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
+# (stock older macOS lacks the flag).
 SETTINGS="$(readlink -f "$SETTINGS")"
 
 # Merge the plugin keys into .enabledPlugins without disturbing anything else.
@@ -50,11 +52,19 @@ for entry in "${PLUGINS[@]}"; do
   patch=$(jq -n --argjson p "$patch" --arg k "$key" '$p + {($k): true}')
 done
 
-jq --argjson patch "$patch" \
-  '.enabledPlugins = ((.enabledPlugins // {}) + $patch)' \
-  "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
-
-echo "Enabled LSP plugins in $SETTINGS."
+# Skip the write if every key is already true: settings.json is now git-tracked,
+# so an unconditional rewrite churns its inode on every run, and a jq failure
+# mid-write would leave a .tmp turd in the repo.
+if jq -e --argjson patch "$patch" \
+     '(.enabledPlugins // {}) as $cur | $patch | to_entries | all(.[]; $cur[.key] == true)' \
+     "$SETTINGS" >/dev/null 2>&1; then
+  echo "LSP plugins already configured in $SETTINGS."
+else
+  jq --argjson patch "$patch" \
+    '.enabledPlugins = ((.enabledPlugins // {}) + $patch)' \
+    "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
+  echo "Enabled LSP plugins in $SETTINGS."
+fi
 
 # Report which server binaries are present. A plugin whose binary is missing is
 # harmless (the LSP tool just errors for that file type) until you install it.

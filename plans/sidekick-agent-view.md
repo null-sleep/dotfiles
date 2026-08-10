@@ -5,10 +5,11 @@
 
 ## Status — Phases 1+2 landed (2026-08-10, ~midnight EDT)
 
-Shipped on the `agent-view` branch as six commits (each with a `Part-of:`
-trailer). Phase 3 is untouched. Interactive verification below is
-**outstanding** — nothing past the headless list has been exercised in a
-real UI session.
+Shipped on the `agent-view` branch as the initial six commits below (each
+with a `Part-of:` trailer), plus follow-up commits: live preview (`7b894bc`),
+column restore on close (`0ffe65d`), and a review-fix batch landing now.
+Phase 3 is untouched. Interactive verification below is **outstanding** —
+nothing past the headless list has been exercised in a real UI session.
 
 - `37b0077` ai.lua groundwork: `M._set_active` export, `M.kill(name)`
   (picker `<C-x>` now delegates to it), `M.open_index(n)`,
@@ -59,6 +60,16 @@ real UI session.
   only window) and left the working tab column-less on return — surprising
   in practice. `close()` now re-shows the active session's column in the
   origin tab when one was open at `open()` time.
+- **Accepted: trap-vs-slow-RPC race.** If the hook's `timeout 2` fires while
+  nvim's main loop is busy, the EXIT trap unlinks the tmpfile before
+  `handle()` reads it — the event is silently dropped. Accepted per the
+  pipeline plan's lossy-delivery stance; not worth a fix.
+- **Accepted: nested-claude `EXECPATH` heuristic (empirical, dated
+  2026-08-10).** `sidekick-notify.sh` treats a set `CLAUDE_CODE_EXECPATH` as
+  proof the firing claude is nested inside another claude session and no-ops.
+  If a future Claude Code release starts injecting `CLAUDE_CODE_EXECPATH`
+  into hook envs too, ALL events would be silently suppressed — this sentence
+  is the greppable breadcrumb for that failure mode.
 
 ### Verified headless (2026-08-10)
 

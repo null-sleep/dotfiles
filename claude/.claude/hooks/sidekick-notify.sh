@@ -15,6 +15,16 @@
 # No-op outside a sidekick-managed nvim session. Hooks are process-global:
 # this fires for every claude invocation on the machine (Terminal.app, CI).
 [ -n "$NVIM" ] && [ -n "$SIDEKICK_SESSION" ] || exit 0
+
+# No-op for a nested claude (e.g. `claude -p` spawned from inside another
+# claude session). Claude Code injects CLAUDE_CODE_EXECPATH into tool-subprocess
+# envs but NOT into hook envs (verified empirically 2026-08-10 — CLAUDECODE /
+# CLAUDE_CODE_SESSION_ID etc. ARE self-added to hooks, EXECPATH is not), so its
+# presence here means the parent claude spawned this one; its events would
+# mis-attribute to the parent's row. ai.lua force-unsets it in the sidekick job
+# env so the top-level session can't inherit one.
+[ -z "${CLAUDE_CODE_EXECPATH:-}" ] || exit 0
+
 category="$1"
 [ -n "$category" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
@@ -23,11 +33,16 @@ command -v timeout >/dev/null 2>&1 || exit 0
 tmpfile=$(mktemp) || exit 0
 # Own the cleanup: a dead/unreachable nvim must not leak tmpfiles.
 trap 'rm -f "$tmpfile"' EXIT
+# $tmpfile is interpolated into a single-quoted Lua string below; a
+# user-controlled $TMPDIR containing a quote or backslash would break out of
+# it, so refuse rather than build a bad remote-expr.
+case $tmpfile in *[\'\\]*) exit 0 ;; esac
 
 # Envelope {session, category, raw}; raw keeps the hook's stdin verbatim
 # (as JSON when it parses, as a string otherwise) for live inspection —
-# field names beyond the envelope are unverified until observed.
-raw=$(cat)
+# field names beyond the envelope are unverified until observed. timeout
+# bounds stdin: a hook must never block a Claude turn on a closed/absent pipe.
+raw=$(timeout 2 cat)
 jq -n -c --arg session "$SIDEKICK_SESSION" --arg category "$category" --arg raw "$raw" \
   '{session: $session, category: $category, raw: ($raw | fromjson? // $raw)}' \
   > "$tmpfile" 2>/dev/null || exit 0

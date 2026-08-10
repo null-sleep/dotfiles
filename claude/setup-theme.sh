@@ -53,13 +53,15 @@ if [ ! -e "$ACTIVE_FILE" ]; then
 fi
 
 if [ ! -f "$SETTINGS" ]; then
-  echo "No settings.json found at $SETTINGS — creating minimal one"
-  echo '{}' > "$SETTINGS"
+  echo "Error: no settings.json found at $SETTINGS."
+  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
+  exit 1
 fi
 
 # settings.json is stowed (a symlink into the repo): write through the link.
 # `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy.
+# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
+# (stock older macOS lacks the flag).
 SETTINGS="$(readlink -f "$SETTINGS")"
 
 current=$(jq -r '.theme // empty' "$SETTINGS")
