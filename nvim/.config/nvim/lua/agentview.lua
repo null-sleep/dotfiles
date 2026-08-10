@@ -15,6 +15,7 @@ local utils = require('utils')
 local tab, main_win, sidebar_win, origin_tab
 local sidebar_buf, empty_buf
 local pending          -- name spawned from the view; embedded on first attach
+local restore_solo     -- origin tab had a CLI column at open → re-show on close
 local rows_by_lnum = {}
 local scheduled = false
 local ns = vim.api.nvim_create_namespace('agentview')
@@ -351,7 +352,23 @@ local function build_tab()
   end
 end
 
+-- Was a solo CLI column open in `tabpage`? Splits only (`relative == ''`) —
+-- the pre-warm hidden float is is_open() too and must not count.
+local function solo_open_in(tabpage)
+  for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
+    if t:is_open() and vim.api.nvim_win_get_config(t.win).relative == ''
+       and vim.api.nvim_win_get_tabpage(t.win) == tabpage then
+      return true
+    end
+  end
+  return false
+end
+
 function M.open()
+  -- Embedding hides the active session's window wherever it is — including
+  -- an open <leader>aa column in this tab. Remember that it was open so
+  -- close() can put it back instead of leaving the working tab column-less.
+  restore_solo = solo_open_in(vim.api.nvim_get_current_tabpage())
   local t = find_tab()
   if t then
     if adopt(t) then
@@ -381,6 +398,18 @@ function M.close()
   pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
   if origin_tab and vim.api.nvim_tabpage_is_valid(origin_tab) then
     vim.api.nvim_set_current_tabpage(origin_tab)
+    -- Restore the column the open-time embed hid: re-show the ACTIVE
+    -- session (it may have changed in the view — one visible CLI = active,
+    -- same as show_solo), unfocused, at the remembered width. No promote
+    -- reflow: SidekickCliAttach fires once per lifetime, and re-shows land
+    -- full-height on their own (see ai.lua's promote comment).
+    if restore_solo then
+      restore_solo = nil
+      local ai = require('ai')
+      if #require('sidekick.cli.state').get({ name = ai.active, started = true }) > 0 then
+        pcall(require('sidekick.cli').show, { name = ai.active, focus = false })
+      end
+    end
   end
 end
 

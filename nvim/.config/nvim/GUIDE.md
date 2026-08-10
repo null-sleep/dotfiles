@@ -2855,8 +2855,10 @@ picker, `<leader>an` creation) routes into the view instead of opening
 splits; sidekick owns zero windows there. Context sends are refused inside
 the view (they'd render against the sidebar, not code) — close it first.
 Closing the view (`q`/`<Esc>`/toggle again) returns to the originating tab;
-all sessions keep running, and the normal `<leader>aa` right-column flow
-resumes as if the view never existed. Row order is name-sorted — the same
+all sessions keep running. Entering the view hides an open `<leader>aa`
+column (embedding must own the buffer's only window) — closing it restores
+the column if one was open when you entered, showing the *active* session
+(which may have changed in the view), unfocused, at its remembered width. Row order is name-sorted — the same
 order `<M-]>` cycles and `<M-1>`..`<M-9>` jump.
 
 In the sidebar (buffer-local):

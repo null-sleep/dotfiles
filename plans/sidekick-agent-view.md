@@ -54,6 +54,11 @@ real UI session.
   the plan's layout-surgery objection didn't survive contact with the
   implementation); commit-as-active stays on `<CR>`/digits/pane entry.
   See the revised "Selection model" rationale below.
+- **Column restore on close (2026-08-10, live use)**: opening the view
+  over an open `<leader>aa` column hid it (the embed owns the buffer's
+  only window) and left the working tab column-less on return — surprising
+  in practice. `close()` now re-shows the active session's column in the
+  origin tab when one was open at `open()` time.
 
 ### Verified headless (2026-08-10)
 
@@ -315,7 +320,11 @@ kill-last-agent → scratch transition against the pin during testing.
 - Terminals keep running on close: the view's windows were never in
   sidekick's registry (`term.win` stayed nil after the embed-time hide), so
   back in tab 1 `<leader>aa` opens a fresh right split at the remembered
-  width.
+  width. **Revised 2026-08-10 (live use)**: the open-time embed hides an
+  open `<leader>aa` column, which read as "sidekick disappeared" — so
+  `open()` remembers a column was open in the origin tab and `close()`
+  re-shows the active session there (unfocused, remembered width) instead
+  of requiring a manual re-summon.
 - Manual `:q`/`:tabclose` needs no teardown handler — every entry point
   validates tab/win handles and rebuilds; the `vim.t` marker dies with the
   tab.
