@@ -376,7 +376,10 @@ Grouped by state, not priority.
 - [sidekick-agent-view.md](sidekick-agent-view.md) — the agent view MVP:
   `<leader>av` dedicated tabpage with a left agent-list sidebar +
   embedded agent terminal, cycling, and binary attention glyphs consuming
-  the event pipeline (`agentview.lua` + `agent_events.lua`).
+  the event pipeline (`agentview.lua` + `agent_events.lua`). All three
+  phases landed 2026-08-10 (Phase 3: opencode plugin, pi extension,
+  cursor via its native Claude-hook merge); interactive verification of
+  the full checklist is the remaining open item.
 - [sidekick-windowless-prewarm.md](sidekick-windowless-prewarm.md) — real
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.

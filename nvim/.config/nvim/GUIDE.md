@@ -105,7 +105,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
 - **`agentview.lua`** — the `<leader>av` agent-view tab: sidebar of all sidekick sessions + the selected session's terminal embedded via `nvim_win_set_buf` (sidekick owns no window while the view is current — `ai.lua`'s show/focus/toggle paths delegate here). Lazy-required — no Load-order entry
-- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by Claude-Code hooks over `--remote-expr` RPC (`claude/.claude/hooks/sidekick-notify.sh`; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
+- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by all four agents over `--remote-expr` RPC through the shared `claude/.claude/hooks/sidekick-notify.sh` (Claude hooks, an opencode plugin, a pi extension, cursor's native Claude-hook merge; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -2885,8 +2885,11 @@ view re-stamps its main window with the session's identity, which is also
 what keeps active-session tracking correct there.
 
 **Attention glyphs** (right-aligned per row, from the `agent_events.lua`
-registry — fed by Claude Code hooks through the stowed
-`claude/.claude/hooks/sidekick-notify.sh`, see the repo README):
+registry — all four agents feed it through the same stowed
+`claude/.claude/hooks/sidekick-notify.sh` script: Claude via its hook
+registrations, opencode via a stowed plugin, pi via a stowed extension,
+cursor by merging the Claude hook registrations natively — see the repo
+README's per-tool sections):
 
 | Glyph | Meaning | Cleared by |
 |---|---|---|
@@ -2899,9 +2902,11 @@ registry — fed by Claude Code hooks through the stowed
 
 Two deliberate asymmetries: a `●` for the session you're *currently looking
 at* (nvim focused) is suppressed — cmux's focused-pane rule — while `!` always
-rings; and only Claude sessions emit events today (cursor/opencode/pi rows
-show `·` until their Phase-3 emitters land), so absence of `!` on those
-doesn't mean nothing is needed.
+rings; and ring support is **tiered by agent**. Claude and opencode emit the
+full set; cursor and pi have no permission/question events in their hook
+vocabularies, so their rows can show `»`/`●`/`○` but **never `!`** — on a
+cursor or pi row, absence of `!` does not mean nothing is needed. `·` just
+means "no event yet this session".
 
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and

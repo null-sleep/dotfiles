@@ -3,6 +3,65 @@
 > UX walkthrough (static mockups reviewed 2026-08-08):
 > https://claude.ai/code/artifact/93af4a5d-ed72-48ed-9518-0400679ec2bd
 
+## Status — Phases 1+2+3 landed (Phase 3: 2026-08-10 evening EDT)
+
+Phase 3 shipped as three commits on `agent-view`: `7cafee0` opencode
+plugin (full rings), `9e1075e` pi extension (running/done), `66f7c44`
+cursor docs (the free Claude-hook merge verified — no hooks.json needed,
+no cursor stow entry created). Deltas and headless verification below;
+the interactive checklist gained three Phase-3 items.
+
+### Phase 3 deltas discovered during execution
+
+- **opencode's published v1 plugin types lag its live bus.** The 1.18.10
+  binary contains zero `permission.updated` strings — the bus publishes the
+  v2 vocabulary (`permission.asked`, `question.asked`, payloads under
+  `data`) while `@opencode-ai/plugin` still types the `event` hook with the
+  v1 union (`permission.updated`, payloads under `properties`); observed
+  events actually arrived `properties`-shaped. The plugin normalizes both
+  shapes and answers to both permission names.
+- **opencode loads plugins from both `plugin/` and `plugins/`**
+  (marker-tested on 1.18.10). `plugins/` (current docs' name) is used.
+- **opencode subagent (task-tool) child sessions emit the same
+  idle/deleted events** as the prompted session; a child's idle would ring
+  `●` mid-turn. Filtered via `parentID` (SDK `session.get`, cached,
+  fail-open); `session.deleted` filters on the payload's own
+  `info.parentID` since the session is already gone. Urgent events are
+  deliberately NOT filtered — a child's permission ask still blocks the
+  terminal.
+- **pi needed its own nested guard**: pi-subagents children are full pi
+  processes inheriting the sidekick env; the extension no-ops when
+  `PI_SUBAGENT_DEPTH` is set — the pi analogue of the
+  `CLAUDE_CODE_EXECPATH` heuristic. Also: `pi -p` never emits
+  `session_shutdown`, so session-end bookkeeping there falls to the
+  Detach sweep (fine — TUI quit/reload/new/resume do emit it).
+- **cursor's merge map recovered from the shipped bundle** (2026.08.04):
+  `UserPromptSubmit→beforeSubmitPrompt`, `Stop→stop`,
+  `SessionEnd→sessionEnd`, `SubagentStop→subagentStop`, and — explicitly
+  null — `Notification` and `PermissionRequest`. Matches the plan's
+  prediction exactly; the free route stands, no `~/.cursor/hooks.json`.
+- **Testing gotcha (breadcrumb):** e2e-testing any of these from inside a
+  Claude Code session requires `env -u CLAUDE_CODE_EXECPATH` — Claude
+  injects it into tool subprocesses, and the script's nested-claude guard
+  (correctly) suppresses every event otherwise. First e2e attempt read as
+  "plugin broken" for exactly this reason.
+
+### Phase 3 verified headless (2026-08-10)
+
+- opencode, real `opencode run` with `$NVIM`+`$SIDEKICK_SESSION` against a
+  live `--listen` instance: `chat.message` → prompt-submit and
+  `session.idle` → turn-complete both delivered; final registry state
+  `unread`/`turn-complete`. Event-type inventory logged from a sandboxed
+  `XDG_CONFIG_HOME` run (session.idle fires; session.status too).
+- pi 0.84.1, real `pi -p` run, same rig: prompt-submit then turn-complete
+  delivered; `before_agent_start`/`agent_settled`/`ctx.isIdle` confirmed
+  in pi's shipped type declarations first.
+- cursor, real `cursor-agent -p` run, same rig: `sessionEnd` delivered
+  through the Claude-hook merge with env intact (registered nowhere but
+  `~/.claude/settings.json` — proves the merge path). The
+  `beforeSubmitPrompt`/`stop` pair errored out headlessly (usage limit
+  killed the turn pre-submission) — interactive item 12 remains.
+
 ## Status — Phases 1+2 landed (2026-08-10, ~midnight EDT)
 
 Shipped on the `agent-view` branch as the initial six commits below (each
@@ -164,6 +223,17 @@ one `env -u NVIM nvim` session:
 - [ ] Statusline badge: `● N` appears with the view closed, flips to `! N`
       on a permission prompt, clears at zero; repaint is immediate (the
       lualine refresh autocmd).
+- [ ] Phase 3, opencode (item 11): prompt in a sidekick opencode session →
+      `»`; finish → `●`; trigger a permission ask → `!` on that row only
+      (headless run verified »/● already; the urgent tiers need the TUI).
+- [ ] Phase 3, cursor (item 12): prompt → `»`, finish → `●` via the
+      Claude-hook merge (headless run only proved sessionEnd — the
+      beforeSubmitPrompt/stop pair needs a turn that actually runs; usage
+      limit blocked it 2026-08-10). If `»`/`●` never appear, the fallback
+      is an explicit `~/.cursor/hooks.json` per the Phase 3 section.
+- [ ] Phase 3, pi (item 13): prompt in a sidekick pi TUI → `»`, settle →
+      `●`; `/subagents` work must NOT flicker rings mid-turn (the
+      PI_SUBAGENT_DEPTH guard).
 
 ## Problem
 
