@@ -6,10 +6,15 @@
 ## Status — Phases 1+2 landed (2026-08-10, ~midnight EDT)
 
 Shipped on the `agent-view` branch as the initial six commits below (each
-with a `Part-of:` trailer), plus follow-up commits: live preview (`7b894bc`),
-column restore on close (`0ffe65d`), and a review-fix batch landing now.
-Phase 3 is untouched. Interactive verification below is **outstanding** —
-nothing past the headless list has been exercised in a real UI session.
+with a `Part-of:` trailer), plus follow-ups: live preview (`7b894bc`),
+column restore on close (`0ffe65d`), and — after an adversarial review by
+two independent reviewers that verified findings against the sidekick
+source — a three-commit hardening batch (`2a4880e` view lifecycle,
+`8c86688` kill-by-state/focus-ack/nested-claude env, `935e6e8` hook script
++ setup scripts + docs). A model-preference change (`466ae08`) also rides
+on the branch. Phase 3 is untouched. Interactive verification below is
+**outstanding** — nothing past the headless list has been exercised in a
+real UI session.
 
 - `37b0077` ai.lua groundwork: `M._set_active` export, `M.kill(name)`
   (picker `<C-x>` now delegates to it), `M.open_index(n)`,
@@ -60,6 +65,32 @@ nothing past the headless list has been exercised in a real UI session.
   only window) and left the working tab column-less on return — surprising
   in practice. `close()` now re-shows the active session's column in the
   origin tab when one was open at `open()` time.
+- **Review hardening (2026-08-10, commits `2a4880e`/`8c86688`/`935e6e8`)** —
+  the adversarial review corrected several design assumptions:
+  - `SidekickCliAttach` is emitted **synchronously from inside**
+    `State.attach`, which calls `terminal:show()` right after the handler
+    returns — so hiding the transient window in the handler *caused* a
+    fresh split instead of preventing one (reproduced headlessly). The
+    view's handler now defers all its work with `vim.schedule`.
+  - `embed()` hides a reopened window even when the buffer is already the
+    main pane's; the Detach handler only re-embeds when the view tab is
+    current (a background view must not steal the working tab's column);
+    `restore_solo` survives view re-entry; a last-tab close failure strips
+    the tab marker; `PersistenceSavePre` does minimal teardown (no tab
+    switch, no column re-show); `pending` clears on close.
+  - `M.kill` takes an optional pre-resolved state object and the picker
+    passes its row's — a name-only lookup prefers the current-cwd session
+    and could kill the wrong one of a same-named pair.
+  - Focus-ack has a second trigger: `FocusGained` acks the current
+    window's session (a ring raised while nvim was OS-backgrounded was
+    otherwise stuck if you were already sitting in that window).
+  - Hook script: stdin read bounded (`timeout 2 cat` — a closed pipe hung
+    until Claude's hook timeout), mktemp path guarded against quote/
+    backslash, nested-claude events dropped (next bullet's heuristic);
+    `ai.lua` force-unsets `CLAUDE_CODE_EXECPATH` in job envs as the
+    counterpart. Setup scripts refuse to create a plain settings.json
+    (post-adoption that made stow abort); the rtk hook self-guards on
+    machines without rtk.
 - **Accepted: trap-vs-slow-RPC race.** If the hook's `timeout 2` fires while
   nvim's main loop is busy, the EXIT trap unlinks the tmpfile before
   `handle()` reads it — the event is silently dropped. Accepted per the
@@ -84,6 +115,12 @@ nothing past the headless list has been exercised in a real UI session.
 - View open/close/re-source (module reload + reopen, named-buffer reuse),
   full-config startup clean, `jq` validity of settings.json, setup-script
   idempotence with the symlink surviving.
+- Post-review round: nested-claude guard end-to-end (event with
+  `CLAUDE_CODE_EXECPATH` set → suppressed; without → delivered as
+  `unread`, against a live `--listen` instance); hook script with stdin
+  closed exits 0 in ~2s (was: hang); `PersistenceSavePre` teardown with
+  the view open removes the tab without switching; setup scripts re-run
+  against the live symlink → "already configured", link intact.
 
 ### Interactive verification — OUTSTANDING (needs a real session)
 
@@ -110,7 +147,9 @@ one `env -u NVIM nvim` session:
       the envelope are still unverified against real data.**
 - [ ] Focused-suppression: Stop while sitting in that terminal → no ring;
       alt-tab to another app first → ring appears; a permission prompt
-      rings even while focused (item 6).
+      rings even while focused (item 6). Then alt-tab back while still
+      sitting in that session's window → the ring clears on refocus
+      (the `FocusGained` ack from review hardening).
 - [ ] `<leader>aj` picks the newest of two unread and skips the focused
       session (an unanswered `!` must not trap the jump) (item 7).
 - [ ] Non-sidekick `claude` in Terminal.app: hook no-ops (item 8 —
@@ -413,10 +452,13 @@ Looking at an agent is enough to acknowledge "I finished a turn", but NOT
 enough to resolve "I need something from you" — an urgent state must
 survive focus and only clear when the user actually responds:
 
-- **`turn-complete` (`●`)**: one `WinEnter` autocmd in `agent_events.lua`
-  (the state owner): if the entered window's `sidekick_cli` stamp names a
-  session whose attention is `turn-complete`, `M.ack`. This is why the view
-  re-stamps embedded windows.
+- **`turn-complete` (`●`)**: focus-ack autocmds in `agent_events.lua` (the
+  state owner) — `WinEnter`, plus `FocusGained` for the already-sitting-in-
+  the-window case (added in review hardening): if the entered/refocused
+  window's `sidekick_cli` stamp names a session whose attention is
+  `turn-complete`, `M.ack`. This is why the view re-stamps embedded
+  windows. (`<leader>aj` additionally acks directly after landing — an
+  in-view jump can swap the buffer under the cursor with no `WinEnter`.)
 - **`needs-permission` / `needs-input` (`!`)**: no focus-ack. Cleared by
   real progress only: `prompt-submit` (the user typed a prompt there), or
   superseded by the session's next attention event (answering a permission

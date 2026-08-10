@@ -19,7 +19,10 @@ off or delete them as they land; add new ones freely.
   [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)
   transport (stowed hook script + 5 registrations, `agent_events.lua`
   registry — state machine verified headless incl. end-to-end RPC),
-  glyphs, `<leader>aj`, and the `● N`/`! N` statusline badge. Still to do:
+  glyphs, `<leader>aj`, and the `● N`/`! N` statusline badge; plus live-use
+  revisions (sidebar live-preview, column restore on close) and a
+  three-commit hardening batch from an adversarial two-reviewer pass (all
+  findings fixed — see the plan's Status section). Still to do:
   the plan's interactive verification list (items 1–10 — rings with real
   sessions, focused-suppression, permission-prompt persistence, layout
   restore), then Phase 3 emitters for opencode (plugin, full rings),
