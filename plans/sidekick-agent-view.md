@@ -3,6 +3,108 @@
 > UX walkthrough (static mockups reviewed 2026-08-08):
 > https://claude.ai/code/artifact/93af4a5d-ed72-48ed-9518-0400679ec2bd
 
+## Status — Phases 1+2 landed (2026-08-10, ~midnight EDT)
+
+Shipped on the `agent-view` branch as six commits (each with a `Part-of:`
+trailer). Phase 3 is untouched. Interactive verification below is
+**outstanding** — nothing past the headless list has been exercised in a
+real UI session.
+
+- `37b0077` ai.lua groundwork: `M._set_active` export, `M.kill(name)`
+  (picker `<C-x>` now delegates to it), `M.open_index(n)`,
+  `<M-1>`–`<M-9>` in CLI terminals.
+- `35c25e4` `lua/agentview.lua` + delegates/guards + registrations
+  (stickybuf, clamp, special_filetypes, 4 row-part highlight groups).
+- `4051374` `~/.claude/settings.json` adopted into the claude stow package.
+- `d90646a` `claude/.claude/hooks/sidekick-notify.sh` + the 5 hook
+  registrations — live in Claude Code from that commit on.
+- `64d8d16` `lua/agent_events.lua` + `$SIDEKICK_SESSION` env bridge;
+  `init.lua` loads it immediately before `ai`.
+- `7bf47a2` glyphs, `<leader>aj`, `● N`/`! N` statusline badge.
+
+### Deltas discovered during execution (now part of the design)
+
+- **Two stray-window paths beyond the planned delegates.** With
+  `term.win = nil` during an embed, ANY sidekick show-path splits the view
+  tab (`open_win`'s guard is `is_open()`). `M.toggle_active`
+  (`<leader>aa`/`<M-a>`, via `cli.toggle`) now delegates to
+  `agentview.toggle()` — inside the view, "stash the agent UI" means
+  leaving it, keeping `<M-a>`/`<M-v>` symmetric. `M.send` (`cli.send`
+  hardcodes `show=true`) refuses with a notify — a context send in the
+  view would render against the sidebar, not code.
+- **The three `claude/setup-*.sh` scripts clobbered stow symlinks**
+  (`jq … > tmp && mv tmp "$SETTINGS"` replaces the *link* with a plain
+  file). Fixed with `SETTINGS="$(readlink -f "$SETTINGS")"` before the
+  atomic write; verified by running all three post-adoption.
+- **Sidebar digits are assigned from the running-only name-sorted list**;
+  spawning (`_dynamic == 'registered'`) rows render unnumbered with `…` —
+  otherwise a spawning row holding digit N would desync sidebar `N` from
+  `<M-N>`/cycle order.
+- `agent_events.handle` returns `''` explicitly (`--remote-expr`
+  serializes the return value; a table/nil errors on the caller side).
+- `<leader>aj` acks directly after landing in addition to the WinEnter
+  path: an in-view jump while sitting in the main pane swaps the buffer
+  under the cursor, so no WinEnter ever fires (agentview exports
+  `enter_main` for this).
+- Bare built-ins spawn from `cli.tools.<agent> = {}` untouched, so the
+  setup-block env entries (pipeline plan edit 1) are required, not
+  optional, for the primary session to carry `$SIDEKICK_SESSION`.
+
+### Verified headless (2026-08-10)
+
+- Full `agent_events` state machine: every transition, urgent-survives-ack,
+  prompt-submit clears urgent, `unread_sessions` most-recent-first,
+  `clear` GC, garbage/unknown-category inputs inert, `handle` returns `''`.
+- Hook script: env-unset no-op (exit 0), stale `$NVIM` fails fast with the
+  tmpfile trap-cleaned, and **end-to-end** — script → live `--listen`
+  instance → `status('claude 2') == 'unread'` with `last.raw` preserved.
+- Env bridge: `cli.tools.claude` carries `SIDEKICK_SESSION` with the
+  preset's `format` function intact after the deep-merge.
+- View open/close/re-source (module reload + reopen, named-buffer reuse),
+  full-config startup clean, `jq` validity of settings.json, setup-script
+  idempotence with the symlink surviving.
+
+### Interactive verification — OUTSTANDING (needs a real session)
+
+Restart Claude Code sessions first so they pick up the new hooks. Then, in
+one `env -u NVIM nvim` session:
+
+- [ ] `<leader>av` from a code buffer: view opens, sidebar cursor on the
+      active row, agent embedded, `:echo w:sidekick_session_id` populated
+      in the main pane (item 1).
+- [ ] `<M-]>`/`<M-[>` in the main pane and `<CR>` in the sidebar cycle;
+      `▸` and cursor row track; `3` in the sidebar ≡ `<M-3>` in the main
+      pane; `<M-3>` from a terminal *outside* the view switches the solo
+      column (item 2).
+- [ ] Exit restores tab 1 exactly, including a previously-open right CLI
+      column at its remembered width (guard 4 / item 3).
+- [ ] `n` in the sidebar: no three-column reflow (guard 3), transient
+      split hidden, new agent embedded on attach (item 4).
+- [ ] Rings with 3 claude sessions: permission prompt in one → `!` on that
+      row only; focusing does NOT clear it; answering downgrades to `●` on
+      the turn's Stop, which DOES clear on focus; `/clear` resets the row
+      without killing it (item 5). **While here: inspect
+      `require('agent_events').sessions[name].last.raw` for the
+      `UserPromptSubmit` and `Notification` payloads — field names beyond
+      the envelope are still unverified against real data.**
+- [ ] Focused-suppression: Stop while sitting in that terminal → no ring;
+      alt-tab to another app first → ring appears; a permission prompt
+      rings even while focused (item 6).
+- [ ] `<leader>aj` picks the newest of two unread and skips the focused
+      session (an unanswered `!` must not trap the jump) (item 7).
+- [ ] Non-sidekick `claude` in Terminal.app: hook no-ops (item 8 —
+      pipe-tested headless, worth one real-world spot check).
+- [ ] Kill the visible agent via sidebar `x`: confirm popup, re-embed of
+      next active, no stale row — this is also the real test of the
+      stickybuf pin across the kill-last-agent → scratch transition
+      (item 9, flagged in Panel registration).
+- [ ] Re-source `init.lua` with the view open: no duplicate autocmds,
+      panel functional; `<leader>qs` restore doesn't resurrect a blank
+      sidebar split (item 10 + the PersistenceSavePre buffer-wipe check).
+- [ ] Statusline badge: `● N` appears with the view closed, flips to `! N`
+      on a permission prompt, clears at zero; repaint is immediate (the
+      lualine refresh autocmd).
+
 ## Problem
 
 Multiple agent CLI sessions (claude, cursor, opencode, pi — dynamically
