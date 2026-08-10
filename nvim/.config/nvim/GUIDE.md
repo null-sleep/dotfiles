@@ -2845,6 +2845,7 @@ session, since that reuse works on names.
 | `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
 | `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
+| `<M-1>`..`<M-9>` (in CLI) | Jump straight to running session N — name-sorted, the same order `<M-]>` cycles |
 | `<M-l>` (in CLI) | Open the switch/kill/label session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |

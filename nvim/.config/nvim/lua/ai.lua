@@ -36,6 +36,9 @@ local function set_active(name)
   if name and name ~= M.active then M._last = M.active end
   M.active = name
 end
+-- Exported for agentview's show_solo delegate — external switches must keep
+-- the _last bookkeeping, so the view routes through this, never M.active=.
+M._set_active = set_active
 
 -- Any session running under this tool name? The module's liveness predicate —
 -- name-keyed, like all session state here.
@@ -78,6 +81,7 @@ end
 M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
   not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
 M.cycle, M.new_auto, M.toggle_last, M.rename = not_ready, not_ready, not_ready, not_ready
+M.kill, M.open_index = not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -362,6 +366,13 @@ vim.api.nvim_create_autocmd('FileType', {
       { buffer = args.buf, desc = 'AI: Toggle last-used CLI session' })
     vim.keymap.set({ 't', 'n' }, '<M-n>', function() require('ai').new_auto() end,
       { buffer = args.buf, desc = 'AI: Fork active agent, auto-named (in place)' })
+
+    -- <M-1>..<M-9>: jump straight to session N (name-sorted — the order
+    -- <M-]> cycles and the agent-view sidebar numbers its rows).
+    for i = 1, 9 do
+      vim.keymap.set({ 't', 'n' }, '<M-' .. i .. '>', function() require('ai').open_index(i) end,
+        { buffer = args.buf, desc = 'AI: Jump to CLI session ' .. i })
+    end
 
     -- <M-a> hides the panel in place (the <leader>aa toggle) without first
     -- escaping terminal mode via jj/jk — the common "stash the chat" action.
@@ -814,6 +825,22 @@ function M.kill_active()
   require('sidekick.cli').close({ name = name })
 end
 
+-- Kill a named session synchronously (picker <C-x>, agent-view sidebar `x`).
+-- State.detach inline, not cli.close: close is two vim.schedule hops, and a
+-- send landing in that gap would re-route to the dead-but-still-registered
+-- name → select({auto=true}) → a fresh session respawns under it. Repoint
+-- active + GC synchronously too, before detach, while the target is still
+-- started=true (same reasoning as kill_active). _forget is a no-op on
+-- built-ins, so killing the default `claude` won't unregister its preset.
+function M.kill(name)
+  local State = require('sidekick.cli.state')
+  local s = State.get({ name = name, started = true })[1]
+  if not s then return end
+  if M.active == name then M.active = fallback_active(name) end
+  State.detach(s)
+  M._forget(name)
+end
+
 -- Routing wrappers: every send/focus targets the active session, so a second
 -- running session never turns sends into a pick-a-target flow (state.lua:165).
 -- Normalize a bare string like cli.send does, so a stray send('{selection}')
@@ -866,26 +893,9 @@ function M.switch()
         show_solo(item.name)   -- replace the open window, don't stack
       end
     end,
-    kill = function(item)
-      local name = item.name
-      -- Synchronous teardown: State.detach removes the session inline, so
-      -- indexed_select's refresh reads post-kill state (cli.close() would be
-      -- two vim.schedule hops too late — state.lua:145,148).
-      --
-      -- Reset active + GC the name synchronously here too, not only in the
-      -- detach sweep: the sweep is scheduled, and a send landing in the gap
-      -- before it runs would re-route to this dead-but-still-registered name
-      -- → select({auto=true}) → a *fresh* session respawns under it (the
-      -- exact surprise the sweep exists to prevent). _forget is a no-op on
-      -- built-ins, so <C-x> on the default `claude` won't unregister it.
-      -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
-      -- <leader>aa reattaches; done before State.detach, excluding this name,
-      -- while it's still started=true. Sets active before _forget runs, so
-      -- _forget's own repoint below is a no-op on this path (active ≠ name).
-      if M.active == name then M.active = fallback_active(name) end
-      State.detach(item.state)
-      M._forget(name)
-    end,
+    -- M.kill's synchronous teardown is what keeps indexed_select's refresh
+    -- reading post-kill state (detach inline, not cli.close's two hops).
+    kill = function(item) M.kill(item.name) end,
     -- Close, prompt, reopen — not an in-place picker:find(). vim.ui.input
     -- resolves async and snacks owns the picker's own input window, so
     -- prompting over a live picker is the jank-prone path. Reopening also makes
@@ -912,6 +922,18 @@ function M.cycle(dir)
   local name = sessions[(idx - 1 + dir) % #sessions + 1].tool.name
   set_active(name)
   show_solo(name)
+end
+
+-- <M-1>..<M-9> inside the CLI (and 1-9 in the agent-view sidebar): jump
+-- straight to running session N in name-sorted order — the same comparator as
+-- cycle(), so digit order always equals <M-]>/<M-[> order. No-op past the end.
+function M.open_index(n)
+  local sessions = require('sidekick.cli.state').get({ started = true })
+  table.sort(sessions, function(a, b) return a.tool.name < b.tool.name end)
+  local s = sessions[n]
+  if not s then return end
+  set_active(s.tool.name)
+  show_solo(s.tool.name)
 end
 
 -- <C-]> inside the CLI: bounce to the session you were last in (alt-tab style;
