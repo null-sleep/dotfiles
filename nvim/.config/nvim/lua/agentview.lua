@@ -289,8 +289,22 @@ local function sidebar_keymaps(buf)
       end
     end, 'AI: Open session ' .. i)
   end
-  map('<M-]>', function() require('ai').cycle(1) end, 'AI: Next CLI session')
-  map('<M-[>', function() require('ai').cycle(-1) end, 'AI: Previous CLI session')
+  -- Cycling must drag the cursor onto the new active row: the preview
+  -- follows the cursor, so a cursor left on the old row would snap the main
+  -- pane straight back on the next CursorMoved — the cycle would appear to
+  -- move only the ▸ marker.
+  local function cycle_and_track(dir)
+    local ai = require('ai')
+    ai.cycle(dir)
+    for lnum, r in pairs(rows_by_lnum) do
+      if r.name == ai.active then
+        pcall(vim.api.nvim_win_set_cursor, 0, { lnum, 0 })
+        break
+      end
+    end
+  end
+  map('<M-]>', function() cycle_and_track(1) end, 'AI: Next CLI session')
+  map('<M-[>', function() cycle_and_track(-1) end, 'AI: Previous CLI session')
   map('n', function() require('ai').new_session() end, 'AI: New agent session')
   map('r', function()
     local r = row_under_cursor()

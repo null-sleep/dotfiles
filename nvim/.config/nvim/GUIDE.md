@@ -2868,7 +2868,7 @@ In the sidebar (buffer-local):
 | `j`/`k` (browse) | The main pane follows the cursor — each row's terminal previews immediately, no `<CR>` needed to see it |
 | `<CR>` | Commit the session under the cursor: make it active + focus the main pane |
 | `1`..`9` | Commit row N directly (digits match the `<M-N>` jumps) |
-| `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI) |
+| `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI); the cursor follows the new active row |
 | `n` | New session (the `<leader>an` flow; embeds once it attaches) |
 | `r` | Label the session under the cursor |
 | `x` | Kill the session under the cursor (confirm popup) |
