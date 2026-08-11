@@ -2916,6 +2916,12 @@ drops `Notification`/`PermissionRequest`) — so cursor and pi rows can show
 `»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not
 mean nothing is needed.
 
+A `!` raised while nvim doesn't have OS focus — the alt-tabbed-away case the
+ring exists for, and the only one no glyph can reach — also fires a macOS
+desktop notification (`osascript`, session label + what it wants). Urgent
+transitions only: never for `●` (a popup per turn across four agents trains
+you to ignore them), and never twice for a session that was already urgent.
+
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and
 would otherwise trap repeat presses on itself. Landing notifies which session

@@ -80,6 +80,28 @@ local TRANSITIONS = {
   end,
 }
 
+-- AppleScript string literal: control chars flattened first (a newline would
+-- end the `-e` line), then the two characters the literal itself can't carry.
+local function applescript_str(s)
+  return '"' .. s:gsub('%c', ' '):gsub('[\\"]', '\\%0') .. '"'
+end
+
+-- The one case no glyph can reach: an urgent ring raised while nvim doesn't
+-- have OS focus (you alt-tabbed away — exactly what the ring exists for).
+-- Urgent-only by design: a popup per turn-complete across four agents trains
+-- you to dismiss them. macOS-only; silently absent elsewhere.
+local function notify_desktop(session)
+  if focused or vim.fn.executable('osascript') == 0 then return end
+  local phrase, msg = M.summary(session)
+  local ai = package.loaded['ai']
+  local body = phrase or 'needs you'
+  if msg then body = body .. ': ' .. msg end
+  -- argv, never a shell string: this text is agent-authored, so the only
+  -- interpreter it must not escape into is AppleScript's own.
+  vim.system({ 'osascript', '-e', ('display notification %s with title %s'):format(
+    applescript_str(body), applescript_str(ai and ai.display(session) or session)) })
+end
+
 -- RPC entry point. Takes only the hook script's mktemp path (session names
 -- carry free user text and are never interpolated into the remote expr).
 -- Returns '' — --remote-expr serializes the return value, and a table/nil
@@ -97,8 +119,14 @@ function M.handle(tmpfile)
   if not transition then return '' end
   local s = M.sessions[event.session] or {}
   M.sessions[event.session] = s
+  -- The attention tier we were already urgent at, if any — so a second
+  -- needs-permission on an already-blocked session doesn't re-pop the desktop.
+  local was_urgent = M.status(event.session) == 'urgent' and s.attention
   transition(s, event.session)
   s.last = { category = event.category, at = os.time(), raw = event.raw }
+  if M.status(event.session) == 'urgent' and was_urgent ~= s.attention then
+    notify_desktop(event.session)
+  end
   fire(event.session, 'event', event.category)
   return ''
 end
@@ -114,7 +142,8 @@ function M.status(name)
   return 'idle'
 end
 
--- Short phrases for the notify consumers (<leader>aj's landing notify).
+-- Short phrases for the notify consumers (<leader>aj's landing notify, the
+-- desktop notification above).
 local PHRASES = {
   ['needs-permission'] = 'wants permission',
   ['needs-input'] = 'needs input',
