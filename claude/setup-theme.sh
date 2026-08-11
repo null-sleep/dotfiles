@@ -6,13 +6,13 @@
 # Indirection: settings.json pins a FIXED slug, "custom:active", and the
 # `theme dark|light` command swaps what ~/.claude/themes/active.json *contains*.
 # Claude hot-reloads theme files, so this gives a live dark/light switch with no
-# restart. This script just sets the preference and seeds active.json from a
-# sensible default. settings.json is stowed, so on a stowed machine the
-# preference is usually set already — seeding active.json is the real work.
+# restart. The tracked settings own the preference; this script validates it
+# and seeds active.json from a sensible default.
 
 set -euo pipefail
 
-SETTINGS="$HOME/.claude/settings.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETTINGS="$SCRIPT_DIR/.claude/settings.json"
 THEME="custom:active"
 THEMES_DIR="$HOME/.claude/themes"
 ACTIVE_FILE="$THEMES_DIR/active.json"
@@ -52,27 +52,13 @@ if [ ! -e "$ACTIVE_FILE" ]; then
   fi
 fi
 
-if [ ! -f "$SETTINGS" ]; then
-  echo "Error: no settings.json found at $SETTINGS."
-  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
-  exit 1
-fi
-
-# settings.json is stowed (a symlink into the repo): write through the link.
-# `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
-# (stock older macOS lacks the flag).
-SETTINGS="$(readlink -f "$SETTINGS")"
+"$SCRIPT_DIR/setup-settings.sh" --check
 
 current=$(jq -r '.theme // empty' "$SETTINGS")
 
-if [ "$current" = "$THEME" ]; then
-  echo "Theme already set to $THEME — no change."
-else
-  [ -n "$current" ] && echo "Changing theme from '$current' to '$THEME'..." \
-                    || echo "Setting theme to '$THEME'..."
-  tmp="$(mktemp "${SETTINGS}.XXXXXX")"
-  jq --arg t "$THEME" '.theme = $t' "$SETTINGS" > "$tmp" \
-    && mv "$tmp" "$SETTINGS" || { rm -f "$tmp"; exit 1; }
-  echo "Done. Use 'theme dark|light|toggle' to switch."
+if [ "$current" != "$THEME" ]; then
+  echo "Error: tracked theme is '${current:-<unset>}', expected '$THEME' in $SETTINGS." >&2
+  exit 1
 fi
+
+echo "Theme is set to $THEME. Use 'theme dark|light|toggle' to switch."

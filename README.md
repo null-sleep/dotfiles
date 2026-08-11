@@ -253,17 +253,18 @@ The `claude` stow package manages the status line script — a custom status bar
 
 ```bash
 cd ~/src/dotfiles
-stow --no-folding claude
-# Inject the statusLine block into ~/.claude/settings.json (one-time)
+# Safely stow settings.json (backs up a matching pre-existing regular file)
+bash ~/src/dotfiles/claude/setup-settings.sh
+# Validate the tracked statusLine block
 bash ~/src/dotfiles/claude/setup-statusline.sh
-# Point Claude at the "active" theme slot in ~/.claude/settings.json (one-time)
+# Validate custom:active and seed its machine-local palette
 bash ~/src/dotfiles/claude/setup-theme.sh
-# Enable the LSP plugins (Lua/Python/Rust/Go) in ~/.claude/settings.json (one-time)
+# Validate the LSP plugin config and check the server binaries
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
 # Activate the review-pr skill for this machine (one-time)
 bash ~/src/dotfiles/claude/setup-review-pr.sh
-# Register the rtk token-optimizer hook in ~/.claude/settings.json (one-time)
-rtk init -g --auto-patch
+# Seed rtk's machine-local files; its guarded hook is already tracked
+rtk init -g --no-patch
 ```
 
 The `--no-folding` flag is important: it keeps `~/.claude/themes/`,
@@ -273,7 +274,9 @@ or hooks already there coexist untouched. Without it, stow would replace a
 non-existent `~/.claude/themes/` with a single directory symlink (a "fold"),
 which can't hold local files alongside the synced ones.
 
-All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
+The setup scripts are idempotent. `setup-settings.sh` is the only script that changes the deployment of `settings.json`: it validates that the live symlink belongs to the checkout running the script, safely backs up and replaces a semantically identical regular file, and refuses a divergent file unless its exact reviewed SHA-256 is supplied. The other scripts never modify tracked settings. `setup-statusline.sh` validates the canonical status line, `setup-theme.sh` validates `custom:active` and seeds `~/.claude/themes/active.json`, and `setup-lsp-plugins.sh` validates the plugin keys and reports missing server binaries. `setup-review-pr.sh` symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
+
+If `setup-settings.sh` reports a divergent regular file, reconcile its contents into this checkout's tracked file first. Re-run the command it prints only after reviewing that exact SHA-256; the script rechecks the hash immediately before backing up the regular file and creating the Stow link, and restores the original automatically if linking fails. It never uses `stow --adopt`, which has the opposite ownership direction and can overwrite the package copy.
 
 <a id="whats-managed"></a>
 ### What's managed
@@ -292,19 +295,18 @@ All four setup scripts are idempotent; re-running any of them when already confi
 
 `~/.claude/hooks/sidekick-notify.sh` depends on `jq` and coreutils' `timeout` — both no-op-guard-checked at the top of the script, so a machine missing either just gets no agent-view attention glyphs rather than a broken hook; `jq` and `coreutils` are both in the Brewfile.
 
-`settings.json` **is stowed** (adopted 2026-08 so the sidekick hook registrations sync across machines — see the nvim GUIDE's AI section). Anything genuinely per-machine belongs in `~/.claude/settings.local.json`, which stays unmanaged. The three `jq`-based `setup-*.sh` scripts still merge their keys idempotently — they resolve the symlink first and write through it (a plain `mv` onto the link path would silently de-adopt the file) — so they're no-ops on a stowed machine and still bootstrap an unstowed one. `setup-theme.sh`'s real remaining job is seeding `~/.claude/themes/active.json`; `setup-lsp-plugins.sh`'s is the server-binary checks.
+`settings.json` **is stowed** (adopted 2026-08 so its preferences and guarded hook registrations sync across machines). Claude Code has no user-global `~/.claude/settings.local.json` override: `.claude/settings.local.json` is project-local. This package therefore assumes its user settings are shared by every machine using that checkout. User-scope changes made by `/config`, `/model`, or plugin commands are repository changes; afterward, verify the symlink with `setup-settings.sh --check` and review the Git diff. Put genuinely project-specific permissions in that project's `.claude/settings.local.json`.
 
 **`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
 
 ### Recommended manual settings
 
-Most preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`,
-`enabledPlugins`) now arrive with the stowed `settings.json` — override any of
-them per machine in `~/.claude/settings.local.json` rather than editing the
-stowed file locally. Notably, the stowed file pins `model` (currently
-`opus[1m]`), so a fresh machine inherits that model choice too; override it in
-`settings.local.json` if a machine should default to something else. One key
-stays a deliberate judgment call and is *not* in the stowed file:
+Preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`, and
+`enabledPlugins`) arrive with the stowed `settings.json`. The public package
+currently pins `model` to `opusplan`. A checkout that needs a different
+user-wide configuration must maintain its own complete downstream version of
+the file; Claude Code does not support a machine-local user-settings overlay.
+One key stays a deliberate judgment call and is *not* in the stowed file:
 
 - **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
   Claude Code from sending non-essential telemetry (Statsig analytics,
@@ -319,7 +321,7 @@ stays a deliberate judgment call and is *not* in the stowed file:
 <a id="lsp-plugins-code-intelligence"></a>
 ### LSP plugins (code intelligence)
 
-Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hover, call hierarchy) that works per file type only when the matching language-server plugin is enabled **and** its server binary is on `PATH`. This repo enables four, via `setup-lsp-plugins.sh`:
+Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hover, call hierarchy) that works per file type only when the matching language-server plugin is enabled **and** its server binary is on `PATH`. This repo tracks four and validates them via `setup-lsp-plugins.sh`:
 
 | Plugin (`@claude-plugins-official`) | Files | Server binary | Install |
 |---|---|---|---|
@@ -328,7 +330,7 @@ Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hove
 | `rust-analyzer-lsp` | `.rs` | `rust-analyzer` | `rustup component add rust-analyzer` |
 | `gopls-lsp` | `.go` | `gopls` | `go install golang.org/x/tools/gopls@latest` |
 
-**The plugins do not ship the server** — each is a thin config wrapper that shells out to the binary by name, resolved against `PATH`. `setup-lsp-plugins.sh` enables the plugins and then prints which of the four binaries are present vs. missing (with the install hint), so a fresh machine gets a clear checklist. A missing binary is harmless — the LSP tool just errors for that one file type until you install it. **Restart Claude Code** after enabling, so it discovers the plugins.
+**The plugins do not ship the server** — each is a thin config wrapper that shells out to the binary by name, resolved against `PATH`. `setup-lsp-plugins.sh` validates the tracked entries and then prints which binaries are present vs. missing (with install hints), so a fresh machine gets a clear checklist. A missing binary is harmless — the LSP tool just errors for that one file type until you install it. **Restart Claude Code** after installing a missing server.
 
 > **Lua server vs. Mason.** `lua-language-server` is installed **twice, deliberately**: the Homebrew copy (`/opt/homebrew/bin`, on `PATH`) is what Claude Code uses, and nvim uses its own **Mason** copy (`~/.local/share/nvim/mason/bin`, *not* on `PATH`, launched by absolute path). They're independent installs in separate prefixes — they don't collide, share config, or update together (`brew upgrade` vs. `:MasonUpdate`). The brew copy is required because Claude resolves the binary via `PATH` and Mason's bin dir isn't on it. The other three servers (`pyright`, `rust-analyzer`, `gopls`) are global by nature, so both tools share the single PATH copy.
 
@@ -340,16 +342,16 @@ Claude Code has a built-in **LSP tool** (go-to-definition, find-references, hove
 Enable it once per machine (after `brew bundle` installs the binary):
 
 ```bash
-rtk init -g --auto-patch
+rtk init -g --no-patch
 ```
 
 That command:
 
-- adds a **`PreToolUse` hook** on the `Bash` matcher to `~/.claude/settings.json` (`"command": "rtk hook claude"`) — every Bash call is rewritten through rtk automatically;
-- writes **`~/.claude/RTK.md`** (a short usage cheatsheet) and adds an **`@RTK.md`** reference to **`~/.claude/CLAUDE.md`** so Claude knows the meta-commands;
-- backs up the prior settings to `~/.claude/settings.json.bak` and seeds a user filter template at `~/Library/Application Support/rtk/filters.toml`.
+- refreshes the machine-local **`~/.claude/RTK.md`** usage instructions;
+- leaves `~/.claude/settings.json` untouched because the portable, guarded `PreToolUse` hook is already tracked;
+- prints a manual hook snippet that can be ignored for this setup.
 
-`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. The hook itself now rides in the **stowed** `settings.json`, so on a stowed machine there's usually nothing to patch; `RTK.md`, the `CLAUDE.md` reference, and `filters.toml` stay machine-local, seeded by the one command above. If `rtk init` does rewrite `settings.json`, check afterward that `~/.claude/settings.json` is still a symlink — external tools that replace-by-rename silently de-adopt stowed files, and once that happens a plain `stow --no-folding claude` won't fix it: stow sees a real file already at the target and aborts rather than overwriting it. Recover with `rm ~/.claude/settings.json && stow --no-folding claude`. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
+`--no-patch` is important: it prevents rtk from rewriting or replacing the Stow symlink. Re-running the command is safe. Verify ownership afterward with `bash ~/src/dotfiles/claude/setup-settings.sh --check`. Check savings with `rtk gain`; remove the machine-local artifacts with `rtk init -g --uninstall` (then keep or remove the tracked hook deliberately in the repo).
 
 <a id="theme"></a>
 ### Theme
@@ -362,10 +364,12 @@ That command:
 or `claude/.claude/skills/` in the repo and re-run `stow --no-folding claude`.
 Stow is non-destructive — it links the new file alongside whatever is already in
 the target directory and **never overwrites** a real file; if a real file of the
-same name already exists it aborts the whole operation rather than clobbering it
-(pass `--adopt` to pull that pre-existing file into the repo instead). Themes you
-create locally via `/theme` land as real files in `~/.claude/themes/` and stay
-local until you move them into the repo and re-stow.
+same name already exists it aborts the whole operation rather than clobbering
+it. Move that one local theme or skill aside, compare it with the tracked file,
+and re-stow; do not use package-wide `--adopt`, because another conflict could
+replace the tracked settings file. Themes you create locally via `/theme` land
+as real files in `~/.claude/themes/` and stay local until you deliberately move
+them into the repo and re-stow.
 
 To build another theme matching a different Neovim colorscheme, use the **`nvim-theme-to-claude`** skill (`claude/.claude/skills/`, synced to `~/.claude/skills/` via stow). It reads the nvim palette, maps it to Claude Code's color tokens, and reproduces nvim's exact diff-blend math — invoke it with something like "make a Claude theme matching my tokyonight nvim theme".
 
@@ -382,7 +386,7 @@ git -C ~/src/dotfiles push
 cd ~/src/dotfiles
 git pull
 stow -R --no-folding claude            # the key command — see below
-bash ~/src/dotfiles/claude/setup-theme.sh   # optional: pin custom:active + seed active.json
+bash ~/src/dotfiles/claude/setup-theme.sh   # validate custom:active + seed active.json
 ```
 
 Then **restart Claude Code** so it discovers the new skill and theme.
@@ -399,9 +403,9 @@ Use `stow -R --no-folding claude` (not a plain `stow claude`):
   machine-local files in them are preserved.
 - **Non-destructive**: if that machine already has a real `catppuccin-latte.json`
   or its own `nvim-theme-to-claude/` skill, stow aborts without touching
-  anything. To merge instead, move the local file aside, or run
-  `stow --adopt --no-folding claude` to pull the existing file into the repo
-  (then `git checkout -- <file>` if you want the repo's version to win).
+  anything. To merge, move only the conflicting file aside and compare it with
+  the tracked version before restowing. Never use package-wide `--adopt` here:
+  it can pull an unrelated regular `settings.json` over the tracked copy.
 
 For the skill only, skip the `setup-theme.sh` step — `git pull`,
 `stow -R --no-folding claude`, restart. The skill then lives at
@@ -749,7 +753,7 @@ rm ~/.config/herdr/config.toml && stow --no-folding herdr
 | File | Method |
 |---|---|
 | `~/.config/herdr/config.toml` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/hooks/herdr-agent-state.sh` | Written by `herdr integration install claude`; machine-local |
+| `~/.claude/hooks/herdr-agent-state.sh` | Generated by `herdr integration install claude` under an isolated temporary home; machine-local |
 | `~/.pi/agent/extensions/herdr-agent-state.ts` | Written by `herdr integration install pi`; machine-local |
 | `~/.claude/skills/herdr/SKILL.md` | Written by `herdr --skill`; machine-local |
 
@@ -758,32 +762,17 @@ The last three are release-matched to the installed `herdr` binary, so
 `brew upgrade herdr`** (never `herdr update`, which is disabled for
 Homebrew installs).
 
-**The Claude Code hook is tracked, with a guard.** `herdr integration install
-claude` adds a `SessionStart` hook entry to the stow-symlinked
-`claude/.claude/settings.json` — verified to write through the symlink rather
-than replacing it, unlike the [de-adoption hazard](#claude-code) rtk can hit.
-`setup-herdr.sh` then wraps the command in
-`if command -v herdr >/dev/null 2>&1; then …; fi`,
-matching the existing [rtk](#claude-code) hook, so a machine with the repo
-stowed but no `herdr` binary doesn't get a failing Claude Code hook.
-`setup-herdr.sh` also rewrites the hook's path from the **absolute** form
-herdr's installer writes (`bash '/Users/you/.claude/hooks/herdr-agent-state.sh'
-session`) to the `$HOME`-relative style every other hook in this file already
-uses (`bash $HOME/.claude/hooks/herdr-agent-state.sh session`) — a plain
-literal substring replace via jq's `split`/`join` (not `gsub`, which would
-treat the path's dots as regex wildcards) — so the tracked entry works on any
-machine/username, not just this one. Two things follow from the guard step:
-
-- `herdr integration status` may report the Claude entry as needing attention
-  since the tracked command no longer matches what a fresh install would
-  write — that's expected, don't "fix" it by re-running the installer by hand.
-  Always go through `setup-herdr.sh`, which checks for an existing entry
-  first; calling `herdr integration install claude` directly once a guarded
-  entry is in place appends a **duplicate**, unwrapped (and absolute-path)
-  entry instead of recognizing it — harmless (Claude Code just runs both),
-  and `setup-herdr.sh`'s guard+portabilize step will normalize the new one
-  into the same guarded/`$HOME`-relative shape on its next run, but it won't
-  merge the two into one — remove the extra by hand if that bothers you.
+**The Claude Code hook is tracked, with a guard.** The portable SessionStart
+entry in `claude/.claude/settings.json` uses `$HOME` and checks for the Herdr
+binary, so it is safe on every machine that stows this package. The
+release-matched hook script itself still has to come from the installed Herdr
+version. `setup-herdr.sh` runs `herdr integration install claude` with both
+`HOME` and `CLAUDE_CONFIG_DIR` pinned to an isolated temporary directory,
+rejects generated output that embeds that path, and installs only the resulting
+hook script into the real home. The temporary settings file is discarded, so
+neither Herdr nor the setup script edits the git-tracked settings. Do not run
+the Claude installer directly against the real home; always use
+`setup-herdr.sh`.
 
 **What the hook actually buys:** session-identity reporting for restore
 (`claude --resume <id>` after a Herdr server restart), not pane state — Herdr
@@ -797,9 +786,9 @@ hook installed.
   unset here) replays recent pane output across a server restart — the docs
   warn it can capture secrets and tokens, so leave it off unless you've
   thought about that.
-- `herdr integration uninstall <agent>` removes the extension/hook file, but
-  the hand-guarded `settings.json` entry likely won't match and needs
-  removing by hand.
+- `herdr integration uninstall <agent>` removes the generated hook file, but
+  the portable tracked registration remains until deliberately removed from
+  the repository.
 
 <a id="cursor-cli-cursor-agent"></a>
 ## Cursor CLI (cursor-agent)
@@ -832,8 +821,8 @@ Cursor's own managed `~/.cursor/.gitignore` ignores it — only `rules/`,
 `commands/`, and `skills/` are treated as versionable user content. The
 `cursor` stow package (below) symlinks only the statusline **script**;
 `cli-config.json` itself stays machine-local, with just its `statusLine`
-block injected by `setup-statusline.sh` — the same split as Claude's
-`settings.json`. (Also confirmed 2026-07-22: no copy-on-select setting exists
+block injected by `setup-statusline.sh`, unlike Claude's complete tracked user
+settings. (Also confirmed 2026-07-22: no copy-on-select setting exists
 in the config schema — but the TUI doesn't grab the mouse, so the terminal's
 native select-to-copy works as-is.)
 
@@ -1061,8 +1050,8 @@ Pi-written settings and extension install state stay machine-local.
 `lastChangelogVersion` after an update, and `/settings` edits land there.
 Through a stow symlink that would be written straight into this repo. So the
 file stays machine-local and `setup-settings.sh` merges in only the keys this
-repo cares about, the same split already used for `~/.claude/settings.json` and
-`~/.cursor/cli-config.json`.
+repo cares about, the same split used for `~/.cursor/cli-config.json`; Claude's
+complete user settings are deliberately tracked instead.
 
 The script is **fill-in-only** for the model keys (`jq '$defaults * .'`): it
 sets what's missing and leaves anything you've since changed alone, so

@@ -8,21 +8,10 @@
 # release-matched but deliberately not tracked in this repo — see the Herdr
 # README section's "What's managed").
 #
-# Claude integration: `herdr integration install claude` writes
-# ~/.claude/hooks/herdr-agent-state.sh (machine-local, not tracked) and adds a
-# SessionStart hook entry to ~/.claude/settings.json. That file is stowed
-# (symlinked into this repo), and herdr writes through the symlink rather than
-# replacing it — verified safe. What herdr's own re-run does NOT do is
-# recognize an already-*guarded* entry as installed, so calling it again after
-# we've wrapped the command would append a duplicate, unwrapped entry. This
-# script guards against that itself: it only calls the installer when no
-# herdr SessionStart hook exists yet, then wraps whatever command it wrote in
-# `if command -v herdr …` — matching this repo's existing rtk hook — so a
-# machine with the repo stowed but no herdr binary doesn't get a failing
-# Claude Code hook. (Running `herdr integration install claude` directly,
-# bypassing this script, after that guard is in place WILL append a duplicate
-# entry — always come back through this script instead, including after
-# upgrades.)
+# Claude integration: the portable SessionStart registration is tracked in
+# the stowed settings file. Herdr's release-matched hook script is generated
+# under an isolated temporary HOME, then installed into the real ~/.claude.
+# This keeps the external installer away from the git-tracked settings file.
 #
 # pi integration: `herdr integration install pi` only writes
 # ~/.pi/agent/extensions/herdr-agent-state.ts (no settings.json edit — same as
@@ -41,69 +30,50 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-SETTINGS="$HOME/.claude/settings.json"
-if [ ! -f "$SETTINGS" ]; then
-  echo "Error: no settings.json found at $SETTINGS."
-  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
-  exit 1
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SETTINGS="$ROOT/claude/.claude/settings.json"
+"$ROOT/claude/setup-settings.sh" --check
+
 if [ ! -d "$HOME/.pi/agent" ]; then
   echo "Error: $HOME/.pi/agent not found."
   echo "Run 'stow --no-folding pi' from the repo root first, then re-run this script."
   exit 1
 fi
 
-# settings.json is stowed (a symlink into the repo): write through the link.
-# `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
-# (stock older macOS lacks the flag). Same idiom as setup-statusline.sh /
-# setup-theme.sh / setup-lsp-plugins.sh.
-SETTINGS="$(readlink -f "$SETTINGS")"
-
 # --- Claude integration ------------------------------------------------
-herdr_hook_count() {
-  jq '[.hooks.SessionStart[]?.hooks[]?.command // empty | select(contains("herdr-agent-state.sh"))] | length' "$SETTINGS"
-}
-
-if [ "$(herdr_hook_count)" = "0" ]; then
-  echo "Installing herdr Claude Code integration..."
-  herdr integration install claude
-else
-  echo "herdr Claude Code hook already present in $SETTINGS — not re-running the installer (see script header)."
-fi
-
-# herdr's installer bakes in the ABSOLUTE hook path (e.g.
-# `bash '/Users/you/.claude/hooks/herdr-agent-state.sh' session`), which would
-# break on any other machine/username this repo is checked out on. Rewrite it
-# to the same $HOME-relative style every other hook in this file already uses
-# (e.g. sidekick-notify.sh) — a plain literal substring replace via jq's
-# one-arg split/join (NOT split(regex) or gsub — those interpret the pattern
-# as regex, and the path's dots would over-match). Then guard the command so
-# a stowed-but-herdr-less machine doesn't get a failing SessionStart hook.
-# Both steps are no-ops if already applied, so this stays idempotent and
-# self-heals an already-guarded-but-still-absolute entry from a prior run.
-HOOK_ABS="$HOME/.claude/hooks/herdr-agent-state.sh"
-HOOK_PORTABLE='$HOME/.claude/hooks/herdr-agent-state.sh' # single-quoted: literal $HOME, not expanded here
-jq --arg old "'$HOOK_ABS'" --arg new "$HOOK_PORTABLE" '
-  .hooks.SessionStart = ((.hooks.SessionStart // []) | map(
-    if (.hooks[0].command // "" | contains("herdr-agent-state.sh"))
-    then .hooks[0].command |= (
-        (split($old) | join($new))
-      | if startswith("if command -v herdr") then .
-        else "if command -v herdr >/dev/null 2>&1; then " + . + "; fi"
-        end
-      )
-    else .
-    end
-  ))
-' "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
-
-if [ ! -L "$HOME/.claude/settings.json" ]; then
-  echo "WARNING: $HOME/.claude/settings.json is no longer a symlink — something"
-  echo "de-adopted the stowed copy. Recover with:"
-  echo "  rm ~/.claude/settings.json && stow --no-folding claude"
+HERDR_COMMAND='if command -v herdr >/dev/null 2>&1; then bash $HOME/.claude/hooks/herdr-agent-state.sh session; fi'
+if ! jq -e --arg command "$HERDR_COMMAND" '
+  ([.hooks.SessionStart[]?.hooks[]?
+    | select((.command // "") | contains("herdr-agent-state.sh"))] | length) == 1
+  and
+  ([.hooks.SessionStart[]?
+    | select(.matcher == "*" and .timeout == null)
+    | .hooks[]?
+    | select(.type == "command" and .command == $command and .timeout == 10)] | length) == 1
+' "$SETTINGS" >/dev/null; then
+  echo "Error: tracked settings must contain exactly one canonical Herdr SessionStart hook." >&2
   exit 1
 fi
+
+echo "Generating the release-matched Herdr Claude hook in an isolated HOME..."
+TMP_HOME="$(mktemp -d)"
+cleanup() { rm -rf "$TMP_HOME"; }
+trap cleanup EXIT HUP INT TERM
+mkdir -p "$TMP_HOME/.claude"
+HOME="$TMP_HOME" CLAUDE_CONFIG_DIR="$TMP_HOME/.claude" herdr integration install claude
+GENERATED_HOOK="$TMP_HOME/.claude/hooks/herdr-agent-state.sh"
+if [ ! -f "$GENERATED_HOOK" ]; then
+  echo "Error: Herdr did not generate $GENERATED_HOOK" >&2
+  exit 1
+fi
+if grep -Fq "$TMP_HOME" "$GENERATED_HOOK"; then
+  echo "Error: generated Herdr hook embeds its temporary HOME; refusing to install it." >&2
+  exit 1
+fi
+mkdir -p "$HOME/.claude/hooks"
+install -m 755 "$GENERATED_HOOK" "$HOME/.claude/hooks/herdr-agent-state.sh"
+cleanup
+trap - EXIT HUP INT TERM
 
 # --- pi integration ------------------------------------------------------
 echo "Installing herdr pi integration..."
@@ -123,5 +93,4 @@ echo
 echo "Done. herdr integration status:"
 herdr integration status | grep -E '^(claude|pi):'
 echo
-echo "If the Claude hook entry above changed shape, review the diff in"
-echo "claude/.claude/settings.json before committing."
+echo "The tracked Claude settings were validated but not modified."

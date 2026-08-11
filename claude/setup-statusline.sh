@@ -1,10 +1,10 @@
 #!/bin/bash
-# One-time setup: inject statusLine block into ~/.claude/settings.json
-# Run after `stow claude` to complete the status line setup.
+# Validate the statusLine block tracked in ~/.claude/settings.json.
 
 set -euo pipefail
 
-SETTINGS="$HOME/.claude/settings.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETTINGS="$SCRIPT_DIR/.claude/settings.json"
 SCRIPT_CMD='bash $HOME/.claude/statusline-command.sh'
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -12,34 +12,13 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -f "$SETTINGS" ]; then
-  echo "Error: no settings.json found at $SETTINGS."
-  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
+"$SCRIPT_DIR/setup-settings.sh" --check
+
+if ! jq -e --arg cmd "$SCRIPT_CMD" \
+  '.statusLine == {"type": "command", "command": $cmd}' "$SETTINGS" >/dev/null; then
+  echo "Error: tracked statusLine config is not canonical in $SETTINGS." >&2
+  echo "Expected command: $SCRIPT_CMD" >&2
   exit 1
 fi
 
-# settings.json is stowed (a symlink into the repo): write through the link.
-# `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
-# (stock older macOS lacks the flag).
-SETTINGS="$(readlink -f "$SETTINGS")"
-
-# Check if statusLine already exists
-if jq -e '.statusLine' "$SETTINGS" >/dev/null 2>&1; then
-  # // empty: without it a statusLine object missing .command prints the
-  # literal string "null" and the repair below never fires.
-  current=$(jq -r '.statusLine.command // empty' "$SETTINGS")
-  if echo "$current" | grep -q '/Users/'; then
-    echo "Updating hardcoded path in statusLine.command to use \$HOME..."
-    jq --arg cmd "$SCRIPT_CMD" '.statusLine.command = $cmd' "$SETTINGS" > "${SETTINGS}.tmp" \
-      && mv "${SETTINGS}.tmp" "$SETTINGS"
-    echo "Done."
-  else
-    echo "statusLine already configured: ${current:-<none>}"
-  fi
-else
-  echo "Adding statusLine block to $SETTINGS..."
-  jq --arg cmd "$SCRIPT_CMD" '. + {"statusLine": {"type": "command", "command": $cmd}}' \
-    "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
-  echo "Done."
-fi
+echo "statusLine is configured in the tracked settings."

@@ -6,9 +6,8 @@
 # The plugins come from the official `claude-plugins-official` marketplace, but
 # each is just a thin config wrapper — it does NOT ship the language server
 # itself. The server binary must already be on your PATH (see checks below).
-# settings.json is stowed with these keys already set, so this script mostly
-# exists for the binary checks; the merge stays idempotent either way, exactly
-# like setup-statusline.sh / setup-theme.sh.
+# settings.json is stowed with these keys already set. This script validates
+# the tracked config and reports the machine-local server binaries.
 #
 # Prerequisites (install the server binaries first):
 #   lua-language-server  brew install lua-language-server
@@ -18,7 +17,8 @@
 
 set -euo pipefail
 
-SETTINGS="$HOME/.claude/settings.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETTINGS="$SCRIPT_DIR/.claude/settings.json"
 
 # plugin-key  ->  server binary that must be on PATH  ->  install hint
 PLUGINS=(
@@ -33,17 +33,7 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -f "$SETTINGS" ]; then
-  echo "Error: no settings.json found at $SETTINGS."
-  echo "Run 'stow --no-folding claude' from the repo root first, then re-run this script."
-  exit 1
-fi
-
-# settings.json is stowed (a symlink into the repo): write through the link.
-# `mv tmp` onto the link path would replace the LINK with a plain file,
-# silently de-adopting the stowed copy. Needs macOS >= 12.3's readlink -f
-# (stock older macOS lacks the flag).
-SETTINGS="$(readlink -f "$SETTINGS")"
+"$SCRIPT_DIR/setup-settings.sh" --check
 
 # Merge the plugin keys into .enabledPlugins without disturbing anything else.
 patch='{}'
@@ -52,18 +42,13 @@ for entry in "${PLUGINS[@]}"; do
   patch=$(jq -n --argjson p "$patch" --arg k "$key" '$p + {($k): true}')
 done
 
-# Skip the write if every key is already true: settings.json is now git-tracked,
-# so an unconditional rewrite churns its inode on every run, and a jq failure
-# mid-write would leave a .tmp turd in the repo.
 if jq -e --argjson patch "$patch" \
      '(.enabledPlugins // {}) as $cur | $patch | to_entries | all(.[]; $cur[.key] == true)' \
      "$SETTINGS" >/dev/null 2>&1; then
   echo "LSP plugins already configured in $SETTINGS."
 else
-  jq --argjson patch "$patch" \
-    '.enabledPlugins = ((.enabledPlugins // {}) + $patch)' \
-    "$SETTINGS" > "${SETTINGS}.tmp" && mv "${SETTINGS}.tmp" "$SETTINGS"
-  echo "Enabled LSP plugins in $SETTINGS."
+  echo "Error: one or more LSP plugins are missing from tracked settings: $SETTINGS" >&2
+  exit 1
 fi
 
 # Report which server binaries are present. A plugin whose binary is missing is

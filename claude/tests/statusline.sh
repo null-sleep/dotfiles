@@ -4,6 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 export HOME="$TMP/home" XDG_CACHE_HOME="$TMP/cache"; mkdir -p "$HOME"
+export CLAUDE_STATUSLINE_MODE=usage
 ESC=$(printf '\033')
 strip() { sed "s/${ESC}\\[[0-9;]*m//g"; }
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
