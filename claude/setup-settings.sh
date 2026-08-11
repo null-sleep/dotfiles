@@ -4,8 +4,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# pwd -P: check_link compares these against `readlink -f` (physical) output,
+# so a symlinked component in the checkout path would otherwise never match.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 EXPECTED="$SCRIPT_DIR/.claude/settings.json"
 SETTINGS="$HOME/.claude/settings.json"
 MODE="${1:-migrate}"
