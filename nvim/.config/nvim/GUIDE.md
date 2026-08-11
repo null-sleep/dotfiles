@@ -2920,9 +2920,18 @@ mean nothing is needed.
 
 A `!` raised while nvim doesn't have OS focus — the alt-tabbed-away case the
 ring exists for, and the only one no glyph can reach — also fires a macOS
-desktop notification (`osascript`, session label + what it wants). Urgent
-transitions only: never for `●` (a popup per turn across four agents trains
-you to ignore them), and never twice for a session that was already urgent.
+desktop notification: session label as the title, the agent's own prompt text
+as the body (its phrase, "wants permission", only when it sent none). Via
+`terminal-notifier` when installed, falling back to `osascript` (see
+README → Neovim for why the fallback is the worse one). Urgent only: never
+for `●` — a popup per turn across four agents trains you to ignore them —
+and **at most one per blocked episode**. The first `!` you're away for pops;
+everything until you engage stays silent, whatever tier it arrives as. Both
+halves matter: answering a permission prompt emits no hook, so a tier-based
+rule would silence the rest of the turn even after you walked away again,
+while Claude's ~60s idle re-ask for the *same* unanswered block arrives as
+`needs-input` and would pop a second time. The episode ends on your next
+prompt, the turn ending, the session ending, or `<M-u>`.
 
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and

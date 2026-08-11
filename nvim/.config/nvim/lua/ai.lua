@@ -1071,9 +1071,11 @@ function M.jump_unread()
   show_solo(name)
   local av = agentview_active()
   if av then av.enter_main() end
+  -- The agent's own text when it sent one, else the phrase — never both: they
+  -- say the same thing ("wants permission: Claude needs your permission…").
   local text = 'sidekick: ' .. M.display(name)
-  if phrase then text = text .. ' — ' .. phrase end
-  if msg then text = text .. ': ' .. msg end
+  local detail = msg or phrase
+  if detail then text = text .. ' — ' .. detail end
   vim.notify(text, vim.log.levels.INFO)
 end
 

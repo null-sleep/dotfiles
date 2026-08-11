@@ -1046,6 +1046,19 @@ launch): if `gotestsum` wasn't on `PATH` when a test first ran, neotest falls ba
 to plain `go test` for the rest of that session. Keymaps and troubleshooting are
 in [GUIDE.md → Go](nvim/.config/nvim/GUIDE.md#go).
 
+<a id="agent-desktop-notifications"></a>
+### Agent-view desktop notifications
+
+When an agent gets blocked on you while nvim doesn't have OS focus, nvim pops
+a macOS notification (the behavior itself is documented in
+[GUIDE.md → Agent view](nvim/.config/nvim/GUIDE.md#agent-view)). It prefers
+`terminal-notifier` (already in the Brewfile) with `-ignoreDnD`, which needs
+the same one-time Focus allowlisting as [yknotify](#yknotify) to break through
+Do Not Disturb. Without it installed, nvim falls back to `osascript` — that
+path additionally needs Script Editor enabled under System Settings →
+Notifications, and is silently dropped during Focus. Install
+`terminal-notifier` rather than fighting the fallback.
+
 <a id="gpg-yubikey-notifications"></a>
 ### GPG commit signing — YubiKey touch notifications (one-time setup)
 

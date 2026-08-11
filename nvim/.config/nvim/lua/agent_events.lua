@@ -9,7 +9,8 @@
 -- pre-warmed claude can emit anything.
 local M = {}
 
--- name -> { unread, attention, deferred, running, last = { category, at, raw } }
+-- name -> { unread, attention, deferred, running, notified,
+--           last = { category, at, seq, raw } }
 --   unread:    the ring; cleared only by ack (turn-complete, or any tier when
 --              forced) or real interaction (prompt-submit / session-end)
 --   attention: 'needs-permission'|'needs-input'|'turn-complete'|nil
@@ -17,6 +18,8 @@ local M = {}
 --              pane — held back, not dropped; promoted to unread when you
 --              leave (WinLeave/FocusLost), cleared by ack or prompt-submit
 --   running:   between prompt-submit and the turn's end
+--   notified:  a desktop popup already fired for the current unanswered
+--              state — one per blocked episode, cleared when you engage
 M.sessions = {}
 
 local augroup = vim.api.nvim_create_augroup('UserAgentEvents', { clear = true })
@@ -51,10 +54,15 @@ end
 -- turn-complete is the only category subject to focused-pane deferral:
 -- urgent events always ring (a block is a block wherever you're looking),
 -- and an urgent supersedes a pending deferral.
+-- `notified` (the desktop-popup episode flag) is cleared by exactly the
+-- categories that end a blocked period; the urgent ones deliberately don't,
+-- so a tier flip (needs-permission → Claude's ~60s idle needs-input re-ask
+-- for the same unanswered block) can't pop a second time.
 local TRANSITIONS = {
   ['prompt-submit'] = function(s)
     -- Real interaction — the only thing that clears an urgent ring.
     s.running, s.unread, s.attention, s.deferred = true, false, nil, nil
+    s.notified = nil
   end,
   ['needs-permission'] = function(s)
     s.running, s.unread, s.attention, s.deferred = true, true, 'needs-permission', nil
@@ -63,7 +71,7 @@ local TRANSITIONS = {
     s.running, s.unread, s.attention, s.deferred = false, true, 'needs-input', nil
   end,
   ['turn-complete'] = function(s, session)
-    s.running, s.attention = false, 'turn-complete'
+    s.running, s.attention, s.notified = false, 'turn-complete', nil
     -- Defer, never drop: silent while you sit in that pane, but it rings the
     -- moment you walk away without having interacted (promote() below).
     local suppress = focused and looking_at(session)
@@ -72,6 +80,7 @@ local TRANSITIONS = {
   ['session-end'] = function(s)
     -- /clear, /resume, exit — bookkeeping SidekickCliDetach can't see.
     s.running, s.unread, s.attention, s.deferred = false, false, nil, nil
+    s.notified = nil
   end,
 }
 
@@ -87,20 +96,39 @@ local function applescript_str(s)
   return '"' .. s:gsub('%c', ' '):gsub('[\\"]', '\\%0') .. '"'
 end
 
+-- argv, never a shell string: this text is agent-authored, so the only
+-- interpreter it must not escape into is the notifier's own arg parsing.
+-- terminal-notifier (Brewfile) is preferred — plain argv, no AppleScript
+-- quoting, and -ignoreDnD gets through Focus, which the osascript path can't
+-- (see README → Neovim). Its one quirk: a value starting with '-' is read as
+-- the next flag, so pad it. nil = no notifier on this machine.
+local function notify_argv(title, body)
+  if vim.fn.executable('terminal-notifier') == 1 then
+    if body:sub(1, 1) == '-' then body = ' ' .. body end
+    return { 'terminal-notifier', '-title', title, '-message', body, '-ignoreDnD' }
+  end
+  if vim.fn.executable('osascript') == 0 then return nil end
+  return { 'osascript', '-e', ('display notification %s with title %s')
+    :format(applescript_str(body), applescript_str(title)) }
+end
+
 -- The one case no glyph can reach: an urgent ring raised while nvim doesn't
 -- have OS focus (you alt-tabbed away — exactly what the ring exists for).
 -- Urgent-only by design: a popup per turn-complete across four agents trains
--- you to dismiss them. macOS-only; silently absent elsewhere.
+-- you to dismiss them. Body is the agent's own text when it sent one — the
+-- phrase would only restate it ("wants permission: Claude needs your
+-- permission to use Bash"), and the title already names the session.
+-- macOS-only; silently absent elsewhere. Returns true when a popup fired —
+-- that, not the attempt, is what arms the episode flag.
 local function notify_desktop(session)
-  if focused or vim.fn.executable('osascript') == 0 then return end
+  if focused then return false end
   local phrase, msg = M.summary(session)
   local ai = package.loaded['ai']
-  local body = phrase or 'needs you'
-  if msg then body = body .. ': ' .. msg end
-  -- argv, never a shell string: this text is agent-authored, so the only
-  -- interpreter it must not escape into is AppleScript's own.
-  vim.system({ 'osascript', '-e', ('display notification %s with title %s'):format(
-    applescript_str(body), applescript_str(ai and ai.display(session) or session)) })
+  local argv = notify_argv(ai and ai.display(session) or session,
+    msg or phrase or 'needs you')
+  if not argv then return false end
+  vim.system(argv)
+  return true
 end
 
 -- RPC entry point. Takes only the hook script's mktemp path (session names
@@ -120,16 +148,20 @@ function M.handle(tmpfile)
   if not transition then return '' end
   local s = M.sessions[event.session] or {}
   M.sessions[event.session] = s
-  -- The attention tier we were already urgent at, if any — so a second
-  -- needs-permission on an already-blocked session doesn't re-pop the desktop.
-  local was_urgent = M.status(event.session) == 'urgent' and s.attention
   transition(s, event.session)
   seq = seq + 1
   s.last = { category = event.category, at = os.time(), seq = seq, raw = event.raw }
-  if M.status(event.session) == 'urgent' and was_urgent ~= s.attention then
-    notify_desktop(event.session)
-  end
   fire(event.session, 'event', event.category)
+  -- One popup per blocked episode, not per tier: approving a permission
+  -- prompt emits no hook, so `attention` would still read 'needs-permission'
+  -- and silence every later ask that turn — while the same block's idle
+  -- re-ask under a different tier would pop twice. Flag means "already
+  -- popped for the current unanswered state"; the transitions above clear it.
+  -- After fire() and pcall'd: a notifier throw must never cost the repaint.
+  if M.status(event.session) == 'urgent' and not s.notified then
+    local ok_n, fired = pcall(notify_desktop, event.session)
+    if ok_n and fired then s.notified = true end
+  end
   return ''
 end
 
@@ -153,7 +185,21 @@ local PHRASES = {
   ['prompt-submit'] = 'working',
   ['session-end'] = 'ended',
 }
-local MSG_CHARS = 100
+local MSG_CELLS = 100  -- cells, not chars: 100 CJK chars is a 200-column line
+
+-- Trim to a display-cell budget (statusline's fit(), different budget). Start
+-- at `budget` chars: no char is narrower than a cell, so a longer cut can
+-- never fit and walking down from a 5000-char message is pure O(n²).
+local function fit_cells(s, budget)
+  if vim.fn.strdisplaywidth(s) <= budget then return s end
+  local n = math.min(vim.fn.strchars(s), budget)
+  while n > 1 do
+    n = n - 1
+    local cut = vim.fn.strcharpart(s, 0, n)
+    if vim.fn.strdisplaywidth(cut) <= budget - 1 then return cut .. '…' end
+  end
+  return '…'
+end
 
 -- Phrase + the agent's own notification text for `name`'s last event, both
 -- nil-able. `raw` is the hook's stdin verbatim, so `message` is only present
@@ -166,8 +212,8 @@ function M.summary(name)
     msg = vim.trim((msg:gsub('%s+', ' ')))
     if msg == '' then
       msg = nil
-    elseif vim.fn.strchars(msg) > MSG_CHARS then
-      msg = vim.fn.strcharpart(msg, 0, MSG_CHARS - 1) .. '…'
+    else
+      msg = fit_cells(msg, MSG_CELLS)
     end
   else
     msg = nil
@@ -208,8 +254,9 @@ function M.ack(name, opts)
   s.unread, s.deferred = false, nil
   -- Force clears the state behind the ring too: needs-permission holds
   -- running=true (blocked, not over), so dropping only `unread` would swap a
-  -- stuck `!` for a permanent `»`.
-  if force then s.attention, s.running = nil, false end
+  -- stuck `!` for a permanent `»`. Dismissing ends the episode, so the next
+  -- urgent event is allowed its own popup.
+  if force then s.attention, s.running, s.notified = nil, false, nil end
   fire(name, 'ack')
   return true
 end
