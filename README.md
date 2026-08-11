@@ -1686,6 +1686,20 @@ Used by [Claude Squad](#claude-squad) (pushing session branches) and pi's
 [pi-github-pr extension](#pi-extensions) (ambient PR status) — no extra scopes needed
 beyond the defaults `gh auth login` grants.
 
+The shell includes short commands for common pull-request operations:
+
+```bash
+gco <branch>                  # check out a branch with git
+gco <github-pr-url>           # check out a PR with gh
+gpr                           # select an open PR with fzf and check it out
+gpv                           # view the current branch's PR in the terminal
+gpo                           # open the current branch's PR in a browser
+```
+
+The PR URL and picker forms leave you on the PR's head branch and also handle
+PRs opened from forks. They require the `gh` installation and authentication
+above; `gpr` additionally requires `fzf`, which is included in the `Brewfile`.
+
 ### SSH for GitHub
 
 The `url.…insteadOf` rewrite above sends **all** GitHub traffic — including clones of `https://github.com/…` URLs — over SSH, so an SSH key registered with your GitHub account is required. If the key isn't a default name (`~/.ssh/id_ed25519`), SSH won't present it automatically: add a `~/.ssh/config` entry so `git@github.com` uses the right key.

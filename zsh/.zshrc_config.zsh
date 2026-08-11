@@ -273,7 +273,28 @@ alias gpf='git push --force-with-lease'
 alias gc='git commit'
 alias gca='git commit --amend'
 # alias gca='git commit --amend --no-edit'
-alias gco='git checkout'
+alias gpo='gh pr view --web'
+alias gpv='gh pr view'
+# Remove alias from `antigen bundle git` if it exists to allow function definition
+unalias gco 2>/dev/null
+gco() {
+  if [[ "$1" =~ '^https://github\.com/[^/]+/[^/]+/pull/[0-9]+/?$' ]]; then
+    gh pr checkout "$@"
+  else
+    git checkout "$@"
+  fi
+}
+
+# Select an open pull request and check out its head branch.
+unalias gpr 2>/dev/null
+gpr() {
+  local selection
+  selection=$(gh pr list --limit 100 --json number,headRefName,title \
+    --jq '.[] | [.number, .headRefName, .title] | @tsv' \
+    | fzf --delimiter=$'\t' --prompt='PR> ') || return
+
+  [[ -n "$selection" ]] && gh pr checkout "${selection%%$'\t'*}"
+}
 alias gcaa='git commit -a --amend --no-edit'
 alias gaa='git add --all'
 alias gau='git add -u' # Add only tracked files
