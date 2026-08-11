@@ -2873,7 +2873,7 @@ In the sidebar (buffer-local):
 | `n` | New session (the `<leader>an` flow; embeds once it attaches) |
 | `r` | Label the session under the cursor |
 | `x` | Kill the session under the cursor (confirm popup) |
-| `<M-u>` | Dismiss the ring on the session under the cursor — the manual escape from a `!` the agent never retracts |
+| `<M-u>` | Dismiss the ring on the session under the cursor — the manual escape from a `!` the agent never retracts (notifies when that row has nothing lit) |
 | `q` | Close the view (`<Esc>` deliberately doesn't — too reflexive a key to tear down the tab) |
 
 Browsing previews without committing: the **active** session (`▸`, sends,
@@ -2897,7 +2897,7 @@ README's per-tool sections):
 
 | Glyph | Meaning | Cleared by |
 |---|---|---|
-| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` in the sidebar force-dismisses one that's stuck, resetting the row to `○` rather than leaving it `»` |
+| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` (in the sidebar, or inside the session's own terminal) force-dismisses one that's stuck, resetting the row to `○` rather than leaving it `»` |
 | `●` | finished a turn, unread | *interacting* with that session — entering its pane, entering terminal mode in it, or refocusing nvim while parked in terminal mode in it — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: refocusing nvim from *normal* mode, or previewing the row with `j`/`k`, leaves it lit |
 | `»` | working (between your prompt and the turn's end) | the turn ending |
 | `○` | quiet — nothing pending (also a session that hasn't emitted an event yet) | — |
@@ -2955,6 +2955,7 @@ interrupting for", and `<leader>aj` routes you there either way.
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
 | `<M-r>` (in CLI) | Label the session you're in, in place (the `<leader>ar` prompt) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
+| `<M-u>` (in CLI) | Force-dismiss the ring on the session you're in — the sidebar `<M-u>`, without opening the view (notifies when nothing is lit) |
 | `u` (in CLI, normal mode) | Undo prompt input — per-agent sequence (see the table above) |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |

@@ -392,7 +392,8 @@ local function sidebar_keymaps(buf)
   -- answered permission prompt whose turn then errors leaves `!` lit forever).
   map('<M-u>', function()
     local r, ev = row_under_cursor(), package.loaded['agent_events']
-    if r and ev then ev.ack(r.name, { force = true }) end
+    if r and ev and ev.ack(r.name, { force = true }) then return end
+    vim.notify('agent view: nothing to dismiss on this row', vim.log.levels.INFO)
   end, 'AI: Dismiss ring on session under cursor')
   -- `q` only, deliberately: <Esc> is a reflex key, and here it tore down the
   -- whole tab.

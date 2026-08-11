@@ -429,6 +429,19 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
       { buffer = args.buf, desc = 'AI: Switch/kill/label CLI session picker' })
 
+    -- <M-u> force-dismisses THIS terminal's ring in place — the sidebar key,
+    -- reachable without opening the view (a stuck `!` otherwise still holds
+    -- the statusline badge and traps <leader>aj on itself). Resolved from the
+    -- window stamp, never M.active: in the view's main pane a preview can have
+    -- left the two disagreeing, and dismissing someone else's ring is silent
+    -- data loss.
+    vim.keymap.set({ 't', 'n' }, '<M-u>', function()
+      local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+      local ev = package.loaded['agent_events']
+      if ev and tool and tool.name and ev.ack(tool.name, { force = true }) then return end
+      vim.notify('sidekick: nothing to dismiss on this session', vim.log.levels.INFO)
+    end, { buffer = args.buf, desc = 'AI: Dismiss this session\'s ring' })
+
     -- <M-v> toggles the agent view in place — same family as <M-a>/<M-l>.
     vim.keymap.set({ 't', 'n' }, '<M-v>', function() require('agentview').toggle() end,
       { buffer = args.buf, desc = 'AI: Agent view (toggle)' })
