@@ -16,6 +16,7 @@ local tab, main_win, sidebar_win, origin_tab
 local sidebar_buf
 local scratch_bufs = {}  -- buffer name -> bufnr (main-pane placeholders)
 local pending          -- name spawned from the view; embedded on first attach
+local starting_shown   -- name whose "is starting…" placeholder holds main_win
 local restore_solo     -- origin tab had a CLI column at open → re-show on close
 local rows_by_lnum = {}
 local scheduled = false
@@ -238,10 +239,27 @@ local function show_scratch(bufname, line)
   vim.w[main_win].sidekick_session_id = nil   -- WinEnter tracking reads them
 end
 
+-- The spawning placeholder, tracked: `pending` only names the spawn THIS view
+-- launched, so the Attach handler needs a second way to know the main pane is
+-- still promising a session that has since started (see it there).
+local function show_starting(name)
+  show_scratch('agentview://starting', ('%s is starting…'):format(name))
+  starting_shown = name
+end
+
 -- Nothing embeddable at all (no sessions, or the active one has no terminal).
 local function empty_state()
+  starting_shown = nil
   show_scratch('agentview://empty',
     'no agent embedded — press n in the sidebar to start one')
+end
+
+-- The row the sidebar cursor is parked on — the one whose session the main
+-- pane is showing (the j/k preview rule), stale-tolerant: rows_by_lnum is
+-- last render's map, i.e. exactly what's on screen.
+local function cursor_row()
+  if not (sidebar_win and vim.api.nvim_win_is_valid(sidebar_win)) then return nil end
+  return rows_by_lnum[vim.api.nvim_win_get_cursor(sidebar_win)[1]]
 end
 
 -- Show `name`'s terminal buffer in the main pane. hide() first so sidekick
@@ -274,6 +292,7 @@ local function embed(name)
   -- open elsewhere (e.g. re-embedding after <leader>aa opened it in another
   -- tab) even while it's already the main pane's buffer here — reclaim it.
   if t:is_open() then t:hide() end
+  starting_shown = nil
   if vim.api.nvim_win_get_buf(main_win) == t.buf then return true end  -- already shown
   vim.api.nvim_win_set_buf(main_win, t.buf)
   vim.w[main_win].sidekick_cli = t.tool
@@ -286,8 +305,17 @@ local function embed(name)
 end
 
 -- Re-embed the active session (or fall to the empty state) and redraw.
+-- A cursor parked on a spawning row owns the main pane (same rule as the j/k
+-- preview): re-embedding the active session under it would swap that row's
+-- "is starting…" for an unrelated terminal — and a detach sweep, which is one
+-- of sync()'s callers, is exactly when that happens.
 local function sync()
-  if not embed(require('ai').active) then empty_state() end
+  local r = cursor_row()
+  if r and r.spawning then
+    if not embed(r.name) then show_starting(r.name) end  -- may have started since
+  elseif not embed(require('ai').active) then
+    empty_state()
+  end
   render()
 end
 
@@ -310,7 +338,7 @@ function M.select(name)
     -- Placeholder BEFORE the spawn: a failed embed otherwise leaves the
     -- previous session's buffer and stamps in the main pane, so the caller's
     -- enter_main → WinEnter would ack (and make active) the wrong session.
-    show_scratch('agentview://starting', ('%s is starting…'):format(name))
+    show_starting(name)
     pending = name
     pcall(require('sidekick.cli').show, { name = name, focus = false })
   end
@@ -436,6 +464,7 @@ local function ensure_sidebar_buf()
 end
 
 local function build_tab()
+  rows_by_lnum = {}  -- a fresh sidebar's cursor must not read the last view's map
   vim.cmd('tabnew')
   tab = vim.api.nvim_get_current_tabpage()
   vim.t[tab].agentview = true
@@ -511,7 +540,8 @@ function M.close()
   local t = find_tab()
   if not t then return end
   promote_view_main(t)
-  pending = nil  -- an abandoned mid-spawn name must not auto-embed on a later reuse
+  -- an abandoned mid-spawn name must not auto-embed on a later reuse
+  pending, starting_shown = nil, nil
   if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
   pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
   if origin_tab and vim.api.nvim_tabpage_is_valid(origin_tab) then
@@ -565,9 +595,18 @@ vim.api.nvim_create_autocmd('User', {
          and vim.api.nvim_win_get_tabpage(term.win) == tab then
         term:hide()
       end
-      if term and term.tool and term.tool.name == pending then
-        pending = nil
-        embed(term.tool.name)
+      -- `pending` is only the spawn THIS view launched and survives exactly
+      -- one attach, so it can't be the whole test: a view reopened onto an
+      -- in-flight spawn, a second queued spawn, or a PersistenceSavePre sweep
+      -- (which nils it) would all leave "X is starting…" up forever while the
+      -- row is already running. The placeholder itself and the sidebar cursor
+      -- both name the session that must replace it.
+      local name = term and term.tool and term.tool.name
+      local row = cursor_row()
+      if name and (name == pending or name == starting_shown
+                   or (row and row.name == name)) then
+        if name == pending then pending = nil end
+        embed(name)
       end
       schedule_render()
     end)
@@ -613,7 +652,7 @@ vim.api.nvim_create_autocmd('CursorMoved', {
     -- A spawning row has no terminal to preview; leaving the previous row's
     -- session up reads as this row's, so say what's actually happening.
     if r.spawning then
-      show_scratch('agentview://starting', ('%s is starting…'):format(r.name))
+      show_starting(r.name)
     else
       embed(r.name)
     end
@@ -644,7 +683,8 @@ vim.api.nvim_create_autocmd('User', {
       if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
       pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
     end
-    restore_solo, pending = nil, nil
+    restore_solo, pending, starting_shown = nil, nil, nil
+    rows_by_lnum = {}
     local doomed = { sidebar_buf }
     for _, b in pairs(scratch_bufs) do doomed[#doomed + 1] = b end
     for _, b in ipairs(doomed) do
