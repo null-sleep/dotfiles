@@ -258,6 +258,28 @@ off or delete them as they land; add new ones freely.
   `[project.scripts]`? `python -m pkg`?), which is what finally binds
   `<leader>dR` for Python; (2) whether `dap-python.debug_selection()` (debug a
   visual selection — no neotest equivalent) deserves a key.
+- [ ] **Evaluate [vim-herdr-navigation](https://github.com/paulbkim-dev/vim-herdr-navigation)**
+  — a herdr plugin (`herdr plugin install paulbkim-dev/vim-herdr-navigation`),
+  not an nvim one: unifies `Ctrl+h/j/k/l` across herdr panes and nvim splits
+  (vim-tmux-navigator ported to herdr). This config already binds those keys
+  to `<C-w>h/j/k/l` (`nvim/.config/nvim/lua/keymaps.lua:122-125`) plus
+  terminal-mode versions for sidekick terminals
+  (`nvim/.config/nvim/lua/utils.lua:40-43`), so it would extend an existing
+  keybinding rather than add a new one. Caveat found before adopting: its
+  nvim-side maps are normal-mode only, so sidekick's terminal-mode
+  `<C-h/j/k/l>` wouldn't fall through to herdr panes without also extending
+  `utils.lua` — decide whether that's worth doing before installing. Needs
+  `jq` (already a dependency here) and herdr ≥0.7.0 (have 0.8.0). See
+  README → "Herdr".
+- [ ] **Evaluate [llmtrim-herdr](https://github.com/fkiene/llmtrim-herdr)** —
+  a herdr plugin (`herdr plugin install fkiene/llmtrim-herdr`) that
+  compresses every agent pane's requests (-31% input / -74% output, per its
+  own measurements) with a per-pane savings badge — the herdr-pane equivalent
+  of the `rtk` hook already wired into Claude Code
+  (`claude/.claude/settings.json`). Check whether it double-compresses
+  alongside rtk on the same Claude pane (rtk hooks Claude's own PreToolUse
+  Bash output; this operates at the terminal-pane layer, so they may not
+  actually overlap — unverified) before enabling both.
 
 ## Known fragility
 
