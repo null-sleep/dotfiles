@@ -281,10 +281,24 @@ Unbuilt upgrades, in rough payoff order:
 1. **OSC 9/777 ingestion via `TermRequest`** (critique item 4, still
    the highest ceiling): closes the cursor/pi `!` gap and carries
    preview text; deserves its own plan before building.
-2. **Click-to-focus on the notification**: terminal-notifier's
-   `-activate <bundle-id>` (ghostty's) would make clicking the banner
-   raise the terminal; `-execute` could go further and target the
-   session. Currently a click does nothing.
+2. **Click-to-focus on the notification — TRY THIS NEXT** (flagged
+   2026-08-10; small, high payoff): clicking the banner currently does
+   nothing. Two rungs:
+   - Floor (~1 LOC): `-activate com.mitchellh.ghostty` in `notify_argv`
+     raises the terminal app. Verify the bundle id (`osascript -e 'id
+     of app "Ghostty"'`) and how it behaves with multiple ghostty
+     windows.
+   - Full (~10 LOC): `-execute` runs a shell command on click — the
+     emitting hook already knows `$NVIM` + `$SIDEKICK_SESSION`, so it
+     can bake `nvim --server $NVIM --remote-expr
+     'v:lua.require("ai").jump_unread()'` (or a jump-to-*this*-session
+     variant) into the argv: click → land in the asking session, same
+     path as `<leader>aj`. Caveats: the socket may be dead by
+     click-time (harmless failure, but pair with `-activate` so the
+     app still raises); quote the baked command carefully; and
+     `notify_argv` builds in-process where `$NVIM` is nvim's own
+     `v:servername`, not an env passthrough — read it from
+     `vim.v.servername`.
 3. **`PostToolUse` as "permission resolved"**: still the documented fix
    if the approved-but-`!`-until-Stop staleness annoys; would also let
    the notification episode reset on approval.
