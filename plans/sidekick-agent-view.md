@@ -654,6 +654,49 @@ one `env -u NVIM nvim` session:
       turn-complete; `<leader>aj` landing notify shows the prompt's
       message text.
 
+## Fresh-machine checklist — everything this feature needs to work
+
+Aggregates the setup already documented tool-by-tool in README (README
+stays the canonical setup doc; this is the feature-scoped view). On a
+new machine, after the normal Quick-start bootstrap:
+
+1. **Stow the four packages that carry the pieces**: `stow nvim claude
+   opencode pi` (from the repo root). That delivers, respectively: the
+   view/registry/badge modules + keymaps; `~/.claude/settings.json`
+   (the 5 hook registrations) + `hooks/sidekick-notify.sh`; the
+   opencode plugin (`~/.config/opencode/plugins/nvim-notify.ts`); the
+   pi extension (`~/.pi/agent/extensions/nvim-notify.ts`). cursor
+   needs nothing — it rides the `~/.claude/settings.json` merge.
+2. **Agent CLIs** per README: claude, opencode, cursor-agent, pi —
+   pi unpinned but must be >= 0.80.5 (`agent_settled`; 0.84.1
+   verified). No plugin/extension install steps: opencode and pi
+   auto-load from the stowed dirs, in-process.
+3. **`brew bundle`** (or `brew install terminal-notifier`) — the
+   notification channel. Without it the osascript fallback engages
+   (Script Editor must be allowed in System Settings → Notifications;
+   swallowed under Focus — see README's Neovim section).
+4. **First nvim launch**: vim.pack installs sidekick.nvim + deps from
+   the lockfile; nothing manual. Launch from ghostty directly — focus
+   events (FocusGained/Lost) are load-bearing for defer + the
+   notification gate; a multiplexer in between must pass them through
+   (zellij/tmux: verify before trusting rings).
+5. **First urgent popup** triggers the macOS permission prompt for
+   terminal-notifier — click Allow (or pre-enable it in System
+   Settings → Notifications).
+6. **Restart any already-running Claude Code sessions** so they pick
+   up the hooks (registrations load at session start).
+7. Machine-local quirks: the `claude/setup-*.sh` scripts exist for
+   merging machine-local additions into the *stowed* settings.json —
+   they follow the symlink and refuse to create a plain file; the rtk
+   hook self-guards on machines without rtk. `~/.claude/settings.json`
+   is version-controlled from now on: local writes to it show up as
+   repo diffs.
+
+Verify: `nvim/.config/nvim/tests/agentview/run.sh` (166 assertions,
+exits 0), then the live smoke — `<leader>av`, spawn a claude session,
+prompt → `»`, finish → `●`, alt-tab away + trigger a permission prompt
+→ desktop banner + `!` row.
+
 ## Problem
 
 Multiple agent CLI sessions (claude, cursor, opencode, pi — dynamically
