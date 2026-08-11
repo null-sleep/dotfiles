@@ -2919,9 +2919,13 @@ mean nothing is needed.
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and
 would otherwise trap repeat presses on itself. When the view is closed, the
-statusline shows an ambient badge — `● N` unread, `! N` if any is urgent,
-nothing at zero (`statusline.lua`; the badge UX beyond a count is a
-deliberate open TODO in the plan).
+statusline shows an ambient badge naming the session that wants you — `!
+refactor` for the most recent urgent one, else `● refactor` for the most
+recent unread, plus ` +N` when others are also unread (`! refactor +2`).
+Label (or raw name if unlabelled) truncated to 12 cells with `…`; nothing at
+zero, and nothing inside the view tab — the sidebar already says it better
+(`statusline.lua`). Identity, not a count: the badge answers "is this worth
+interrupting for", and `<leader>aj` routes you there either way.
 
 | Keymap | Action |
 |---|---|

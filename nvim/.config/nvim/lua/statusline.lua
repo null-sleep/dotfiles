@@ -6,19 +6,42 @@ vim.cmd.packadd('lualine.nvim')
 local round_left = ''
 local round_right = ''
 
--- Agent unread badge (agent_events registry): '● N' unread sessions, '! N'
--- when any is urgent (needs permission/input), empty at zero — the ambient
--- signal for attention while the agent view is closed. Returns text + the
+-- Agent attention badge (agent_events registry): names the top unread session
+-- — '! <label>' for the most recent urgent one (needs permission/input), else
+-- '● <label>' for the most recent unread, ' +N' for the rest. Identity, not a
+-- count: the question here is "is this worth interrupting for", and
+-- <leader>aj routes regardless of what the badge says. Empty at zero and
+-- inside the view tab (the sidebar says it better there). Returns text + the
 -- Agentview* highlight group; purely reactive reads, no timers.
+local BADGE_CELLS = 12  -- M.rename caps nothing; the statusline is finite
+
+local function fit(s)
+  if vim.fn.strdisplaywidth(s) <= BADGE_CELLS then return s end
+  local n = vim.fn.strchars(s)
+  while n > 1 do
+    n = n - 1
+    local cut = vim.fn.strcharpart(s, 0, n)
+    if vim.fn.strdisplaywidth(cut) <= BADGE_CELLS - 1 then return cut .. '…' end
+  end
+  return '…'
+end
+
 local function agent_badge()
   local ev = package.loaded['agent_events']
-  if not ev then return '', nil end
-  local unread = ev.unread_sessions()
+  if not ev or vim.t.agentview then return '', nil end
+  local unread = ev.unread_sessions()          -- most recent first
   if #unread == 0 then return '', nil end
+  local top, group, glyph = unread[1], 'AgentviewUnread', '● '
   for _, name in ipairs(unread) do
-    if ev.status(name) == 'urgent' then return '! ' .. #unread, 'AgentviewUrgent' end
+    if ev.status(name) == 'urgent' then
+      top, group, glyph = name, 'AgentviewUrgent', '! '
+      break
+    end
   end
-  return '● ' .. #unread, 'AgentviewUnread'
+  local ai = package.loaded['ai']
+  local text = glyph .. fit(ai and ai.display(top) or top)
+  if #unread > 1 then text = text .. ' +' .. (#unread - 1) end
+  return text, group
 end
 
 require('lualine').setup({

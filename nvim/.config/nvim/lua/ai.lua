@@ -872,6 +872,11 @@ function M.rename(name, on_done)
   end)
 end
 
+-- `label or name` — the flat display namespace above, for consumers that show
+-- one string per session (statusline badge). The sidebar/picker resolve the
+-- two halves separately: label bright, raw name demoted beside it.
+function M.display(name) return M._labels[name] or name end
+
 function M.toggle_active()
   -- In the view, "stash the agent UI" means leaving the view: the whole tab
   -- IS the agent UI, and cli.toggle would open a second window instead.
