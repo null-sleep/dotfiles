@@ -1012,9 +1012,8 @@ end
 -- <leader>aj: jump to the most recently unread session (cmux's triage key),
 -- skipping the session in the focused window — an urgent ring survives focus
 -- (agent_events' ack rule), so without the skip an unanswered `!` would trap
--- repeat presses on itself. Landing acks a turn-complete ring via the
--- WinEnter handler; the direct ack below covers the in-view case where the
--- embed swaps the buffer under the cursor and no WinEnter ever fires.
+-- repeat presses on itself. Landing acks a turn-complete ring on its own — via
+-- WinEnter for the solo column, via agentview.embed()/enter_main in the view.
 function M.jump_unread()
   local ev = package.loaded['agent_events']
   if not ev then return end
@@ -1026,7 +1025,6 @@ function M.jump_unread()
       show_solo(name)
       local av = agentview_active()
       if av then av.enter_main() end
-      ev.ack(name)
       return
     end
   end

@@ -9,32 +9,27 @@
 -- pre-warmed claude can emit anything.
 local M = {}
 
--- name -> { unread, attention, running, last = { category, at, raw } }
---   unread:    the ring; cleared only by ack (turn-complete) or real
---              interaction (prompt-submit / session-end)
+-- name -> { unread, attention, deferred, running, last = { category, at, raw } }
+--   unread:    the ring; cleared only by ack (turn-complete, or any tier when
+--              forced) or real interaction (prompt-submit / session-end)
 --   attention: 'needs-permission'|'needs-input'|'turn-complete'|nil
+--   deferred:  a turn-complete that landed while you were looking at that
+--              pane — held back, not dropped; promoted to unread when you
+--              leave (WinLeave/FocusLost), cleared by ack or prompt-submit
 --   running:   between prompt-submit and the turn's end
 M.sessions = {}
 
 local augroup = vim.api.nvim_create_augroup('UserAgentEvents', { clear = true })
 
--- OS-level focus, for the focused-pane suppression below (cmux's rule: an
--- event for the pane you're looking at doesn't ring).
+-- OS-level focus, for the focused-pane deferral below (cmux's rule, minus its
+-- bug: an event for the pane you're looking at is held, not discarded).
 local focused = true
+-- No ack here: alt-tabbing back is presence, not reading — acking on
+-- FocusGained destroyed the ring the same frame you could first see it.
+-- Ack now rides real interaction (the ModeChanged/WinEnter handlers below).
 vim.api.nvim_create_autocmd('FocusGained', {
   group = augroup, desc = 'Agent events: track OS focus',
-  callback = function()
-    focused = true
-    -- Also ack here, not just WinEnter: a turn-complete ring raised while
-    -- nvim was OS-backgrounded is otherwise stuck unread forever if you're
-    -- already sitting in that session's window on return — no WinEnter fires.
-    local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-    if tool and tool.name then M.ack(tool.name) end
-  end,
-})
-vim.api.nvim_create_autocmd('FocusLost', {
-  group = augroup, desc = 'Agent events: track OS focus',
-  callback = function() focused = false end,
+  callback = function() focused = true end,
 })
 
 -- Is `name` the session in the currently-focused window? Resolved through
@@ -58,26 +53,30 @@ end
 
 -- Transition table. Hooks arrive in temporal order; last-writer-wins.
 -- needs-permission keeps running=true — the turn is blocked, not over.
--- turn-complete is the only category subject to focused-pane suppression:
--- urgent events always ring (a block is a block wherever you're looking).
+-- turn-complete is the only category subject to focused-pane deferral:
+-- urgent events always ring (a block is a block wherever you're looking),
+-- and an urgent supersedes a pending deferral.
 local TRANSITIONS = {
   ['prompt-submit'] = function(s)
     -- Real interaction — the only thing that clears an urgent ring.
-    s.running, s.unread, s.attention = true, false, nil
+    s.running, s.unread, s.attention, s.deferred = true, false, nil, nil
   end,
   ['needs-permission'] = function(s)
-    s.running, s.unread, s.attention = true, true, 'needs-permission'
+    s.running, s.unread, s.attention, s.deferred = true, true, 'needs-permission', nil
   end,
   ['needs-input'] = function(s)
-    s.running, s.unread, s.attention = false, true, 'needs-input'
+    s.running, s.unread, s.attention, s.deferred = false, true, 'needs-input', nil
   end,
   ['turn-complete'] = function(s, session)
     s.running, s.attention = false, 'turn-complete'
-    s.unread = not (focused and looking_at(session))
+    -- Defer, never drop: silent while you sit in that pane, but it rings the
+    -- moment you walk away without having interacted (promote() below).
+    local suppress = focused and looking_at(session)
+    s.unread, s.deferred = not suppress, suppress or nil
   end,
   ['session-end'] = function(s)
     -- /clear, /resume, exit — bookkeeping SidekickCliDetach can't see.
-    s.running, s.unread, s.attention = false, false, nil
+    s.running, s.unread, s.attention, s.deferred = false, false, nil, nil
   end,
 }
 
@@ -134,11 +133,13 @@ end
 -- `opts.force` (the sidebar's <M-u>) clears any tier: a stuck `!` — prompt
 -- answered but the turn errors, an <Esc>'d prompt, a dropped Stop RPC — is
 -- otherwise permanent, and traps <leader>aj on itself forever.
+-- Also drops a pending deferral: you've now seen the turn, so leaving the
+-- window later must not resurrect it as a ring.
 function M.ack(name, opts)
   local s = M.sessions[name]
-  if not (s and s.unread) then return end
+  if not (s and (s.unread or s.deferred)) then return end
   if not ((opts and opts.force) or s.attention == 'turn-complete') then return end
-  s.unread = false
+  s.unread, s.deferred = false, nil
   fire(name, 'ack')
 end
 
@@ -150,15 +151,50 @@ function M.clear(name)
   fire(name, 'clear')
 end
 
--- The one focus-ack path: entering a window whose stamp names a session
--- with a turn-complete ring acknowledges it (the agent view re-stamps its
--- main pane, so this covers both the solo column and the view).
+-- Interaction, not presence, acks: entering the pane, and typing in it.
+-- The ModeChanged half covers re-reading a session you never left (no
+-- WinEnter fires there) and is the replacement for the old FocusGained ack.
+-- The agent view re-stamps its main pane, so both cover the view too;
+-- agentview.embed() acks the third path (in-view buffer swaps, no WinEnter).
+local function ack_current_win()
+  local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+  if tool and tool.name then M.ack(tool.name) end
+end
 vim.api.nvim_create_autocmd('WinEnter', {
   group = augroup,
-  desc = 'Agent events: focus-ack turn-complete rings',
+  desc = 'Agent events: ack turn-complete rings on entering the pane',
+  callback = ack_current_win,
+})
+vim.api.nvim_create_autocmd('ModeChanged', {
+  group = augroup, pattern = '*:t*',
+  desc = 'Agent events: ack turn-complete rings on entering terminal mode',
+  callback = ack_current_win,
+})
+
+-- Deferred → unread: you left without interacting, so the turn-complete held
+-- back while you sat there rings after all. WinLeave still has the window
+-- being left as current; FocusLost sweeps all (nvim itself went away).
+local function promote(name)
+  local s = M.sessions[name]
+  if not (s and s.deferred) then return end
+  s.deferred = nil
+  if s.unread then return end
+  s.unread = true
+  fire(name, 'promote')
+end
+vim.api.nvim_create_autocmd('WinLeave', {
+  group = augroup,
+  desc = 'Agent events: promote deferred rings on leaving the pane',
   callback = function()
     local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-    if tool and tool.name then M.ack(tool.name) end
+    if tool and tool.name then promote(tool.name) end
+  end,
+})
+vim.api.nvim_create_autocmd('FocusLost', {
+  group = augroup, desc = 'Agent events: track OS focus, promote deferred rings',
+  callback = function()
+    focused = false
+    for name in pairs(M.sessions) do promote(name) end
   end,
 })
 

@@ -207,6 +207,13 @@ local function embed(name)
   local s = require('sidekick.cli.state').get({ name = name, started = true })[1]
   local t = s and s.terminal
   if not (t and t.buf and vim.api.nvim_buf_is_valid(t.buf)) then return false end
+  -- In-view switches (<M-N>, cycle, <CR>, <leader>aj) swap the buffer with
+  -- nvim_win_set_buf, so no WinEnter ever fires — this is their only ack
+  -- path. Sidebar preview leaves main_win non-current, so it still can't ack.
+  if vim.api.nvim_get_current_win() == main_win then
+    local ev = package.loaded['agent_events']
+    if ev then ev.ack(name) end
+  end
   -- Before the already-shown short-circuit: a window for this session can be
   -- open elsewhere (e.g. re-embedding after <leader>aa opened it in another
   -- tab) even while it's already the main pane's buffer here — reclaim it.
