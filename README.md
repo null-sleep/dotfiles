@@ -1059,6 +1059,18 @@ path additionally needs Script Editor enabled under System Settings →
 Notifications, and is silently dropped during Focus. Install
 `terminal-notifier` rather than fighting the fallback.
 
+### Agent-view regression suite
+
+```bash
+nvim/.config/nvim/tests/agentview/run.sh   # runnable from any cwd
+```
+
+Headless assertions for the agent attention ring: the `agent_events` state
+machine, the desktop-notification gate, the statusline badge, and the agent
+view's sidebar. Self-contained — no notifications fire, no agents run. Run it
+before and after touching `lua/agent_events.lua`, `lua/agentview.lua`, or the
+statusline badge; a red suite means ring semantics changed, intended or not.
+
 <a id="gpg-yubikey-notifications"></a>
 ### GPG commit signing — YubiKey touch notifications (one-time setup)
 
