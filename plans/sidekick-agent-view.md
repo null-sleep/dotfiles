@@ -175,10 +175,58 @@ Execution deltas worth keeping:
   statusline.lua because it's a statusline-space constraint, not a
   label property. A stale urgent still outranks a fresher plain unread
   in badge naming (matches `!`-outranks-`●`).
-- **Desktop notification re-fire is per-tier**: needs-permission →
-  needs-input on an already-urgent session notifies (different
-  question); a same-tier repeat doesn't. argv-only `vim.system`, no
-  shell; gated on `executable('osascript')` and `focused == false`.
+- **Desktop notification re-fire is per-episode** (revised in the review
+  fixes below; the first cut compared tiers, which was both too tight —
+  approving a permission emits no hook, so later prompts that turn were
+  silenced — and too loose — Claude's ~60s `idle_prompt` re-popped the
+  same unanswered block): a per-session `notified` flag arms when a
+  popup actually fires and clears on prompt-submit/turn-complete/
+  session-end/force-ack. One popup per continuous blocked period.
+  Delivery prefers `terminal-notifier -ignoreDnD` (Brewfile; survives
+  Focus), falling back to osascript; argv-only `vim.system`, no shell;
+  README's Neovim section documents the setup traps.
+
+### Adversarial review of the six follow-up commits (2026-08-10, three Opus reviewers) — fixed in six more commits
+
+Reviewers confirmed the risky surfaces (AppleScript escaping vs real
+injection payloads, extmark byte arithmetic, deferred-flag exclusion
+from badge/sidebar, `jump_unread`'s removed ack traced to a real
+WinEnter in sidekick's `focus()`) and found 11 real defects, all fixed:
+
+- `61281b7` force-ack also resets `attention`/`running` (a dismissed `!`
+  showed `»` forever); failed embed no longer leaves a stale stamp that
+  mis-acks. In-view swaps, `show_scratch`, `close()`, and
+  PersistenceSavePre now `promote()` the outgoing deferred session —
+  the in-view paths otherwise reintroduced cmux's silent-drop bug.
+- `afe94a4` `<M-u>` also bound in CLI terminals (stamp-resolved, not
+  `ai.active`); both bindings notify on a no-op press. Plus the narrow
+  refocus ack: `FocusGained` acks only when parked in terminal-mode in
+  that session's window (normal-mode sitting keeps the ring).
+- `1d793d6` badge and `<leader>aj` share one candidate list
+  (`ai.unread_candidates()`: running, excluding the focused session) —
+  the badge could name a session the jump refused to route to; `fit()`
+  O(n²)→O(1)-ish (33.96ms→0.018ms on a 5k label) and computed once per
+  draw; `unread_sessions` ordering now keyed on a monotonic `seq`
+  (`os.time()` ties were nondeterministic, visible once the badge named
+  sessions).
+- `06cf7e6` render() can't strand the sidebar `modifiable` on error;
+  `M.rename` rejects control chars; labelled spawning rows keep
+  `AgentviewSpawning`.
+- `785da78` the episode-flag notification model + terminal-notifier
+  (above); notify runs pcall'd after `fire()` (a notifier throw
+  previously skipped the UI repaint); body is message-or-phrase, not
+  both (same for `<leader>aj`'s notify); summary truncates by display
+  cells. terminal-notifier quirk found: a body starting with `-` is
+  swallowed to an EMPTY notification (exit 0) — space-padded.
+- `07d9a25` the "starting…" placeholder can't outlive the spawn (Attach
+  re-embeds on pending OR placeholder-shown OR cursor-row match;
+  `sync()` respects a cursor parked on a spawning row).
+
+Accepted, deliberately unfixed: `ambiwidth=double` would break glyph
+widths (config never sets it); `focused` starts `true` (urgent before
+the first focus event doesn't pop); terminal focus-reporting is
+load-bearing for defer/notify; stickybuf's `unpin` restores bufhidden
+on the wrong buffer (benign here, upstream wart).
 
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually
@@ -437,7 +485,11 @@ one `env -u NVIM nvim` session:
       PI_SUBAGENT_DEPTH guard).
 - [ ] UX follow-ups, ack (item 14): in-view `<M-N>`/cycle/`<CR>` swap
       acks the row while reading it (no more lit row + suppressed next
-      turn); sidebar `<M-u>` clears a stuck `!` and un-traps `<leader>aj`.
+      turn) AND promotes a deferred ring on the row you swapped away
+      from; `<M-u>` (sidebar or inside the CLI) clears a stuck `!` back
+      to `○` (not `»`) and un-traps `<leader>aj`; a no-op `<M-u>`
+      notifies; refocusing nvim while parked in terminal-mode clears a
+      `●` on that pane (normal-mode sitting doesn't).
 - [ ] UX follow-ups, sidebar+preview (item 15): leading glyph column
       aligned across all row kinds incl. an unnumbered `…` row; a long
       renamed label overruns rightward without hiding any glyph; `<Esc>`
@@ -445,11 +497,17 @@ one `env -u NVIM nvim` session:
       row shows the "starting…" scratch, not the previous session.
 - [ ] UX follow-ups, badge (item 16): `! <label> +N` with two more unread,
       `● <label>` alone for a single unread, label truncated at 12 cells,
-      badge hidden while inside the view tab.
+      badge hidden while inside the view tab; a ring on the session
+      you're sitting in shows NO badge (badge and `<leader>aj` share
+      `unread_candidates()` — the jump always reaches what the badge
+      names).
 - [ ] UX follow-ups, desktop notification (item 17): alt-tab away →
-      permission prompt → macOS notification (label title, message body);
-      no notification for turn-complete or a repeated same-tier urgent;
-      `<leader>aj` landing notify shows the prompt's message text.
+      permission prompt → macOS banner via terminal-notifier (label
+      title, message body; allow it in System Settings → Notifications
+      first); a second prompt while still blocked stays silent (one per
+      episode); answer + a new prompt pops again; never for
+      turn-complete; `<leader>aj` landing notify shows the prompt's
+      message text.
 
 ## Problem
 
