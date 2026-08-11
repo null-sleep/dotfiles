@@ -22,15 +22,10 @@ M.sessions = {}
 local augroup = vim.api.nvim_create_augroup('UserAgentEvents', { clear = true })
 
 -- OS-level focus, for the focused-pane deferral below (cmux's rule, minus its
--- bug: an event for the pane you're looking at is held, not discarded).
+-- bug: an event for the pane you're looking at is held, not discarded). The
+-- FocusGained/FocusLost pair lives further down, beside the ack/promote
+-- helpers they also drive.
 local focused = true
--- No ack here: alt-tabbing back is presence, not reading — acking on
--- FocusGained destroyed the ring the same frame you could first see it.
--- Ack now rides real interaction (the ModeChanged/WinEnter handlers below).
-vim.api.nvim_create_autocmd('FocusGained', {
-  group = augroup, desc = 'Agent events: track OS focus',
-  callback = function() focused = true end,
-})
 
 -- Is `name` the session in the currently-focused window? Resolved through
 -- the sidekick window stamp — which the agent view re-stamps onto its main
@@ -194,12 +189,20 @@ end
 -- otherwise permanent, and traps <leader>aj on itself forever.
 -- Also drops a pending deferral: you've now seen the turn, so leaving the
 -- window later must not resurrect it as a ring.
+-- Returns true when something was actually dismissed, so the force callers can
+-- notify instead of declining silently.
 function M.ack(name, opts)
+  local force = (opts and opts.force) or false
   local s = M.sessions[name]
-  if not (s and (s.unread or s.deferred)) then return end
-  if not ((opts and opts.force) or s.attention == 'turn-complete') then return end
+  if not (s and (s.unread or s.deferred)) then return false end
+  if not (force or s.attention == 'turn-complete') then return false end
   s.unread, s.deferred = false, nil
+  -- Force clears the state behind the ring too: needs-permission holds
+  -- running=true (blocked, not over), so dropping only `unread` would swap a
+  -- stuck `!` for a permanent `»`.
+  if force then s.attention, s.running = nil, false end
   fire(name, 'ack')
+  return true
 end
 
 -- Lifecycle GC (kills, detach sweep): a reused name must not inherit the
@@ -229,10 +232,26 @@ vim.api.nvim_create_autocmd('ModeChanged', {
   desc = 'Agent events: ack turn-complete rings on entering terminal mode',
   callback = ack_current_win,
 })
+-- Refocus is presence, not reading — a blanket FocusGained ack destroyed the
+-- ring the same frame you could first see it. One narrow exception: you left
+-- nvim parked in terminal mode in that very pane, i.e. sitting in its input
+-- box, which is engagement no other signal will ever fire for (no WinEnter, no
+-- ModeChanged on return). Normal-mode sitting still keeps the ring.
+vim.api.nvim_create_autocmd('FocusGained', {
+  group = augroup,
+  desc = 'Agent events: track OS focus, ack the pane parked in terminal mode',
+  callback = function()
+    focused = true
+    if vim.api.nvim_get_mode().mode:find('^t') then ack_current_win() end
+  end,
+})
 
 -- Deferred → unread: you left without interacting, so the turn-complete held
 -- back while you sat there rings after all. WinLeave still has the window
 -- being left as current; FocusLost sweeps all (nvim itself went away).
+-- Exported because the agent view stops showing a session without any window
+-- changing (in-place nvim_win_set_buf swaps, tabclose) — those paths promote
+-- by hand or the held ring dies with the pane.
 local function promote(name)
   local s = M.sessions[name]
   if not (s and s.deferred) then return end
@@ -241,6 +260,7 @@ local function promote(name)
   s.unread = true
   fire(name, 'promote')
 end
+M.promote = promote
 vim.api.nvim_create_autocmd('WinLeave', {
   group = augroup,
   desc = 'Agent events: promote deferred rings on leaving the pane',

@@ -197,11 +197,31 @@ local function scratch_buf(bufname, line)
   return b
 end
 
+-- The session stamped on `win` is about to stop being shown there. Every swap
+-- in this file is an in-place nvim_win_set_buf, so agent_events' WinLeave
+-- promote hook never fires — without this hand-off a turn-complete deferred
+-- while you read it is silently dropped instead of ringing.
+local function promote_stamped(win)
+  local ev = package.loaded['agent_events']
+  local tool = win and vim.api.nvim_win_is_valid(win) and vim.w[win].sidekick_cli
+  if ev and tool and tool.name then ev.promote(tool.name) end
+end
+
+-- Same hand-off for the whole view: closing it fires WinClosed but no
+-- WinLeave. Resolved from the tab's own stamps — close() runs without a fresh
+-- adopt(), so the cached main_win may be stale.
+local function promote_view_main(t)
+  for _, w in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+    if vim.w[w].agentview_main then promote_stamped(w) end
+  end
+end
+
 -- Show a placeholder in the main pane. Unpin first: stickybuf pinned the
 -- window to sidekick_terminal by filetype at embed time, and would bounce a
 -- non-CLI buffer right back out.
 local function show_scratch(bufname, line)
   if not (main_win and vim.api.nvim_win_is_valid(main_win)) then return end
+  promote_stamped(main_win)
   pcall(require('stickybuf').unpin, main_win)
   vim.api.nvim_win_set_buf(main_win, scratch_buf(bufname, line))
   vim.w[main_win].sidekick_cli = nil          -- clear stale session stamps —
@@ -225,12 +245,20 @@ local function embed(name)
   local s = require('sidekick.cli.state').get({ name = name, started = true })[1]
   local t = s and s.terminal
   if not (t and t.buf and vim.api.nvim_buf_is_valid(t.buf)) then return false end
-  -- In-view switches (<M-N>, cycle, <CR>, <leader>aj) swap the buffer with
-  -- nvim_win_set_buf, so no WinEnter ever fires — this is their only ack
-  -- path. Sidebar preview leaves main_win non-current, so it still can't ack.
+  -- Switches pressed INSIDE the embedded terminal (<M-]>/<M-[>, <M-N>, <C-]>,
+  -- <M-l>) re-stamp main_win in place: no window changes, so neither WinLeave
+  -- nor WinEnter fires and this is the only place that can hand the outgoing
+  -- session's deferred ring over and ack the incoming one. (<CR>/digits/
+  -- <leader>aj come from the sidebar and are served by enter_main → WinEnter.
+  -- Sidebar <M-]>/<M-[> and j/k previews leave main_win non-current, so they
+  -- ack nothing at all — deliberate: that's looking at a row, not reading it.)
   if vim.api.nvim_get_current_win() == main_win then
     local ev = package.loaded['agent_events']
-    if ev then ev.ack(name) end
+    if ev then
+      local prev = vim.w[main_win].sidekick_cli
+      if prev and prev.name ~= name then promote_stamped(main_win) end
+      ev.ack(name)
+    end
   end
   -- Before the already-shown short-circuit: a window for this session can be
   -- open elsewhere (e.g. re-embedding after <leader>aa opened it in another
@@ -269,6 +297,10 @@ M.enter_main = enter_main  -- ai.jump_unread lands in the main pane in-view
 function M.select(name)
   require('ai')._set_active(name)
   if not embed(name) then
+    -- Placeholder BEFORE the spawn: a failed embed otherwise leaves the
+    -- previous session's buffer and stamps in the main pane, so the caller's
+    -- enter_main → WinEnter would ack (and make active) the wrong session.
+    show_scratch('agentview://starting', ('%s is starting…'):format(name))
     pending = name
     pcall(require('sidekick.cli').show, { name = name, focus = false })
   end
@@ -467,6 +499,7 @@ end
 function M.close()
   local t = find_tab()
   if not t then return end
+  promote_view_main(t)
   pending = nil  -- an abandoned mid-spawn name must not auto-embed on a later reuse
   if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
   pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
@@ -596,6 +629,7 @@ vim.api.nvim_create_autocmd('User', {
     -- Just remove the view tab so it isn't serialized.
     local t = find_tab()
     if t then
+      promote_view_main(t)
       if #vim.api.nvim_list_tabpages() == 1 then vim.cmd('tabnew') end
       pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
     end

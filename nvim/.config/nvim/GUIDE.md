@@ -2897,17 +2897,19 @@ README's per-tool sections):
 
 | Glyph | Meaning | Cleared by |
 |---|---|---|
-| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` in the sidebar force-dismisses one that's stuck |
-| `●` | finished a turn, unread | *interacting* with that session — entering its pane, or typing in it (terminal mode) — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: alt-tabbing back to nvim, or previewing the row with `j`/`k`, leaves it lit |
+| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` in the sidebar force-dismisses one that's stuck, resetting the row to `○` rather than leaving it `»` |
+| `●` | finished a turn, unread | *interacting* with that session — entering its pane, entering terminal mode in it, or refocusing nvim while parked in terminal mode in it — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: refocusing nvim from *normal* mode, or previewing the row with `j`/`k`, leaves it lit |
 | `»` | working (between your prompt and the turn's end) | the turn ending |
 | `○` | quiet — nothing pending (also a session that hasn't emitted an event yet) | — |
 | `…` | spawning, first attach not yet observed | attaching |
 
 Two deliberate asymmetries: a `●` for the session you're *currently looking
 at* (nvim focused) is **deferred, not dropped** — it stays silent while you
-sit there, and rings the moment you leave that window or nvim loses OS focus
-without your having interacted (interacting cancels it, your next prompt
-too). cmux's focused-pane rule dropped such an event outright, which made it
+sit there, and rings the moment you stop looking at it without having
+interacted: leaving that window, nvim losing OS focus, swapping the view's
+main pane to another session, or closing the view (interacting cancels it,
+your next prompt too). cmux's focused-pane rule dropped such an event
+outright, which made it
 unrecoverable; `!` still rings immediately either way. And ring support is
 **tiered by agent**. Claude and opencode emit the
 full set; pi has no permission/question events in its vocabulary, and
