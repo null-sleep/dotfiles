@@ -2855,7 +2855,7 @@ view tab is current, every switch path (`<M-]>` cycling, the `<leader>al`
 picker, `<leader>an` creation) routes into the view instead of opening
 splits; sidekick owns zero windows there. Context sends are refused inside
 the view (they'd render against the sidebar, not code) — close it first.
-Closing the view (`q`/`<Esc>`/toggle again) returns to the originating tab;
+Closing the view (`q`, or toggling again) returns to the originating tab;
 all sessions keep running. Entering the view hides an open `<leader>aa`
 column (embedding must own the buffer's only window) — closing it restores
 the column if one was open when you entered, showing the *active* session
@@ -2866,7 +2866,7 @@ In the sidebar (buffer-local):
 
 | Key | Action |
 |---|---|
-| `j`/`k` (browse) | The main pane follows the cursor — each row's terminal previews immediately, no `<CR>` needed to see it |
+| `j`/`k` (browse) | The main pane follows the cursor — each row's terminal previews immediately, no `<CR>` needed to see it (a spawning `…` row has no terminal yet, so the pane shows a one-line *starting* placeholder rather than leaving the previous session up) |
 | `<CR>` | Commit the session under the cursor: make it active + focus the main pane |
 | `1`..`9` | Commit row N directly (digits match the `<M-N>` jumps) |
 | `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI); the cursor follows the new active row |
@@ -2874,7 +2874,7 @@ In the sidebar (buffer-local):
 | `r` | Label the session under the cursor |
 | `x` | Kill the session under the cursor (confirm popup) |
 | `<M-u>` | Dismiss the ring on the session under the cursor — the manual escape from a `!` the agent never retracts |
-| `q` / `<Esc>` | Close the view |
+| `q` | Close the view (`<Esc>` deliberately doesn't — too reflexive a key to tear down the tab) |
 
 Browsing previews without committing: the **active** session (`▸`, sends,
 `<C-]>` alt-tab pair) only changes on `<CR>`/digits or on entering the main
@@ -2918,7 +2918,10 @@ mean nothing is needed.
 
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and
-would otherwise trap repeat presses on itself. When the view is closed, the
+would otherwise trap repeat presses on itself. Landing notifies which session
+you're in and what it wants, including the agent's own prompt text when the
+event carried one (Claude's permission/input hooks do) — the terminal itself
+can be scrolled pages past the question. When the view is closed, the
 statusline shows an ambient badge naming the session that wants you — `!
 refactor` for the most recent urgent one, else `● refactor` for the most
 recent unread, plus ` +N` when others are also unread (`! refactor +2`).

@@ -114,6 +114,36 @@ function M.status(name)
   return 'idle'
 end
 
+-- Short phrases for the notify consumers (<leader>aj's landing notify).
+local PHRASES = {
+  ['needs-permission'] = 'wants permission',
+  ['needs-input'] = 'needs input',
+  ['turn-complete'] = 'finished a turn',
+  ['prompt-submit'] = 'working',
+  ['session-end'] = 'ended',
+}
+local MSG_CHARS = 100
+
+-- Phrase + the agent's own notification text for `name`'s last event, both
+-- nil-able. `raw` is the hook's stdin verbatim, so `message` is only present
+-- for the agents/events that send one — flattened to one truncated line.
+function M.summary(name)
+  local last = M.sessions[name] and M.sessions[name].last
+  if not last then return nil, nil end
+  local msg = type(last.raw) == 'table' and last.raw.message or nil
+  if type(msg) == 'string' then
+    msg = vim.trim((msg:gsub('%s+', ' ')))
+    if msg == '' then
+      msg = nil
+    elseif vim.fn.strchars(msg) > MSG_CHARS then
+      msg = vim.fn.strcharpart(msg, 0, MSG_CHARS - 1) .. '…'
+    end
+  else
+    msg = nil
+  end
+  return PHRASES[last.category], msg
+end
+
 -- Unread session names, most recent event first (<leader>aj, badge).
 function M.unread_sessions()
   local names = {}

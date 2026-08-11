@@ -13,7 +13,8 @@ local M = {}
 local utils = require('utils')
 
 local tab, main_win, sidebar_win, origin_tab
-local sidebar_buf, empty_buf
+local sidebar_buf
+local scratch_bufs = {}  -- buffer name -> bufnr (main-pane placeholders)
 local pending          -- name spawned from the view; embedded on first attach
 local restore_solo     -- origin tab had a CLI column at open → re-show on close
 local rows_by_lnum = {}
@@ -175,28 +176,42 @@ local function schedule_render()
   end)
 end
 
--- Scratch shown in the main pane when nothing is embeddable. Unpin first:
--- stickybuf pinned the window to sidekick_terminal by filetype at embed
--- time, and would bounce a non-CLI buffer right back out.
-local function empty_state()
-  if not (main_win and vim.api.nvim_win_is_valid(main_win)) then return end
-  if not (empty_buf and vim.api.nvim_buf_is_valid(empty_buf)) then
-    local existing = vim.fn.bufnr('agentview://empty')
-    if existing ~= -1 then
-      empty_buf = existing
-    else
-      empty_buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_name(empty_buf, 'agentview://empty')
-      vim.api.nvim_buf_set_lines(empty_buf, 0, -1, false,
-        { 'no agent embedded — press n in the sidebar to start one' })
-      vim.bo[empty_buf].modifiable = false
-      vim.bo[empty_buf].bufhidden = 'hide'
+-- One unlisted nofile line-buffer per placeholder kind, reused across
+-- open/close and re-sources (looked up by name — locals don't survive a
+-- re-source, the buffer does). Text is rewritten every show: the spawning
+-- placeholder names its row.
+local function scratch_buf(bufname, line)
+  local b = scratch_bufs[bufname]
+  if not (b and vim.api.nvim_buf_is_valid(b)) then
+    b = vim.fn.bufnr(bufname)
+    if b == -1 then
+      b = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_name(b, bufname)
+      vim.bo[b].bufhidden = 'hide'
     end
+    scratch_bufs[bufname] = b
   end
+  vim.bo[b].modifiable = true
+  vim.api.nvim_buf_set_lines(b, 0, -1, false, { line })
+  vim.bo[b].modifiable = false
+  return b
+end
+
+-- Show a placeholder in the main pane. Unpin first: stickybuf pinned the
+-- window to sidekick_terminal by filetype at embed time, and would bounce a
+-- non-CLI buffer right back out.
+local function show_scratch(bufname, line)
+  if not (main_win and vim.api.nvim_win_is_valid(main_win)) then return end
   pcall(require('stickybuf').unpin, main_win)
-  vim.api.nvim_win_set_buf(main_win, empty_buf)
+  vim.api.nvim_win_set_buf(main_win, scratch_buf(bufname, line))
   vim.w[main_win].sidekick_cli = nil          -- clear stale session stamps —
   vim.w[main_win].sidekick_session_id = nil   -- WinEnter tracking reads them
+end
+
+-- Nothing embeddable at all (no sessions, or the active one has no terminal).
+local function empty_state()
+  show_scratch('agentview://empty',
+    'no agent embedded — press n in the sidebar to start one')
 end
 
 -- Show `name`'s terminal buffer in the main pane. hide() first so sidekick
@@ -347,8 +362,9 @@ local function sidebar_keymaps(buf)
     local r, ev = row_under_cursor(), package.loaded['agent_events']
     if r and ev then ev.ack(r.name, { force = true }) end
   end, 'AI: Dismiss ring on session under cursor')
+  -- `q` only, deliberately: <Esc> is a reflex key, and here it tore down the
+  -- whole tab.
   map('q', function() M.close() end, 'AI: Close agent view')
-  map('<Esc>', function() M.close() end, 'AI: Close agent view')
 end
 
 -- One scratch sidebar buffer, reused across open/close and re-sources
@@ -549,7 +565,14 @@ vim.api.nvim_create_autocmd('CursorMoved', {
     if not (sidebar_buf and vim.api.nvim_get_current_buf() == sidebar_buf) then return end
     if not M.is_active() then return end
     local r = rows_by_lnum[vim.api.nvim_win_get_cursor(0)[1]]
-    if r and not r.spawning then embed(r.name) end
+    if not r then return end
+    -- A spawning row has no terminal to preview; leaving the previous row's
+    -- session up reads as this row's, so say what's actually happening.
+    if r.spawning then
+      show_scratch('agentview://starting', ('%s is starting…'):format(r.name))
+    else
+      embed(r.name)
+    end
   end,
 })
 
@@ -577,12 +600,14 @@ vim.api.nvim_create_autocmd('User', {
       pcall(vim.cmd, vim.api.nvim_tabpage_get_number(t) .. 'tabclose')
     end
     restore_solo, pending = nil, nil
-    for _, b in ipairs({ sidebar_buf, empty_buf }) do
+    local doomed = { sidebar_buf }
+    for _, b in pairs(scratch_bufs) do doomed[#doomed + 1] = b end
+    for _, b in ipairs(doomed) do
       if b and vim.api.nvim_buf_is_valid(b) then
         pcall(vim.api.nvim_buf_delete, b, { force = true })
       end
     end
-    sidebar_buf, empty_buf = nil, nil
+    sidebar_buf, scratch_bufs = nil, {}
   end,
 })
 

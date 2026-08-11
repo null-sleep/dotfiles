@@ -1019,6 +1019,9 @@ end
 -- (agent_events' ack rule), so without the skip an unanswered `!` would trap
 -- repeat presses on itself. Landing acks a turn-complete ring on its own — via
 -- WinEnter for the solo column, via agentview.embed()/enter_main in the view.
+-- The landing notify names where you landed and, when the agent sent one, what
+-- it's asking (Claude's hook payload carries `message` on permission/input
+-- events) — the terminal alone can be pages past the prompt.
 function M.jump_unread()
   local ev = package.loaded['agent_events']
   if not ev then return end
@@ -1026,10 +1029,15 @@ function M.jump_unread()
   local here = tool and tool.name
   for _, name in ipairs(ev.unread_sessions()) do
     if name ~= here and running(name) then
+      local phrase, msg = ev.summary(name)
       set_active(name)
       show_solo(name)
       local av = agentview_active()
       if av then av.enter_main() end
+      local text = 'sidekick: ' .. M.display(name)
+      if phrase then text = text .. ' — ' .. phrase end
+      if msg then text = text .. ': ' .. msg end
+      vim.notify(text, vim.log.levels.INFO)
       return
     end
   end
