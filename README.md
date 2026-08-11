@@ -765,20 +765,25 @@ than replacing it, unlike the [de-adoption hazard](#claude-code) rtk can hit.
 `setup-herdr.sh` then wraps the command in
 `if command -v herdr >/dev/null 2>&1; then …; fi`,
 matching the existing [rtk](#claude-code) hook, so a machine with the repo
-stowed but no `herdr` binary doesn't get a failing Claude Code hook. Two
-things follow from that:
+stowed but no `herdr` binary doesn't get a failing Claude Code hook.
+`setup-herdr.sh` also rewrites the hook's path from the **absolute** form
+herdr's installer writes (`bash '/Users/you/.claude/hooks/herdr-agent-state.sh'
+session`) to the `$HOME`-relative style every other hook in this file already
+uses (`bash $HOME/.claude/hooks/herdr-agent-state.sh session`) — a plain
+literal substring replace via jq's `split`/`join` (not `gsub`, which would
+treat the path's dots as regex wildcards) — so the tracked entry works on any
+machine/username, not just this one. Two things follow from the guard step:
 
 - `herdr integration status` may report the Claude entry as needing attention
   since the tracked command no longer matches what a fresh install would
   write — that's expected, don't "fix" it by re-running the installer by hand.
   Always go through `setup-herdr.sh`, which checks for an existing entry
   first; calling `herdr integration install claude` directly once a guarded
-  entry is in place appends a **duplicate**, unwrapped entry instead of
-  recognizing it.
-- The hook's command hardcodes `/Users/<you>/.claude/hooks/herdr-agent-state.sh`
-  as an absolute path (herdr's installer writes it that way, unlike the
-  `$HOME`-relative style the other hooks in this file use) — fine as long as
-  this repo lives under the same home directory, which it always does here.
+  entry is in place appends a **duplicate**, unwrapped (and absolute-path)
+  entry instead of recognizing it — harmless (Claude Code just runs both),
+  and `setup-herdr.sh`'s guard+portabilize step will normalize the new one
+  into the same guarded/`$HOME`-relative shape on its next run, but it won't
+  merge the two into one — remove the extra by hand if that bothers you.
 
 **What the hook actually buys:** session-identity reporting for restore
 (`claude --resume <id>` after a Herdr server restart), not pane state — Herdr

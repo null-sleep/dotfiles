@@ -72,14 +72,27 @@ else
   echo "herdr Claude Code hook already present in $SETTINGS — not re-running the installer (see script header)."
 fi
 
-# Guard the hook command so a stowed-but-herdr-less machine doesn't get a
-# failing SessionStart hook. Skips entries already wrapped, so this is a
-# no-op on a second run.
-jq '
+# herdr's installer bakes in the ABSOLUTE hook path (e.g.
+# `bash '/Users/you/.claude/hooks/herdr-agent-state.sh' session`), which would
+# break on any other machine/username this repo is checked out on. Rewrite it
+# to the same $HOME-relative style every other hook in this file already uses
+# (e.g. sidekick-notify.sh) — a plain literal substring replace via jq's
+# one-arg split/join (NOT split(regex) or gsub — those interpret the pattern
+# as regex, and the path's dots would over-match). Then guard the command so
+# a stowed-but-herdr-less machine doesn't get a failing SessionStart hook.
+# Both steps are no-ops if already applied, so this stays idempotent and
+# self-heals an already-guarded-but-still-absolute entry from a prior run.
+HOOK_ABS="$HOME/.claude/hooks/herdr-agent-state.sh"
+HOOK_PORTABLE='$HOME/.claude/hooks/herdr-agent-state.sh' # single-quoted: literal $HOME, not expanded here
+jq --arg old "'$HOOK_ABS'" --arg new "$HOOK_PORTABLE" '
   .hooks.SessionStart = ((.hooks.SessionStart // []) | map(
     if (.hooks[0].command // "" | contains("herdr-agent-state.sh"))
-       and ((.hooks[0].command // "") | startswith("if command -v herdr") | not)
-    then .hooks[0].command |= "if command -v herdr >/dev/null 2>&1; then " + . + "; fi"
+    then .hooks[0].command |= (
+        (split($old) | join($new))
+      | if startswith("if command -v herdr") then .
+        else "if command -v herdr >/dev/null 2>&1; then " + . + "; fi"
+        end
+      )
     else .
     end
   ))
