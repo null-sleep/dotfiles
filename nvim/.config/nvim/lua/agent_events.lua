@@ -75,6 +75,12 @@ local TRANSITIONS = {
   end,
 }
 
+-- Event counter, the authoritative "most recent" key. `last.at` is os.time(),
+-- i.e. whole seconds, and table.sort is unstable — six sessions ringing in the
+-- same second sorted differently on every call, which is visible now that the
+-- badge names one of them. Monotonic, never reset.
+local seq = 0
+
 -- AppleScript string literal: control chars flattened first (a newline would
 -- end the `-e` line), then the two characters the literal itself can't carry.
 local function applescript_str(s)
@@ -118,7 +124,8 @@ function M.handle(tmpfile)
   -- needs-permission on an already-blocked session doesn't re-pop the desktop.
   local was_urgent = M.status(event.session) == 'urgent' and s.attention
   transition(s, event.session)
-  s.last = { category = event.category, at = os.time(), raw = event.raw }
+  seq = seq + 1
+  s.last = { category = event.category, at = os.time(), seq = seq, raw = event.raw }
   if M.status(event.session) == 'urgent' and was_urgent ~= s.attention then
     notify_desktop(event.session)
   end
@@ -168,15 +175,17 @@ function M.summary(name)
   return PHRASES[last.category], msg
 end
 
--- Unread session names, most recent event first (<leader>aj, badge).
+-- Unread session names, most recent event first. Ordered by `last.seq`, not
+-- `last.at` — see the counter above. Raw list; the consumers (<leader>aj, the
+-- badge) share ai.unread_candidates() to filter it identically.
 function M.unread_sessions()
   local names = {}
   for name, s in pairs(M.sessions) do
     if s.unread then names[#names + 1] = name end
   end
   table.sort(names, function(a, b)
-    return (M.sessions[a].last and M.sessions[a].last.at or 0)
-         > (M.sessions[b].last and M.sessions[b].last.at or 0)
+    return (M.sessions[a].last and M.sessions[a].last.seq or 0)
+         > (M.sessions[b].last and M.sessions[b].last.seq or 0)
   end)
   return names
 end

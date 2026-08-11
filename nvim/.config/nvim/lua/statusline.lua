@@ -10,14 +10,21 @@ local round_right = ''
 -- — '! <label>' for the most recent urgent one (needs permission/input), else
 -- '● <label>' for the most recent unread, ' +N' for the rest. Identity, not a
 -- count: the question here is "is this worth interrupting for", and
--- <leader>aj routes regardless of what the badge says. Empty at zero and
--- inside the view tab (the sidebar says it better there). Returns text + the
--- Agentview* highlight group; purely reactive reads, no timers.
+-- <leader>aj routes regardless of what the badge says. Empty inside the view
+-- tab (the sidebar says it better there). Returns text + the Agentview*
+-- highlight group; purely reactive reads, no timers.
+-- The candidate list is ai.unread_candidates(), the same one <leader>aj walks
+-- — so the badge can never name a session the jump then refuses to route to.
+-- That excludes the session you're sitting in, which is why the badge goes
+-- quiet when the only ring is the pane in front of you.
 local BADGE_CELLS = 12  -- M.rename caps nothing; the statusline is finite
 
 local function fit(s)
   if vim.fn.strdisplaywidth(s) <= BADGE_CELLS then return s end
-  local n = vim.fn.strchars(s)
+  -- Start at BADGE_CELLS chars, not #s: every char is at least one cell, so a
+  -- longer cut can never fit and walking down from a 5000-char label is pure
+  -- O(n²) on a per-draw path.
+  local n = math.min(vim.fn.strchars(s), BADGE_CELLS)
   while n > 1 do
     n = n - 1
     local cut = vim.fn.strcharpart(s, 0, n)
@@ -27,9 +34,11 @@ local function fit(s)
 end
 
 local function agent_badge()
-  local ev = package.loaded['agent_events']
-  if not ev or vim.t.agentview then return '', nil end
-  local unread = ev.unread_sessions()          -- most recent first
+  local ev, ai = package.loaded['agent_events'], package.loaded['ai']
+  -- No ai.unread_candidates = the first-launch packadd race (ai.lua returns
+  -- early), where there are no sessions to ring anyway.
+  if not ev or not (ai and ai.unread_candidates) or vim.t.agentview then return '', nil end
+  local unread = ai.unread_candidates()        -- most recent first
   if #unread == 0 then return '', nil end
   local top, group, glyph = unread[1], 'AgentviewUnread', '● '
   for _, name in ipairs(unread) do
@@ -38,11 +47,15 @@ local function agent_badge()
       break
     end
   end
-  local ai = package.loaded['ai']
-  local text = glyph .. fit(ai and ai.display(top) or top)
+  local text = glyph .. fit(ai.display(top))
   if #unread > 1 then text = text .. ' +' .. (#unread - 1) end
   return text, group
 end
+
+-- lualine draws a component then resolves its color fn (component.lua:draw →
+-- apply_highlights), so the component stashes the group here for the color fn
+-- instead of both calling agent_badge() and doing the work twice per draw.
+local badge_group
 
 require('lualine').setup({
   options = {
@@ -106,13 +119,16 @@ require('lualine').setup({
     },
     lualine_x = {
       {
-        function() return (agent_badge()) end,
+        function()
+          local text, group = agent_badge()
+          badge_group = group
+          return text
+        end,
         color = function()
-          local _, group = agent_badge()
-          if not group then return nil end
+          if not badge_group then return nil end
           -- lualine wants a color table; resolve the linked group's fg so
           -- the badge follows the active theme like everything else.
-          local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
+          local hl = vim.api.nvim_get_hl(0, { name = badge_group, link = false })
           return hl.fg and { fg = ('#%06x'):format(hl.fg) } or nil
         end,
       },

@@ -2900,7 +2900,7 @@ README's per-tool sections):
 | `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` (in the sidebar, or inside the session's own terminal) force-dismisses one that's stuck, resetting the row to `○` rather than leaving it `»` |
 | `●` | finished a turn, unread | *interacting* with that session — entering its pane, entering terminal mode in it, or refocusing nvim while parked in terminal mode in it — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: refocusing nvim from *normal* mode, or previewing the row with `j`/`k`, leaves it lit |
 | `»` | working (between your prompt and the turn's end) | the turn ending |
-| `○` | quiet — nothing pending (also a session that hasn't emitted an event yet) | — |
+| `○` | nothing ringing — never emitted an event, already acked, or holding a deferred turn-complete while you sit in its pane (see below) | — |
 | `…` | spawning, first attach not yet observed | attaching |
 
 Two deliberate asymmetries: a `●` for the session you're *currently looking
@@ -2929,14 +2929,19 @@ skipping the session you're focused on — an unanswered `!` survives focus and
 would otherwise trap repeat presses on itself. Landing notifies which session
 you're in and what it wants, including the agent's own prompt text when the
 event carried one (Claude's permission/input hooks do) — the terminal itself
-can be scrolled pages past the question. When the view is closed, the
-statusline shows an ambient badge naming the session that wants you — `!
-refactor` for the most recent urgent one, else `● refactor` for the most
-recent unread, plus ` +N` when others are also unread (`! refactor +2`).
-Label (or raw name if unlabelled) truncated to 12 cells with `…`; nothing at
-zero, and nothing inside the view tab — the sidebar already says it better
-(`statusline.lua`). Identity, not a count: the badge answers "is this worth
-interrupting for", and `<leader>aj` routes you there either way.
+can be scrolled pages past the question. The statusline carries an ambient
+badge naming the session `<leader>aj` would take you to — `! refactor` for
+the most recent urgent one, else `● refactor` for the most recent unread,
+plus ` +N` when others are waiting too (`! refactor +2`). Both read the same
+candidate list (`ai.unread_candidates()`), so the badge can never name a
+session the jump then refuses: it skips stopped sessions and the one you're
+focused on, which is why it goes quiet when the only ring is the pane in
+front of you — you're looking at it. Label (or raw name if unlabelled)
+truncated to 12 cells with `…`. Shown everywhere *except* while the view tab
+is current (the sidebar says it better there) — including when the view sits
+idle in a background tab (`statusline.lua`). Identity, not a count: the badge
+answers "is this worth interrupting for", and `<leader>aj` routes you there
+either way.
 
 | Keymap | Action |
 |---|---|

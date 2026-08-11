@@ -1027,34 +1027,49 @@ function M.cycle(dir)
   show_solo(name)
 end
 
--- <leader>aj: jump to the most recently unread session (cmux's triage key),
--- skipping the session in the focused window — an urgent ring survives focus
--- (agent_events' ack rule), so without the skip an unanswered `!` would trap
--- repeat presses on itself. Landing acks a turn-complete ring on its own — via
--- WinEnter for the solo column, via agentview.embed()/enter_main in the view.
--- The landing notify names where you landed and, when the agent sent one, what
--- it's asking (Claude's hook payload carries `message` on permission/input
--- events) — the terminal alone can be pages past the prompt.
+-- Unread sessions <leader>aj would actually route to, most recent first: the
+-- registry's order minus the stopped ones and the session in the focused
+-- window. The focus skip is the ack rule's consequence — an urgent ring
+-- survives focus, so keeping it would trap repeat presses on itself.
+-- THE shared list: the statusline badge names candidates[1] and counts the
+-- rest from here too, so it can never advertise a session the jump declines
+-- (sitting in `claude` while it prompts used to show `! claude` and answer
+-- "no unread"). Empty while the only ring is the pane you're in is correct —
+-- you're looking at it.
+function M.unread_candidates()
+  local ev = package.loaded['agent_events']
+  if not ev then return {} end
+  local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+  local here = tool and tool.name
+  local out = {}
+  for _, name in ipairs(ev.unread_sessions()) do
+    if name ~= here and running(name) then out[#out + 1] = name end
+  end
+  return out
+end
+
+-- <leader>aj: jump to the most recently unread session (cmux's triage key).
+-- Landing acks a turn-complete ring on its own — via WinEnter for the solo
+-- column, via agentview.embed()/enter_main in the view. The landing notify
+-- names where you landed and, when the agent sent one, what it's asking
+-- (Claude's hook payload carries `message` on permission/input events) — the
+-- terminal alone can be pages past the prompt.
 function M.jump_unread()
   local ev = package.loaded['agent_events']
   if not ev then return end
-  local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
-  local here = tool and tool.name
-  for _, name in ipairs(ev.unread_sessions()) do
-    if name ~= here and running(name) then
-      local phrase, msg = ev.summary(name)
-      set_active(name)
-      show_solo(name)
-      local av = agentview_active()
-      if av then av.enter_main() end
-      local text = 'sidekick: ' .. M.display(name)
-      if phrase then text = text .. ' — ' .. phrase end
-      if msg then text = text .. ': ' .. msg end
-      vim.notify(text, vim.log.levels.INFO)
-      return
-    end
+  local name = M.unread_candidates()[1]
+  if not name then
+    return vim.notify('sidekick: no unread agent sessions', vim.log.levels.INFO)
   end
-  vim.notify('sidekick: no unread agent sessions', vim.log.levels.INFO)
+  local phrase, msg = ev.summary(name)
+  set_active(name)
+  show_solo(name)
+  local av = agentview_active()
+  if av then av.enter_main() end
+  local text = 'sidekick: ' .. M.display(name)
+  if phrase then text = text .. ' — ' .. phrase end
+  if msg then text = text .. ': ' .. msg end
+  vim.notify(text, vim.log.levels.INFO)
 end
 
 -- <M-1>..<M-9> inside the CLI (and 1-9 in the agent-view sidebar): jump
