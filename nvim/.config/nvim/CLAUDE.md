@@ -27,6 +27,16 @@ every `.lua` file in this config are pre-existing LSP noise — lua-ls in this
 context isn't configured with the `vim` global. They are never caused by your
 edit; don't try to "fix" them or factor them into a change.
 
+## Agent-view code: read the internals doc, run the suite
+
+Before editing `lua/agent_events.lua`, `lua/agentview.lua`, the
+statusline agent badge, or the agent-view parts of `lua/ai.lua`, read
+`plans/sidekick-agent-view-internals.md` (repo root) — the shipped
+state-machine truth table, the invariants, and the sidekick internals
+these modules depend on. Run `tests/agentview/run.sh` (from this config
+dir) before and after your change; a red suite means you changed ring
+semantics, intended or not.
+
 ## Update GUIDE.md in the same change
 
 **Whenever you add a new lua module (a `require()` in `init.lua`) or a new

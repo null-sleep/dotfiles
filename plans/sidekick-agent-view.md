@@ -312,6 +312,49 @@ pane, the window is unpinned — a stray `:e` there loads a file into the
 view until the next embed. Rare enough to accept; re-pin-on-scratch is
 the fix if it bites.
 
+### Second opinions — honest assessment after the full cycle (2026-08-10)
+
+Asked and answered at the end of the build: is this a good idea, and
+what would we do differently? Operational detail (state-machine truth
+table, invariants, sidekick internals we depend on, headless-testing
+recipes, retreat positions) now lives in the companion
+[sidekick-agent-view-internals.md](sidekick-agent-view-internals.md) —
+agents should read that before touching these modules.
+
+- **The core is right** (two-signal model, per-session rings, one
+  triage key) — cmux converged on the same abstraction independently.
+  The *ack model* is the most sophisticated part and the least proven
+  in daily use; cmux, facing the same complexity, deleted focus-auto-
+  read rather than perfect it. Pre-agreed retreat: if defer/interaction
+  -ack ever feels flaky, simplify to unconditional-unread +
+  interaction-ack (drop `deferred`) — don't add a fourth mechanism.
+- **Transport, in hindsight**: OSC-first (TermRequest) would have
+  bought ~80% of this without four per-agent files, the env bridge, or
+  the nested-process guards; hooks earn their keep only for the
+  urgent-tier distinction and message text. Not worth rebuilding — but
+  it raises the priority of follow-up 4, and any NEW agent gets OSC
+  ingestion, not a fifth emitter file.
+- **Regression suite committed** (`nvim/.config/nvim/tests/agentview/
+  run.sh`): the ~150 throwaway assertions from the build/review/fix
+  agents are consolidated there. Run before and after touching
+  agent_events/agentview/badge code.
+- **Focus events are load-bearing** (defer promotion + the notification
+  gate) and arrive ghostty→nvim directly; zellij is installed but
+  unused, so multiplexer passthrough is moot. If nvim ever moves inside
+  a mux, re-verify FocusGained/FocusLost first.
+- **sidekick.nvim is unpinned** (vim.pack) and we depend on verified-
+  but-undocumented internals (stamps, synchronous attach, autocmd-
+  firing focus()) — the internals doc lists exactly what to re-verify
+  after a sidekick update.
+- **Land the branch**: ~30 commits deep; after the interactive
+  checklist passes, merge `agent-view` to main rather than letting it
+  become a second main.
+- **Comparators beyond cmux** for the next design round are in the
+  internals doc — most useful: Slack's unread model (validates the
+  two-tier + manual-dismiss trio), ghostty's native OSC handling, and
+  claude-squad/Crystal for lifecycle features (pending diffs, batch
+  prompts) we haven't considered.
+
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually
 does" section is out of date on both:

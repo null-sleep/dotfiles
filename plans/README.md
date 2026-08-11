@@ -11,23 +11,22 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Agent view MVP — Phases 1+2 shipped 2026-08-10, Phase 3 + live
-  verification outstanding** — cmux-style dashboard:
-  [sidekick-agent-view.md](sidekick-agent-view.md). Landed on the
-  `agent-view` branch: the view (`agentview.lua`, `<leader>av`/`<M-v>`,
-  sidebar + embedded terminal, 1–9 index jumps), the
-  [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md)
-  transport (stowed hook script + 5 registrations, `agent_events.lua`
-  registry — state machine verified headless incl. end-to-end RPC),
-  glyphs, `<leader>aj`, and the `● N`/`! N` statusline badge; plus live-use
-  revisions (sidebar live-preview, column restore on close) and a
-  three-commit hardening batch from an adversarial two-reviewer pass (all
-  findings fixed — see the plan's Status section). Still to do:
-  the plan's interactive verification list (items 1–10 — rings with real
-  sessions, focused-suppression, permission-prompt persistence, layout
-  restore), then Phase 3 emitters for opencode (plugin, full rings),
-  cursor (verify the Claude-hook merge first), pi (extension). Open TODO
-  inside the plan: ambient-badge UX beyond `● N`.
+- [ ] **Agent view — all phases + UX follow-ups + review fixes shipped
+  2026-08-10; interactive verification and branch merge outstanding** —
+  cmux-style dashboard: [sidekick-agent-view.md](sidekick-agent-view.md),
+  with operational internals (state machine, invariants, test recipes)
+  in [sidekick-agent-view-internals.md](sidekick-agent-view-internals.md).
+  On the `agent-view` branch: the view + rings + Phase 3 emitters
+  (opencode/pi/cursor), then the UX-critique follow-ups (ack repair with
+  defer-not-drop + `<M-u>` dismiss, leading glyph column,
+  `! <label> +N` identity badge, urgent-only desktop notification via
+  terminal-notifier), a three-reviewer adversarial pass (11 defects, all
+  fixed), and a committed regression suite
+  (`nvim/.config/nvim/tests/agentview/run.sh`). Still to do: the plan's
+  interactive checklist (items 1–17) in a real UI session, then **merge
+  the branch to main**; after that, the plan's "TRY THIS NEXT":
+  click-to-focus notifications, and follow-up 4 (OSC 9/777 via
+  TermRequest — deserves its own plan).
 - [ ] **Verify the sidekick session labels + the 4-agent pool** — shipped
   2026-08-07 (display labels on `<leader>ar`/`<M-r>`/`<C-r>`; `opencode` and
   `pi` added to `AGENTS`). Everything testable headlessly passed — namespace
@@ -375,11 +374,17 @@ Grouped by state, not priority.
   sidekick-agent-view.md below.
 - [sidekick-agent-view.md](sidekick-agent-view.md) — the agent view MVP:
   `<leader>av` dedicated tabpage with a left agent-list sidebar +
-  embedded agent terminal, cycling, and binary attention glyphs consuming
-  the event pipeline (`agentview.lua` + `agent_events.lua`). All three
-  phases landed 2026-08-10 (Phase 3: opencode plugin, pi extension,
-  cursor via its native Claude-hook merge); interactive verification of
-  the full checklist is the remaining open item.
+  embedded agent terminal, cycling, and two-tier attention glyphs
+  consuming the event pipeline (`agentview.lua` + `agent_events.lua`).
+  All three phases + the UX-critique follow-ups + review fixes landed
+  2026-08-10; interactive verification of the full checklist is the
+  remaining open item, then merging the `agent-view` branch.
+- [sidekick-agent-view-internals.md](sidekick-agent-view-internals.md) —
+  agent-facing companion to the above: the shipped state machine as a
+  truth table, the invariants, the sidekick internals we depend on,
+  headless-testing recipes, retreat positions, and the regression suite
+  (`nvim/.config/nvim/tests/agentview/run.sh`). Read before editing
+  `agent_events.lua`/`agentview.lua`.
 - [sidekick-windowless-prewarm.md](sidekick-windowless-prewarm.md) — real
   windowless CLI-start API to replace the hidden-float pre-warm hack; interim
   hack shipped, Phase C (upstream PR) + Phase D (simplify `ai.lua`) still open.
