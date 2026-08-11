@@ -139,6 +139,15 @@ Durable knowledge that outlives this feature, worth having greppable:
 - **macOS unix sockets cap at ~104 bytes of path**: `nvim --listen` into a
   deep per-session scratchpad path fails (no socket, no clear error);
   test sockets belong in `/tmp`.
+- **Real terminal-mode is unreachable in headless nvim**: `startinsert`/
+  `feedkeys('i')` in a term buffer land in `nt`, never `t` — any
+  headless test of t-mode-gated behavior must stub `nvim_get_mode` and
+  fire the autocmd directly. Likewise `nvim_win_set_cursor` doesn't fire
+  `CursorMoved` under `--headless -l`; dispatch it explicitly.
+- **terminal-notifier swallows a dash-leading message**: `-message "-rf
+  please"` exits 0 and delivers an EMPTY notification (silent data loss,
+  confirmed via `-list ALL`). Space-pad any body that could start with
+  `-`.
 
 ## Follow-ups — UX critique (2026-08-10, design review vs live cmux)
 
@@ -227,6 +236,67 @@ widths (config never sets it); `focused` starts `true` (urgent before
 the first focus event doesn't pop); terminal focus-reporting is
 load-bearing for defer/notify; stickybuf's `unpin` restores bufhidden
 on the wrong buffer (benign here, upstream wart).
+
+### Knobs, surprises, and unbuilt upgrades — read after living with it
+
+One-time setup: allow **terminal-notifier** in System Settings →
+Notifications (macOS asked on first fire). Optional: add it to a Focus
+allowlist — though `-ignoreDnD` should cover Focus already.
+
+Tunable constants, if the defaults chafe:
+
+- `BADGE_CELLS = 12` (statusline.lua) — badge label truncation.
+- `MSG_CELLS = 100` (agent_events.lua) — notification/`<leader>aj`
+  message truncation.
+- Sidebar width 30 (agentview.lua `topleft 30vsplit`).
+- Notifications are **silent banners** — terminal-notifier supports
+  `-sound default` (or any system sound name) if urgent should ding;
+  one argv entry in `notify_argv`.
+
+Behaviors that may surprise (each with its one-line tweak if disliked):
+
+- **The badge goes blank when the only ring is the pane you're in** —
+  by design (badge and `<leader>aj` share `unread_candidates()`; you're
+  looking at it). If it reads as "badge broke", the tweak is rendering
+  the focused-session case dimmed instead of hidden in `agent_badge()`.
+- **A `●` survives alt-tabbing back in normal mode** — read =
+  interaction now. Escapes: enter the pane, enter terminal-mode,
+  refocus while parked in t-mode, `<M-u>`, next prompt. If it grates,
+  the revert is one branch in the `FocusGained` handler (drop the
+  t-mode gate → old blanket ack).
+- **Sidebar `<M-]>`/`<M-[>` cycling acks nothing** (sidebar stays
+  current — it's preview-grade, same as `j`/`k`). Commit via
+  `<CR>`/digits/entering the pane if you want the ack.
+- **A deferred turn-complete renders `○`**, indistinguishable from
+  quiet, until you walk away. Honest by design (you're looking at the
+  result); a distinct dim glyph is the tweak if the held state should
+  be visible.
+- **One popup per blocked episode** — a second permission prompt while
+  you're still away stays silent until you engage. If that under-warns,
+  the alternative is dedupe-on-message-change in `notify_desktop`
+  (pops per distinct question, at the cost of the idle_prompt double).
+
+Unbuilt upgrades, in rough payoff order:
+
+1. **OSC 9/777 ingestion via `TermRequest`** (critique item 4, still
+   the highest ceiling): closes the cursor/pi `!` gap and carries
+   preview text; deserves its own plan before building.
+2. **Click-to-focus on the notification**: terminal-notifier's
+   `-activate <bundle-id>` (ghostty's) would make clicking the banner
+   raise the terminal; `-execute` could go further and target the
+   session. Currently a click does nothing.
+3. **`PostToolUse` as "permission resolved"**: still the documented fix
+   if the approved-but-`!`-until-Stop staleness annoys; would also let
+   the notification episode reset on approval.
+4. Cleanup candidates: `last.at` now has no reader (`seq` owns
+   ordering) — drop it or re-point `summary` at it; the
+   `pcall(require('stickybuf').unpin, …)` in agentview.lua guards the
+   call, not the require.
+
+Known-unguarded edge: while a placeholder/scratch shows in the main
+pane, the window is unpinned — a stray `:e` there loads a file into the
+view until the next embed. Rare enough to accept; re-pin-on-scratch is
+the fix if it bites.
 
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually
