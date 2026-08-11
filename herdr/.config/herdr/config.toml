@@ -31,6 +31,18 @@ light_name = "catppuccin-latte"
 # rationale as plans/neovide-path-env.md for Neovide.
 shell_mode = "login"
 
+[keys]
+# Cycle focus across agent-running panes only (skips plain shell panes) —
+# unbound by default. Bound to the same physical keys as sidekick's own
+# "AI: Next/Previous CLI session" (`<M-]>`/`<M-[>` in
+# nvim/.config/nvim/lua/ai.lua and agentview.lua), so the muscle memory
+# carries over whether you're cycling agents inside nvim or in a Herdr pane.
+# `herdr config check` accepts this syntax, but alt+punctuation chords are
+# terminal-dependent per --default-config's own caveat — verify interactively
+# after `herdr server reload-config` before relying on it.
+next_agent = "alt+]"
+previous_agent = "alt+["
+
 [ui]
 agent_panel_sort = "spaces"
 

@@ -689,6 +689,25 @@ briefly for one more key), *then* press the second key on its own:
 | `Ctrl+B`, then `b` | Toggle sidebar — collapses to `sidebar_collapsed_mode` (`"hidden"` here, see `config.toml`) |
 | `Ctrl+B`, then `q` | Detach (server keeps running) |
 
+`next_agent`/`previous_agent` are two more `[keys]` actions, but they ship
+**unbound** by default — they cycle focus across agent-running panes only
+(skipping plain shell panes), the Herdr equivalent of sidekick's own
+`<M-]>`/`<M-[>` "AI: Next/Previous CLI session" cycling
+(`nvim/.config/nvim/lua/ai.lua`). Bound here to the same physical keys so the
+muscle memory carries over — and unlike everything above, the value has no
+`prefix+` in it, so these fire as **direct chords, held together, no prefix
+step**:
+
+| Key | Action |
+|---|---|
+| `Alt+]` | Next agent pane |
+| `Alt+[` | Previous agent pane |
+
+`herdr config check` accepts this syntax and `herdr server reload-config`
+applied it with no diagnostics, but alt+punctuation chords are
+terminal-dependent per `--default-config`'s own caveat — verify Alt+]/Alt+[
+actually reach Herdr distinctly in Ghostty before relying on it day to day.
+
 Panes running a supported agent (Claude Code, pi, …) show their
 `working`/`blocked`/`idle`/`done` state in the sidebar without any extra
 config — that's screen detection, not the integrations above. The sidebar is
