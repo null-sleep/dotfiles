@@ -1,0 +1,32 @@
+# herdr global config. `herdr --help` prints the resolved path (this file);
+# `herdr --default-config` prints every available key, each commented out with
+# its default and a description — that's the reference for anything not
+# overridden here. Full docs: https://herdr.dev/docs/configuration/
+#
+# NOTE: ~/.config/herdr/ also holds runtime state (herdr.sock, herdr.log,
+# session.json, sessions/<name>/) written by the running server. Only this
+# file is stowed (`stow --no-folding herdr` — folding would symlink the whole
+# directory into the repo and put that state under git). After editing this
+# file with a server already running, apply it with `herdr server reload-config`
+# instead of restarting.
+
+# Config already exists — skip the first-run onboarding flow.
+onboarding = false
+
+[theme]
+# Follow the host terminal's light/dark appearance, matching Ghostty (which
+# already follows macOS's appearance) and this repo's `theme` switcher — see
+# README → "Unified theme switching". `dracula` and `catppuccin-latte` are
+# both real built-in theme names (from `herdr --default-config`'s own example
+# for these two keys) and are the same dark/light pair the switcher uses for
+# Claude Code, Neovim, and pi.
+auto_switch = true
+dark_name = "dracula"
+light_name = "catppuccin-latte"
+
+[terminal]
+# "auto" (the default) already picks a login shell on macOS, but pin it
+# explicitly so panes always source `path_helper`/brew's shell init
+# (`/opt/homebrew/bin` on PATH) regardless of platform-default drift — same
+# rationale as plans/neovide-path-env.md for Neovide.
+shell_mode = "login"

@@ -372,6 +372,13 @@ agents should read that before touching these modules.
   else — before building the next subsystem (OSC follow-up,
   click-to-focus), spend ten minutes checking whether someone shipped
   it last month.**
+  **Update (2026-08-11):** adopted Herdr as the outside-nvim layer
+  alongside sidekick, not as a replacement — see README → "Herdr". The
+  Claude Code integration installed there buys session-identity
+  reporting for restore (`claude --resume` after a Herdr server
+  restart) only; Herdr still classifies Claude panes by screen
+  detection either way, so the classification criticism above stands
+  unchanged.
 
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually

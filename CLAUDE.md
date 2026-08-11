@@ -1,9 +1,11 @@
 # dotfiles
 
 Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, macos, rcmd,
-zellij, claude, cursor, opencode, pi, yknotify, ripgrep (`pi` stows its
+zellij, claude, cursor, opencode, pi, yknotify, ripgrep, herdr (`pi` stows its
 theme palettes and the minimal `claude-footer.ts` extension — pi writes to
-its own settings.json, so that stays machine-local). NOT stow packages: `plans/` (design/feature
+its own settings.json, so that stays machine-local; `herdr` stows only
+`config.toml` — `~/.config/herdr/` also holds runtime state, so it's stowed
+`--no-folding`). NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
 `docs/ripgrep.md`, `docs/pi.md` — distinct from `plans/`, which is design docs).

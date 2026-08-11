@@ -1,6 +1,6 @@
 {
   "includeCoAuthoredBy": false,
-  "model": "opus[1m]",
+  "model": "opusplan",
   "hooks": {
     "PreToolUse": [
       {
@@ -59,6 +59,18 @@
           {
             "type": "command",
             "command": "bash $HOME/.claude/hooks/sidekick-notify.sh session-end"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v herdr >/dev/null 2>&1; then bash '/Users/dhruv/.claude/hooks/herdr-agent-state.sh' session; fi",
+            "timeout": 10
           }
         ]
       }

@@ -17,6 +17,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Code](#claude-code) — [Recommended manual settings](#recommended-manual-settings) · [LSP plugins](#lsp-plugins-code-intelligence) · [rtk](#rtk-token-optimizer) · [Theme](#theme)
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
+- [Herdr](#herdr)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [OpenRouter](#openrouter) — the model gateway behind the two agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
@@ -57,8 +58,8 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); Neovide config symlink ([Neovide](#neovide)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -106,6 +107,7 @@ stow --no-folding opencode   # needs the opencode formula — see the opencode s
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
+stow --no-folding herdr      # needs the herdr formula — see the Herdr section
 # Optional — only if you uncommented its formula in the Brewfile:
 stow zellij                  # needs the zellij formula
 ```
@@ -167,6 +169,8 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `printenv OPENROUTER_API_KEY` | prints a key ([OpenRouter](#openrouter)) |
 | `opencode run "say ok"` | answers via OpenRouter ([opencode](#opencode)) |
 | `pi -p "say ok"` | answers via OpenRouter ([pi](#pi)) |
+| `command -v herdr` | resolves ([Herdr](#herdr)) |
+| `herdr integration status --outdated-only` | empty output |
 
 If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
@@ -456,8 +460,10 @@ The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 | dark  | `dracula`          | `dracula`          | `dracula`          | dark (pinned)    |
 | auto  | follows macOS      | follows macOS      | follows macOS      | Auto (schedule)  |
 
-Ghostty and opencode aren't in the table because the script never touches them
-— both take their colors from the macOS appearance / terminal palette directly.
+Ghostty, opencode, and Herdr aren't in the table because the script never
+touches them — each follows the macOS/host-terminal appearance directly
+instead. Herdr's own `auto_switch` config does the following, matched to this
+same `dracula`/`catppuccin-latte` pair (see [Herdr](#herdr)).
 
 ### Ghostty setup (none needed)
 
@@ -567,7 +573,7 @@ scripts), so `stow macos` only links the plist, not the bootstrap script.
 
 ## Claude Squad
 
-Terminal app for running multiple AI coding agents (Claude Code, Codex, Gemini, Aider) in parallel. Each session gets an isolated [git worktree](https://git-scm.com/docs/git-worktree) and its own [tmux](https://github.com/tmux/tmux) session — no branch conflicts, and tasks keep running in the background. See [smtg-ai/claude-squad](https://github.com/smtg-ai/claude-squad).
+Terminal app for running multiple AI coding agents (Claude Code, Codex, Gemini, Aider) in parallel. Each session gets an isolated [git worktree](https://git-scm.com/docs/git-worktree) and its own [tmux](https://github.com/tmux/tmux) session — no branch conflicts, and tasks keep running in the background. See [smtg-ai/claude-squad](https://github.com/smtg-ai/claude-squad). See also [Herdr](#herdr), a persistent agent multiplexer covering similar ground with a different design center (agent lifecycle/state detection vs. worktree/session management).
 
 ### Setup
 
@@ -626,6 +632,142 @@ see [Git](#git) if not already done.
 - **Background work**: detach with `Ctrl+q` and the agent keeps running. Come back later with `↵`/`o`.
 - **Review before pushing**: hit `tab` to see the diff, then `s` to commit + push or `c` to checkout the branch locally.
 - **Failed to start session**: if you see `timed out waiting for tmux session`, update the underlying agent (`claude`, `codex`, etc.) — the error is almost always a stale binary.
+
+## Herdr
+
+[Herdr](https://github.com/herdrdev/herdr) is a persistent-server terminal
+multiplexer built for coding agents: panes survive lid-close, network drops,
+and machine restarts, and each is classified `working`/`blocked`/`idle`/`done`
+by screen detection. It runs Claude Code, pi, and others without wrapping them,
+and exposes a CLI + socket API agents can drive themselves (`herdr --skill`
+installs the agent-facing skill; see below).
+
+This sits alongside [Claude Squad](#claude-squad) and (optional) [Zellij](#zellij)
+as this repo's third multiplexer-shaped tool — Herdr is the one built
+specifically around agent lifecycle (state detection, session restore,
+cross-agent orchestration) rather than general session/window management.
+It's also the **outside-nvim** counterpart to
+[sidekick's in-nvim agent terminals](plans/sidekick-agent-view.md): sidekick
+owns agent panes living beside your code inside Neovim; Herdr owns durable
+agent sessions detached from any editor, reattachable over SSH.
+
+```bash
+brew install herdr
+cd ~/src/dotfiles
+stow --no-folding herdr    # --no-folding: see below
+bash herdr/setup-herdr.sh  # Claude Code + pi integrations, agent skill
+```
+
+### Usage
+
+Run `herdr` bare to launch or reattach to the persistent session — it starts a
+background server on first run and every later `herdr` just attaches to it, so
+closing the terminal (or losing the network) never kills what's running
+inside. `herdr --remote <ssh-target>` attaches to a server running on another
+machine the same way. Layout nests **workspace → tab → pane** (a workspace is
+roughly tmux's session — one per project/worktree; tabs and panes work like
+tmux windows/splits).
+
+Default keymaps use a `ctrl+b` prefix (edit `[keys]` in `config.toml` to
+change it; `herdr config reset-keys` restores the defaults):
+
+| Key | Action |
+|---|---|
+| `prefix ?` | Help |
+| `prefix w` | Workspace picker |
+| `prefix shift+n` | New workspace |
+| `prefix shift+g` | New workspace from a git worktree |
+| `prefix c` | New tab |
+| `prefix n` / `prefix p` | Next / previous tab |
+| `prefix v` / `prefix -` | Split pane vertically / horizontally |
+| `prefix h`/`j`/`k`/`l` | Focus pane left/down/up/right |
+| `prefix z` | Zoom pane |
+| `prefix x` | Close pane |
+| `prefix q` | Detach (server keeps running) |
+
+Panes running a supported agent (Claude Code, pi, …) show their
+`working`/`blocked`/`idle`/`done` state in the sidebar without any extra
+config — that's screen detection, not the integrations above. A few CLI
+entry points worth knowing beyond the keymaps: `herdr agent list` /
+`herdr agent wait --until done` (block until a sibling agent finishes —
+useful for orchestrating one agent from another), `herdr pane run <cmd>`
+(run a command in a new pane without stealing focus), and
+`herdr worktree create` (open a git worktree as its own workspace). Full
+CLI reference: `herdr --help` and each subcommand's own `--help`.
+
+**Agents driving Herdr themselves** (not just running inside it) is a
+separate surface: `herdr --skill` prints a bundled skill teaching an agent
+the CLI, installed to `~/.claude/skills/herdr/SKILL.md` by
+`setup-herdr.sh`. It gates itself on `HERDR_ENV=1` (only set inside a
+Herdr-managed pane), so it only activates for an agent actually running
+inside Herdr, not just because a task could use a background terminal.
+
+**Why `--no-folding`:** `~/.config/herdr/` holds both the stowed `config.toml`
+*and* runtime state Herdr writes itself (`herdr.sock`, `herdr.log`,
+`session.json`, `sessions/<name>/`). Folding would symlink the whole
+directory into the repo, putting that state under git.
+
+**Stow before first launch.** If `herdr` already ran once, it will have
+written a real `~/.config/herdr/config.toml`, and `stow --no-folding herdr`
+aborts with a conflict rather than overwriting it. Recover the same way as the
+[rtk de-adoption case](#claude-code) above:
+
+```bash
+rm ~/.config/herdr/config.toml && stow --no-folding herdr
+```
+
+<a id="herdr-whats-managed"></a>
+### What's managed
+
+| File | Method |
+|---|---|
+| `~/.config/herdr/config.toml` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/hooks/herdr-agent-state.sh` | Written by `herdr integration install claude`; machine-local |
+| `~/.pi/agent/extensions/herdr-agent-state.ts` | Written by `herdr integration install pi`; machine-local |
+| `~/.claude/skills/herdr/SKILL.md` | Written by `herdr --skill`; machine-local |
+
+The last three are release-matched to the installed `herdr` binary, so
+`setup-herdr.sh` regenerates them unconditionally — **always re-run it after
+`brew upgrade herdr`** (never `herdr update`, which is disabled for
+Homebrew installs).
+
+**The Claude Code hook is tracked, with a guard.** `herdr integration install
+claude` adds a `SessionStart` hook entry to the stow-symlinked
+`claude/.claude/settings.json` — verified to write through the symlink rather
+than replacing it, unlike the [de-adoption hazard](#claude-code) rtk can hit.
+`setup-herdr.sh` then wraps the command in
+`if command -v herdr >/dev/null 2>&1; then …; fi`,
+matching the existing [rtk](#claude-code) hook, so a machine with the repo
+stowed but no `herdr` binary doesn't get a failing Claude Code hook. Two
+things follow from that:
+
+- `herdr integration status` may report the Claude entry as needing attention
+  since the tracked command no longer matches what a fresh install would
+  write — that's expected, don't "fix" it by re-running the installer by hand.
+  Always go through `setup-herdr.sh`, which checks for an existing entry
+  first; calling `herdr integration install claude` directly once a guarded
+  entry is in place appends a **duplicate**, unwrapped entry instead of
+  recognizing it.
+- The hook's command hardcodes `/Users/<you>/.claude/hooks/herdr-agent-state.sh`
+  as an absolute path (herdr's installer writes it that way, unlike the
+  `$HOME`-relative style the other hooks in this file use) — fine as long as
+  this repo lives under the same home directory, which it always does here.
+
+**What the hook actually buys:** session-identity reporting for restore
+(`claude --resume <id>` after a Herdr server restart), not pane state — Herdr
+classifies Claude panes by screen detection either way, with or without the
+hook installed.
+
+**Other gotchas:**
+- Herdr's Claude hook coexists with this repo's `sidekick-notify.sh` hooks;
+  Claude Code runs every matching hook per event, so both fire.
+- The `[experimental] pane_history` config key (off by default, left
+  unset here) replays recent pane output across a server restart — the docs
+  warn it can capture secrets and tokens, so leave it off unless you've
+  thought about that.
+- `herdr integration uninstall <agent>` removes the extension/hook file, but
+  the hand-guarded `settings.json` entry likely won't match and needs
+  removing by hand.
 
 <a id="cursor-cli-cursor-agent"></a>
 ## Cursor CLI (cursor-agent)
@@ -881,6 +1023,7 @@ Pi-written settings and extension install state stay machine-local.
 | `~/.pi/agent/npm/` | **Not** tracked — extension installs, owned by `pi install` |
 | `~/.pi/agent/auth.json` | **Not** tracked — credentials, written by `/login` |
 | `~/.pi/agent/trust.json` | **Not** tracked — per-project trust decisions |
+| `~/.pi/agent/extensions/herdr-agent-state.ts` | Written by `herdr integration install pi` ([Herdr](#herdr)); not tracked |
 
 **Why `settings.json` isn't stowed:** pi *writes* to it — it stamps
 `lastChangelogVersion` after an update, and `/settings` edits land there.
@@ -931,7 +1074,9 @@ extensions stowed with the `pi` package: `claude-footer.ts` (the minimal
 footer) and `nvim-notify.ts` — the agent-view attention bridge, which forwards
 prompt/turn-end events to nvim's agent dashboard when pi runs inside a
 sidekick terminal (no-op elsewhere, including inside pi-subagents children;
-needs pi >= 0.80.5 for the `agent_settled` event it listens on). The npm extensions
+needs pi >= 0.80.5 for the `agent_settled` event it listens on). A ninth
+extension, `herdr-agent-state.ts`, is written by [Herdr's](#herdr) pi
+integration (`herdr/setup-herdr.sh`), not by this repo. The npm extensions
 are installed by
 [`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
 `setup-settings.sh` — `pi install` registers each one in `settings.json`'s

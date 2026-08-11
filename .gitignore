@@ -34,3 +34,11 @@ iterm2/com.googlecode.iterm2.plist
 /zsh/.local/bin/agent
 /zsh/.local/bin/cursor
 /zsh/.local/bin/cursor-agent
+
+# Belt-and-braces guard for the herdr package: ~/.config/herdr/ holds runtime
+# state (sockets, logs, session.json) alongside the one file we stow
+# (config.toml). Only a mis-ordered first stow (herdr launched once before
+# `stow --no-folding herdr`, folding the whole dir into the repo) could ever
+# put that state under git — this makes such a slip inert either way.
+/herdr/.config/herdr/*
+!/herdr/.config/herdr/config.toml

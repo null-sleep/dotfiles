@@ -100,6 +100,16 @@ brew "opencode"        # terminal AI coding agent; tap in Taps above. Config in
 brew "rtk"
 
 #-----------------------------------------------------------------------------
+# Agent multiplexer — herdr keeps agent panes (Claude Code, pi, ...) running
+# detached from the terminal, across restarts and over SSH. Config in herdr/
+# (then `stow --no-folding herdr` and `bash herdr/setup-herdr.sh` — see
+# README → "Herdr"). brew owns the binary: upgrade with `brew upgrade herdr`,
+# not `herdr update` (disabled for brew installs), then re-run setup-herdr.sh
+# to refresh the release-matched skill and integration files.
+#-----------------------------------------------------------------------------
+brew "herdr"
+
+#-----------------------------------------------------------------------------
 # Fonts
 #-----------------------------------------------------------------------------
 cask "font-hack-nerd-font"
