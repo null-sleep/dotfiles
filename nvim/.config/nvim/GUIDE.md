@@ -104,6 +104,8 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`autosave.lua`** — auto-save.nvim: triggers on BufLeave/FocusLost/QuitPre/VimSuspend (immediate) and InsertLeave/TextChanged (debounced 1s, cancelled by InsertEnter); excluded filetypes: oil, snacks_picker_input, mason, gitcommit, gitrebase, harpoon
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
+- **`agentview.lua`** — the `<leader>av` agent-view tab: sidebar of all sidekick sessions + the selected session's terminal embedded via `nvim_win_set_buf` (sidekick owns no window while the view is current — `ai.lua`'s show/focus/toggle paths delegate here). Lazy-required — no Load-order entry
+- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by all four agents over `--remote-expr` RPC through the shared `claude/.claude/hooks/sidekick-notify.sh` (Claude hooks, an opencode plugin, a pi extension, cursor's native Claude-hook merge; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -164,7 +166,7 @@ headless / under claude-nvim.
 
 From `init.lua`: configs -> autocmds -> plugins -> picker -> treesitter_context ->
 outline -> breadcrumbs -> quickfix -> structural_select -> keymaps -> completion -> lsp -> rust -> debugging ->
-golang -> testing -> ai -> format -> linting -> statusline -> session ->
+golang -> testing -> agent_events -> ai -> format -> linting -> statusline -> session ->
 git -> gitui -> terminal -> scratch -> grugfar -> titling -> whichkey -> autosave -> filetree ->
 animations -> neovide -> cleanup.
 
@@ -172,7 +174,10 @@ animations -> neovide -> cleanup.
 which needs rustaceanvim on the runtimepath). `golang` must follow `debugging`:
 `golang.lua`'s `require('dap-go').setup()` mutates `dap.adapters` /
 `dap.configurations`, so nvim-dap needs to already be on the runtimepath —
-`debugging.lua` is what `packadd`s it.
+`debugging.lua` is what `packadd`s it. `agent_events` must precede `ai`: its
+focus/ack autocmds have to exist before `ai.lua`'s pre-warmed claude can emit
+hook events (and loading it eagerly is what makes the hooks' `v:lua` RPC
+resolve without a lazy-load race).
 
 
 ## Design Decisions
@@ -2836,6 +2841,117 @@ next `<M-n>` fork is `claude 4`). Collisions are refused with a notify. This is
 a label, not a rename: re-entering it at `<leader>an` still spawns a new
 session, since that reuse works on names.
 
+### Agent view
+
+`<leader>av` (or `<M-v>` inside a CLI) toggles a cmux-style dashboard in its
+own **tabpage**: a 30-col sidebar listing every session — status glyph in a
+fixed leading column, index digit, `▸` active marker, label with the raw name
+dimmed beside it (the `<leader>al`
+convention) — with the selected session's *real* terminal buffer embedded
+beside it (`agentview.lua`). A dedicated tab, not a left panel: entering the
+view is a mode switch (like Neogit/diffview), and the working tab's layout —
+including an open right CLI column — is untouched by construction. While the
+view tab is current, every switch path (`<M-]>` cycling, the `<leader>al`
+picker, `<leader>an` creation) routes into the view instead of opening
+splits; sidekick owns zero windows there. Context sends are refused inside
+the view (they'd render against the sidebar, not code) — close it first.
+Closing the view (`q`, or toggling again) returns to the originating tab;
+all sessions keep running. Entering the view hides an open `<leader>aa`
+column (embedding must own the buffer's only window) — closing it restores
+the column if one was open when you entered, showing the *active* session
+(which may have changed in the view), unfocused, at its remembered width. Row order is name-sorted — the same
+order `<M-]>` cycles and `<M-1>`..`<M-9>` jump.
+
+In the sidebar (buffer-local):
+
+| Key | Action |
+|---|---|
+| `j`/`k` (browse) | The main pane follows the cursor — each row's terminal previews immediately, no `<CR>` needed to see it (a spawning `…` row has no terminal yet, so the pane shows a one-line *starting* placeholder rather than leaving the previous session up) |
+| `<CR>` | Commit the session under the cursor: make it active + focus the main pane |
+| `1`..`9` | Commit row N directly (digits match the `<M-N>` jumps) |
+| `<M-]>` / `<M-[>` | Cycle sessions (same keys as inside the CLI); the cursor follows the new active row |
+| `n` | New session (the `<leader>an` flow; embeds once it attaches) |
+| `r` | Label the session under the cursor |
+| `x` | Kill the session under the cursor (confirm popup) |
+| `<M-u>` | Dismiss the ring on the session under the cursor — the manual escape from a `!` the agent never retracts (notifies when that row has nothing lit) |
+| `q` | Close the view (`<Esc>` deliberately doesn't — too reflexive a key to tear down the tab) |
+
+Browsing previews without committing: the **active** session (`▸`, sends,
+`<C-]>` alt-tab pair) only changes on `<CR>`/digits or on entering the main
+pane — leave the view mid-browse and the pool is exactly as you left it.
+
+`<C-.>`/`<leader>ai` inside the view bounce between the main pane and the
+sidebar; `<leader>aa`/`<M-a>` ("stash the agent UI") close the view. The
+`u`/`p`/`<C-u>`/`<C-d>` byte-forwards work in the embedded terminal — the
+view re-stamps its main window with the session's identity, which is also
+what keeps active-session tracking correct there.
+
+**Attention glyphs** (leading column of every row — a fixed column so one
+vertical scan reads all statuses, and a long label overruns rightward instead
+of covering the signal — from the `agent_events.lua`
+registry — all four agents feed it through the same stowed
+`claude/.claude/hooks/sidekick-notify.sh` script: Claude via its hook
+registrations, opencode via a stowed plugin, pi via a stowed extension,
+cursor by merging the Claude hook registrations natively — see the repo
+README's per-tool sections):
+
+| Glyph | Meaning | Cleared by |
+|---|---|---|
+| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` (in the sidebar, or inside the session's own terminal) force-dismisses one that's stuck, resetting the row to `○` rather than leaving it `»` |
+| `●` | finished a turn, unread | *interacting* with that session — entering its pane, entering terminal mode in it, or refocusing nvim while parked in terminal mode in it — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: refocusing nvim from *normal* mode, or previewing the row with `j`/`k`, leaves it lit |
+| `»` | working (between your prompt and the turn's end) | the turn ending |
+| `○` | nothing ringing — never emitted an event, already acked, or holding a deferred turn-complete while you sit in its pane (see below) | — |
+| `…` | spawning, first attach not yet observed | attaching |
+
+Two deliberate asymmetries: a `●` for the session you're *currently looking
+at* (nvim focused) is **deferred, not dropped** — it stays silent while you
+sit there, and rings the moment you stop looking at it without having
+interacted: leaving that window, nvim losing OS focus, swapping the view's
+main pane to another session, or closing the view (interacting cancels it,
+your next prompt too). cmux's focused-pane rule dropped such an event
+outright, which made it
+unrecoverable; `!` still rings immediately either way. And ring support is
+**tiered by agent**. Claude and opencode emit the
+full set; pi has no permission/question events in its vocabulary, and
+cursor's aren't reachable through the Claude-hook merge (it deliberately
+drops `Notification`/`PermissionRequest`) — so cursor and pi rows can show
+`»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not
+mean nothing is needed.
+
+A `!` raised while nvim doesn't have OS focus — the alt-tabbed-away case the
+ring exists for, and the only one no glyph can reach — also fires a macOS
+desktop notification: session label as the title, the agent's own prompt text
+as the body (its phrase, "wants permission", only when it sent none). Via
+`terminal-notifier` when installed, falling back to `osascript` (see
+README → Neovim for why the fallback is the worse one). Urgent only: never
+for `●` — a popup per turn across four agents trains you to ignore them —
+and **at most one per blocked episode**. The first `!` you're away for pops;
+everything until you engage stays silent, whatever tier it arrives as. Both
+halves matter: answering a permission prompt emits no hook, so a tier-based
+rule would silence the rest of the turn even after you walked away again,
+while Claude's ~60s idle re-ask for the *same* unanswered block arrives as
+`needs-input` and would pop a second time. The episode ends on your next
+prompt, the turn ending, the session ending, or `<M-u>`.
+
+**`<leader>aj`** jumps to the most recently unread session (the triage key),
+skipping the session you're focused on — an unanswered `!` survives focus and
+would otherwise trap repeat presses on itself. Landing notifies which session
+you're in and what it wants, including the agent's own prompt text when the
+event carried one (Claude's permission/input hooks do) — the terminal itself
+can be scrolled pages past the question. The statusline carries an ambient
+badge naming the session `<leader>aj` would take you to — `! refactor` for
+the most recent urgent one, else `● refactor` for the most recent unread,
+plus ` +N` when others are waiting too (`! refactor +2`). Both read the same
+candidate list (`ai.unread_candidates()`), so the badge can never name a
+session the jump then refuses: it skips stopped sessions and the one you're
+focused on, which is why it goes quiet when the only ring is the pane in
+front of you — you're looking at it. Label (or raw name if unlabelled)
+truncated to 12 cells with `…`. Shown everywhere *except* while the view tab
+is current (the sidebar says it better there) — including when the view sits
+idle in a background tab (`statusline.lua`). Identity, not a count: the badge
+answers "is this worth interrupting for", and `<leader>aj` routes you there
+either way.
+
 | Keymap | Action |
 |---|---|
 | `<C-.>` | Focus active CLI (any mode; CSI u terminals only) |
@@ -2843,13 +2959,17 @@ session, since that reuse works on names.
 | `<leader>aa` | Toggle active CLI session (session stays alive when hidden) |
 | `<leader>an` | New agent session — agent picker, blank label = auto-named, typed = reusable |
 | `<leader>al` | Switch (`<CR>`/`<M-1>`..`<M-9>`), kill (`<C-x>`) or label (`<C-r>`) a running CLI session (indexed picker) |
+| `<leader>av` / `<M-v>` (in CLI) | Toggle the agent view — dashboard tab with a session sidebar + embedded terminal (see above) |
+| `<leader>aj` | Jump to the most recently unread agent session (skips the one you're focused on) |
 | `<leader>ar` | Label the active CLI session (cosmetic — picker display only; blank clears) |
 | `<M-]>` / `<M-[>` (in CLI) | Cycle to next / previous running session in place (stays in terminal mode) |
+| `<M-1>`..`<M-9>` (in CLI) | Jump straight to running session N — name-sorted, the same order `<M-]>` cycles |
 | `<M-l>` (in CLI) | Open the switch/kill/label session picker in place (the `<leader>al` picker) |
 | `<C-]>` (in CLI) | Toggle to the last-used session (alt-tab style) |
 | `<M-n>` (in CLI) | Fork the active session's agent, auto-named, in place (labels stay on `<leader>an`) |
 | `<M-r>` (in CLI) | Label the session you're in, in place (the `<leader>ar` prompt) |
 | `<M-a>` (in CLI) | Hide the panel in place (the `<leader>aa` toggle, no `jj`/`jk` first) |
+| `<M-u>` (in CLI) | Force-dismiss the ring on the session you're in — the sidebar `<M-u>`, without opening the view (notifies when nothing is lit) |
 | `u` (in CLI, normal mode) | Undo prompt input — per-agent sequence (see the table above) |
 | `p` / `P` (in CLI, normal mode) | Bracketed-paste a register into Claude's prompt (`"ap` pastes `@a`; default unnamed) — newlines insert, never submit |
 | `<C-u>` / `<C-d>` (in CLI, normal mode) | Forward PageUp / PageDown so Claude's TUI scrolls |

@@ -15,6 +15,7 @@ require('rust')       -- rustaceanvim (must precede testing: provides rustaceanv
 require('debugging')  -- nvim-dap + dap-ui
 require('golang')     -- nvim-dap-go (delve adapter) + Go ft keymaps (must follow debugging: needs nvim-dap on the rtp)
 require('testing')    -- neotest
+require('agent_events') -- CLI-session attention registry (must precede ai: its autocmds must exist before the pre-warmed claude can emit)
 require('ai')
 require('format')
 require('linting')

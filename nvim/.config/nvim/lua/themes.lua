@@ -91,6 +91,24 @@ M.global_overrides = {
   SnacksIndent      = { link = 'NonText' },
   SnacksIndentScope = { link = 'CursorLineNr' },
 
+  -- Agent-view sidebar row parts (agentview.lua). Same convention as the
+  -- <leader>al picker: label bright, raw name demoted; ▸ marks the active
+  -- session; … a spawn whose first attach hasn't fired. Status glyphs get
+  -- their groups in Phase 2 (agent_events). Links only — no hex, so every
+  -- theme colors them itself.
+  AgentviewActive   = { link = 'Function' },
+  AgentviewLabel    = { link = 'Special' },
+  AgentviewName     = { link = 'Comment' },
+  AgentviewSpawning = { link = 'NonText' },
+  -- Status glyphs (agent_events): distinct shapes AND colors — `!` blocked
+  -- on you (warn tier, not error: nothing failed; red stays reserved for a
+  -- future StopFailure), `●` finished a turn, `»` working, `○` quiet (also
+  -- "no event yet"). Also colors the statusline unread badge.
+  AgentviewUrgent   = { link = 'DiagnosticWarn' },
+  AgentviewUnread   = { link = 'Special' },
+  AgentviewRunning  = { link = 'DiagnosticOk' },
+  AgentviewIdle     = { link = 'Comment' },
+
   -- Aerial's current-position marker: highlights the sidebar row matching the
   -- source cursor, AND (via highlight_on_hover) the source line matching the
   -- sidebar cursor. Default links to QuickFixLine, which is a loud attention-

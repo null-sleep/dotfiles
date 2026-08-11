@@ -262,12 +262,12 @@ bash ~/src/dotfiles/claude/setup-review-pr.sh
 rtk init -g --auto-patch
 ```
 
-The `--no-folding` flag is important: it keeps `~/.claude/themes/` and
-`~/.claude/skills/` as **real directories** with only the repo's individual
-files symlinked in, so any machine-local themes or skills already there coexist
-untouched. Without it, stow would replace a non-existent `~/.claude/themes/`
-with a single directory symlink (a "fold"), which can't hold local files
-alongside the synced ones.
+The `--no-folding` flag is important: it keeps `~/.claude/themes/`,
+`~/.claude/skills/`, and `~/.claude/hooks/` as **real directories** with only
+the repo's individual files symlinked in, so any machine-local themes, skills,
+or hooks already there coexist untouched. Without it, stow would replace a
+non-existent `~/.claude/themes/` with a single directory symlink (a "fold"),
+which can't hold local files alongside the synced ones.
 
 All four setup scripts are idempotent; re-running any of them when already configured is a no-op. `setup-statusline.sh`, `setup-theme.sh`, and `setup-lsp-plugins.sh` use `jq` to edit `settings.json`: `setup-statusline.sh` adds the `statusLine` config (and rewrites a hardcoded path to `$HOME` if present); `setup-theme.sh` sets `"theme": "custom:active"` and seeds `~/.claude/themes/active.json` so the unified `theme` switcher (see [Unified theme switching](#unified-theme-switching)) can swap dark/light live; `setup-lsp-plugins.sh` enables the LSP plugins (see [LSP plugins](#lsp-plugins-code-intelligence) below). `setup-review-pr.sh` doesn't touch `settings.json` — it symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
 
@@ -283,20 +283,24 @@ All four setup scripts are idempotent; re-running any of them when already confi
 | `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
-| `~/.claude/settings.json` statusLine block | Injected by `setup-statusline.sh` |
-| `~/.claude/settings.json` theme key | Injected by `setup-theme.sh` |
-| `~/.claude/settings.json` `enabledPlugins` (LSP) | Injected by `setup-lsp-plugins.sh` |
+| `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
+| `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
 
-`settings.json` itself is **not** stowed — it contains machine-specific content (plugins, hooks, MCP servers, permissions). The three `jq`-based `setup-*.sh` scripts merge just their own keys into it idempotently, so re-running any of them is a no-op.
+`~/.claude/hooks/sidekick-notify.sh` depends on `jq` and coreutils' `timeout` — both no-op-guard-checked at the top of the script, so a machine missing either just gets no agent-view attention glyphs rather than a broken hook; `jq` and `coreutils` are both in the Brewfile.
+
+`settings.json` **is stowed** (adopted 2026-08 so the sidekick hook registrations sync across machines — see the nvim GUIDE's AI section). Anything genuinely per-machine belongs in `~/.claude/settings.local.json`, which stays unmanaged. The three `jq`-based `setup-*.sh` scripts still merge their keys idempotently — they resolve the symlink first and write through it (a plain `mv` onto the link path would silently de-adopt the file) — so they're no-ops on a stowed machine and still bootstrap an unstowed one. `setup-theme.sh`'s real remaining job is seeding `~/.claude/themes/active.json`; `setup-lsp-plugins.sh`'s is the server-binary checks.
 
 **`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
 
 ### Recommended manual settings
 
-A few `~/.claude/settings.json` keys are worth setting by hand on a fresh
-machine but aren't worth a `setup-*.sh` script for — either because they're a
-single key, or because whether you want them is a judgment call rather than
-a fixed default:
+Most preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`,
+`enabledPlugins`) now arrive with the stowed `settings.json` — override any of
+them per machine in `~/.claude/settings.local.json` rather than editing the
+stowed file locally. Notably, the stowed file pins `model` (currently
+`opus[1m]`), so a fresh machine inherits that model choice too; override it in
+`settings.local.json` if a machine should default to something else. One key
+stays a deliberate judgment call and is *not* in the stowed file:
 
 - **`env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`** — set to `"1"` to stop
   Claude Code from sending non-essential telemetry (Statsig analytics,
@@ -307,16 +311,6 @@ a fixed default:
   `claude.ai/code/artifact/…` URL. Leave it unset (the default) to keep
   artifacts working; only set it on a machine where you'd rather suppress
   telemetry than publish artifacts.
-- **`model`** — set to `"opusplan"` to use Opus while in plan mode and fall
-  back to the default model otherwise.
-- **`effortLevel`** — set to `"high"` for more thorough reasoning on
-  supported models.
-- **`tui`** — set to `"fullscreen"` for the flicker-free alt-screen renderer
-  with virtualized scrollback.
-
-(`statusLine`, `enabledPlugins`, and `theme` are **not** in this list — they're
-already handled by `setup-statusline.sh`, `setup-lsp-plugins.sh`, and
-`setup-theme.sh` above.)
 
 <a id="lsp-plugins-code-intelligence"></a>
 ### LSP plugins (code intelligence)
@@ -351,7 +345,7 @@ That command:
 - writes **`~/.claude/RTK.md`** (a short usage cheatsheet) and adds an **`@RTK.md`** reference to **`~/.claude/CLAUDE.md`** so Claude knows the meta-commands;
 - backs up the prior settings to `~/.claude/settings.json.bak` and seeds a user filter template at `~/Library/Application Support/rtk/filters.toml`.
 
-`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. None of these files are stowed (all machine-specific `~/.claude` state); the reproducible artifact is the one command above. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
+`--auto-patch` skips the interactive confirmation (needed when scripting; drop it to review the settings.json edit first). It's idempotent — re-running just re-confirms the hook. The hook itself now rides in the **stowed** `settings.json`, so on a stowed machine there's usually nothing to patch; `RTK.md`, the `CLAUDE.md` reference, and `filters.toml` stay machine-local, seeded by the one command above. If `rtk init` does rewrite `settings.json`, check afterward that `~/.claude/settings.json` is still a symlink — external tools that replace-by-rename silently de-adopt stowed files, and once that happens a plain `stow --no-folding claude` won't fix it: stow sees a real file already at the target and aborts rather than overwriting it. Recover with `rm ~/.claude/settings.json && stow --no-folding claude`. **Restart Claude Code** afterward so it loads the hook. Check savings with `rtk gain`; remove everything with `rtk init -g --uninstall`.
 
 <a id="theme"></a>
 ### Theme
@@ -396,9 +390,9 @@ Use `stow -R --no-folding claude` (not a plain `stow claude`):
   previous `stow claude`), `-R` unfolds it into a real directory before
   relinking. It works whether the target is currently a real dir, a folded
   symlink, or was never stowed.
-- **`--no-folding`** keeps `~/.claude/themes/` and `~/.claude/skills/` as real
-  directories, so the existing folders and any machine-local files in them are
-  preserved.
+- **`--no-folding`** keeps `~/.claude/themes/`, `~/.claude/skills/`, and
+  `~/.claude/hooks/` as real directories, so the existing folders and any
+  machine-local files in them are preserved.
 - **Non-destructive**: if that machine already has a real `catppuccin-latte.json`
   or its own `nvim-theme-to-claude/` skill, stow aborts without touching
   anything. To merge instead, move the local file aside, or run
@@ -701,6 +695,19 @@ change ever drops the block, re-run the script to restore it.
 | `~/.cursor/cli-config.json` `statusLine` block | Injected by `setup-statusline.sh` |
 | `~/.cursor/cli-config.json` itself | **Not** stowed — machine-local (auth, model prefs) |
 
+### Agent-view rings — no cursor-side config
+
+cursor-agent merges hook registrations from `~/.claude/settings.json`,
+mapping `UserPromptSubmit` → `beforeSubmitPrompt`, `Stop` → `stop`, and
+`SessionEnd` → `sessionEnd` (`Notification` is deliberately not merged).
+So inside an nvim sidekick terminal, cursor sessions get running (`»`) and
+turn-complete (`●`) glyphs in the agent view through the already-stowed
+Claude hook script, with **zero** cursor-specific files — no
+`~/.cursor/hooks.json` needed. There is no urgent (`!`) tier for cursor:
+no needs-input hook exists in its vocabulary. Verified 2026-08-10 against
+2026.08.04-aaa8809: the merge invokes the script with `$NVIM` and
+`$SIDEKICK_SESSION` intact in the hook's env.
+
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
 
@@ -763,6 +770,7 @@ a fresh machine.
 |---|---|
 | `~/.config/opencode/opencode.json` | Symlinked via stow (`--no-folding`) |
 | `~/.config/opencode/tui.json` | Symlinked via stow (`--no-folding`) |
+| `~/.config/opencode/plugins/nvim-notify.ts` | Symlinked via stow (`--no-folding`) |
 | `~/.local/share/opencode/auth.json` | **Not** tracked — credentials, written by `/connect` |
 
 `--no-folding` matters here for the same reason it does for
@@ -775,6 +783,12 @@ everything opencode wrote afterwards would land in `~/src/dotfiles`.
 opencode's `{env:VAR}` substitution, and pins `autoupdate` to `false` — the
 binary is Homebrew-managed, so `brew upgrade opencode` owns the version rather
 than having opencode replace it underneath Homebrew.
+
+`plugins/nvim-notify.ts` is the agent-view attention bridge: when opencode
+runs inside an nvim sidekick terminal, it forwards prompt/turn-end/
+permission/question events to nvim's agent dashboard (nvim GUIDE.md → the
+`## AI (sidekick.nvim)` section). Outside sidekick it's a no-op, so the same
+config is safe in a plain terminal.
 
 <a id="opencode-theme"></a>
 ### Theme
@@ -854,13 +868,14 @@ but let npm own a package npm installed).
 <a id="pi-whats-managed"></a>
 ### What's managed
 
-The `pi` package stows the theme palettes and the repo-owned minimal footer
-extension. Pi-written settings and extension install state stay machine-local.
+The `pi` package stows the theme palettes and the repo-owned extensions.
+Pi-written settings and extension install state stay machine-local.
 
 | File | Method |
 |---|---|
 | `~/.pi/agent/themes/catppuccin-latte.json`, `dracula.json` | Symlinked via stow (`--no-folding`) |
 | `~/.pi/agent/extensions/claude-footer.ts` | Symlinked via stow; minimal Claude-shaped footer |
+| `~/.pi/agent/extensions/nvim-notify.ts` | Symlinked via stow; agent-view attention bridge |
 | `~/.pi/agent/themes/active.json` | Written by the [`theme`](#unified-theme-switching) switcher; not tracked |
 | `~/.pi/agent/settings.json` | Seeded by `setup-settings.sh`; machine-local |
 | `~/.pi/agent/npm/` | **Not** tracked — extension installs, owned by `pi install` |
@@ -911,8 +926,12 @@ resolving.
 ### Extensions
 
 Six extensions from the [@narumitw
-collection](https://github.com/narumiruna/pi-extensions), plus the repo-owned
-`claude-footer.ts` extension stowed with the `pi` package. The npm extensions
+collection](https://github.com/narumiruna/pi-extensions), plus two repo-owned
+extensions stowed with the `pi` package: `claude-footer.ts` (the minimal
+footer) and `nvim-notify.ts` — the agent-view attention bridge, which forwards
+prompt/turn-end events to nvim's agent dashboard when pi runs inside a
+sidekick terminal (no-op elsewhere, including inside pi-subagents children;
+needs pi >= 0.80.5 for the `agent_settled` event it listens on). The npm extensions
 are installed by
 [`pi/setup-extensions.sh`](pi/setup-extensions.sh) (run it **after**
 `setup-settings.sh` — `pi install` registers each one in `settings.json`'s
@@ -1026,6 +1045,31 @@ Then restart nvim once after Mason's first install finishes (~30s into the first
 launch): if `gotestsum` wasn't on `PATH` when a test first ran, neotest falls back
 to plain `go test` for the rest of that session. Keymaps and troubleshooting are
 in [GUIDE.md → Go](nvim/.config/nvim/GUIDE.md#go).
+
+<a id="agent-desktop-notifications"></a>
+### Agent-view desktop notifications
+
+When an agent gets blocked on you while nvim doesn't have OS focus, nvim pops
+a macOS notification (the behavior itself is documented in
+[GUIDE.md → Agent view](nvim/.config/nvim/GUIDE.md#agent-view)). It prefers
+`terminal-notifier` (already in the Brewfile) with `-ignoreDnD`, which needs
+the same one-time Focus allowlisting as [yknotify](#yknotify) to break through
+Do Not Disturb. Without it installed, nvim falls back to `osascript` — that
+path additionally needs Script Editor enabled under System Settings →
+Notifications, and is silently dropped during Focus. Install
+`terminal-notifier` rather than fighting the fallback.
+
+### Agent-view regression suite
+
+```bash
+nvim/.config/nvim/tests/agentview/run.sh   # runnable from any cwd
+```
+
+Headless assertions for the agent attention ring: the `agent_events` state
+machine, the desktop-notification gate, the statusline badge, and the agent
+view's sidebar. Self-contained — no notifications fire, no agents run. Run it
+before and after touching `lua/agent_events.lua`, `lua/agentview.lua`, or the
+statusline badge; a red suite means ring semantics changed, intended or not.
 
 <a id="gpg-yubikey-notifications"></a>
 ### GPG commit signing — YubiKey touch notifications (one-time setup)

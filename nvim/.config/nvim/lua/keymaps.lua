@@ -405,6 +405,14 @@ vim.keymap.set('n', '<leader>an',
 vim.keymap.set('n', '<leader>al',
   function() require('ai').switch() end,
   { desc = 'AI: Switch/kill/label running CLI session' })   -- <CR> switch, <C-x> kill, <C-r> label
+-- The cmux-style dashboard tab: sidebar of all sessions + embedded terminal.
+vim.keymap.set('n', '<leader>av',
+  function() require('agentview').toggle() end,
+  { desc = 'AI: Agent view (toggle)' })
+-- Triage: land on whichever session most recently rang.
+vim.keymap.set('n', '<leader>aj',
+  function() require('ai').jump_unread() end,
+  { desc = 'AI: Jump to unread agent' })
 -- Label the active session so <leader>al can tell auto-named forks apart.
 -- Cosmetic only — identity stays the tool name.
 vim.keymap.set('n', '<leader>ar', function()

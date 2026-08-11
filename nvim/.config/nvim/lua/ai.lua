@@ -36,6 +36,9 @@ local function set_active(name)
   if name and name ~= M.active then M._last = M.active end
   M.active = name
 end
+-- Exported for agentview's show_solo delegate — external switches must keep
+-- the _last bookkeeping, so the view routes through this, never M.active=.
+M._set_active = set_active
 
 -- Any session running under this tool name? The module's liveness predicate —
 -- name-keyed, like all session state here.
@@ -78,6 +81,7 @@ end
 M.toggle_active, M.new_session, M.switch, M.kill_active, M.focus, M.send =
   not_ready, not_ready, not_ready, not_ready, not_ready, not_ready
 M.cycle, M.new_auto, M.toggle_last, M.rename = not_ready, not_ready, not_ready, not_ready
+M.kill, M.open_index, M.jump_unread = not_ready, not_ready, not_ready
 
 -- pcall: on first launch vim.pack is still downloading the plugin in the
 -- background, so packadd/require will fail. Silently skip — next restart
@@ -127,6 +131,31 @@ require('sidekick').setup({
         end
       end,
     },
+    -- Tag every base agent's job env with its own name: hook subprocesses
+    -- inherit it, which is how agent_events attributes an event to a session
+    -- (the pipeline's join key). Deep-merged onto the built-in presets by
+    -- name (sidekick tool.lua), so cmd/format/resume survive. Dynamic names
+    -- get their own value in create_session — this covers the bare spawns
+    -- (pre-warm, <leader>aa) that never pass through there.
+    tools = (function()
+      local env_tools = {}
+      for _, a in ipairs(AGENTS) do
+        env_tools[a] = { env = {
+          SIDEKICK_SESSION = a,
+          -- false = unset (sidekick terminal.lua), not omit: nvim's own job env
+          -- inherits vim.uv.os_environ(), so if nvim itself was launched from
+          -- inside a claude session, CLAUDE_CODE_EXECPATH would otherwise leak
+          -- into this job's env. Hook subprocesses use inherited
+          -- CLAUDE_CODE_EXECPATH to detect a NESTED claude (e.g. `claude -p`
+          -- from a Bash tool) — Claude Code injects it into tool-subprocess
+          -- envs but not hook envs (verified empirically 2026-08-10) — a leaked
+          -- value here would make every real event look nested and get
+          -- wrongly suppressed.
+          CLAUDE_CODE_EXECPATH = false,
+        } }
+      end
+      return env_tools
+    end)(),
     -- mux: leave disabled. Enable with backend = 'tmux' or 'zellij' if you want
     -- sessions to persist across nvim restarts.
     -- Claude-native @file#L context refs — overrides sidekick's built-in
@@ -227,6 +256,9 @@ vim.api.nvim_create_autocmd('User', {
         vim.log.levels.ERROR)
       _G.__sidekick_stamp_ok = true   -- fire once per nvim run, not per attach
     end
+    -- Agent view owns its tab's layout: no promote (wincmd L would reflow the
+    -- view into three columns). The view's own Attach handler hides/embeds.
+    if vim.t[vim.api.nvim_get_current_tabpage()].agentview then return end
     local cfg = require('sidekick.config').cli.win
     local layout = cfg.layout
     local side = layout == 'right' and 'right' or layout == 'left' and 'left' or nil
@@ -277,6 +309,9 @@ vim.api.nvim_create_autocmd('WinClosed', {
   callback = function(args)
     local win = tonumber(args.match)
     if not (win and vim.api.nvim_win_is_valid(win)) then return end
+    -- The agent view's main pane carries the session stamps too (embed
+    -- re-stamps it), but its near-fullscreen width is not a CLI column width.
+    if vim.w[win].agentview_main then return end
     if #vim.api.nvim_list_wins() == 1 then return end
     local sid = vim.w[win].sidekick_session_id
     local term = sid and require('sidekick.cli.terminal').get(sid)
@@ -314,6 +349,14 @@ vim.api.nvim_create_autocmd('User', {
     -- its session and re-attach to the next one.
     for name in pairs(M._labels) do
       if not running(name) then M._labels[name] = nil end
+    end
+    -- And for the attention registry — same built-in reasoning: _forget's
+    -- clear never fires for a dying bare `claude`.
+    local ev = package.loaded['agent_events']
+    if ev then
+      for name in pairs(ev.sessions) do
+        if not running(name) then ev.clear(name) end
+      end
     end
     -- Active session died (self-exit, <C-x> in the picker, <leader>ax) → repoint to a
     -- survivor so a summon reattaches instead of spawning fresh. No
@@ -363,6 +406,13 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set({ 't', 'n' }, '<M-n>', function() require('ai').new_auto() end,
       { buffer = args.buf, desc = 'AI: Fork active agent, auto-named (in place)' })
 
+    -- <M-1>..<M-9>: jump straight to session N (name-sorted — the order
+    -- <M-]> cycles and the agent-view sidebar numbers its rows).
+    for i = 1, 9 do
+      vim.keymap.set({ 't', 'n' }, '<M-' .. i .. '>', function() require('ai').open_index(i) end,
+        { buffer = args.buf, desc = 'AI: Jump to CLI session ' .. i })
+    end
+
     -- <M-a> hides the panel in place (the <leader>aa toggle) without first
     -- escaping terminal mode via jj/jk — the common "stash the chat" action.
     -- toggle_active targets M.active, which the WinEnter stamp keeps equal to
@@ -378,6 +428,23 @@ vim.api.nvim_create_autocmd('FileType', {
     -- jj/jk -> <leader>al round-trip. Same in-panel ergonomic as <M-]>/<M-n>.
     vim.keymap.set({ 't', 'n' }, '<M-l>', function() require('ai').switch() end,
       { buffer = args.buf, desc = 'AI: Switch/kill/label CLI session picker' })
+
+    -- <M-u> force-dismisses THIS terminal's ring in place — the sidebar key,
+    -- reachable without opening the view (a stuck `!` otherwise still holds
+    -- the statusline badge and traps <leader>aj on itself). Resolved from the
+    -- window stamp, never M.active: in the view's main pane a preview can have
+    -- left the two disagreeing, and dismissing someone else's ring is silent
+    -- data loss.
+    vim.keymap.set({ 't', 'n' }, '<M-u>', function()
+      local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+      local ev = package.loaded['agent_events']
+      if ev and tool and tool.name and ev.ack(tool.name, { force = true }) then return end
+      vim.notify('sidekick: nothing to dismiss on this session', vim.log.levels.INFO)
+    end, { buffer = args.buf, desc = 'AI: Dismiss this session\'s ring' })
+
+    -- <M-v> toggles the agent view in place — same family as <M-a>/<M-l>.
+    vim.keymap.set({ 't', 'n' }, '<M-v>', function() require('agentview').toggle() end,
+      { buffer = args.buf, desc = 'AI: Agent view (toggle)' })
 
     -- <M-r> labels the session you're in (the <leader>ar prompt), same family
     -- as <M-n>/<M-l>. Not <C-r> — that's the picker's rename key, and reusing
@@ -661,7 +728,20 @@ end
 -- synchronously via terminal:hide() — cli.hide defers two hops vs cli.show's
 -- one, so it would run show-before-hide; iterating terminals also skips the
 -- same-name disambiguation picker. hide, not close — the job stays alive.
+-- Agent-view delegate, shared by the show/focus/toggle wrappers below: while
+-- the view tab is current it owns all display, so every switch path (cycle,
+-- toggle_last, picker, create_session, open_index) must route into it — a
+-- cli.show there would split the view tab (the embedded terminal isn't in
+-- sidekick's window registry). package.loaded, not require: inert until the
+-- user has opened the view once.
+local function agentview_active()
+  local av = package.loaded['agentview']
+  return (av and av.is_active()) and av or nil
+end
+
 local function show_solo(name)
+  local av = agentview_active()
+  if av then return av.select(name) end
   for _, t in ipairs(require('sidekick.cli.terminal').sessions()) do
     if t.tool and t.tool.name ~= name then t:hide() end   -- no-op if not shown
   end
@@ -703,6 +783,10 @@ local function create_session(name)
     -- Clone the agent's own resolved preset (claude: cmd + format +
     -- resume/continue; cursor: bare cmd) — see plan "clone the preset".
     cfg.cli.tools[name] = vim.deepcopy(preset)
+    -- The clone carries the BASE agent's SIDEKICK_SESSION — force-overwrite
+    -- with this session's own name or every fork reports as its agent.
+    cfg.cli.tools[name].env = vim.tbl_extend('force', cfg.cli.tools[name].env or {},
+      { SIDEKICK_SESSION = name })
     M._dynamic[name] = 'registered'   -- 'started' once the first attach fires
   end
   set_active(name)  -- eager; WinEnter confirms once the window is entered
@@ -722,6 +806,10 @@ function M._forget(name)
   if not M._dynamic[name] then return end
   require('sidekick.config').cli.tools[name] = nil
   M._dynamic[name] = nil
+  -- Drop attention state with the name: a reused name (kill 'claude 2',
+  -- spawn a new 'claude 2') must not inherit the old process's ring.
+  local ev = package.loaded['agent_events']
+  if ev then ev.clear(name) end
   -- If the name we're dropping was active, repoint to a survivor rather than
   -- the hardcoded default, so a summon reattaches. Handles the *dynamic*
   -- active-death path; a dying built-in `claude` (a no-op here) is repointed by
@@ -781,6 +869,11 @@ function M.rename(name, on_done)
       -- to a future same-name session).
       vim.notify(('sidekick: %s exited while the prompt was open — label dropped'):format(name),
         vim.log.levels.WARN)
+    elseif input:find('%c') then
+      -- A label is drawn as one line of the sidebar buffer and one statusline
+      -- cell run; a newline would error out of agentview's render, a \r or an
+      -- escape would corrupt the draw.
+      vim.notify('sidekick: a label cannot contain control characters', vim.log.levels.WARN)
     elseif input == '' or input == name then
       M._labels[name] = nil                               -- blank (or its own name) clears
     elseif name_taken(input) then
@@ -797,7 +890,16 @@ function M.rename(name, on_done)
   end)
 end
 
+-- `label or name` — the flat display namespace above, for consumers that show
+-- one string per session (statusline badge). The sidebar/picker resolve the
+-- two halves separately: label bright, raw name demoted beside it.
+function M.display(name) return M._labels[name] or name end
+
 function M.toggle_active()
+  -- In the view, "stash the agent UI" means leaving the view: the whole tab
+  -- IS the agent UI, and cli.toggle would open a second window instead.
+  local av = agentview_active()
+  if av then return av.toggle() end
   require('sidekick.cli').toggle({ name = M.active, focus = true })
 end
 
@@ -814,16 +916,47 @@ function M.kill_active()
   require('sidekick.cli').close({ name = name })
 end
 
+-- Kill a named session synchronously (picker <C-x>, agent-view sidebar `x`).
+-- State.detach inline, not cli.close: close is two vim.schedule hops, and a
+-- send landing in that gap would re-route to the dead-but-still-registered
+-- name → select({auto=true}) → a fresh session respawns under it. Repoint
+-- active + GC synchronously too, before detach, while the target is still
+-- started=true (same reasoning as kill_active). _forget is a no-op on
+-- built-ins, so killing the default `claude` won't unregister its preset.
+-- `state`: an optional pre-resolved session-state object (the picker's row
+-- already holds one). Name-only State.get prefers the current-cwd session
+-- for a same-named pair in different cwds, so a by-name-only lookup can kill
+-- the wrong one — pass the exact object when the caller has it. The
+-- agent-view sidebar has no state object per row (name-keyed), so it still
+-- falls back to the lookup; accepted there.
+function M.kill(name, state)
+  local State = require('sidekick.cli.state')
+  local s = state or State.get({ name = name, started = true })[1]
+  if not s then return end
+  if M.active == name then M.active = fallback_active(name) end
+  State.detach(s)
+  M._forget(name)
+end
+
 -- Routing wrappers: every send/focus targets the active session, so a second
 -- running session never turns sends into a pick-a-target flow (state.lua:165).
 -- Normalize a bare string like cli.send does, so a stray send('{selection}')
 -- can't blow up tbl_extend.
 function M.send(opts)
+  -- Refuse in the view: cli.send hardcodes show=true (a stray split), and
+  -- every context template renders against the current buffer — which here
+  -- is the sidebar or a terminal, never the code being discussed.
+  if agentview_active() then
+    return vim.notify('agent view: context sends read the current code buffer — close the view first',
+      vim.log.levels.WARN)
+  end
   opts = type(opts) == 'string' and { msg = opts } or opts or {}
   require('sidekick.cli').send(vim.tbl_extend('force', opts, { name = M.active }))
 end
 
 function M.focus()
+  local av = agentview_active()
+  if av then return av.focus_main() end
   require('sidekick.cli').focus({ name = M.active })
 end
 
@@ -866,26 +999,11 @@ function M.switch()
         show_solo(item.name)   -- replace the open window, don't stack
       end
     end,
-    kill = function(item)
-      local name = item.name
-      -- Synchronous teardown: State.detach removes the session inline, so
-      -- indexed_select's refresh reads post-kill state (cli.close() would be
-      -- two vim.schedule hops too late — state.lua:145,148).
-      --
-      -- Reset active + GC the name synchronously here too, not only in the
-      -- detach sweep: the sweep is scheduled, and a send landing in the gap
-      -- before it runs would re-route to this dead-but-still-registered name
-      -- → select({auto=true}) → a *fresh* session respawns under it (the
-      -- exact surprise the sweep exists to prevent). _forget is a no-op on
-      -- built-ins, so <C-x> on the default `claude` won't unregister it.
-      -- Repoint to a survivor (not the hardcoded 'claude') so a follow-up
-      -- <leader>aa reattaches; done before State.detach, excluding this name,
-      -- while it's still started=true. Sets active before _forget runs, so
-      -- _forget's own repoint below is a no-op on this path (active ≠ name).
-      if M.active == name then M.active = fallback_active(name) end
-      State.detach(item.state)
-      M._forget(name)
-    end,
+    -- M.kill's synchronous teardown is what keeps indexed_select's refresh
+    -- reading post-kill state (detach inline, not cli.close's two hops).
+    -- item.state: the exact session object this row was built from, so a
+    -- same-named session in another cwd can't get killed instead (see M.kill).
+    kill = function(item) M.kill(item.name, item.state) end,
     -- Close, prompt, reopen — not an in-place picker:find(). vim.ui.input
     -- resolves async and snacks owns the picker's own input window, so
     -- prompting over a live picker is the jank-prone path. Reopening also makes
@@ -912,6 +1030,65 @@ function M.cycle(dir)
   local name = sessions[(idx - 1 + dir) % #sessions + 1].tool.name
   set_active(name)
   show_solo(name)
+end
+
+-- Unread sessions <leader>aj would actually route to, most recent first: the
+-- registry's order minus the stopped ones and the session in the focused
+-- window. The focus skip is the ack rule's consequence — an urgent ring
+-- survives focus, so keeping it would trap repeat presses on itself.
+-- THE shared list: the statusline badge names candidates[1] and counts the
+-- rest from here too, so it can never advertise a session the jump declines
+-- (sitting in `claude` while it prompts used to show `! claude` and answer
+-- "no unread"). Empty while the only ring is the pane you're in is correct —
+-- you're looking at it.
+function M.unread_candidates()
+  local ev = package.loaded['agent_events']
+  if not ev then return {} end
+  local tool = vim.w[vim.api.nvim_get_current_win()].sidekick_cli
+  local here = tool and tool.name
+  local out = {}
+  for _, name in ipairs(ev.unread_sessions()) do
+    if name ~= here and running(name) then out[#out + 1] = name end
+  end
+  return out
+end
+
+-- <leader>aj: jump to the most recently unread session (cmux's triage key).
+-- Landing acks a turn-complete ring on its own — via WinEnter for the solo
+-- column, via agentview.embed()/enter_main in the view. The landing notify
+-- names where you landed and, when the agent sent one, what it's asking
+-- (Claude's hook payload carries `message` on permission/input events) — the
+-- terminal alone can be pages past the prompt.
+function M.jump_unread()
+  local ev = package.loaded['agent_events']
+  if not ev then return end
+  local name = M.unread_candidates()[1]
+  if not name then
+    return vim.notify('sidekick: no unread agent sessions', vim.log.levels.INFO)
+  end
+  local phrase, msg = ev.summary(name)
+  set_active(name)
+  show_solo(name)
+  local av = agentview_active()
+  if av then av.enter_main() end
+  -- The agent's own text when it sent one, else the phrase — never both: they
+  -- say the same thing ("wants permission: Claude needs your permission…").
+  local text = 'sidekick: ' .. M.display(name)
+  local detail = msg or phrase
+  if detail then text = text .. ' — ' .. detail end
+  vim.notify(text, vim.log.levels.INFO)
+end
+
+-- <M-1>..<M-9> inside the CLI (and 1-9 in the agent-view sidebar): jump
+-- straight to running session N in name-sorted order — the same comparator as
+-- cycle(), so digit order always equals <M-]>/<M-[> order. No-op past the end.
+function M.open_index(n)
+  local sessions = require('sidekick.cli.state').get({ started = true })
+  table.sort(sessions, function(a, b) return a.tool.name < b.tool.name end)
+  local s = sessions[n]
+  if not s then return end
+  set_active(s.tool.name)
+  show_solo(s.tool.name)
 end
 
 -- <C-]> inside the CLI: bounce to the session you were last in (alt-tab style;

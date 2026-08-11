@@ -40,7 +40,8 @@ brew "ast-grep"        # grug-far's optional AST search/replace engine (grug-far
 brew "zoxide"          # z / zi directory jumping
 brew "direnv"          # per-directory environment
 brew "starship"        # zsh prompt; config in zsh/.config/starship.toml (stowed)
-brew "coreutils"       # provides gtimeout, used by claude-nvim
+brew "coreutils"       # provides gtimeout, used by claude-nvim and
+                       # claude/.claude/hooks/sidekick-notify.sh
 brew "jq"              # used by claude/setup-*.sh (macOS 15+ ships one too)
 
 #-----------------------------------------------------------------------------

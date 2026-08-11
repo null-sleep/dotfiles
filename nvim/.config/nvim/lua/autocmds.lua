@@ -155,7 +155,7 @@ vim.api.nvim_create_autocmd('QuitPre', {
 --
 -- All three are nowrap, so screen rows map 1:1 to lines. Width is measured in
 -- display cells (strdisplaywidth, for multi-cell devicons).
-local clamped_panels = { NvimTree = true, aerial = true, sidekick_terminal = true }
+local clamped_panels = { NvimTree = true, aerial = true, sidekick_terminal = true, agentview = true }
 
 vim.api.nvim_create_autocmd('WinScrolled', {
   group = augroup,
