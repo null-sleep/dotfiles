@@ -200,12 +200,17 @@ ai.lua — required, not optional, for built-ins.
 ## Comparators for the next design round
 
 claude-squad / Crystal (multi-session managers: worktrees, pending
-diffs, batch prompting) · Conductor, Vibe Kanban (task-centric framing
-we rejected) · **Slack's unread model** (`●`≈bold unread, `!`≈mention
-badge, manual mark-unread ≈ `<M-u>` — best prior art for ack
-semantics) · Ghostty's native OSC 9/777 (what agents get for free
+diffs, batch prompting) · **Herdr** (Rust TUI agent multiplexer, the
+closest whole-product peer — same ring taxonomy, but state via
+screen-scraping TOML manifests, the heuristic class we banned; see the
+main plan's build-vs-buy note) · Conductor, Vibe Kanban (task-centric
+framing we rejected) · **Slack's unread model** (`●`≈bold unread,
+`!`≈mention badge, manual mark-unread ≈ `<M-u>` — best prior art for
+ack semantics) · Ghostty's native OSC 9/777 (what agents get for free
 outside nvim; the argument for the `TermRequest` follow-up) · Zed and
-Cursor agent panels (editor-native peers; binary-dot, cruder ack).
+Cursor agent panels (editor-native peers; binary-dot, cruder ack) ·
+Claude Code's experimental agent teams (one-session fan-out with an
+in-TUI panel — a different shape than N independent sessions).
 Biggest structural lesson already learned: cmux's real transport is
 OSC-first, hooks second — if rebuilding, invert our order (see the
 main plan's follow-up 4).

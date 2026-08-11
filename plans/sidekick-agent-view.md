@@ -354,6 +354,24 @@ agents should read that before touching these modules.
   two-tier + manual-dismiss trio), ghostty's native OSC handling, and
   claude-squad/Crystal for lifecycle features (pending diffs, batch
   prompts) we haven't considered.
+- **Could Herdr have replaced this build? (asked 2026-08-10, after the
+  fact)** Partially. Herdr (Rust TUI agent multiplexer, trending
+  July 2026 — it existed before Phase 1 shipped) would have covered
+  the dashboard 80% in an afternoon: sidebar, blocked/working/done/idle
+  rings (≈ our `!»●○`), cycling, jump, 15+ agents incl. cursor/pi
+  urgent tiers, plus a detachable server we didn't build. What it
+  structurally can't cover: agents living in sidekick terminals
+  *inside nvim* — context sends, `<M-a>`/`<M-]>`, the statusline
+  badge, `<leader>aj` landing beside code. Its state detection is
+  also screen-scraping (TOML manifests over TUI output) — the exact
+  heuristic class this plan banned; it rots silently when agent UIs
+  change, ours rots loudly against source-verified APIs. Verdict:
+  from zero, Herdr-first would have been right; from an existing
+  sidekick investment, the build stands. **Process lesson worth
+  keeping: this plan researched cmux deeply and surveyed nothing
+  else — before building the next subsystem (OSC follow-up,
+  click-to-focus), spend ten minutes checking whether someone shipped
+  it last month.**
 
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually
