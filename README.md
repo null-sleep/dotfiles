@@ -669,26 +669,34 @@ roughly tmux's session — one per project/worktree; tabs and panes work like
 tmux windows/splits).
 
 Default keymaps use a `ctrl+b` prefix (edit `[keys]` in `config.toml` to
-change it; `herdr config reset-keys` restores the defaults):
+change it; `herdr config reset-keys` restores the defaults) — like tmux, every
+`prefix X` binding below is a **two-step chord, not held together**: press
+and release `Ctrl+B` first (Herdr silently enters prefix mode and waits
+briefly for one more key), *then* press the second key on its own:
 
 | Key | Action |
 |---|---|
-| `prefix ?` | Help |
-| `prefix w` | Workspace picker |
-| `prefix shift+n` | New workspace |
-| `prefix shift+g` | New workspace from a git worktree |
-| `prefix c` | New tab |
-| `prefix n` / `prefix p` | Next / previous tab |
-| `prefix v` / `prefix -` | Split pane vertically / horizontally |
-| `prefix h`/`j`/`k`/`l` | Focus pane left/down/up/right |
-| `prefix z` | Zoom pane |
-| `prefix x` | Close pane |
-| `prefix q` | Detach (server keeps running) |
+| `Ctrl+B`, then `?` | Help |
+| `Ctrl+B`, then `w` | Workspace picker |
+| `Ctrl+B`, then `Shift+N` | New workspace |
+| `Ctrl+B`, then `Shift+G` | New workspace from a git worktree |
+| `Ctrl+B`, then `c` | New tab |
+| `Ctrl+B`, then `n` / `Ctrl+B`, then `p` | Next / previous tab |
+| `Ctrl+B`, then `v` / `Ctrl+B`, then `-` | Split pane vertically / horizontally |
+| `Ctrl+B`, then `h`/`j`/`k`/`l` | Focus pane left/down/up/right |
+| `Ctrl+B`, then `z` | Zoom pane |
+| `Ctrl+B`, then `x` | Close pane |
+| `Ctrl+B`, then `b` | Toggle sidebar — collapses to `sidebar_collapsed_mode` (`"hidden"` here, see `config.toml`) |
+| `Ctrl+B`, then `q` | Detach (server keeps running) |
 
 Panes running a supported agent (Claude Code, pi, …) show their
 `working`/`blocked`/`idle`/`done` state in the sidebar without any extra
-config — that's screen detection, not the integrations above. A few CLI
-entry points worth knowing beyond the keymaps: `herdr agent list` /
+config — that's screen detection, not the integrations above. The sidebar is
+fixed on the left (no left/right placement option in v0.8.0's `[ui]` config —
+checked `herdr --default-config`); `Ctrl+B`, then `b` above is the only lever,
+useful when nvim is running in an adjacent pane and you want the width back.
+
+A few CLI entry points worth knowing beyond the keymaps: `herdr agent list` /
 `herdr agent wait --until done` (block until a sibling agent finishes —
 useful for orchestrating one agent from another), `herdr pane run <cmd>`
 (run a command in a new pane without stealing focus), and

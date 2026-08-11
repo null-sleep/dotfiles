@@ -30,3 +30,15 @@ light_name = "catppuccin-latte"
 # (`/opt/homebrew/bin` on PATH) regardless of platform-default drift — same
 # rationale as plans/neovide-path-env.md for Neovide.
 shell_mode = "login"
+
+[ui]
+agent_panel_sort = "spaces"
+
+# `prefix b` toggles the sidebar at runtime (see README → "Herdr" → Usage
+# for the full keymap). "hidden" makes that toggle reclaim the sidebar's full
+# width instead of leaving the default "compact" status rail — the more
+# useful state when nvim is running in an adjacent pane and you only want to
+# glance at Herdr's sidebar occasionally. `sidebar_start_collapsed` is left
+# at its default (false, expanded on launch); this key only changes what the
+# *toggle* collapses to, not whether Herdr launches collapsed.
+sidebar_collapsed_mode = "hidden"
