@@ -331,6 +331,12 @@ local function sidebar_keymaps(buf)
       end)
     end)
   end, 'AI: Kill session under cursor')
+  -- Manual dismiss: the only way out of a ring the agent never retracts (an
+  -- answered permission prompt whose turn then errors leaves `!` lit forever).
+  map('<M-u>', function()
+    local r, ev = row_under_cursor(), package.loaded['agent_events']
+    if r and ev then ev.ack(r.name, { force = true }) end
+  end, 'AI: Dismiss ring on session under cursor')
   map('q', function() M.close() end, 'AI: Close agent view')
   map('<Esc>', function() M.close() end, 'AI: Close agent view')
 end

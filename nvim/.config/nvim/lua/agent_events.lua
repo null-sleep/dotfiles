@@ -131,9 +131,13 @@ end
 -- Acknowledge by looking: clears a turn-complete ring ONLY. Urgent states
 -- (needs-permission/input) survive focus and clear on real progress —
 -- prompt-submit, or the turn's next event superseding them.
-function M.ack(name)
+-- `opts.force` (the sidebar's <M-u>) clears any tier: a stuck `!` — prompt
+-- answered but the turn errors, an <Esc>'d prompt, a dropped Stop RPC — is
+-- otherwise permanent, and traps <leader>aj on itself forever.
+function M.ack(name, opts)
   local s = M.sessions[name]
-  if not (s and s.unread and s.attention == 'turn-complete') then return end
+  if not (s and s.unread) then return end
+  if not ((opts and opts.force) or s.attention == 'turn-complete') then return end
   s.unread = false
   fire(name, 'ack')
 end

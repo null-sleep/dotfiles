@@ -2872,6 +2872,7 @@ In the sidebar (buffer-local):
 | `n` | New session (the `<leader>an` flow; embeds once it attaches) |
 | `r` | Label the session under the cursor |
 | `x` | Kill the session under the cursor (confirm popup) |
+| `<M-u>` | Dismiss the ring on the session under the cursor — the manual escape from a `!` the agent never retracts |
 | `q` / `<Esc>` | Close the view |
 
 Browsing previews without committing: the **active** session (`▸`, sends,
@@ -2893,8 +2894,8 @@ README's per-tool sections):
 
 | Glyph | Meaning | Cleared by |
 |---|---|---|
-| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it** |
-| `●` | finished a turn, unread | looking at it (focus-ack), `<leader>aj`, or your next prompt |
+| `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` in the sidebar force-dismisses one that's stuck |
+| `●` | finished a turn, unread | looking at it (focus-ack), `<leader>aj`, `<M-u>`, or your next prompt |
 | `»` | working (between your prompt and the turn's end) | the turn ending |
 | `○` | quiet — has emitted events, nothing pending | — |
 | `·` | no event yet this session | — |
