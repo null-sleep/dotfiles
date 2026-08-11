@@ -3,7 +3,7 @@
 > UX walkthrough (static mockups reviewed 2026-08-08):
 > https://claude.ai/code/artifact/93af4a5d-ed72-48ed-9518-0400679ec2bd
 
-## Status — Phases 1+2+3 landed (Phase 3: 2026-08-10 evening EDT)
+## Status — Phases 1+2+3 landed; UX-critique follow-ups 1/2/3/5/6 landed (2026-08-10)
 
 Phase 3 shipped as three commits on `agent-view`: `7cafee0` opencode
 plugin (full rings), `9e1075e` pi extension (running/done), `66f7c44`
@@ -141,6 +141,44 @@ Durable knowledge that outlives this feature, worth having greppable:
   test sockets belong in `/tmp`.
 
 ## Follow-ups — UX critique (2026-08-10, design review vs live cmux)
+
+### Status — items 1, 2, 3, 5, 6 shipped (2026-08-10, six commits)
+
+`3a1cdd8` manual dismiss (`M.ack(name, {force})` + sidebar `<M-u>`),
+`ad056d7` defer-not-drop + ack-on-interaction, `c085088` leading glyph
+column + `·`→`○` merge, `5321473` badge redesign, `77e0e71` quick wins,
+`7917d3d` urgent-only desktop notification. Item 4 (OSC 9/777 via
+`TermRequest`) is deferred to its own follow-up plan as the critique
+itself recommended. All verified headless (state-machine suites, real
+lualine render, real `CursorMoved`-driven preview, `vim.system` spy for
+osascript); the interactive checklist gained items 14–17 below.
+
+Execution deltas worth keeping:
+
+- **Defer-not-drop fan-out**: the `deferred` flag must be nil'd in four
+  of the five transitions (an urgent landing on a deferred session would
+  otherwise re-promote after being answered), and `ack`'s guard widened
+  to `unread or deferred` — net ~35 LOC, not the estimated ~8.
+  `FocusLost` promotes via a sweep over all sessions (the current
+  window's stamp isn't a reliable identity for what was deferred).
+- **The removed `FocusGained` blanket ack leaves one intended gap**:
+  alt-tab back, sit in the CLI window in normal mode, never type — the
+  ring stays lit until real interaction (`ModeChanged *:t*`, WinEnter,
+  or `<M-u>`). That is the "read = interaction" semantics, chosen
+  knowingly against the old comment's argument.
+- **`jump_unread`'s direct ack was removed** (one path now: embed-ack in
+  the view, WinEnter in the solo column). If the solo-column ack ever
+  regresses, restoring the one-line `ev.ack(name)` there is the fix.
+- **Badge label resolution**: sidebar/picker render label and raw name
+  as separate spans, so there was nothing to reuse — new `ai.display()`
+  is the one-string owner; truncation (12 cells incl. `…`) lives in
+  statusline.lua because it's a statusline-space constraint, not a
+  label property. A stale urgent still outranks a fresher plain unread
+  in badge naming (matches `!`-outranks-`●`).
+- **Desktop notification re-fire is per-tier**: needs-permission →
+  needs-input on an already-urgent session notifies (different
+  question); a same-tier repeat doesn't. argv-only `vim.system`, no
+  shell; gated on `executable('osascript')` and `focused == false`.
 
 An adversarial design review of the shipped view against cmux's current
 behavior. Two research corrections first — the plan's "What cmux actually
@@ -366,11 +404,12 @@ one `env -u NVIM nvim` session:
       `require('agent_events').sessions[name].last.raw` for the
       `UserPromptSubmit` and `Notification` payloads — field names beyond
       the envelope are still unverified against real data.**
-- [ ] Focused-suppression: Stop while sitting in that terminal → no ring;
-      alt-tab to another app first → ring appears; a permission prompt
-      rings even while focused (item 6). Then alt-tab back while still
-      sitting in that session's window → the ring clears on refocus
-      (the `FocusGained` ack from review hardening).
+- [ ] Focused-suppression (defer semantics, post-`ad056d7`): Stop while
+      sitting in that terminal → no ring; then move to another window or
+      alt-tab away WITHOUT typing → the deferred ring appears (item 6 +
+      item 14a). A permission prompt rings even while focused. Alt-tab
+      back and sit in normal mode → ring stays lit; enter terminal-mode
+      (type) → clears (the `ModeChanged` ack that replaced `FocusGained`).
 - [ ] `<leader>aj` picks the newest of two unread and skips the focused
       session (an unanswered `!` must not trap the jump) (item 7).
 - [ ] Non-sidekick `claude` in Terminal.app: hook no-ops (item 8 —
@@ -396,6 +435,21 @@ one `env -u NVIM nvim` session:
 - [ ] Phase 3, pi (item 13): prompt in a sidekick pi TUI → `»`, settle →
       `●`; `/subagents` work must NOT flicker rings mid-turn (the
       PI_SUBAGENT_DEPTH guard).
+- [ ] UX follow-ups, ack (item 14): in-view `<M-N>`/cycle/`<CR>` swap
+      acks the row while reading it (no more lit row + suppressed next
+      turn); sidebar `<M-u>` clears a stuck `!` and un-traps `<leader>aj`.
+- [ ] UX follow-ups, sidebar+preview (item 15): leading glyph column
+      aligned across all row kinds incl. an unnumbered `…` row; a long
+      renamed label overruns rightward without hiding any glyph; `<Esc>`
+      in the sidebar no longer closes the view; previewing a spawning
+      row shows the "starting…" scratch, not the previous session.
+- [ ] UX follow-ups, badge (item 16): `! <label> +N` with two more unread,
+      `● <label>` alone for a single unread, label truncated at 12 cells,
+      badge hidden while inside the view tab.
+- [ ] UX follow-ups, desktop notification (item 17): alt-tab away →
+      permission prompt → macOS notification (label title, message body);
+      no notification for turn-complete or a repeated same-tier urgent;
+      `<leader>aj` landing notify shows the prompt's message text.
 
 ## Problem
 
@@ -542,11 +596,13 @@ transient split and embeds.
 - Rows: running sessions from `sidekick.cli.state.get({started=true})` plus
   in-flight spawns from `ai._dynamic == 'registered'`, sorted by name — the
   same order as `ai.cycle`, so `j`/`k` order equals `<M-]>`/`<M-[>` order.
-- Row = index digit (dim, rows 1–9 only; later rows get a blank column),
-  active marker (`▸`), display label (bright) with raw name demoted
-  (`Comment`) — same convention as the `<leader>al` picker — and a
-  right-aligned status glyph as a `virt_text_pos='right_align'` extmark.
-  The index is display order (name-sorted), so it's also cycling order.
+- Row = status glyph in a fixed leading column (real text — revised by
+  UX follow-up 2, `c085088`; originally a `right_align` extmark, which
+  lost to long labels and defeated a vertical scan), index digit (dim,
+  rows 1–9 only; later rows get a blank column), active marker (`▸`),
+  display label (bright) with raw name demoted (`Comment`) — same
+  convention as the `<leader>al` picker. The index is display order
+  (name-sorted), so it's also cycling order.
 - Keymaps read a `rows_by_lnum` table, never parse buffer text.
 - Refresh: one debounced (single `vim.schedule` coalesce) `render()`, driven
   by `User SidekickCliAttach`/`SidekickCliDetach`, `User AgentSessionEvent`,
@@ -566,7 +622,8 @@ transient split and embeds.
 | `n` | `ai.new_session()` |
 | `r` | `ai.rename(row, refresh)` |
 | `x` | `utils.confirm` → `ai.kill(row)` |
-| `q` / `<Esc>` | close the view |
+| `<M-u>` | force-dismiss the row's ring, any tier (UX follow-up 1) |
+| `q` | close the view (`<Esc>` dropped in UX follow-up 5 — reflex key) |
 
 **Selection model — revised 2026-08-10 after first live use.** The plan
 originally chose explicit `<CR>` over cmux-style live-switch, fearing
@@ -667,10 +724,11 @@ turn-complete    → running=false;     unread=true*
 session-end      → running=false; unread=false
 ack (focus)      → clears unread ONLY when attention == 'turn-complete';
                    urgent states are untouched by focus
-* turn-complete only: suppressed when it targets the currently-focused
-  window while nvim has OS focus (cmux's focused-pane suppression;
-  FocusGained/Lost keeps a boolean). Urgent events always set unread —
-  a block is a block regardless of where you're looking.
+* turn-complete only: DEFERRED (not dropped — revised by UX follow-up 1,
+  `ad056d7`) when it targets the currently-focused window while nvim has
+  OS focus: a `deferred` flag promotes to unread on WinLeave/FocusLost,
+  and clears on prompt-submit or interaction. Urgent events always set
+  unread — a block is a block regardless of where you're looking.
 ```
 
 Running detection uses the `UserPromptSubmit` hook rather than nvim-side
@@ -684,17 +742,22 @@ Looking at an agent is enough to acknowledge "I finished a turn", but NOT
 enough to resolve "I need something from you" — an urgent state must
 survive focus and only clear when the user actually responds:
 
-- **`turn-complete` (`●`)**: focus-ack autocmds in `agent_events.lua` (the
-  state owner) — `WinEnter`, plus `FocusGained` for the already-sitting-in-
-  the-window case (added in review hardening): if the entered/refocused
-  window's `sidekick_cli` stamp names a session whose attention is
+- **`turn-complete` (`●`)**: ack-on-interaction autocmds in
+  `agent_events.lua` (the state owner) — `WinEnter`, plus `ModeChanged`
+  into terminal-mode (revised by UX follow-up 1, `ad056d7`: the blanket
+  `FocusGained` ack destroyed a ring the frame you alt-tabbed back; read
+  = interaction, not presence): if the entered/typed-in window's
+  `sidekick_cli` stamp names a session whose attention is
   `turn-complete`, `M.ack`. This is why the view re-stamps embedded
-  windows. (`<leader>aj` additionally acks directly after landing — an
-  in-view jump can swap the buffer under the cursor with no `WinEnter`.)
+  windows. In-view swaps ack via `embed()` when `main_win` is current
+  (no `WinEnter` fires on a buffer swap — `<leader>aj`'s old direct ack
+  generalized).
 - **`needs-permission` / `needs-input` (`!`)**: no focus-ack. Cleared by
   real progress only: `prompt-submit` (the user typed a prompt there), or
   superseded by the session's next attention event (answering a permission
-  prompt resumes the turn, whose eventual `Stop` downgrades `!` to `●`).
+  prompt resumes the turn, whose eventual `Stop` downgrades `!` to `●`) —
+  or manually via sidebar `<M-u>` / `M.ack(name, {force=true})` (UX
+  follow-up 1, `3a1cdd8`: a stuck `!` was otherwise permanent).
   Known MVP staleness: between approving a permission and the turn's next
   event, the row still shows `!` — accepted; registering `PostToolUse` as
   a "permission resolved" signal is the documented upgrade if this annoys
@@ -729,9 +792,11 @@ subscriber.
 | urgent | unread, needs-permission/input | `!` | `AgentviewUrgent` | `DiagnosticWarn` |
 | unread | unread, turn-complete | `●` | `AgentviewUnread` | `Special` |
 | running | not unread, running | `»` | `AgentviewRunning` | `DiagnosticOk` |
-| idle | entry exists, quiet | `○` | `AgentviewIdle` | `Comment` |
-| none | no registry entry | `·` | `AgentviewNoSignal` | `NonText` |
+| idle | entry exists, quiet — or no entry yet | `○` | `AgentviewIdle` | `Comment` |
 | spawning | `_dynamic == 'registered'` | `…` | `AgentviewSpawning` | `NonText` |
+
+(`·`/`AgentviewNoSignal` merged into `○` by UX follow-up 2, `c085088` —
+the no-entry-yet distinction was diagnostic, not triage.)
 
 Distinct shapes (not just colors) keep the urgent/unread distinction legible
 without status text — a deliberate deviation from cmux's single-glyph ring.
@@ -741,32 +806,26 @@ Unread beats running in display precedence. Red is reserved for a future
 `AgentviewName` → `Comment`. All links live in `themes.lua`
 `global_overrides` — no hex anywhere.
 
-The `none` state remains for sessions that haven't produced an event yet;
-after Phase 3 all four agents emit real signals (with per-agent tiers —
-see the support matrix below). No polling heuristics anywhere: output-churn
+A session that hasn't produced an event yet renders `○` like any quiet
+one; after Phase 3 all four agents emit real signals (with per-agent
+tiers — see the support matrix below). No polling heuristics anywhere: output-churn
 detection would need timers and confidently lies (TUI spinners churn while
 idle).
 
 ### Ambient badge (view closed)
 
-One statusline segment: `● N` unread count (colored urgent-if-any-urgent),
-hidden at zero, purely reactive reads — no timers. Without it the attention
-system is invisible whenever the view is closed.
+One statusline segment — `! <label> +N` / `● <label>` (revised by UX
+follow-up 3, `5321473`; originally `● N`): names the most-recent urgent
+session, else the most-recent unread, with ` +N` for the remaining
+unread. Label via `ai.display()`, truncated to 12 cells; hidden at zero,
+hidden inside the view tab (the sidebar says it better), colored
+urgent-if-any-urgent, purely reactive reads — no timers. Without it the
+attention system is invisible whenever the view is closed.
 
-**Open TODO — badge UX is deliberately under-designed.** `● N` is the MVP
-floor; the user has flagged wanting more from it. Candidate upgrades to
-decide after living with the floor version (don't build speculatively):
-
-- Per-agent mini-row instead of a count: one glyph per session in list
-  order (`» ! ● ·`), doubling as an at-a-glance index map for
-  `<M-1>`–`<M-9>`.
-- Name the most urgent session: `! refactor` beats `● 2` when one agent is
-  blocked — tells you who without opening the view.
-- Split counts by tier (`! 1 ● 2`) vs. one blended count.
-- Show `running` count too, or only when nothing is unread (`» 3` as a
-  quiet "all workers busy" signal).
-- Statusline space is finite — decide against the existing segments before
-  widening (truncation rules, hide thresholds).
+The former open TODO here is resolved: the identity question ("is this
+worth interrupting for") beat every counting variant. Rejected: per-agent
+glyph rows (growth), tier-split counts (non-actionable distinction),
+running counts (anti-signal).
 
 ## Phase 3 — rings for cursor / opencode / pi
 
@@ -942,7 +1001,9 @@ machine-local per the package's existing rule):
 
 ## Out of scope (MVP)
 
-- Spinner animation, desktop notifications, per-category mute rules.
+- Spinner animation, per-category mute rules. (Desktop notifications
+  landed urgent-only via UX follow-up 6, `7917d3d` — broader
+  per-category notification rules remain out of scope.)
 - Urgent (`!`) tier for cursor (no needs-input hook exists; its built-in
   OSC terminal notifications via a `TermRequest` listener is the future
   path) and for pi (no permission/question events in its vocabulary yet).
