@@ -351,7 +351,7 @@ That command:
 - leaves `~/.claude/settings.json` untouched because the portable, guarded `PreToolUse` hook is already tracked;
 - prints a manual hook snippet that can be ignored for this setup.
 
-`--no-patch` is important: it prevents rtk from rewriting or replacing the Stow symlink. Re-running the command is safe. Verify ownership afterward with `bash ~/src/dotfiles/claude/setup-settings.sh --check`. Check savings with `rtk gain`; remove the machine-local artifacts with `rtk init -g --uninstall` (then keep or remove the tracked hook deliberately in the repo).
+`--no-patch` is important: it prevents rtk from rewriting or replacing the Stow symlink. Re-running the command is safe. Verify ownership afterward with `bash ~/src/dotfiles/claude/setup-settings.sh --check`. `rtk gain` may warn `No hook installed` because rtk recognizes only its exact unguarded command; the tracked `if command -v rtk ...` wrapper is intentional and still runs the hook. Remove the machine-local artifacts with `rtk init -g --uninstall` (then keep or remove the tracked hook deliberately in the repo).
 
 <a id="theme"></a>
 ### Theme
