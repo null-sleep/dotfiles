@@ -869,6 +869,11 @@ function M.rename(name, on_done)
       -- to a future same-name session).
       vim.notify(('sidekick: %s exited while the prompt was open — label dropped'):format(name),
         vim.log.levels.WARN)
+    elseif input:find('%c') then
+      -- A label is drawn as one line of the sidebar buffer and one statusline
+      -- cell run; a newline would error out of agentview's render, a \r or an
+      -- escape would corrupt the draw.
+      vim.notify('sidekick: a label cannot contain control characters', vim.log.levels.WARN)
     elseif input == '' or input == name then
       M._labels[name] = nil                               -- blank (or its own name) clears
     elseif name_taken(input) then

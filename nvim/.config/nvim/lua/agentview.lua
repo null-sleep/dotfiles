@@ -135,16 +135,26 @@ local function render()
         { ' ' },
       }
       if label then
-        vim.list_extend(segs, { { label, 'AgentviewLabel' }, { '  ' }, { r.name, 'AgentviewName' } })
+        vim.list_extend(segs, { { label, 'AgentviewLabel' }, { '  ' },
+          { r.name, r.spawning and 'AgentviewSpawning' or 'AgentviewName' } })
       else
         segs[#segs + 1] = { r.name, r.spawning and 'AgentviewSpawning' or nil }
       end
       lines[i], all_marks[i] = compose(segs)
     end
   end
+  -- pcall so `modifiable` is always restored: a row text nvim refuses (a label
+  -- carrying a newline) would otherwise leave the sidebar editable, and typing
+  -- into it desyncs rows_by_lnum from what's drawn. Buffer keeps the previous
+  -- render on failure; drop the row map so keys no-op rather than act on the
+  -- wrong session, and let the next render recover.
   vim.bo[sidebar_buf].modifiable = true
-  vim.api.nvim_buf_set_lines(sidebar_buf, 0, -1, false, lines)
+  local ok_set, err = pcall(vim.api.nvim_buf_set_lines, sidebar_buf, 0, -1, false, lines)
   vim.bo[sidebar_buf].modifiable = false
+  if not ok_set then
+    rows_by_lnum = {}
+    return vim.notify('agentview: render failed — ' .. tostring(err), vim.log.levels.ERROR)
+  end
   vim.api.nvim_buf_clear_namespace(sidebar_buf, ns, 0, -1)
   for i, marks in pairs(all_marks) do
     for _, m in ipairs(marks) do
