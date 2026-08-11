@@ -102,13 +102,12 @@ M.global_overrides = {
   AgentviewSpawning = { link = 'NonText' },
   -- Status glyphs (agent_events): distinct shapes AND colors — `!` blocked
   -- on you (warn tier, not error: nothing failed; red stays reserved for a
-  -- future StopFailure), `●` finished a turn, `»` working, `○` quiet, `·`
-  -- no event yet this session. Also colors the statusline unread badge.
+  -- future StopFailure), `●` finished a turn, `»` working, `○` quiet (also
+  -- "no event yet"). Also colors the statusline unread badge.
   AgentviewUrgent   = { link = 'DiagnosticWarn' },
   AgentviewUnread   = { link = 'Special' },
   AgentviewRunning  = { link = 'DiagnosticOk' },
   AgentviewIdle     = { link = 'Comment' },
-  AgentviewNoSignal = { link = 'NonText' },
 
   -- Aerial's current-position marker: highlights the sidebar row matching the
   -- source cursor, AND (via highlight_on_hover) the source line matching the

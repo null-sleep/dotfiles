@@ -23,12 +23,14 @@ local augroup = vim.api.nvim_create_augroup('UserAgentview', { clear = true })
 
 -- Status → { glyph, hlgroup }. Distinct shapes, not just colors: urgent vs
 -- unread must survive a colorblind glance. Groups link in themes.lua.
+-- 'none' (no registry entry) shares idle's `○`: "hasn't emitted yet" vs
+-- "quiet" is a diagnostic distinction, not a triage one.
 local GLYPHS = {
   urgent  = { '!', 'AgentviewUrgent' },
   unread  = { '●', 'AgentviewUnread' },
   running = { '»', 'AgentviewRunning' },
   idle    = { '○', 'AgentviewIdle' },
-  none    = { '·', 'AgentviewNoSignal' },
+  none    = { '○', 'AgentviewIdle' },
 }
 
 -- The view tab is found by its marker, never by cached handle alone, so a
@@ -110,7 +112,7 @@ local function render()
   local ai = require('ai')
   local rs = rows()
   rows_by_lnum = {}
-  local lines, all_marks, glyphs = {}, {}, {}
+  local lines, all_marks = {}, {}
   if #rs == 0 then
     lines = { ' (no running agents)', '', ' n  new session', ' q  close' }
     for i = 1, #lines do all_marks[i] = { { 0, #lines[i], 'Comment' } } end
@@ -118,7 +120,13 @@ local function render()
     for i, r in ipairs(rs) do
       rows_by_lnum[i] = r
       local label = ai._labels[r.name]
+      -- Glyph leads as real text at a fixed column (never right_align virt
+      -- text): one vertical scan reads every status, and an uncapped label
+      -- can only overrun rightward, never cover the signal.
+      local g = r.spawning and { '…', 'AgentviewSpawning' } or status_of(r.name)
       local segs = {
+        { ' ' },
+        { g and g[1] or ' ', g and g[2] },
         { ' ' },
         { r.index and tostring(r.index) or ' ', 'NonText' },
         { ' ' },
@@ -131,7 +139,6 @@ local function render()
         segs[#segs + 1] = { r.name, r.spawning and 'AgentviewSpawning' or nil }
       end
       lines[i], all_marks[i] = compose(segs)
-      glyphs[i] = r.spawning and { '…', 'AgentviewSpawning' } or status_of(r.name)
     end
   end
   vim.bo[sidebar_buf].modifiable = true
@@ -142,10 +149,6 @@ local function render()
     for _, m in ipairs(marks) do
       vim.api.nvim_buf_set_extmark(sidebar_buf, ns, i - 1, m[1],
         { end_col = m[2], hl_group = m[3] })
-    end
-    if glyphs[i] then
-      vim.api.nvim_buf_set_extmark(sidebar_buf, ns, i - 1, 0,
-        { virt_text = { { glyphs[i][1] .. ' ', glyphs[i][2] } }, virt_text_pos = 'right_align' })
     end
   end
   -- Snap the sidebar cursor to the active row — but never while the user is

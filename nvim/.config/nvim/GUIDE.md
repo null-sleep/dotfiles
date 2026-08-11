@@ -2844,8 +2844,9 @@ session, since that reuse works on names.
 ### Agent view
 
 `<leader>av` (or `<M-v>` inside a CLI) toggles a cmux-style dashboard in its
-own **tabpage**: a 30-col sidebar listing every session — index digit,
-`▸` active marker, label with the raw name dimmed beside it (the `<leader>al`
+own **tabpage**: a 30-col sidebar listing every session — status glyph in a
+fixed leading column, index digit, `▸` active marker, label with the raw name
+dimmed beside it (the `<leader>al`
 convention) — with the selected session's *real* terminal buffer embedded
 beside it (`agentview.lua`). A dedicated tab, not a left panel: entering the
 view is a mode switch (like Neogit/diffview), and the working tab's layout —
@@ -2885,7 +2886,9 @@ sidebar; `<leader>aa`/`<M-a>` ("stash the agent UI") close the view. The
 view re-stamps its main window with the session's identity, which is also
 what keeps active-session tracking correct there.
 
-**Attention glyphs** (right-aligned per row, from the `agent_events.lua`
+**Attention glyphs** (leading column of every row — a fixed column so one
+vertical scan reads all statuses, and a long label overruns rightward instead
+of covering the signal — from the `agent_events.lua`
 registry — all four agents feed it through the same stowed
 `claude/.claude/hooks/sidekick-notify.sh` script: Claude via its hook
 registrations, opencode via a stowed plugin, pi via a stowed extension,
@@ -2897,8 +2900,7 @@ README's per-tool sections):
 | `!` | blocked on you — permission prompt or waiting for input | real progress only: submitting a prompt there, or the turn's next event (answering a permission prompt eventually downgrades `!` to `●`) — **focusing does NOT clear it**; `<M-u>` in the sidebar force-dismisses one that's stuck |
 | `●` | finished a turn, unread | *interacting* with that session — entering its pane, or typing in it (terminal mode) — plus `<leader>aj`, `<M-u>`, or your next prompt. Presence alone doesn't: alt-tabbing back to nvim, or previewing the row with `j`/`k`, leaves it lit |
 | `»` | working (between your prompt and the turn's end) | the turn ending |
-| `○` | quiet — has emitted events, nothing pending | — |
-| `·` | no event yet this session | — |
+| `○` | quiet — nothing pending (also a session that hasn't emitted an event yet) | — |
 | `…` | spawning, first attach not yet observed | attaching |
 
 Two deliberate asymmetries: a `●` for the session you're *currently looking
@@ -2912,7 +2914,7 @@ full set; pi has no permission/question events in its vocabulary, and
 cursor's aren't reachable through the Claude-hook merge (it deliberately
 drops `Notification`/`PermissionRequest`) — so cursor and pi rows can show
 `»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not
-mean nothing is needed. `·` just means "no event yet this session".
+mean nothing is needed.
 
 **`<leader>aj`** jumps to the most recently unread session (the triage key),
 skipping the session you're focused on — an unanswered `!` survives focus and
