@@ -88,7 +88,8 @@
   },
   "effortLevel": "high",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
+  "skipDangerousModePermissionPrompt": false,
+  "skipAutoPermissionPrompt": false,
   "skipWorkflowUsageWarning": true,
   "theme": "custom:active",
   "editorMode": "normal"
