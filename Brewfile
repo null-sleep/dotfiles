@@ -26,6 +26,7 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # `brew trust` (newer Homebrew gates these).
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
 tap "anomalyco/tap", trusted: true             # opencode formula (see coding agents below)
+tap "can1357/tap", trusted: true               # omp formula (see coding agents below)
 
 #-----------------------------------------------------------------------------
 # Core CLI — shell, search, dotfiles management
@@ -83,14 +84,17 @@ brew "lua-language-server"
 cask "claude-code@latest"
 
 #-----------------------------------------------------------------------------
-# OpenRouter-backed coding agents. Both read OPENROUTER_API_KEY from the
-# environment (README → "OpenRouter"). The other agent, pi, is npm-only —
-# see the header note.
+# OpenRouter-backed coding agents. opencode and omp both read
+# OPENROUTER_API_KEY from the environment (README → "OpenRouter"). The other
+# agent, pi, is npm-only — see the header note.
 #-----------------------------------------------------------------------------
 brew "opencode"        # terminal AI coding agent; tap in Taps above. Config in
                        # opencode/ (then `stow --no-folding opencode`). Pulls in
                        # its own `node` — the runtime section below installs the
                        # same formula for nvim, so this is a shared dependency.
+brew "omp"             # oh-my-pi terminal coding agent; tap in Taps above.
+                       # Config in omp/ (then `stow --no-folding omp` and
+                       # `bash omp/setup-settings.sh`).
 
 #-----------------------------------------------------------------------------
 # Claude Code token optimizer — rtk (Rust Token Killer) compresses Bash command
