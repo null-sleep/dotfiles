@@ -17,6 +17,16 @@ off or delete them as they land; add new ones freely.
   `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
   confirmations prove too much friction day-to-day, revisit deliberately and
   update the invariants test together with the decision.
+- [ ] **`sync-upstream`: make `finish` verify before advancing the marker**
+  (the skill lives in the private downstream fork; tracked here with the rest).
+  - Why: `finish` exists to complete a hand-resolved cherry-pick, but it
+    advances the `UPSTREAM_HEAD` marker unconditionally — it never checks that
+    the pending commits actually landed, so a failed cherry-pick chained into
+    `finish` silently marks them synced (bit for real 2026-08-12: a pick
+    failed on a not-yet-fetched object and the chained `finish` fetched and
+    advanced anyway). It can't just compare trees, since selective syncs skip
+    commits deliberately — likely shape: list pending-but-unapplied commits
+    and require an explicit confirmation or flag.
 - [ ] **Agent view — all phases + UX follow-ups + review fixes shipped
   2026-08-10; interactive verification and branch merge outstanding** —
   cmux-style dashboard: [sidekick-agent-view.md](sidekick-agent-view.md),
