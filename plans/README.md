@@ -11,6 +11,12 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Reconsider `skipDangerousModePermissionPrompt` and
+  `skipAutoPermissionPrompt`** — both flipped to `false` in the tracked
+  `claude/.claude/settings.json` (upstream and the work fork) on 2026-08-12;
+  `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
+  confirmations prove too much friction day-to-day, revisit deliberately and
+  update the invariants test together with the decision.
 - [ ] **Agent view — all phases + UX follow-ups + review fixes shipped
   2026-08-10; interactive verification and branch merge outstanding** —
   cmux-style dashboard: [sidekick-agent-view.md](sidekick-agent-view.md),
