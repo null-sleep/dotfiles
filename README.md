@@ -19,9 +19,10 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
-- [OpenRouter](#openrouter) — the model gateway behind the two agents below
+- [OpenRouter](#openrouter) — the model gateway behind the agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
 - [pi](#pi) — [Theme](#pi-theme) · [Extensions](#pi-extensions)
+- [omp](#omp) — [Theme](#omp-theme) · [Status line](#omp-status-line) · [Claude subscription](#claude-subscription)
 
 *Editors*
 - [Neovim](#neovim)
@@ -58,8 +59,8 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -105,6 +106,7 @@ stow --no-folding claude     # --no-folding: see the Claude Code section
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
+stow --no-folding omp        # one extension; config.yml stays machine-local — see the omp section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
@@ -169,6 +171,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `printenv OPENROUTER_API_KEY` | prints a key ([OpenRouter](#openrouter)) |
 | `opencode run "say ok"` | answers via OpenRouter ([opencode](#opencode)) |
 | `pi -p "say ok"` | answers via OpenRouter ([pi](#pi)) |
+| `omp -p "say ok"` | answers via OpenRouter ([omp](#omp)) |
 | `command -v herdr` | resolves ([Herdr](#herdr)) |
 | `herdr integration status --outdated-only` | empty output |
 
@@ -425,7 +428,7 @@ One command flips **Claude Code, Neovim, pi, and the macOS system appearance**
 between a predefined dark and light theme at once. **The terminal isn't driven
 by the script at all**: Ghostty follows the macOS appearance natively (see
 below), so flipping the system appearance recolors every window — new *and*
-existing. [opencode](#opencode) rides along the same way.
+existing. [opencode](#opencode) and [omp](#omp) ride along the same way.
 
 Claude Code, Neovim, and pi all switch **live, no restarts** (see [How each
 tool switches live](#how-each-tool-switches-live)).
@@ -464,7 +467,7 @@ The predefined pair (edit the `LIGHT`/`DARK` arrays at the top of
 | dark  | `dracula`          | `dracula`          | `dracula`          | dark (pinned)    |
 | auto  | follows macOS      | follows macOS      | follows macOS      | Auto (schedule)  |
 
-Ghostty, opencode, and Herdr aren't in the table because the script never
+Ghostty, opencode, omp, and Herdr aren't in the table because the script never
 touches them — each follows the macOS/host-terminal appearance directly
 instead. Herdr's own `auto_switch` config does the following, matched to this
 same `dracula`/`catppuccin-latte` pair (see [Herdr](#herdr)).
@@ -876,10 +879,11 @@ The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 
 ## OpenRouter
 
-[OpenRouter](https://openrouter.ai) is the model gateway behind the two
-non-subscription agents here — [opencode](#opencode) and [pi](#pi). Both treat
-it as a first-class built-in provider and read the same environment variable,
-so one key powers both and neither needs a custom base URL or provider block.
+[OpenRouter](https://openrouter.ai) is the model gateway behind the
+non-subscription agents here — [opencode](#opencode), [pi](#pi), and
+[omp](#omp). All three treat it as a first-class built-in provider and read
+the same environment variable, so one key powers them all and none needs a
+custom base URL or provider block.
 
 **Put the key in `~/.zshenv`** — a file this repo deliberately does **not**
 track, because it holds a live credential. `bash ~/src/dotfiles/zsh/setup-zshenv.sh`
@@ -903,10 +907,10 @@ means the secret has no path into this repo at all.
 
 The gap: apps launched from Finder or launchd don't inherit a shell's
 environment. There, use the tool's own credential flow — `/connect` in
-opencode, `/login openrouter` in pi — which stores the key in that tool's auth
-file.
+opencode, `/login openrouter` in pi and omp — which stores the key in that
+tool's auth file.
 
-Verify with `printenv OPENROUTER_API_KEY` in a **new** shell. Neither agent
+Verify with `printenv OPENROUTER_API_KEY` in a **new** shell. No agent
 lists any models until the key resolves — that empty list is the usual symptom
 of a missing or unexported key.
 
@@ -1164,6 +1168,108 @@ New to pi or the extensions, or want to use them well? See the
 example-heavy guide at [`docs/pi.md`](docs/pi.md) — core-TUI basics,
 managing extensions, per-extension usage (plan mode, subagents, `/btw`,
 LSP tools, the footer), terminal setup, and a gotchas cheat-sheet.
+
+## omp
+
+[omp](https://github.com/can1357/oh-my-pi) (oh-my-pi) — can1357's
+batteries-included fork of [pi](#pi), run as `omp` (TUI) or `omp -p "<prompt>"`
+(non-interactive). Also pointed at [OpenRouter](#openrouter). What pi gets
+from extensions, omp ships built in: plan mode, task subagents plus an Agent
+Hub (`Alt+A`), LSP/debug tools, a PR status segment, usage reporting — so none
+of the [@narumitw extensions](#pi-extensions) are installed for omp
+(`pi-btw` has no omp equivalent). It coexists with pi cleanly: separate
+binary, separate config root (`~/.omp/agent/` vs `~/.pi/agent/`). One shared
+surface: omp honors most `PI_*` environment variables — which makes the
+JediTerm `PI_HARDWARE_CURSOR` export cover both agents for free, but also
+means `PI_CODING_AGENT_DIR`/`PI_CONFIG_DIR` must never be exported globally,
+or both agents would obey.
+
+```bash
+# Covered by `brew bundle` — the Brewfile carries the tap (trusted: true) and
+# the formula. By hand instead:
+brew trust can1357/tap && brew install can1357/tap/omp
+cd ~/src/dotfiles
+stow --no-folding omp
+# Seed ~/.omp/agent/config.yml via `omp config` (one-time; idempotent)
+bash ~/src/dotfiles/omp/setup-settings.sh
+```
+
+The binary is Homebrew-managed, so `brew upgrade omp` owns updates — the same
+designated-owner convention as brew for [opencode](#opencode) and npm for pi.
+
+<a id="omp-whats-managed"></a>
+### What's managed
+
+Much less than pi: no theme ports (omp built-ins are used — see
+[Theme](#omp-theme)) and no extension installs (built in — see above).
+
+| File | Method |
+|---|---|
+| `~/.omp/agent/extensions/nvim-notify.ts` | Symlinked via stow (`--no-folding`); agent-view attention bridge |
+| `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
+| everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |
+
+`config.yml` isn't stowed for the same reason pi's `settings.json` isn't: omp
+*writes* to it (`/settings` edits, migrations), and through a stow symlink
+that would land in this repo. And `--no-folding` matters because all that
+runtime state lives in the same directory tree as the one stowed file.
+
+`setup-settings.sh` is **fill-in-only** for `modelRoles.default`
+(`openrouter/anthropic/claude-sonnet-5`), `defaultThinkingLevel` (`medium`),
+and `startup.quiet` (`true`) — a value you've since changed survives a re-run
+— and **forces** the repo-owned look: the theme pair and status line below.
+
+`nvim-notify.ts` is the omp port of pi's extension of the same name (same
+sidekick attention bridge, adapted to omp's event set). omp is also in nvim's
+sidekick agent roster alongside pi, via a config-local `sk/cli/omp.lua` spec —
+sidekick ships no omp preset.
+
+<a id="omp-theme"></a>
+### Theme
+
+omp needs no `theme`-script step and won't appear in `theme status`: it has
+separate dark/light theme slots and picks one **live** from the terminal
+background (an OSC 11 query), so it follows Ghostty's palette swap on its own
+— like [opencode](#opencode), but continuously rather than once at startup
+([Unified theme switching](#unified-theme-switching)). `setup-settings.sh`
+pins the slots to the built-in `dark-dracula` / `light-catppuccin` themes; no
+palette ports are stowed, unlike pi.
+
+**Known quirk — dark theme falls back when launched from `$HOME`.** With the
+cwd exactly `$HOME`, omp's claude discovery provider treats `~/.claude` as the
+project directory, so `~/.claude/settings.json`'s flat `"theme":
+"custom:active"` (Claude Code's theme slot) enters omp's project settings
+layer and shadows `theme.dark` — the flat key migrates into the dark slot
+only; light is unaffected. Effect: `omp` started in `$HOME` in dark mode shows
+omp's default dark theme instead of `dark-dracula`; from any other directory
+the pinned value applies. `setup-settings.sh` warns when it detects the
+shadowing. Deliberately **not** worked around — a `custom:active` omp theme
+shim would duplicate a built-in palette and drift; the real fix (scoping that
+import) belongs upstream.
+
+<a id="omp-status-line"></a>
+### Status line
+
+`setup-settings.sh` forces the `custom` status-line preset with `separator
+none` and `transparent true` — the same minimal visual grammar as
+[Claude Code](#claude-code) and pi's `claude-footer.ts`, no powerline blocks.
+Left segments: `model`, `context_pct` (context window used), `cache_hit`
+(cache hit rate). Right segment: `cost` (session spend), flush-right.
+
+### Claude subscription
+
+`omp /login` supports Anthropic OAuth, so omp can run on a Claude subscription
+instead of (or alongside) OpenRouter — each model role (`default` / `smol` /
+`slow` / `plan`) can point at either provider. Accounting note: pi and omp
+share `OPENROUTER_API_KEY`, so OpenRouter's **per-key** spend reporting (what
+pi-usage and omp's usage view read) mixes both agents' spend; routing omp
+through the subscription is what keeps the two separable.
+
+omp's terminal needs are identical to pi's — the same distinct
+`Shift+Enter` / `Option+Backspace` key reporting — so [Terminal setup for
+pi](#terminal-setup-for-pi) covers it; nothing omp-specific is needed. New to
+omp? See [`docs/omp.md`](docs/omp.md) for the built-in features (plan mode,
+subagents, Agent Hub, LSP tools), config-layer behavior, and gotchas.
 
 ## Neovim
 
