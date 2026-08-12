@@ -64,6 +64,20 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
   covers omp too) and `OPENROUTER_API_KEY` — accepting that OpenRouter
   per-key spend reporting mixes pi + omp.
 
+## TODO
+
+- [ ] **Revisit tracking omp settings in the repo.** `config.yml` can't be
+  stowed — verified 2026-08-12 that `omp config set` saves via atomic rename
+  (inode changes), so a stowed symlink would be silently replaced by a plain
+  file on the first write, same failure mode that keeps pi's `settings.json`
+  machine-local. Today the script *is* the tracked settings: promote a key
+  into `setup-settings.sh`'s forced block to make it repo-owned. If more
+  settings ever need tracking, the candidate design is a stowed **read-only
+  `--config` overlay** (omp loads but never writes overlay files) — costs a
+  wrapper/alias on every launch path (zsh, nvim's `sk/cli/omp.lua`, herdr)
+  and makes overlaid keys silently win over `/settings` edits, which is why
+  it wasn't done now.
+
 ## Out of scope
 
 - **herdr integration** — no omp pane/preset wiring; revisit if omp becomes

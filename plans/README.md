@@ -17,6 +17,14 @@ off or delete them as they land; add new ones freely.
   `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
   confirmations prove too much friction day-to-day, revisit deliberately and
   update the invariants test together with the decision.
+- [ ] **Revisit tracking omp settings in the repo** — `omp config set`
+  rewrites `~/.omp/agent/config.yml` via atomic rename (verified 2026-08-12:
+  inode changes), so stowing it would break the same way pi's `settings.json`
+  would; for now `omp/setup-settings.sh`'s forced block is the repo-owned
+  settings surface. If more settings need tracking, evaluate a stowed
+  read-only `--config` overlay (omp never writes overlays) vs its costs —
+  wrapping every launch path and shadowing `/settings` edits. Details in
+  [omp-integration.md](omp-integration.md) → TODO.
 - [ ] **`sync-upstream`: make `finish` verify before advancing the marker**
   (the skill lives in the private downstream fork; tracked here with the rest).
   - Why: `finish` exists to complete a hand-resolved cherry-pick, but it
