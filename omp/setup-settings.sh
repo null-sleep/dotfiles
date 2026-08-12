@@ -74,6 +74,11 @@ omp config set statusLine.transparent true
 omp config set statusLine.leftSegments '["model","context_pct","cache_hit"]'
 omp config set statusLine.rightSegments '["cost"]'
 
+# Forced web-search policy: anonymous Perplexity first, then the keyless
+# aggregate tier; never the Anthropic OAuth backend, even as a fallback.
+omp config set providers.webSearchOrder '["perplexity","public"]'
+omp config set providers.webSearchExclude '["anthropic"]'
+
 # Known collision: omp's claude discovery provider merges ~/.claude/settings.json
 # over the global config, and its flat `"theme": "custom:active"` (Claude Code's
 # theme slot) migrates into theme.dark. The global YAML above is correct; the
@@ -88,7 +93,8 @@ echo
 echo "Resulting omp config:"
 for key in modelRoles defaultThinkingLevel startup.quiet theme.dark theme.light \
   statusLine.preset statusLine.separator statusLine.transparent \
-  statusLine.leftSegments statusLine.rightSegments; do
+  statusLine.leftSegments statusLine.rightSegments \
+  providers.webSearchOrder providers.webSearchExclude; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done
 
