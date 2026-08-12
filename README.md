@@ -1179,9 +1179,9 @@ LSP tools, the footer), terminal setup, and a gotchas cheat-sheet.
 batteries-included fork of [pi](#pi), run as `omp` (TUI) or `omp -p "<prompt>"`
 (non-interactive). Also pointed at [OpenRouter](#openrouter). What pi gets
 from extensions, omp ships built in: plan mode, task subagents plus an Agent
-Hub (`Alt+A`), LSP/debug tools, a PR status segment, usage reporting — so none
-of the [@narumitw extensions](#pi-extensions) are installed for omp
-(`pi-btw` has no omp equivalent). It coexists with pi cleanly: separate
+Hub (`Alt+A`), LSP/debug tools, a PR status segment, usage reporting, and even
+`/btw` — so none of the [@narumitw extensions](#pi-extensions) are installed
+for omp. It coexists with pi cleanly: separate
 binary, separate config root (`~/.omp/agent/` vs `~/.pi/agent/`). One shared
 surface: omp honors most `PI_*` environment variables — which makes the
 JediTerm `PI_HARDWARE_CURSOR` export cover both agents for free, but also
