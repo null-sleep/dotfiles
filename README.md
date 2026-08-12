@@ -1211,6 +1211,7 @@ Much less than pi: no theme ports (omp built-ins are used — see
 |---|---|
 | `~/.omp/agent/extensions/nvim-notify.ts` | Symlinked via stow (`--no-folding`); agent-view attention bridge |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
+| `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
 | everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |
 
 `config.yml` isn't stowed for the same reason pi's `settings.json` isn't: omp
@@ -1229,6 +1230,15 @@ plus web search order (`perplexity`, then the keyless `public` tier) with the
 sidekick attention bridge, adapted to omp's event set). omp is also in nvim's
 sidekick agent roster alongside pi, via a config-local `sk/cli/omp.lua` spec —
 sidekick ships no omp preset.
+
+**MCP servers** are machine-local too. omp inherits most of them from
+`~/.claude.json` automatically, so `/mcp` usually looks populated without any
+omp-side setup. The exception is Slack: Claude Code keeps it in
+`~/.claude/.mcp.json`, and that dot-prefixed spelling is **project-scope
+only**, so omp skips it. On a fresh machine, copy that server block into
+`~/.omp/agent/mcp.json` under `mcpServers`, then run `/mcp` in an interactive
+omp session to complete the OAuth flow (omp doesn't share Claude Code's
+grant). See [MCP servers](docs/omp.md#mcp) in the omp guide.
 
 <a id="omp-theme"></a>
 ### Theme

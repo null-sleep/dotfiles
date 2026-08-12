@@ -18,6 +18,7 @@ policy forced by `omp/setup-settings.sh`.
 - [Subagents — task, Agent Hub, advisor](#subagents)
 - [Code intelligence — lsp, debug, hashline](#code-intel)
 - [GitHub as a filesystem](#github)
+- [MCP servers](#mcp)
 - [Status line and theme](#statusline-theme)
 - [Providers and model roles](#models)
 - [Magic keywords and session controls](#keywords)
@@ -193,6 +194,48 @@ The **`github` tool** (PR create/checkout/push, issue/code/commit search,
 `run_watch` for live Actions runs) is **off by default** — flip
 `github.enabled` in `/settings` → Tools if wanted. The `pr://`/`issue://`
 reads work without it; both need `gh` authenticated (already done here).
+
+<a id="mcp"></a>
+## MCP servers
+
+omp's own MCP config is `~/.omp/agent/mcp.json` — machine-local (omp writes
+it, and there's a `.lock` sibling), so like `config.yml` it is **not stowed**.
+Shape is Claude's, plus two cross-source override lists:
+
+```json
+{
+  "mcpServers": { "slack": { "type": "http", "url": "https://mcp.slack.com/mcp" } },
+  "disabledServers": ["github:github"]
+}
+```
+
+`disabledServers` is the highest-precedence denylist and is keyed
+`<source>:<name>` — it hides a same-named server from *any* discovered
+source. `enabledServers` force-enables one whose source set `enabled: false`,
+but can't override the denylist. `/mcp` lists everything with its status and
+source file; there is no `omp mcp` CLI subcommand.
+
+omp also inherits MCP servers from other harnesses' configs, which is why
+most entries here come from Claude Code without being configured twice. At
+**user** scope it reads `~/.claude.json` and `~/.claude/mcp.json`, plus
+Codex, Gemini, Cursor, Windsurf, OpenCode, and installed Claude marketplace
+plugins.
+
+**The dotfile-vs-plain-name trap** (this bit us): the dot-prefixed
+`.mcp.json` spelling is **project-scope only** — `.claude/.mcp.json` is read
+relative to the *project* dir. A server parked at `~/.claude/.mcp.json` is
+therefore treated as project config for `~/.claude/` and never loads in a
+normal cwd, even though `~/.claude/mcp.json` (no dot) would. Claude Code's
+own Slack server lives at exactly that path, so it was invisible to omp until
+it was copied into `~/.omp/agent/mcp.json`. If a server shows up in Claude
+Code but not in omp's `/mcp`, check the spelling before assuming an auth
+problem.
+
+HTTP servers using OAuth are discovered but stay disconnected until
+authenticated once per harness — omp does not share Claude Code's OAuth
+grant. Run `/mcp` in an interactive session and authenticate there; a
+headless `omp -p` run can't complete the browser callback, so a server that
+works interactively can still look absent from a piped probe.
 
 <a id="statusline-theme"></a>
 ## Status line and theme
@@ -371,6 +414,9 @@ pi is native here.
 - `config.yml` is deliberately not stowed — omp writes settings changes and
   migrations into it. Repo-owned defaults live in `omp/setup-settings.sh`;
   re-run it after machine setup, don't hand-copy YAML.
+- A user-level MCP server must be at `~/.claude/mcp.json` (no dot) or
+  `~/.omp/agent/mcp.json`. The `.mcp.json` spelling is project-scope only, so
+  `~/.claude/.mcp.json` is silently skipped — see [MCP servers](#mcp).
 - Approval defaults to `yolo`. If that's ever uncomfortable for a session,
   `omp --approval-mode write` prompts before anything `exec`-tier.
 
