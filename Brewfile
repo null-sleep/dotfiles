@@ -27,6 +27,7 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
 tap "anomalyco/tap", trusted: true             # opencode formula (see coding agents below)
 tap "can1357/tap", trusted: true               # omp formula (see coding agents below)
+tap "schpet/tap", trusted: true            # linear-cli formula (see Agent Skills below)
 
 #-----------------------------------------------------------------------------
 # Core CLI — shell, search, dotfiles management
@@ -95,6 +96,10 @@ brew "opencode"        # terminal AI coding agent; tap in Taps above. Config in
 brew "omp"             # oh-my-pi terminal coding agent; tap in Taps above.
                        # Config in omp/ (then `stow --no-folding omp` and
                        # `bash omp/setup-settings.sh`).
+
+# Linear issue CLI — one vendored Agent Skills copy serves Cursor, Pi, OMP,
+# OpenCode, and Claude Code; `agents` is stowed after `brew bundle`.
+brew "schpet/tap/linear"
 
 #-----------------------------------------------------------------------------
 # Claude Code token optimizer — rtk (Rust Token Killer) compresses Bash command

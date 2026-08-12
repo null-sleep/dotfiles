@@ -19,6 +19,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
+- [Linear CLI & agent skill](#linear-cli-agent-skill)
 - [OpenRouter](#openrouter) — the model gateway behind the agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
 - [pi](#pi) — [Theme](#pi-theme) · [Extensions](#pi-extensions)
@@ -59,7 +60,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -103,6 +104,7 @@ cd ~/src/dotfiles
 stow nvim
 stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
+stow --no-folding agents     # shared Agent Skills, including linear-cli
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
@@ -266,6 +268,8 @@ bash ~/src/dotfiles/claude/setup-theme.sh
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
 # Activate the review-pr skill for this machine (one-time)
 bash ~/src/dotfiles/claude/setup-review-pr.sh
+# Link Claude Code to the shared vendored Linear skill
+bash ~/src/dotfiles/claude/setup-linear-cli.sh
 # Seed rtk's machine-local files; its guarded hook is already tracked
 rtk init -g --no-patch
 ```
@@ -292,6 +296,7 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 | `~/.claude/skills/review-pr/SKILL.generic.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
+| `~/.claude/skills/linear-cli` | Symlinked by `setup-linear-cli.sh` to the vendored `~/.agents/skills/linear-cli`; no marketplace plugin or MCP |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
 | `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
@@ -425,6 +430,34 @@ to (re)create the `SKILL.md` symlink. This is required, not optional — restow
 alone never creates `SKILL.md` (it's untracked), so
 `~/.claude/skills/review-pr/SKILL.md` stays absent or **dangling** until you
 run the script.
+
+## Linear CLI & agent skill
+
+[`linear-cli`](https://github.com/schpet/linear-cli) is the local replacement for
+the Linear MCP. Homebrew owns the `linear` binary; the `agents` Stow package
+ships an audited copy of the upstream v2.5.0 Agent Skill to
+`~/.agents/skills/linear-cli`. Cursor, pi, omp, and OpenCode discover that
+standard path directly. `setup-linear-cli.sh` links Claude Code to the same
+copy, so every agent uses identical instructions and no Linear MCP or marketplace
+plugin is installed.
+
+```bash
+cd ~/src/dotfiles
+brew bundle
+stow --no-folding agents claude
+bash claude/setup-linear-cli.sh
+linear auth login
+```
+
+The API key is stored in the macOS Keychain, not in this repository. Configure
+each repository with `linear config`; its `.linear.toml` contains workspace and
+team defaults only. The vendored skill records its upstream release, commit, and
+ISC license in `~/.agents/skills/linear-cli/UPSTREAM.md`; update it by reviewing
+and copying a newer upstream release, then upgrade the matching Homebrew formula.
+
+Restart the agent host after stowing. The skill can then be invoked as
+`/linear-cli` in Cursor and `/skill:linear-cli` in pi or omp; Claude Code loads
+the linked standalone skill at session start.
 
 ## Unified theme switching
 
