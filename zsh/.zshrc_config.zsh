@@ -278,8 +278,10 @@ alias gpv='gh pr view'
 # Remove alias from `antigen bundle git` if it exists to allow function definition
 unalias gco 2>/dev/null
 gco() {
-  if [[ "$1" =~ '^https://github\.com/[^/]+/[^/]+/pull/[0-9]+/?$' ]]; then
-    gh pr checkout "$@"
+  # Any PR-page URL works (…/files, /changes/<range>, #discussion_r…, ?w=1):
+  # everything after the PR number is stripped before gh pr checkout.
+  if [[ "$1" =~ '^(https://github\.com/[^/]+/[^/]+/pull/[0-9]+)([/?#].*)?$' ]]; then
+    gh pr checkout "$match[1]" "${@:2}"
   else
     git checkout "$@"
   fi

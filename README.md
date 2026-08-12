@@ -1840,7 +1840,7 @@ The shell includes short commands for common pull-request operations:
 
 ```bash
 gco <branch>                  # check out a branch with git
-gco <github-pr-url>           # check out a PR with gh
+gco <github-pr-url>           # check out a PR with gh (any PR page URL: /files, /changes/…, #discussion_r…)
 gpr                           # select an open PR with fzf and check it out
 gpv                           # view the current branch's PR in the terminal
 gpo                           # open the current branch's PR in a browser
