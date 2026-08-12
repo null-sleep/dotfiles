@@ -1221,7 +1221,9 @@ runtime state lives in the same directory tree as the one stowed file.
 `setup-settings.sh` is **fill-in-only** for `modelRoles.default`
 (`openrouter/anthropic/claude-sonnet-5`), `defaultThinkingLevel` (`medium`),
 and `startup.quiet` (`true`) — a value you've since changed survives a re-run
-— and **forces** the repo-owned look: the theme pair and status line below.
+— and **forces** the repo-owned policy: the theme pair and status line below,
+plus web search order (`perplexity`, then the keyless `public` tier) with the
+`anthropic` OAuth backend excluded even as a fallback.
 
 `nvim-notify.ts` is the omp port of pi's extension of the same name (same
 sidekick attention bridge, adapted to omp's event set). omp is also in nvim's
@@ -1239,17 +1241,19 @@ background (an OSC 11 query), so it follows Ghostty's palette swap on its own
 pins the slots to the built-in `dark-dracula` / `light-catppuccin` themes; no
 palette ports are stowed, unlike pi.
 
-**Known quirk — dark theme falls back when launched from `$HOME`.** With the
-cwd exactly `$HOME`, omp's claude discovery provider treats `~/.claude` as the
-project directory, so `~/.claude/settings.json`'s flat `"theme":
-"custom:active"` (Claude Code's theme slot) enters omp's project settings
-layer and shadows `theme.dark` — the flat key migrates into the dark slot
-only; light is unaffected. Effect: `omp` started in `$HOME` in dark mode shows
-omp's default dark theme instead of `dark-dracula`; from any other directory
-the pinned value applies. `setup-settings.sh` warns when it detects the
-shadowing. Deliberately **not** worked around — a `custom:active` omp theme
-shim would duplicate a built-in palette and drift; the real fix (scoping that
-import) belongs upstream.
+**Two `$HOME` quirks, related but distinct.** (1) omp refuses to *run* in
+`$HOME`: launched there without `--allow-home`, it silently relocates its
+working directory to a temp dir (`--help`: "auto-switching to a temp dir") —
+relevant if a sidekick nvim session's cwd is `~`, where relative file mentions
+won't resolve. (2) When omp *does* read config with cwd exactly `$HOME`
+(`omp config get`, or a `--allow-home` session), its claude discovery provider
+treats `~/.claude` as the project directory, so `~/.claude/settings.json`'s
+flat `"theme": "custom:active"` (Claude Code's theme slot) enters the project
+settings layer and shadows `theme.dark` (dark slot only). Thanks to (1),
+normal sessions never see (2) — the pinned `dark-dracula` applies.
+Deliberately **not** worked around: a `custom:active` omp theme shim would
+duplicate a built-in palette and drift; the real fix (scoping that import)
+belongs upstream.
 
 <a id="omp-status-line"></a>
 ### Status line

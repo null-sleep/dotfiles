@@ -51,13 +51,21 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
 - **The `$HOME` theme-shadowing quirk is left unworked-around.** With cwd
   exactly `$HOME`, omp's claude provider treats `~/.claude` as the project
   dir and `settings.json`'s `"theme": "custom:active"` shadows `theme.dark`.
-  Options considered: (a) drop the Claude theme key — breaks Claude Code's
-  themed CLI; (b) ship a custom `~/.omp/agent/themes/custom:active.json`
-  shim — would duplicate a built-in palette by hand and drift, and built-in
-  names beat custom files anyway, making the shim's behavior name-dependent;
-  (c) accept it — omp is launched from project dirs in practice, and
-  `setup-settings.sh` warns when it sees the shadowing. Chose (c); revisit
-  if upstream scopes the claude settings import.
+  Post-review correction: omp *sessions* never hit this — launched in
+  `$HOME` without `--allow-home`, omp auto-switches its cwd to a temp dir,
+  so the shadow is real only for `omp config` reads from `$HOME` (and
+  `--allow-home` sessions). Options considered: (a) drop the Claude theme
+  key — breaks Claude Code's themed CLI; (b) ship a custom
+  `~/.omp/agent/themes/custom:active.json` shim — would duplicate a built-in
+  palette by hand and drift, and built-in names beat custom files anyway,
+  making the shim's behavior name-dependent; (c) accept it. Chose (c);
+  revisit if upstream scopes the claude settings import.
+  (`setup-settings.sh` originally warned on the shadow; the warning was a
+  guaranteed false positive once the script itself ran from `$HOME`, so it
+  now runs from an empty temp dir and the warning is gone.)
+- **Web search is repo-owned policy**: order `perplexity` → `public`
+  (keyless tiers), `anthropic` excluded even as a fallback — consistent
+  with keeping the Anthropic OAuth surface out of third-party harness use.
 - **Coexistence rules with pi.** Never export `PI_CODING_AGENT_DIR` or
   `PI_CONFIG_DIR` globally — both agents obey them (use `omp --profile` for
   isolation). Benign sharing is kept: `PI_HARDWARE_CURSOR` (JediTerm export

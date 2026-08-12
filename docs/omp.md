@@ -5,9 +5,10 @@ can1357's batteries-included fork of pi that trades pi's minimal core for one
 fat binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
 reference. Everything here was checked against omp 17.2.15 (brew,
-`can1357/tap`), its docs, and this machine's config: OpenRouter Sonnet as the
-default model role, medium thinking, and the repo-owned theme/status-line
-look seeded by `omp/setup-settings.sh`.
+`can1357/tap`), its docs, and the repo-seeded config: OpenRouter Sonnet as
+the seeded default model role (fill-in — a hand-picked model survives
+re-runs), medium thinking, and the repo-owned theme/status-line/web-search
+policy forced by `omp/setup-settings.sh`.
 
 ## Contents
 
@@ -221,13 +222,15 @@ omp step — Ghostty flips its background, omp follows by itself. Custom
 themes would go in `~/.omp/agent/themes/*.json`, but note built-in names
 always win a name collision with a custom file.
 
-**The `$HOME` quirk**: with cwd exactly `$HOME`, omp's claude discovery
+**The `$HOME` quirks (two, related)**: omp refuses to *run* in `$HOME` —
+launched there without `--allow-home` it silently switches its working
+directory to a temp dir. And when it *does* read config with cwd `$HOME`
+(`omp config get`, or an `--allow-home` session), the claude discovery
 provider treats `~/.claude` as the *project* config dir, so
 `~/.claude/settings.json`'s `"theme": "custom:active"` (Claude Code's theme
-slot) shadows `theme.dark` — omp launched from `$HOME` shows omp's default
-dark theme instead of dark-dracula. Any other cwd is fine, and
-`setup-settings.sh` warns when it detects the shadowing. Left unworked
-around deliberately; see `plans/omp-integration.md`.
+slot) shadows `theme.dark`. The auto-chdir means normal sessions never hit
+the shadow — dark-dracula applies. Left unworked around deliberately; see
+`plans/omp-integration.md`.
 
 <a id="models"></a>
 ## Providers and model roles
@@ -247,6 +250,33 @@ anthropic/claude-opus-4-5:high`). `cycleOrder` (default `[smol, default,
 slow]`) decides what `Ctrl+P` cycles through. Roles feed features
 automatically: `plan` for plan mode, `task` for subagents, `tiny`/`smol` for
 titles and background classification, `commit` for `omp commit`.
+
+**Reading OpenRouter GPT-5.6 names.** The picker exposes OpenRouter's full
+catalog, so one base tier may appear four times. The axes are independent:
+
+| Selector shape | What changes | Use in omp |
+|---|---|---|
+| `gpt-5.6-sol` | Synchronous request, default `standard` reasoning mode | Normal interactive work |
+| `gpt-5.6-sol-pro` | Same Sol model with `reasoning.mode: pro` | Hard tasks where quality matters more than latency and token use |
+| `gpt-5.6-sol:batch` | Standard reasoning through asynchronous batch processing | Offline bulk jobs, not a live session |
+| `gpt-5.6-sol-pro:batch` | Pro reasoning through asynchronous batch processing | Offline bulk jobs needing Pro mode |
+
+`pro` does not select a separately trained model. It makes the same model do
+more work; per-token rates may match Standard, but a completed task can cost
+more because hidden reasoning tokens are billed as output. Thinking effort
+(`low` … `max`) remains a separate control inside either mode. `:batch` is a
+delivery/pricing variant: results are asynchronous with a 24-hour completion
+window and are typically 50% cheaper. Its presence in `/model` does **not**
+make it suitable for an interactive omp role; do not assign a `:batch` entry
+to `default`, `plan`, `task`, or another live role.
+
+The tier word is different: `Sol` (flagship), `Terra` (balanced), and `Luna`
+(fastest/cheapest) are distinct GPT-5.6 capability/cost tiers. For an
+interactive coding session, start with the plain tier; choose `-pro` only for
+a difficult task. Sources: [OpenAI reasoning
+modes](https://developers.openai.com/api/docs/guides/reasoning#reasoning-mode),
+[OpenRouter Sol Pro](https://openrouter.ai/openai/gpt-5.6-sol-pro), and the
+[OpenRouter Batch API](https://openrouter.ai/docs/batch-quickstart).
 
 **Using a Claude subscription instead of (or beside) OpenRouter**: run
 `/login anthropic` — a browser OAuth flow; a Team/Enterprise seat and a
@@ -318,9 +348,14 @@ pi is native here.
   config into the other's. Use `omp --profile <name>` for isolation instead.
 - The shared `PI_*` namespace also helps: the `.zshrc_config.zsh` JediTerm
   export of `PI_HARDWARE_CURSOR=1` fixes omp's cursor too, for free.
-- omp launched with cwd exactly `$HOME` shows the wrong dark theme —
-  `~/.claude/settings.json` shadows `theme.dark` there (see
-  [Status line and theme](#statusline-theme)). Any project directory is fine.
+- omp won't run in `$HOME`: it silently auto-switches to a temp dir unless
+  `--allow-home` is passed — surprising when a sidekick nvim session's cwd
+  is `~` (relative file mentions resolve against the temp dir). Config reads
+  from `$HOME` also shadow `theme.dark` (see
+  [Status line and theme](#statusline-theme)).
+- `web_search` is repo-pinned to `perplexity` → `public` with the
+  `anthropic` OAuth backend excluded, even as a fallback
+  (`setup-settings.sh`).
 - Built-in theme names beat same-name custom files in
   `~/.omp/agent/themes/` — a custom `dark-dracula.json` would be silently
   ignored.

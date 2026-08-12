@@ -205,7 +205,8 @@ end
 
 -- Keep only AGENTS' presets: no other spec is ever dofile'd (opencode proved a
 -- spec can register a scanner on load) and State.get's per-call tool loop
--- shrinks from 12 entries to 5. cursor/pi/omp are safe to keep — bare
+-- shrinks from 13 entries (12 bundled + our omp spec) to 5. cursor/pi/omp are
+-- safe to keep — bare
 -- cmd/is_proc/url, no sessions() scanner (omp's spec is ours: sk/cli/omp.lua
 -- in this config; sidekick has no omp preset). Must run *after* the stub above —
 -- pruning first leaves the dofile cache cold, so a later tool.get('opencode')

@@ -37,11 +37,13 @@ export default function nvimNotify(pi: ExtensionAPI) {
   pi.on("before_agent_start", (_event, ctx) => {
     if (ctx.hasUI) notify("prompt-submit", { type: "before_agent_start" });
   });
-  // omp has no agent_settled; agent_end + willContinue/isIdle/pending guards
-  // approximate it (skip auto-retries and queued continuations).
+  // omp has no agent_settled; agent_end + willContinue/pending guards
+  // approximate it (skip auto-retries and queued continuations). No isIdle()
+  // here: omp emits agent_end to extensions while the prompt is still in
+  // flight (isStreaming true), so that guard would eat the notification.
   pi.on("agent_end", (event, ctx) => {
     if (event.willContinue) return;
-    if (ctx.hasUI && ctx.isIdle() && !ctx.hasPendingMessages())
+    if (ctx.hasUI && !ctx.hasPendingMessages())
       notify("turn-complete", { type: "agent_end" });
   });
   // No reason field to filter (unlike pi): omp emits session_shutdown only on

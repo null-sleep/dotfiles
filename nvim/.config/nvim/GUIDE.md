@@ -2916,8 +2916,10 @@ your next prompt too). cmux's focused-pane rule dropped such an event
 outright, which made it
 unrecoverable; `!` still rings immediately either way. And ring support is
 **tiered by agent**. Claude and opencode emit the
-full set; pi (and its fork omp) has no permission/question events in its
-vocabulary, and
+full set; pi has no permission/question events in its vocabulary, omp has
+`tool_approval_requested` but the stowed extension doesn't wire it (omp's
+`yolo` approval default makes it near-dead; wire it if that default ever
+changes), and
 cursor's aren't reachable through the Claude-hook merge (it deliberately
 drops `Notification`/`PermissionRequest`) — so cursor, pi and omp rows can
 show `»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not

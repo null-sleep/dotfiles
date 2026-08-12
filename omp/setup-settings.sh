@@ -37,9 +37,11 @@ if ! command -v omp >/dev/null 2>&1; then
   exit 0
 fi
 
-# Run from $HOME so a project-level .omp/config.yml can't shadow the reads
-# (writes always go to the global layer, but `config get` is effective-value).
-cd "$HOME"
+# Run from an empty dir so nothing shadows the effective-value reads: a
+# project-level .omp/config.yml would, and $HOME is worse — there omp's claude
+# provider merges ~/.claude/settings.json as project-level config (its flat
+# `theme` key shadows theme.dark). Writes always go to the global layer.
+cd "$(mktemp -d)"
 
 DEFAULT_MODEL="openrouter/anthropic/claude-sonnet-5"
 
@@ -78,16 +80,6 @@ omp config set statusLine.rightSegments '["cost"]'
 # aggregate tier; never the Anthropic OAuth backend, even as a fallback.
 omp config set providers.webSearchOrder '["perplexity","public"]'
 omp config set providers.webSearchExclude '["anthropic"]'
-
-# Known collision: omp's claude discovery provider merges ~/.claude/settings.json
-# over the global config, and its flat `"theme": "custom:active"` (Claude Code's
-# theme slot) migrates into theme.dark. The global YAML above is correct; the
-# effective value is shadowed until upstream scopes that import.
-if [ "$(get theme.dark)" != "dark-dracula" ]; then
-  echo
-  echo "Warning: effective theme.dark is '$(get theme.dark)', not dark-dracula —"
-  echo "shadowed by ~/.claude/settings.json's theme key via omp's claude provider."
-fi
 
 echo
 echo "Resulting omp config:"
