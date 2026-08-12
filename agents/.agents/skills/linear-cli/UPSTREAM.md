@@ -6,4 +6,8 @@
 - Imported: 2026-08-12
 - License: ISC (see [LICENSE](LICENSE))
 
+Local adaptation: `SKILL.md` requires the Homebrew-managed CLI and omits the
+upstream unpinned npm/npx fallback. Generated command references remain
+unmodified.
+
 Update by reviewing and copying the upstream release's `skills/linear-cli/SKILL.md` and `skills/linear-cli/references/` into this directory. Do not edit generated command references locally.

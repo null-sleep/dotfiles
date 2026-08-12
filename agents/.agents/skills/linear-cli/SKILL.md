@@ -16,14 +16,10 @@ The `linear` command must be available on PATH. To check:
 linear --version
 ```
 
-If not installed globally, you can run it without installing via npx:
-
-```bash
-npx @schpet/linear-cli --version
-```
-
-All subsequent commands can be prefixed with `npx @schpet/linear-cli` in place of `linear`. Otherwise, follow the install instructions at:\
-https://github.com/schpet/linear-cli?tab=readme-ov-file#install
+This dotfiles setup installs the CLI through Homebrew. Run `brew bundle` from
+`~/src/dotfiles` and use the resulting `linear` command; do not substitute
+an npm/npx package, which can resolve a version that differs from this vendored
+skill.
 
 ## Common Tasks
 

@@ -438,8 +438,9 @@ the Linear MCP. Homebrew owns the `linear` binary; the `agents` Stow package
 ships an audited copy of the upstream v2.5.0 Agent Skill to
 `~/.agents/skills/linear-cli`. Cursor, pi, omp, and OpenCode discover that
 standard path directly. `setup-linear-cli.sh` links Claude Code to the same
-copy, so every agent uses identical instructions and no Linear MCP or marketplace
-plugin is installed.
+copy, so every agent uses identical instructions and no Linear MCP is enabled.
+The setup does not install a marketplace plugin; a machine migrated from the
+former plugin setup may retain its disabled cache until it is removed.
 
 ```bash
 cd ~/src/dotfiles
@@ -447,6 +448,9 @@ brew bundle
 stow --no-folding agents claude
 bash claude/setup-linear-cli.sh
 linear auth login
+
+# Only on a machine previously configured with the marketplace plugin:
+claude plugin uninstall linear-cli@linear-cli
 ```
 
 The API key is stored in the macOS Keychain, not in this repository. Configure
