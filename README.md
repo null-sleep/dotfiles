@@ -450,7 +450,7 @@ bash claude/setup-linear-cli.sh
 linear auth login
 
 # Only on a machine previously configured with the marketplace plugin:
-claude plugin uninstall linear-cli@linear-cli
+claude plugin uninstall linear@claude-plugins-official
 ```
 
 The API key is stored in the macOS Keychain, not in this repository. Configure
