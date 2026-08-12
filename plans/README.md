@@ -17,6 +17,12 @@ off or delete them as they land; add new ones freely.
   `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
   confirmations prove too much friction day-to-day, revisit deliberately and
   update the invariants test together with the decision.
+- [ ] **Evaluate omp's long-term memory backends** — Hindsight / Mnemopi /
+  `local` via `memory.backend` (retain/recall/reflect/learn tools, off by
+  default): what each stores and where, hosted-vs-local (data residency
+  matters for the work fork), project scoping, and effective daily use —
+  before enabling anything. Details in
+  [omp-integration.md](omp-integration.md) → TODO.
 - [ ] **Match omp's status line to the Claude-shaped footer** — the custom
   preset (model, ctx%, cache-hit, cost) still lacks pi/Claude's thinking
   effort and turn-count segments and their exact color thresholds; audit

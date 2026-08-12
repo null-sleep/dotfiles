@@ -66,6 +66,19 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
 
 ## TODO
 
+- [ ] **Evaluate omp's long-term memory backends (Hindsight et al.).** omp's
+  memory system (`retain`/`recall`/`reflect`/`learn`, off by default) is
+  pluggable via `memory.backend`: `local`, Hindsight, or Mnemopi — plus a
+  per-session mental-model compression that loads on the next session's
+  first turn. Questions to answer before enabling one: what each backend
+  actually stores and where (work-machine data residency for the fork!),
+  local vs hosted, how project scoping works, whether `learn`-promoted
+  skills collide with the stowed `~/.claude` skills omp also discovers, and
+  what effective daily use looks like (when to `retain` vs rely on the
+  auto mental model). Source: the omp clone's `docs/memory.md` +
+  `docs/mnemosyne-memory-backend.md`, and `omp config list --json | jq`
+  over the `memory.*` keys. If one earns its keep, seed the choice in
+  `setup-settings.sh` and document it in `docs/omp.md`.
 - [ ] **Close the gap between omp's status line and the Claude-shaped footer
   pi/Claude Code show.** The custom preset covers model, ctx%, cache-hit,
   cost — but pi's `claude-footer.ts` also renders thinking effort (`med`)
