@@ -66,6 +66,16 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
 
 ## TODO
 
+- [ ] **Close the gap between omp's status line and the Claude-shaped footer
+  pi/Claude Code show.** The custom preset covers model, ctx%, cache-hit,
+  cost — but pi's `claude-footer.ts` also renders thinking effort (`med`)
+  and turn count (`#1`), with Claude's exact short forms and 70%/90% context
+  color thresholds. Audit omp's native knobs first
+  (`statusLine.segmentOptions`, `statusLine.compactThinkingLevel`, the
+  `mode`/`session` segments) for effort + turn equivalents and threshold
+  behavior; only if native segments can't reach parity, weigh porting
+  `claude-footer.ts` to `~/.omp/agent/extensions/` (omp keeps pi's
+  `setFooter` API) against re-owning rendering omp already does.
 - [ ] **Revisit tracking omp settings in the repo.** `config.yml` can't be
   stowed — verified 2026-08-12 that `omp config set` saves via atomic rename
   (inode changes), so a stowed symlink would be silently replaced by a plain

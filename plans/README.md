@@ -17,6 +17,11 @@ off or delete them as they land; add new ones freely.
   `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
   confirmations prove too much friction day-to-day, revisit deliberately and
   update the invariants test together with the decision.
+- [ ] **Match omp's status line to the Claude-shaped footer** — the custom
+  preset (model, ctx%, cache-hit, cost) still lacks pi/Claude's thinking
+  effort and turn-count segments and their exact color thresholds; audit
+  omp's native segment options before considering a `claude-footer.ts`
+  port. Details in [omp-integration.md](omp-integration.md) → TODO.
 - [ ] **Revisit tracking omp settings in the repo** — `omp config set`
   rewrites `~/.omp/agent/config.yml` via atomic rename (verified 2026-08-12:
   inode changes), so stowing it would break the same way pi's `settings.json`
