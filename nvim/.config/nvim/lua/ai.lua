@@ -3,7 +3,7 @@
 -- the name carries the agent, the agent picks the binary (create_session).
 -- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback (the
 -- <leader>an picker ranks independently — see new_session).
-local AGENTS = { 'claude', 'cursor', 'opencode', 'pi' }
+local AGENTS = { 'claude', 'cursor', 'opencode', 'pi', 'omp' }
 local PRIMARY = AGENTS[1]
 -- Binary per agent, only where it differs from the name. Everything else about
 -- an agent is derived from AGENTS, so a fifth entry needs a line here only if
@@ -205,8 +205,9 @@ end
 
 -- Keep only AGENTS' presets: no other spec is ever dofile'd (opencode proved a
 -- spec can register a scanner on load) and State.get's per-call tool loop
--- shrinks from 12 entries to 4. cursor/pi are safe to keep — bare
--- cmd/is_proc/url, no sessions() scanner. Must run *after* the stub above —
+-- shrinks from 12 entries to 5. cursor/pi/omp are safe to keep — bare
+-- cmd/is_proc/url, no sessions() scanner (omp's spec is ours: sk/cli/omp.lua
+-- in this config; sidekick has no omp preset). Must run *after* the stub above —
 -- pruning first leaves the dofile cache cold, so a later tool.get('opencode')
 -- would re-register the real 40ms sessions(). The tool launcher (formerly
 -- <leader>as) stays unbound however many tools there are — see keymaps.lua.
@@ -475,13 +476,14 @@ vim.api.nvim_create_autocmd('FileType', {
     -- u: input-undo (vim's own would E21 in an unmodifiable terminal buffer).
     -- An allowlist, never a denylist — cursor showed what an unverified TUI
     -- does with a guessed byte: 0x1F cycles its model, and it has no undo at
-    -- all (binary-inspected 2026-07-22). 0x1F covers the other three because
+    -- all (binary-inspected 2026-07-22). 0x1F covers the other four because
     -- it IS ctrl+- on the wire (0x5F & 0x1F), their stock undo key.
     -- Trap: do NOT send Ctrl+Z to opencode — that's its terminal_suspend; only
     -- its Windows build reuses ctrl+z for undo.
     local UNDO_SEQ = {
       claude   = '\31',  -- ctrl+_, pinned in the stowed claude keybindings.json
       pi       = '\31',  -- stock: tui.editor.undo = ctrl+-
+      omp      = '\31',  -- stock: pi fork, keeps tui.editor.undo = ctrl+-
       opencode = '\31',  -- stock: input_undo = "ctrl+-,super+z"
     }
     -- Unverified agents fall back to Ctrl+U (kill line back): safe, but

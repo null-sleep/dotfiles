@@ -100,7 +100,7 @@ require('lualine').setup({
           local cli = bufname:match('/bin/([%w-]+)$') or bufname:match('/bin/([%w-]+):')
           local known_clis = { claude = 'Claude', copilot = 'Copilot',
                                gemini = 'Gemini', ['cursor-agent'] = 'Cursor',
-                               opencode = 'Opencode', pi = 'Pi' }
+                               opencode = 'Opencode', pi = 'Pi', omp = 'Omp' }
           if cli and known_clis[cli] and bufname:match('^term://') then
             return known_clis[cli] .. ' CLI'
           end
