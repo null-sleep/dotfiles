@@ -17,11 +17,16 @@ off or delete them as they land; add new ones freely.
   `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
   confirmations prove too much friction day-to-day, revisit deliberately and
   update the invariants test together with the decision.
-- [ ] **Evaluate omp's long-term memory backends** — Hindsight / Mnemopi /
-  `local` via `memory.backend` (retain/recall/reflect/learn tools, off by
-  default): what each stores and where, hosted-vs-local (data residency
-  matters for the work fork), project scoping, and effective daily use —
-  before enabling anything. Details in
+- [ ] **Evaluate omp local memory before enabling autolearn** —
+  `memory.backend: local` is now repo-pinned through
+  `omp/setup-settings.sh`. Use the automatic summary pipeline for several
+  real sessions, inspect `/memory view` and `memory://root/MEMORY.md`, and
+  record omissions, stale guidance, startup/model cost, and whether recalled
+  context changes decisions correctly. Only then decide whether explicit
+  `learn` capture earns its extra prompting surface; if it does, enable
+  `autolearn.enabled` with `autoContinue: false` first and audit
+  `memory://root/learned.md` before considering automatic capture turns.
+  Backend comparison and data-residency questions remain in
   [omp-integration.md](omp-integration.md) → TODO.
 - [ ] **Match omp's status line to the Claude-shaped footer** — the custom
   preset (model, ctx%, cache-hit, cost) still lacks pi/Claude's thinking

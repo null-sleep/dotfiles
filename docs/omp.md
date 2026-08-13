@@ -21,6 +21,7 @@ policy forced by `omp/setup-settings.sh`.
 - [MCP servers](#mcp)
 - [Status line and theme](#statusline-theme)
 - [Providers and model roles](#models)
+- [Local memory and autolearn](#memory)
 - [Magic keywords and session controls](#keywords)
 - [nvim bridge](#nvim-bridge)
 - [Gotchas cheat-sheet](#gotchas)
@@ -335,6 +336,77 @@ OpenRouter's per-key spend (pi's `/usage`, the dashboard) mixes both agents.
 omp's own `/usage` and the status-line `cost` segment are per-session and
 unaffected.
 
+<a id="memory"></a>
+## Local memory and autolearn
+
+`omp/setup-settings.sh` pins `memory.backend` to `local`. This enables the
+automatic project-summary pipeline: eligible persisted primary sessions are
+model-extracted, then consolidated into `MEMORY.md`, `memory_summary.md`, and
+generated skills. Subagents and `--no-session` runs are excluded. Existing
+sessions become eligible after the default 12-hour idle period; `/memory
+enqueue` marks work that the next startup picks up.
+
+Automatic consolidation and explicit lessons are separate paths. The local
+backend decides retrospectively what to preserve from session history;
+`autolearn.enabled` instead exposes the `learn` tool so the agent can record a
+specific, verified lesson deliberately:
+
+```yaml
+autolearn:
+  enabled: true
+  autoContinue: false
+  minToolCalls: 5
+```
+
+With the local backend, `learn` writes newest-first, deduplicated,
+secret-redacted lessons to `memory://root/learned.md`. Consolidation does not
+overwrite that file. A lesson is available for injection starting with the
+next session, not immediately; lessons and the generated summary share the
+startup injection token budget. The store keeps at most 100 lessons, with
+2,000 characters of lesson content and 400 characters of optional context per
+entry.
+
+### Adding knowledge deliberately
+
+Enable explicit lesson capture without automatic extra turns:
+
+```bash
+omp config set autolearn.enabled true
+omp config set autolearn.autoContinue false
+```
+
+Then ask the agent directly: `Use learn to remember this project lesson: …`.
+The agent calls `learn`; the lesson appears in
+`memory://root/learned.md` and enters prompt context in the next session.
+
+Merely stating a conclusion in a persisted session takes the automatic path:
+`/memory enqueue` schedules later extraction, but does not store that sentence
+directly. Consolidation may retain, rephrase, or omit it. Use `learn` when the
+specific verified lesson matters.
+
+| Information | Best location |
+|---|---|
+| Mandatory standing rule | `CLAUDE.md`, another discovered context file, or repository tooling |
+| Durable lesson from experience | `learn` / `memory://root/learned.md` |
+| General history and prior decisions | Automatic local consolidation |
+| Temporary task state | Current conversation or resumed session |
+
+The local backend has no Mnemopi-style `retain`, `recall`, or `memory_edit`;
+`learn` is its supported explicit-write path.
+
+The name **autolearn** overstates the default behavior. `enabled: true` makes
+the tool and post-work capture nudge available, but `autoContinue: false`
+does not spend an extra model turn when the agent stops—the passive reminder
+rides the next turn. `autoContinue: true` performs that capture turn
+automatically and costs additional tokens.
+
+Use `learn` for verified debugging lessons, recurring workflow corrections,
+and non-obvious project constraints. Put hard, standing rules in repository
+instructions or documentation instead: memory is heuristic context and must
+be checked against current files. Inspect it with `/memory view`,
+`read memory://root/MEMORY.md`, and `read memory://root/learned.md`.
+`/memory clear` deletes the active project's local memory data and artifacts.
+
 <a id="keywords"></a>
 ## Magic keywords and session controls
 
@@ -399,6 +471,9 @@ pi is native here.
 - `web_search` is repo-pinned to `perplexity` → `public` with the
   `anthropic` OAuth backend excluded, even as a fallback
   (`setup-settings.sh`).
+- `memory.backend` is repo-pinned to `local`. It consolidates persisted
+  sessions into project-scoped summaries; inspect the active injection with
+  `/memory view` and the full artifact with `read memory://root/MEMORY.md`.
 - Built-in theme names beat same-name custom files in
   `~/.omp/agent/themes/` — a custom `dark-dracula.json` would be silently
   ignored.

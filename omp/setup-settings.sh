@@ -1,7 +1,7 @@
 #!/bin/bash
 # One-time setup: seed this machine's ~/.omp/agent/config.yml with the repo's
 # omp defaults — the OpenRouter Sonnet default model role, thinking level,
-# quiet startup, and the repo-owned theme/status-line look.
+# quiet startup, local memory, and the repo-owned theme/status-line look.
 #
 # config.yml is deliberately NOT stowed. omp *writes* to it: `/settings` edits,
 # migrations, and runtime state land there, so a stowed symlink would send all
@@ -16,8 +16,8 @@
 #     explicit hand-set schema default is indistinguishable from unset and gets
 #     our value; accepted tradeoff. Re-runs are no-ops because the seeded
 #     values differ from the schema defaults.
-# The theme and status-line keys are *forced* (repo-owned, like pi's theme
-# slot): a drifted value gets corrected rather than kept.
+# The memory backend, theme, status-line, and web-search keys are *forced*
+# (repo-owned, like pi's theme slot): drifted values are corrected.
 #
 # Usage:
 #   bash ~/src/dotfiles/omp/setup-settings.sh
@@ -81,11 +81,15 @@ omp config set statusLine.rightSegments '["cost"]'
 omp config set providers.webSearchOrder '["perplexity","public"]'
 omp config set providers.webSearchExclude '["anthropic"]'
 
+# Forced memory policy: keep cross-session knowledge in inspectable,
+# project-scoped summaries rather than a retrieval database or remote service.
+omp config set memory.backend local
+
 echo
 echo "Resulting omp config:"
-for key in modelRoles defaultThinkingLevel startup.quiet theme.dark theme.light \
-  statusLine.preset statusLine.separator statusLine.transparent \
-  statusLine.leftSegments statusLine.rightSegments \
+for key in modelRoles defaultThinkingLevel startup.quiet memory.backend \
+  theme.dark theme.light statusLine.preset statusLine.separator \
+  statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
   providers.webSearchOrder providers.webSearchExclude; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done

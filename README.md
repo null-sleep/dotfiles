@@ -1259,9 +1259,42 @@ runtime state lives in the same directory tree as the one stowed file.
 `setup-settings.sh` is **fill-in-only** for `modelRoles.default`
 (`openrouter/anthropic/claude-sonnet-5`), `defaultThinkingLevel` (`medium`),
 and `startup.quiet` (`true`) — a value you've since changed survives a re-run
-— and **forces** the repo-owned policy: the theme pair and status line below,
-plus web search order (`perplexity`, then the keyless `public` tier) with the
-`anthropic` OAuth backend excluded even as a fallback.
+— and **forces** the repo-owned policy: local project-summary memory, the theme
+pair and status line below, plus web search order (`perplexity`, then the
+keyless `public` tier) with the `anthropic` OAuth backend excluded even as a
+fallback.
+
+#### Local memory
+
+The setup script enables OMP's project-scoped local summary backend:
+
+```yaml
+memory:
+  backend: local
+```
+
+This is persisted through `omp/setup-settings.sh`, so running the setup on a
+new machine selects the same backend. Existing persisted sessions become
+eligible for extraction after the default 12-hour idle period; later OMP
+startups process eligible sessions in the background.
+
+Inspect the injected summary and full generated memory with:
+
+```text
+/memory view
+read memory://root/MEMORY.md
+```
+
+`/memory enqueue` marks consolidation work for the next startup.
+
+Memory is heuristic context, not repository truth: verify remembered decisions
+against current files before acting. The local pipeline processes persisted
+primary sessions only; subagents and `--no-session` runs are excluded.
+
+Explicit lesson capture remains disabled unless `autolearn.enabled` is set.
+When enabled, the `learn` tool writes separately maintained lessons to
+`memory://root/learned.md`. `/memory clear` deletes the active project's local
+memory data and artifacts.
 
 `nvim-notify.ts` is the omp port of pi's extension of the same name (same
 sidekick attention bridge, adapted to omp's event set). omp is also in nvim's
