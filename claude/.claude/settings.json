@@ -84,14 +84,13 @@
     "lua-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "linear@claude-plugins-official": false
+    "gopls-lsp@claude-plugins-official": true
   },
   "effortLevel": "high",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": false,
-  "skipAutoPermissionPrompt": false,
   "skipWorkflowUsageWarning": true,
   "theme": "custom:active",
-  "editorMode": "normal"
+  "editorMode": "normal",
+  "skipAutoPermissionPrompt": false
 }
