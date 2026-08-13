@@ -278,9 +278,34 @@ alias gpv='gh pr view'
 # Remove alias from `antigen bundle git` if it exists to allow function definition
 unalias gco 2>/dev/null
 gco() {
+  # Linear issue URL → resolve linked GitHub PR(s), fzf-pick if multiple.
+  if [[ "$1" =~ '^https://linear\.app/[^/]+/issue/([A-Z][A-Z0-9]+-[0-9]+)([/?#].*)?$' ]]; then
+    local issue_id="$match[1]"
+    local prs
+    prs=$(linear issue view "$issue_id" --json \
+      | jq -r '.attachments.nodes[]
+          | select(.sourceType == "github" and (.url | test("/pull/[0-9]+(/|$)")))
+          | [.metadata.number, .metadata.status, .metadata.repoName, .metadata.title, .url]
+          | @tsv')
+    if (( ${pipestatus[1]} != 0 )); then
+      print -u2 "gco: failed to fetch Linear issue $issue_id"
+      return 1
+    fi
+    if [[ -z "$prs" ]]; then
+      print -u2 "gco: no GitHub PRs linked to $issue_id"
+      return 1
+    fi
+    local selection
+    if [[ "$(print -r -- "$prs" | wc -l | tr -d ' ')" == "1" ]]; then
+      selection="$prs"
+    else
+      selection=$(print -r -- "$prs" | fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="PR for $issue_id> ") || return
+    fi
+    local pr_url="${selection##*$'\t'}"
+    gh pr checkout "$pr_url" "${@:2}"
   # Any PR-page URL works (…/files, /changes/<range>, #discussion_r…, ?w=1):
   # everything after the PR number is stripped before gh pr checkout.
-  if [[ "$1" =~ '^(https://github\.com/[^/]+/[^/]+/pull/[0-9]+)([/?#].*)?$' ]]; then
+  elif [[ "$1" =~ '^(https://github\.com/[^/]+/[^/]+/pull/[0-9]+)([/?#].*)?$' ]]; then
     gh pr checkout "$match[1]" "${@:2}"
   else
     git checkout "$@"
