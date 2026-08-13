@@ -11,12 +11,27 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
-- [ ] **Reconsider `skipDangerousModePermissionPrompt` and
-  `skipAutoPermissionPrompt`** — both flipped to `false` in the tracked
-  `claude/.claude/settings.json` (upstream and the work fork) on 2026-08-12;
-  `claude/tests/settings-invariants.sh` asserts them false. If the re-enabled
-  confirmations prove too much friction day-to-day, revisit deliberately and
-  update the invariants test together with the decision.
+- [x] **Reconsider `skipDangerousModePermissionPrompt` and
+  `skipAutoPermissionPrompt`** — settled 2026-08-12 in favour of the
+  least-disruptive shape, in both repos. Neither key is a behaviour switch:
+  they record *consent to a one-time dialog*, and Claude Code writes them
+  back itself on accept.
+  - `skipDangerousModePermissionPrompt` is now `true`. At `false` the
+    bypass-permissions dialog reappears, and accepting it writes `true`
+    straight through the stow symlink into the repo — dirtying the tree and
+    failing the invariants test. Pinning `true` makes that write-back a
+    no-op, so this can never dirty the repo again. What's given up: the
+    "are you sure" dialog on entering bypass mode. Entering it still needs
+    the explicit flag.
+  - `skipAutoPermissionPrompt` is now **absent**, not `false`. It was a
+    no-op either way — the auto-mode notice is an AND of this key and
+    `hasSeenAutoModeEntryWarning` in `~/.claude.json`, which is already
+    `true` here. And setting it `true` would be worse: a CLI migration
+    *deletes* the key when `permissions.defaultMode !== "auto"` (it's
+    unset), which is another unprompted write-through. Absent means there
+    is nothing to strip and nothing to assert.
+  - `claude/tests/settings-invariants.sh` updated in both repos to match
+    (`== true`, and `has(...) | not`).
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several

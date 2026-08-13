@@ -11,8 +11,8 @@ jq -e '
     "command": "bash $HOME/.claude/statusline-command.sh"
   }
   and .theme == "custom:active"
-  and .skipDangerousModePermissionPrompt == false
-  and .skipAutoPermissionPrompt == false
+  and .skipDangerousModePermissionPrompt == true
+  and (has("skipAutoPermissionPrompt") | not)
   and .enabledPlugins["lua-lsp@claude-plugins-official"] == true
   and .enabledPlugins["pyright-lsp@claude-plugins-official"] == true
   and .enabledPlugins["rust-analyzer-lsp@claude-plugins-official"] == true
