@@ -138,6 +138,7 @@ off or delete them as they land; add new ones freely.
   --no-folding pi` then `bash pi/setup-settings.sh`. Machines set up before or
   after the window are unaffected; delete this once every machine has pulled
   past it (2026-08-07).
+- [ ] **Re-enable Ghostty `copy-on-select` once multi-line copies work** —
   disabled 2026-07-20 because Ghostty writes hard line breaks to the macOS
   pasteboard as NUL instead of newline, so every multi-line selection pastes
   as a single line. When re-enabling, the value must be `clipboard`, not
