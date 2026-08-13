@@ -28,11 +28,6 @@ off or delete them as they land; add new ones freely.
   `memory://root/learned.md` before considering automatic capture turns.
   Backend comparison and data-residency questions remain in
   [omp-integration.md](omp-integration.md) → TODO.
-- [ ] **Match omp's status line to the Claude-shaped footer** — the custom
-  preset (model, ctx%, cache-hit, cost) still lacks pi/Claude's thinking
-  effort and turn-count segments and their exact color thresholds; audit
-  omp's native segment options before considering a `claude-footer.ts`
-  port. Details in [omp-integration.md](omp-integration.md) → TODO.
 - [ ] **Revisit tracking omp settings in the repo** — `omp config set`
   rewrites `~/.omp/agent/config.yml` via atomic rename (verified 2026-08-12:
   inode changes), so stowing it would break the same way pi's `settings.json`
@@ -41,16 +36,16 @@ off or delete them as they land; add new ones freely.
   read-only `--config` overlay (omp never writes overlays) vs its costs —
   wrapping every launch path and shadowing `/settings` edits. Details in
   [omp-integration.md](omp-integration.md) → TODO.
-- [ ] **`sync-upstream`: make `finish` verify before advancing the marker**
-  (the skill lives in the private downstream fork; tracked here with the rest).
-  - Why: `finish` exists to complete a hand-resolved cherry-pick, but it
-    advances the `UPSTREAM_HEAD` marker unconditionally — it never checks that
-    the pending commits actually landed, so a failed cherry-pick chained into
-    `finish` silently marks them synced (bit for real 2026-08-12: a pick
-    failed on a not-yet-fetched object and the chained `finish` fetched and
-    advanced anyway). It can't just compare trees, since selective syncs skip
-    commits deliberately — likely shape: list pending-but-unapplied commits
-    and require an explicit confirmation or flag.
+- [x] **`sync-upstream`: make `finish` verify before advancing the marker** —
+  done 2026-08-12 in the private downstream fork (where the skill lives).
+  `finish` was advancing `UPSTREAM_HEAD` unconditionally, so a failed
+  cherry-pick chained into it silently marked the pending commits synced —
+  they'd never be offered again. It now lists any pending commit with no
+  evidence it landed and refuses, with `--force` for deliberate skips.
+  Evidence is the `-x` provenance trailer (now added to the picks, and the
+  only durable link back since the two histories share no commits) or a
+  patch-id match, which alone can't survive a hand resolution against the
+  fork's divergent files. Both paths are covered by fixture tests.
 - [ ] **Agent view — all phases + UX follow-ups + review fixes shipped
   2026-08-10; interactive verification and branch merge outstanding** —
   cmux-style dashboard: [sidekick-agent-view.md](sidekick-agent-view.md),

@@ -251,12 +251,27 @@ statusLine:
   transparent: true
   leftSegments: [model, context_pct, cache_hit]
   rightSegments: [cost]
+  segmentOptions:
+    model: { showThinkingLevel: true }
 ```
 
 Unlike pi, nothing is stowed or extension-owned here — it's omp's native
 status line configured through settings. Changing the look means editing
 `setup-settings.sh` (the forced block) and re-running it, not a TypeScript
 footer.
+
+The thinking level rides the `model` segment (` · ◑ med`). omp defaults it
+on, so `showThinkingLevel` is pinned only to keep the forced block owning
+the look; `statusLine.compactThinkingLevel: true` folds it into a glyph on
+the model name instead of a suffix.
+
+Three gaps against pi's `claude-footer.ts` are accepted, not chased. There
+is **no turn-count segment** — the registry is closed, and an extension can
+only replace the whole footer via `setFooter`, which is the port this setup
+deliberately avoids. **Context colors are baked constants** (error ≥90%,
+purple ≥70%, warning ≥50%, plus 500k/270k/150k absolute-token floors) rather
+than Claude's two-tier 70/90. And `cache_hit`/`cost` render `59.43%`/`$0.00`
+where the Claude footer shows `CH59%`/`$0.003`.
 
 Themes: omp keeps a **dark slot and a light slot** (`theme.dark:
 dark-dracula`, `theme.light: light-catppuccin`, both built-ins) and picks

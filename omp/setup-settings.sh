@@ -75,6 +75,9 @@ omp config set statusLine.separator none
 omp config set statusLine.transparent true
 omp config set statusLine.leftSegments '["model","context_pct","cache_hit"]'
 omp config set statusLine.rightSegments '["cost"]'
+# Thinking level rides the model segment. omp defaults it on (the check is
+# `!== false`), so pin it: the forced block should own the look, not a default.
+omp config set statusLine.segmentOptions '{"model":{"showThinkingLevel":true}}'
 
 # Forced web-search policy: anonymous Perplexity first, then the keyless
 # aggregate tier; never the Anthropic OAuth backend, even as a fallback.
@@ -90,6 +93,7 @@ echo "Resulting omp config:"
 for key in modelRoles defaultThinkingLevel startup.quiet memory.backend \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
+  statusLine.segmentOptions \
   providers.webSearchOrder providers.webSearchExclude; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done

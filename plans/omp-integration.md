@@ -26,6 +26,26 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
   `omp config set` calls. A TypeScript port would re-own rendering omp
   already does, for zero extra fidelity. Consequence: the look is *forced*
   by `setup-settings.sh` on re-run (repo-owned), unlike fill-in keys.
+  **Re-confirmed 2026-08-12** after auditing omp 17.2.15's segment registry
+  for the two things the footer looked to be missing:
+  - *Thinking effort was never missing.* The `model` segment renders it when
+    `segmentOptions.model.showThinkingLevel !== false` — opt-out, so it was
+    already showing ` · ◑ med`. Now pinned `true` so the forced block owns it
+    rather than a default. `compactThinkingLevel` picks glyph-on-model vs
+    suffix.
+  - *Turn count is unreachable natively.* The registry (`pi`, `model`,
+    `mode`, `path`, `git`, `pr`, `subagents`, `token_*`, `cost`,
+    `context_*`, `time*`, `session`, `hostname`, `cache_*`, `session_name`,
+    `usage`, `collab`) has no turn segment — `session` is the session-ID
+    prefix — and extensions can't register one; `setFooter` replaces the
+    whole footer or nothing. So parity here *is* the port, which is what
+    this decision rejects.
+  - *Thresholds and formats aren't configurable.* Context color is baked
+    (error ≥90%, purple ≥70%, warning ≥50%, plus 500k/270k/150k token
+    floors) against Claude's two-tier 70/90; `cache_hit` is `59.43%` at
+    fixed color, `cost` always 2dp. Cosmetic, and the port would trade them
+    for omp's own extras (advisor status, fast-mode and auto-compact icons,
+    premium/sub indicators).
 - **Built-in themes + auto slots over the `active.json` pattern.** pi gets
   repo-generated theme JSONs and a `theme`-script step because it has one
   active theme. omp holds a dark and a light slot (`dark-dracula` /
@@ -87,16 +107,6 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
   `docs/mnemosyne-memory-backend.md`, and `omp config list --json | jq`
   over the `memory.*` keys. If one earns its keep, seed the choice in
   `setup-settings.sh` and document it in `docs/omp.md`.
-- [ ] **Close the gap between omp's status line and the Claude-shaped footer
-  pi/Claude Code show.** The custom preset covers model, ctx%, cache-hit,
-  cost — but pi's `claude-footer.ts` also renders thinking effort (`med`)
-  and turn count (`#1`), with Claude's exact short forms and 70%/90% context
-  color thresholds. Audit omp's native knobs first
-  (`statusLine.segmentOptions`, `statusLine.compactThinkingLevel`, the
-  `mode`/`session` segments) for effort + turn equivalents and threshold
-  behavior; only if native segments can't reach parity, weigh porting
-  `claude-footer.ts` to `~/.omp/agent/extensions/` (omp keeps pi's
-  `setFooter` API) against re-owning rendering omp already does.
 - [ ] **Revisit tracking omp settings in the repo.** `config.yml` can't be
   stowed — verified 2026-08-12 that `omp config set` saves via atomic rename
   (inode changes), so a stowed symlink would be silently replaced by a plain
