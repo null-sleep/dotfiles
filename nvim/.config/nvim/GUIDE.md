@@ -1410,7 +1410,7 @@ knobs are under snacks' `formatters.file` unless noted):
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>sw` (normal + visual) | Grep the word under the cursor, or the visual selection — exact match (`--word-regexp`, not fuzzy/live), jumps straight to usages without the `sg`-then-type step |
 | `<leader>ss` (visual only) | Grep the **exact** visual selection, literal and multi-line included — see [Multi-line selection search](#multiline-selection-search). Normal-mode `<leader>ss` is workspace symbols (above); the visual binding is a separate command |
-| `<leader>sa` / `<leader>sA` | Structural (AST) search, project-wide / current file only — live ast-grep patterns (`notify($A)`) that match syntax nodes, not text. See [Structural search (ast-grep)](#structural-ast-search) |
+| `<leader>sa` / `<leader>sA` (normal + visual) | Structural (AST) search, project-wide / current file only — live ast-grep patterns (`notify($A)`) that match syntax nodes, not text; visual mode seeds the prompt with the selection. See [Structural search (ast-grep)](#structural-ast-search) |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-x>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
@@ -1545,13 +1545,21 @@ contrast; ast-grep matches shape, SSR resolves types).
   switches it (or "auto" = infer per file extension). Filetypes ast-grep
   doesn't support fall back to auto. `<M-l>` here shadows the global
   "Split: wider" (buffer-local, deliberate).
+- **Visual mode seeds the pattern**: select real code, press `<leader>sa`,
+  and the selection lands in the prompt ready to have `$`-holes edited into
+  it (`notify(x)` → `notify($A)`) — the structural analog of `<leader>sw`'s
+  select-then-search. Multi-line selections flatten to one line (Lua is
+  newline-insensitive, so the pattern still matches).
 - **Raw flags** pass through after ` -- ` in the prompt, like `<leader>sg`
   — which also means a literal ` -- ` inside a pattern is unrepresentable.
+- **`<a-h>` / `<a-i>`** include hidden / ignored files (mapped to ast-grep's
+  `--no-ignore`), with the standard title chips; **`<c-g>`** freezes the
+  live results for fuzzy refinement, as in any live picker (see
+  [Query syntax](#picker-query-syntax)).
 - **Search-only.** For structural *replace*, use [grug-far](#grug-far)'s
   ast-grep engine (`<leader>sR`, `\e`) — same pattern syntax, editable.
-- Caveats: ast-grep reads from disk, so unsaved edits aren't matched; the
-  stock `<a-h>`/`<a-i>` hidden/ignored toggles are no-ops for this source;
-  a half-typed pattern is a parse error and simply shows no results.
+- Caveats: ast-grep reads from disk, so unsaved edits aren't matched; a
+  half-typed pattern is a parse error and simply shows no results.
 
 **Worked examples** — the first six are one per usable form above, in the
 same order; the rest are common recipes. All verified against this config.

@@ -12,8 +12,8 @@
 -- grug-far's ast-grep engine (<leader>sR, \e). Raw CLI flags pass through
 -- after ` -- ` in the prompt, same as <leader>sg (so a literal ` -- ` inside
 -- a pattern is unrepresentable). ast-grep reads from disk: unsaved edits
--- aren't matched. snacks' stock <a-h>/<a-i> hidden/ignored toggles are
--- no-ops for this source.
+-- aren't matched. <a-h>/<a-i> include hidden/ignored files (mapped to
+-- --no-ignore); from visual mode the selection seeds the pattern.
 --
 -- Language: defaults to the current buffer's filetype via the allowlist
 -- below; <M-l> in the picker switches it. A filetype NOT in the allowlist
@@ -55,9 +55,10 @@ local function byte_col(line, char_col)
 end
 
 -- One JSONL line -> snacks item (grep.lua's field contract: file/pos/
--- end_pos for preview+jump+qf, `line` for display, `text` for the matcher).
--- `msg.lines` holds the full source lines spanning the match; start.column
--- indexes the first, end.column the last.
+-- end_pos for preview+jump+qf, `line` for display, `text` for the matcher,
+-- `positions` for the in-row match highlight). `msg.lines` holds the full
+-- source lines spanning the match; start.column indexes the first,
+-- end.column the last.
 local function to_item(item, cwd)
   local ok, msg = pcall(vim.json.decode, item.text)
   if not ok or type(msg) ~= 'table' or not msg.range then return false end
@@ -69,6 +70,13 @@ local function to_item(item, cwd)
   item.end_pos = { msg.range['end'].line + 1, byte_col(last, msg.range['end'].column) }
   item.line = first
   item.text = msg.file .. ':' .. item.pos[1] .. ': ' .. first
+  -- Highlight the matched span within the row (SnacksPickerSearch), like
+  -- grep rows: 1-based byte indices into `line`. Multi-line matches
+  -- highlight to the end of the first line.
+  local stop = item.pos[1] == item.end_pos[1] and item.end_pos[2] or #first
+  local positions = {}
+  for i = item.pos[2] + 1, stop do positions[#positions + 1] = i end
+  item.positions = #positions > 0 and positions or nil
 end
 
 ---@param opts? { scope?: 'project'|'file' }
@@ -85,6 +93,11 @@ function M.search(opts)
   end
   local lang = FT_TO_LANG[vim.bo.filetype]
   local cwd = vim.fn.getcwd()
+  -- From visual mode, seed the prompt with the selection (grep_word-style):
+  -- select real code, then edit $-holes into it. visual() self-guards (nil
+  -- outside visual mode) and exits visual mode itself. Newlines flatten to
+  -- spaces — the prompt is one line, and Lua is newline-insensitive.
+  local vis = Snacks.picker.util.visual()
 
   return Snacks.picker.pick({
     -- Distinct sources so sa/sA don't toggle-close each other (same trap as
@@ -95,6 +108,7 @@ function M.search(opts)
     supports_live = true,
     format = 'file',
     show_empty = true,
+    search = vis and vis.text:gsub('%s*\n%s*', ' ') or nil,
     lang = lang, -- read back by the finder; <M-l> action rewrites it
     finder = function(popts, ctx)
       if ctx.filter.search == '' then return function() end end
@@ -102,6 +116,10 @@ function M.search(opts)
       local pattern, pargs = Snacks.picker.util.parse(ctx.filter.search)
       local args = { 'run', '--json=stream', '--pattern', pattern }
       if popts.lang then vim.list_extend(args, { '--lang', popts.lang }) end
+      -- Honor snacks' stock <a-h>/<a-i> toggles (title chips + resume for
+      -- free; the toggle actions just flip these opts and re-run us).
+      if popts.hidden then vim.list_extend(args, { '--no-ignore', 'hidden' }) end
+      if popts.ignored then vim.list_extend(args, { '--no-ignore', 'vcs', '--no-ignore', 'dot' }) end
       vim.list_extend(args, pargs)
       if target then args[#args + 1] = target end
       return require('snacks.picker.source.proc').proc(ctx:opts({
