@@ -1543,8 +1543,17 @@ contrast; ast-grep matches shape, SSR resolves types).
 
 - **Language**: defaults to the buffer's filetype; `<M-l>` in the picker
   switches it (or "auto" = infer per file extension). Filetypes ast-grep
-  doesn't support fall back to auto. `<M-l>` here shadows the global
-  "Split: wider" (buffer-local, deliberate).
+  doesn't support fall back to auto. Reach for `<M-l>` whenever the buffer
+  you're in and the code you're asking about differ — it changes both which
+  grammar *parses your pattern* and which files get searched, in one step
+  (the pattern `$OBJ.on($E, $H)` is a different tree in Lua than in
+  TypeScript, so from `agent_events.lua` it needs `<M-l>` → typescript to
+  find the `.ts` extensions' `pi.on(…)` handlers). **The markdown trap**:
+  markdown *is* a supported language, so from GUIDE.md or `plans/*.md` the
+  fallback never fires — a Lua pattern searches `.md` files with the
+  markdown grammar and shows confidently-empty results; `<M-l>` → lua is
+  the fix. The choice persists into `<leader>sr` resume. `<M-l>` here
+  shadows the global "Split: wider" (buffer-local, deliberate).
 - **Visual mode seeds the pattern**: select real code, press `<leader>sa`,
   and the selection lands in the prompt ready to have `$`-holes edited into
   it (`notify(x)` → `notify($A)`) — the structural analog of `<leader>sw`'s
@@ -1553,9 +1562,14 @@ contrast; ast-grep matches shape, SSR resolves types).
 - **Raw flags** pass through after ` -- ` in the prompt, like `<leader>sg`
   — which also means a literal ` -- ` inside a pattern is unrepresentable.
 - **`<a-h>` / `<a-i>`** include hidden / ignored files (mapped to ast-grep's
-  `--no-ignore`), with the standard title chips; **`<c-g>`** freezes the
-  live results for fuzzy refinement, as in any live picker (see
-  [Query syntax](#picker-query-syntax)).
+  `--no-ignore`), with the standard title chips.
+- **`<c-g>` — structural first, textual second.** Freezes the live results
+  and fuzzy-filters them (no more process re-runs), stacking what each
+  language is good at: `vim.keymap.set($$$)` → `<c-g>` → `pickers` narrows
+  ~100 keymaps to the ones in `pickers/` — a filter no syntax pattern can
+  express. Reversible; the frozen query keeps filtering from the left.
+  Fuzzy sees only `file:line:` + the match's *first* line (same caveat as
+  `<leader>ss`). See [Query syntax](#picker-query-syntax).
 - **Search-only.** For structural *replace*, use [grug-far](#grug-far)'s
   ast-grep engine (`<leader>sR`, `\e`) — same pattern syntax, editable.
 - Caveats: ast-grep reads from disk, so unsaved edits aren't matched; a
