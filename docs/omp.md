@@ -250,7 +250,7 @@ statusLine:
   separator: none
   transparent: true
   leftSegments: [model, context_pct, cache_hit, turn_count]
-  rightSegments: [cost]
+  rightSegments: [cwd_name, cost]
   segmentOptions:
     model: { showThinkingLevel: true }
 ```
@@ -279,6 +279,13 @@ algorithm as `claude/.claude/statusline-command.sh`. Without the extension
 the unknown id renders invisible, and if the `SEGMENTS` export ever
 disappears the extension falls back to the `ctx.ui.setStatus` hook-status
 row. (`setFooter`, pi's whole-footer escape hatch, is still a no-op.)
+
+The stowed `cwd-name.ts` registers `cwd_name` the same way, on the right
+side: the launch folder's basename (worktrees as `project/worktree`, taken
+from the segment context) so a shell-launched omp says which project or
+worktree it's in. When omp runs inside an nvim sidekick terminal (`$NVIM`
+inherited) the factory skips registration — nvim already shows the project —
+and the configured id renders invisible.
 
 Two gaps against pi's `claude-footer.ts` are accepted, not chased. **Context
 colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
@@ -475,7 +482,7 @@ Session controls worth knowing:
 ## nvim bridge
 
 `~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside
-`turn-count.ts`) is the sidekick attention bridge (running `»` / done `●`
+`turn-count.ts` and `cwd-name.ts`) is the sidekick attention bridge (running `»` / done `●`
 marks in nvim's agent view). It's a port of the pi extension with two
 omp-specific remaps: omp has
 no `agent_settled` event, so it listens on `agent_end` gated by

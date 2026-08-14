@@ -108,7 +108,7 @@ stow --no-folding agents     # shared Agent Skills, including linear-cli
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
-stow --no-folding omp        # two extensions; config.yml stays machine-local — see the omp section
+stow --no-folding omp        # three extensions; config.yml stays machine-local — see the omp section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
@@ -1248,6 +1248,7 @@ Much less than pi: no theme ports (omp built-ins are used — see
 |---|---|
 | `~/.omp/agent/extensions/nvim-notify.ts` | Symlinked via stow (`--no-folding`); agent-view attention bridge |
 | `~/.omp/agent/extensions/turn-count.ts` | Symlinked via stow (`--no-folding`); turn count + context-growth bars as a native status-line segment |
+| `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
 | `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
 | everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |
@@ -1343,14 +1344,18 @@ belongs upstream.
 none` and `transparent true` — the same minimal visual grammar as
 [Claude Code](#claude-code) and pi's `claude-footer.ts`, no powerline blocks.
 Left segments: `model`, `context_pct` (context window used), `cache_hit`
-(cache hit rate), `turn_count`. Right segment: `cost` (session spend),
-flush-right.
+(cache hit rate), `turn_count`. Right segments: `cwd_name`, then `cost`
+(session spend) flush-right.
 
-`turn_count` is not a built-in: the stowed `turn-count.ts` extension
-registers it in omp's live segment record, so `#N` plus Claude Code's
-context-growth bars (`▁▂▃▄▅▆▇█`, per-turn prompt-size deltas, last 15,
-scaled to the window max) render inside the native status line. Without the
-extension the id renders invisible. See [Status line and
+`turn_count` and `cwd_name` are not built-ins — the stowed `turn-count.ts`
+and `cwd-name.ts` extensions register them in omp's live segment record.
+`turn_count` renders `#N` plus Claude Code's context-growth bars
+(`▁▂▃▄▅▆▇█`, per-turn prompt-size deltas, last 15, scaled to the window
+max) inside the native status line. `cwd_name` shows the launch folder's
+basename (worktrees as `project/worktree`) so a shell-launched omp says
+which project it's in; inside an nvim sidekick terminal (`$NVIM` inherited)
+it stays hidden — nvim already shows the project. Without the extensions
+the ids render invisible. See [Status line and
 theme](docs/omp.md#statusline-theme).
 
 ### Claude subscription
