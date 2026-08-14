@@ -39,7 +39,12 @@ config — so `CLAUDE.md` and `~/.claude` skills apply to omp for free.
     `usage`, `collab`) has no turn segment — `session` is the session-ID
     prefix — and extensions can't register one; `setFooter` replaces the
     whole footer or nothing. So parity here *is* the port, which is what
-    this decision rejects.
+    this decision rejects. **Corrected 2026-08-13:** "extensions can't
+    register one" turned out false in practice — the package root exports
+    the live `SEGMENTS` record, ids are looked up at render time, and the
+    config schema doesn't validate them, so the stowed `turn-count.ts` now
+    registers a `turn_count` segment inline. Details and caveats in
+    [omp-fork-customization.md](omp-fork-customization.md).
   - *Thresholds and formats aren't configurable.* Context color is baked
     (error ≥90%, purple ≥70%, warning ≥50%, plus 500k/270k/150k token
     floors) against Claude's two-tier 70/90; `cache_hit` is `59.43%` at

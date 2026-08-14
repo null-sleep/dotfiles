@@ -73,7 +73,10 @@ omp config set theme.light light-catppuccin
 omp config set statusLine.preset custom
 omp config set statusLine.separator none
 omp config set statusLine.transparent true
-omp config set statusLine.leftSegments '["model","context_pct","cache_hit"]'
+# turn_count is not a built-in segment: the stowed turn-count.ts extension
+# registers it in the live SEGMENTS record. Without the extension the unknown
+# id renders invisible — no error.
+omp config set statusLine.leftSegments '["model","context_pct","cache_hit","turn_count"]'
 omp config set statusLine.rightSegments '["cost"]'
 # Thinking level rides the model segment. omp defaults it on (the check is
 # `!== false`), so pin it: the forced block should own the look, not a default.

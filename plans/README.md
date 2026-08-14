@@ -43,6 +43,15 @@ off or delete them as they land; add new ones freely.
   `memory://root/learned.md` before considering automatic capture turns.
   Backend comparison and data-residency questions remain in
   [omp-integration.md](omp-integration.md) → TODO.
+- [ ] **Explore forking omp to customize past the extension API** — mostly
+  defused 2026-08-13: the status-line `SEGMENTS` record turned out to be
+  importable and live-mutable from extensions, so `turn-count.ts` now
+  registers a real `turn_count` segment and `#N ▂▅█` renders inside the
+  native status line — no fork needed. What's left for a fork/upstream PR:
+  configurable thresholds/formats, a working `setFooter`, blessing the
+  registry mutation as an actual API, and the PR-ready native-segment patch
+  already sitting uncommitted in `~/src/oh-my-pi`. Options ladder and costs
+  in [omp-fork-customization.md](omp-fork-customization.md).
 - [ ] **Revisit tracking omp settings in the repo** — `omp config set`
   rewrites `~/.omp/agent/config.yml` via atomic rename (verified 2026-08-12:
   inode changes), so stowing it would break the same way pi's `settings.json`

@@ -249,29 +249,42 @@ statusLine:
   preset: custom
   separator: none
   transparent: true
-  leftSegments: [model, context_pct, cache_hit]
+  leftSegments: [model, context_pct, cache_hit, turn_count]
   rightSegments: [cost]
   segmentOptions:
     model: { showThinkingLevel: true }
 ```
 
-Unlike pi, nothing is stowed or extension-owned here — it's omp's native
-status line configured through settings. Changing the look means editing
-`setup-settings.sh` (the forced block) and re-running it, not a TypeScript
-footer.
+Unlike pi, the footer isn't replaced by a stowed TypeScript port — it's
+omp's native status line configured through settings, plus one
+extension-registered segment (`turn_count`, below). Changing the look means
+editing `setup-settings.sh` (the forced block) and re-running it.
 
 The thinking level rides the `model` segment (` · ◑ med`). omp defaults it
 on, so `showThinkingLevel` is pinned only to keep the forced block owning
 the look; `statusLine.compactThinkingLevel: true` folds it into a glyph on
 the model name instead of a suffix.
 
-Three gaps against pi's `claude-footer.ts` are accepted, not chased. There
-is **no turn-count segment** — the registry is closed, and an extension can
-only replace the whole footer via `setFooter`, which is the port this setup
-deliberately avoids. **Context colors are baked constants** (error ≥90%,
-purple ≥70%, warning ≥50%, plus 500k/270k/150k absolute-token floors) rather
-than Claude's two-tier 70/90. And `cache_hit`/`cost` render `59.43%`/`$0.00`
-where the Claude footer shows `CH59%`/`$0.003`.
+The segment registry has no extension API, but it isn't sealed: the package
+root exports the live `SEGMENTS` record, segment ids are looked up in it at
+render time, and the settings schema checks the segment arrays only as a
+bare `array` — no id enum. The stowed
+`turn-count.ts` extension registers a `turn_count` segment there and
+`setup-settings.sh` appends the id to `leftSegments`, so `#N` (assistant
+messages on the active branch — resume/branch/tree stay accurate) plus
+Claude Code's context-growth bars render *inside* the native status line.
+Bars: per-turn prompt-size deltas (input + cache read/write; shrinks clamp
+to zero), last 15, scaled to the window max, drawn with `▁▂▃▄▅▆▇█` — same
+algorithm as `claude/.claude/statusline-command.sh`. Without the extension
+the unknown id renders invisible, and if the `SEGMENTS` export ever
+disappears the extension falls back to the `ctx.ui.setStatus` hook-status
+row. (`setFooter`, pi's whole-footer escape hatch, is still a no-op.)
+
+Two gaps against pi's `claude-footer.ts` are accepted, not chased. **Context
+colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
+500k/270k/150k absolute-token floors) rather than Claude's two-tier 70/90.
+And `cache_hit`/`cost` render `59.43%`/`$0.00` where the Claude footer shows
+`CH59%`/`$0.003`.
 
 Themes: omp keeps a **dark slot and a light slot** (`theme.dark:
 dark-dracula`, `theme.light: light-catppuccin`, both built-ins) and picks
@@ -461,9 +474,10 @@ Session controls worth knowing:
 <a id="nvim-bridge"></a>
 ## nvim bridge
 
-The one stowed omp file: `~/.omp/agent/extensions/nvim-notify.ts`, the
-sidekick attention bridge (running `»` / done `●` marks in nvim's agent
-view). It's a port of the pi extension with two omp-specific remaps: omp has
+`~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside
+`turn-count.ts`) is the sidekick attention bridge (running `»` / done `●`
+marks in nvim's agent view). It's a port of the pi extension with two
+omp-specific remaps: omp has
 no `agent_settled` event, so it listens on `agent_end` gated by
 `!willContinue && ctx.isIdle() && !ctx.hasPendingMessages()`, and `ctx.hasUI`
 replaces pi's subagent env-var guard (omp task children run in-process).
