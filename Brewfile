@@ -38,7 +38,7 @@ brew "gh"              # GitHub CLI
 brew "fzf"             # fuzzy finder (zsh keybindings)
 brew "ripgrep"         # rg — nvim snacks picker live-grep
 brew "fd"              # fast find — nvim snacks picker file finding
-brew "ast-grep"        # grug-far's optional AST search/replace engine (grug-far invokes the `ast-grep` binary, not the `sg` alias)
+brew "ast-grep"        # AST search: grug-far's optional replace engine + the <leader>sa structural-search picker (both invoke the `ast-grep` binary, not the `sg` alias)
 brew "zoxide"          # z / zi directory jumping
 brew "direnv"          # per-directory environment
 brew "starship"        # zsh prompt; config in zsh/.config/starship.toml (stowed)

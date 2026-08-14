@@ -79,6 +79,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **`pickers/common.lua`** — Shared picker utilities: `quick_pick_actions()` returns `<M-1>`..`<M-9>` row-jump actions/keys for snacks pickers (buffer, gitstatus, go-targets); `indexed_select()` builds on it — a compact switch-or-kill picker (row-index column, `<M-1>`..`<M-9>` quick-pick, optional `<C-x>` kill) used by the terminal (`terminal.lua`) and sidekick session (`ai.lua`) pickers
 - **`pickers/symbols.lua`** — Custom snacks symbol pickers: `M.workspace` (`<leader>ss`) is a live picker fanning `workspace/symbol` to all active LSP clients (snacks' builtin only queries buffer-attached ones) with a two-token prompt (first token = name query sent to LSP, remainder = file path filter via matchfuzzy), custom kind icons, vertical layout; `M.document` (`<leader>sd`) wraps the builtin `lsp_symbols` flat and kind-unfiltered — kind is in the match text so typing "function"/"variable" filters by kind; `M.toggle_buffer_only` (`<leader>ts`) switches workspace mode between all-LSPs and buffer-only
 - **`pickers/grepselection.lua`** — Custom snacks picker (`<leader>ss` in visual mode): literal, multi-line-aware grep of the visual selection via `rg --json --multiline`. See [Picker (snacks.nvim)](#picker-snacks) → "Multi-line selection search"
+- **`pickers/astgrep.lua`** — Custom snacks picker (`<leader>sa` project / `<leader>sA` current file): live structural (AST) search via the `ast-grep` CLI — patterns like `notify($A)` match syntax nodes, not text. See [Picker (snacks.nvim)](#picker-snacks) → "Structural search (ast-grep)". Lazy-required — no Load-order entry
 - **`completion.lua`** — blink.cmp: keymap preset (Tab priority: blink menu → snippet placeholder jump → literal Tab), sources, auto-brackets, signature hints, fuzzy backend. Ghost text disabled — near-inert against `preselect = false`.
 - **`lsp.lua`** — Mason setup, mason-lspconfig, goto-preview setup (VS Code-style peek floats, `<leader>p*`), actions-preview.nvim setup (`backend = { 'snacks' }` — diff-preview code actions, global `<leader>ca`/`gra`), LspAttach autocmd (buffer-local keymaps + capability-gated features), diagnostic config, per-server `vim.lsp.config`, a `'*'` merge of nvim-lsp-file-operations' file-operation capabilities (rename-fixes-imports — capability half; event half in `filetree.lua`, see [Design Decisions](#design-decisions) → "Renaming a file rewrites its imports"), `vim.lsp.enable`. Note: `rust_analyzer` is intentionally absent — rustaceanvim (`rust.lua`) owns the Rust client (see the Rust section)
 - **`rust.lua`** — rustaceanvim: Rust LSP layer over rust-analyzer (started here, not in `lsp.lua`). Sets `vim.g.rustaceanvim` before `packadd` — rustup `server.cmd`, clippy-on-save, codelldb DAP auto-detect; buffer-local Rust keymaps set on `LspAttach`, not `FileType` (see [Design Decisions](#design-decisions) → "Rust keymaps fire on LspAttach, not FileType") — `<leader>cR` runnables, `<leader>cm` expand macro, `<leader>cs` SSR (`n`+`x`), `<leader>cF` batch clippy-fix, `<leader>cp` code action diff preview, `<leader>dR` debuggables, `K`/`<leader>ca` grouped hover/actions
@@ -1409,6 +1410,7 @@ knobs are under snacks' `formatters.file` unless noted):
 | `<leader>sg` | Live grep (search file contents; see the live-vs-fuzzy note below) |
 | `<leader>sw` (normal + visual) | Grep the word under the cursor, or the visual selection — exact match (`--word-regexp`, not fuzzy/live), jumps straight to usages without the `sg`-then-type step |
 | `<leader>ss` (visual only) | Grep the **exact** visual selection, literal and multi-line included — see [Multi-line selection search](#multiline-selection-search). Normal-mode `<leader>ss` is workspace symbols (above); the visual binding is a separate command |
+| `<leader>sa` / `<leader>sA` | Structural (AST) search, project-wide / current file only — live ast-grep patterns (`notify($A)`) that match syntax nodes, not text. See [Structural search (ast-grep)](#structural-ast-search) |
 | `<leader>bb` / `<leader>m` | Buffer picker (numbered rows; `<M-1>`..`<M-9>` jumps to that row; `<C-x>` deletes) — see `pickers/buffer.lua` in Architecture. `<leader>m` is a permanent alias, one key shorter |
 | `<leader>sh` | Search help tags |
 | `<leader>sr` | Resume last picker (query, results, and selection restored) |
@@ -1508,6 +1510,110 @@ standalone identifier usages, skipping substrings. `ss` has no word
 boundary, so it's the pick for multi-word, punctuation-terminated, or
 multi-line selections — exactly where `--word-regexp` drops matches. For an
 **editable** find/replace, use [grug-far](#grug-far) (`<leader>sR`) instead.
+
+<a id="structural-ast-search"></a>
+### Structural search (ast-grep)
+
+`<leader>sa` (project-wide) / `<leader>sA` (current file) live-search by
+**syntax tree**, not text: every keystroke re-runs the `ast-grep` CLI (in
+the Brewfile), which parses the pattern and the files with tree-sitter and
+matches node shape. `vim.keymap.set($$$A)` finds every call — one line or
+five, however formatted — and skips comments and strings that merely look
+like one. Lives in `pickers/astgrep.lua`.
+
+Pattern syntax: write the code you're looking for, with metavariables as
+holes. All forms below verified against the installed binary:
+
+| Form | Matches |
+|---|---|
+| `$A` | Exactly **one** AST node — however complex (`bar(1)`, a whole table) counts as one. `foo($A)` matches `foo(1)`, not `foo()` or `foo(1, 2)` |
+| `$B`, `$FN`, `$A1` | Same as `$A` — the name is yours (uppercase letters/digits); distinct names bind independently, so `$A == $B` matches any comparison |
+| `$A` repeated | The occurrences must be **identical code**: `$A == $A` matches `count == count` only — no regex can express this |
+| `$_A` (leading `_`) | Non-capturing single node: repeating it does *not* require equality — `$_A == $_A` matches `count == total` too |
+| `$$$` | **Zero or more** nodes, anonymous — `foo($$$)` matches every call at any arity, including `foo()` |
+| `$$$ARGS` | Zero or more, named (the name matters for grug-far's replace side; here it's documentation) |
+| `$a` (lowercase) | **Not** a metavariable — it parses as an ERROR node and matches nothing (the picker just shows empty results) |
+
+Composition gotcha: `foo($A, $$$REST)` requires the literal comma, so it
+matches **two-or-more**-argument calls only — use `foo($$$)` when zero/one
+should match too. Repeated-metavariable equality is the one semantic ast-grep
+adds over shape; rust-analyzer's SSR deliberately does *not* enforce it (see
+[SSR](#structural-search-replace-ssr) for the syntactic-vs-name-resolution
+contrast; ast-grep matches shape, SSR resolves types).
+
+- **Language**: defaults to the buffer's filetype; `<M-l>` in the picker
+  switches it (or "auto" = infer per file extension). Filetypes ast-grep
+  doesn't support fall back to auto. `<M-l>` here shadows the global
+  "Split: wider" (buffer-local, deliberate).
+- **Raw flags** pass through after ` -- ` in the prompt, like `<leader>sg`
+  — which also means a literal ` -- ` inside a pattern is unrepresentable.
+- **Search-only.** For structural *replace*, use [grug-far](#grug-far)'s
+  ast-grep engine (`<leader>sR`, `\e`) — same pattern syntax, editable.
+- Caveats: ast-grep reads from disk, so unsaved edits aren't matched; the
+  stock `<a-h>`/`<a-i>` hidden/ignored toggles are no-ops for this source;
+  a half-typed pattern is a parse error and simply shows no results.
+
+**Worked examples** — the first six are one per usable form above, in the
+same order; the rest are common recipes. All verified against this config.
+Type the pattern into the `<leader>sa` prompt:
+
+1. **`$A` — every call of a function, however formatted.** `notify($A)`
+   matches the one-liner *and* the call spread across three lines, and
+   skips `-- notify('x')` (a comment node) and `"notify('x')"` (a string
+   node), the two classic grep false-positives.
+2. **`$B`, `$FN`… — shape matching with independent holes.**
+   `vim.api.nvim_win_set_cursor($BUF, $POS)` — each name binds its own
+   node, so every hit is a real two-argument call, whatever each argument's
+   complexity (`{ prev[1] + 1, prev[2] }` is one node). `pcall($FN, $$$ARGS)`
+   composes both multi-hole forms: every pcall'd function with its
+   arguments.
+3. **`$A` repeated — self-comparison bugs.** `$A == $A` — the repeated
+   name must bind *identical* code, so `count == count` matches and
+   `count == total` doesn't. There is no grep/regex equivalent of "left
+   side equals right side".
+4. **`$_A` — the same pattern with the constraint switched off.**
+   `$_A == $_A` — the leading `_` suppresses the equality rule, so this
+   lists *every* `==` check instead (in `structural_select.lua` it finds
+   all four `a[i] == b[i]` comparisons that example 3 rightly skips). Use
+   `$_`-names for "some node here, don't care what" holes.
+5. **`$$$` — any arity, no name needed.** `vim.keymap.set($$$)` — the
+   whole argument list, zero args included, is one hole. Compare
+   `<leader>sg` with `vim.keymap.set`: same hits, but this proves each is
+   a real call, not a mention in a comment or doc string.
+6. **`$$$ARGS` — name the list when replace comes next.** Refine
+   `notify($$$A)` here until the hit list is right, then reuse the exact
+   pattern in [grug-far](#grug-far) (`<leader>sR`, `\e`) with Replace
+   `logger.debug($$$A)` — the name carries the captured arguments across,
+   and even the three-line call collapses into one rewritten line
+   (verified). Search picks the targets; the name makes them reusable.
+7. **All uses of a module.** `local $X = require($MOD)` — every require
+   assignment in the config, whatever the local is named; narrow `$MOD` to
+   a literal (`require('buffers')`) to see where one module is pulled in.
+8. **Metavariables in name position.** `$OBJ:$FN($$$)` — `$FN` stands for
+   the *method name*, not an argument: every method call on anything
+   (`msg.lines:match(…)`, `ctx:opts(…)`). Holes work wherever a named node
+   sits, not just in argument slots.
+9. **Statement-level patterns.** `if $C then return $$$ end` — metavariables
+   match statements too, so this finds every guard clause: bare
+   `return`s and value-carrying ones alike (the `$$$` matches zero or more
+   return values).
+10. **Tables: patterns need context, and match exactly.** A bare
+    `{ buffer = $B, desc = $D }` finds *nothing* — it isn't a valid Lua
+    statement, so the pattern doesn't parse (and the picker can't show the
+    CLI's warning). Give it context: `local $_X = { buffer = $B, desc = $D }`
+    or a call position. And a table pattern matches the whole constructor —
+    `{ desc = $D }` does **not** match `{ buffer = b, desc = d }`; use a
+    leading `$$$` for "any fields before": `vim.keymap.set($$$, { $$$,
+    desc = $D })` matches every keymap whose opts end in `desc`, extra
+    fields or not. (`$$$` on *both* sides of a field doesn't work — the
+    trailing-field form is the one that does.)
+11. **Restrict by path glob.** `notify($A) -- --globs '*.lua'` — everything
+    after ` -- ` goes to the CLI verbatim, same convention as `<leader>sg`.
+12. **Search another language.** Press `<M-l>` and pick it. Don't pass
+    ` -- --lang rust` instead: the picker already sends `--lang` for a
+    supported filetype, and ast-grep rejects the duplicate flag (it only
+    works from a buffer in "auto" mode) — the `<M-l>` switcher is always
+    safe.
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy
@@ -1783,7 +1889,9 @@ The default engine is **ripgrep** — line-oriented, regex. `\e` swaps to
 **ast-grep**, a syntax-aware engine: patterns match the parse tree, so
 `console.log($A)` matches regardless of whitespace and `$A` is a metavariable
 capturing any argument. ast-grep is apply-only — `\r` works, `\s` (line sync)
-does not.
+does not. For read-only structural search (jump, don't rewrite), the same
+patterns drive `<leader>sa` — see
+[Structural search (ast-grep)](#structural-ast-search).
 
 ### Scoping a search
 

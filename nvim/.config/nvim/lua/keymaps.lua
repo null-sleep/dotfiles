@@ -16,6 +16,12 @@ vim.keymap.set({ 'n', 'x' }, '<leader>sw', function() Snacks.picker.grep_word() 
 -- grep source can't render multi-line matches. See pickers/grepselection.lua.
 vim.keymap.set('x', '<leader>ss', function() require('pickers.grepselection').search() end,
   { desc = 'Search: Grep selection (literal, multi-line)' })
+-- Structural (AST) search: live ast-grep patterns (`$A` = one node,
+-- `$$$A` = any args). Search-only; structural replace is grug-far (<leader>sR, \e).
+vim.keymap.set('n', '<leader>sa', function() require('pickers.astgrep').search() end,
+  { desc = 'Search: Structural search (ast-grep)' })
+vim.keymap.set('n', '<leader>sA', function() require('pickers.astgrep').search({ scope = 'file' }) end,
+  { desc = 'Search: Structural search current file (ast-grep)' })
 vim.keymap.set('n', '<leader>sh', function() Snacks.picker.help() end,  { desc = 'Search: Help tags' })
 vim.keymap.set('n', '<leader>sr', function() Snacks.picker.resume() end, { desc = 'Search: Resume last' })
 vim.keymap.set('n', '<leader>s/', function() Snacks.picker.lines() end, { desc = 'Search: Current buffer' })
