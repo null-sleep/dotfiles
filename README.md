@@ -431,6 +431,7 @@ alone never creates `SKILL.md` (it's untracked), so
 `~/.claude/skills/review-pr/SKILL.md` stays absent or **dangling** until you
 run the script.
 
+<a id="linear-cli-agent-skill"></a>
 ## Linear CLI & agent skill
 
 [`linear-cli`](https://github.com/schpet/linear-cli) is the local replacement for
@@ -1348,15 +1349,11 @@ Left segments: `model`, `context_pct` (context window used), `cache_hit`
 (session spend) flush-right.
 
 `turn_count` and `cwd_name` are not built-ins — the stowed `turn-count.ts`
-and `cwd-name.ts` extensions register them in omp's live segment record.
-`turn_count` renders `#N` plus Claude Code's context-growth bars
-(`▁▂▃▄▅▆▇█`, per-turn prompt-size deltas, last 15, scaled to the window
-max) inside the native status line. `cwd_name` shows the launch folder's
-basename (worktrees as `project/worktree`) so a shell-launched omp says
-which project it's in; inside an nvim sidekick terminal (`$NVIM` inherited)
-it stays hidden — nvim already shows the project. Without the extensions
-the ids render invisible. See [Status line and
-theme](docs/omp.md#statusline-theme).
+and `cwd-name.ts` extensions register them in omp's live segment record:
+turn count + context-growth bars (`#N ▂▅█`), and the launch folder's name
+(hidden inside an nvim sidekick terminal, where nvim already shows the
+project). Without the extensions the ids render invisible. Details in
+[Status line and theme](docs/omp.md#statusline-theme).
 
 ### Claude subscription
 
@@ -1896,7 +1893,9 @@ gpo                           # open the current branch's PR in a browser
 
 The PR URL and picker forms leave you on the PR's head branch and also handle
 PRs opened from forks. They require the `gh` installation and authentication
-above; `gpr` and the Linear-URL form additionally require `fzf`, which is included in the `Brewfile`. The Linear-URL form also uses `linear` (see [Linear CLI & agent skill](#linear-cli--agent-skill)) and `jq`.
+above; `gpr` and the Linear-URL form additionally require `fzf`, which is
+included in the `Brewfile`. The Linear-URL form also uses `jq` and
+`linear` — see [Linear CLI & agent skill](#linear-cli-agent-skill).
 
 ### SSH for GitHub
 

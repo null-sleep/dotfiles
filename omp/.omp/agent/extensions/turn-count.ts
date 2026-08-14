@@ -71,15 +71,13 @@ function sparkline(sizes: readonly number[]): string {
 /**
  * Show the active branch's assistant-turn count and context-growth bars in
  * the native status line. The segment registry has no extension API, but the
- * package root exports the live `SEGMENTS` record and `renderSegment` looks
- * segments up by id at render time — so registering a `turn_count` entry here
- * makes the id usable in `statusLine.leftSegments` (verified in-process on
- * the installed 17.x binary: a patched segment renders in the editor's top
- * border). The settings schema validates the segment arrays only as a bare
- * `array` (no id enum), and unknown ids render invisible, so a plain omp
- * without this extension ignores the id instead of erroring. If the export
- * disappears or the record is frozen, fall back to the hook-status row via
- * `ctx.ui.setStatus`.
+ * package root exports the live `SEGMENTS` record and segments are looked up
+ * by id at render time, so registering a `turn_count` entry here makes the
+ * id usable in `statusLine.leftSegments`; unknown ids render invisible, so a
+ * plain omp ignores the id instead of erroring. If the export disappears or
+ * the record is frozen, fall back to the hook-status row via
+ * `ctx.ui.setStatus`. Mechanism details and caveats:
+ * plans/omp-fork-customization.md.
  *
  * Counting persisted assistant messages makes resume, branch, and tree
  * navigation accurate.

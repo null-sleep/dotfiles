@@ -1575,39 +1575,31 @@ contrast; ast-grep matches shape, SSR resolves types).
 - Caveats: ast-grep reads from disk, so unsaved edits aren't matched; a
   half-typed pattern is a parse error and simply shows no results.
 
-**Worked examples** — the first six are one per usable form above, in the
-same order; the rest are common recipes. All verified against this config.
-Type the pattern into the `<leader>sa` prompt:
+**Worked examples** — one per usable form above (in order), then common
+recipes; all verified against this config:
 
-1. **`$A` — every call of a function, however formatted.** `notify($A)`
-   matches the one-liner *and* the call spread across three lines, and
-   skips `-- notify('x')` (a comment node) and `"notify('x')"` (a string
-   node), the two classic grep false-positives.
+1. **`$A` — every call of a function.** `notify($A)` matches the one-liner
+   *and* the call spread across three lines, skipping `-- notify('x')` and
+   `"notify('x')"` — comment and string nodes, the classic grep
+   false-positives.
 2. **`$B`, `$FN`… — shape matching with independent holes.**
    `vim.api.nvim_win_set_cursor($BUF, $POS)` — each name binds its own
    node, so every hit is a real two-argument call, whatever each argument's
    complexity (`{ prev[1] + 1, prev[2] }` is one node). `pcall($FN, $$$ARGS)`
    composes both multi-hole forms: every pcall'd function with its
    arguments.
-3. **`$A` repeated — self-comparison bugs.** `$A == $A` — the repeated
-   name must bind *identical* code, so `count == count` matches and
-   `count == total` doesn't. There is no grep/regex equivalent of "left
-   side equals right side".
-4. **`$_A` — the same pattern with the constraint switched off.**
-   `$_A == $_A` — the leading `_` suppresses the equality rule, so this
-   lists *every* `==` check instead (in `structural_select.lua` it finds
-   all four `a[i] == b[i]` comparisons that example 3 rightly skips). Use
-   `$_`-names for "some node here, don't care what" holes.
-5. **`$$$` — any arity, no name needed.** `vim.keymap.set($$$)` — the
-   whole argument list, zero args included, is one hole. Compare
-   `<leader>sg` with `vim.keymap.set`: same hits, but this proves each is
-   a real call, not a mention in a comment or doc string.
+3. **`$A` repeated — self-comparison bugs.** `$A == $A` matches
+   `count == count` and never `count == total`.
+4. **`$_A` — the same pattern, constraint off.** `$_A == $_A` lists
+   *every* `==` check — in `structural_select.lua` it finds all four
+   `a[i] == b[i]` comparisons that example 3 rightly skips.
+5. **`$$$` — any arity.** `vim.keymap.set($$$)` — the whole argument list,
+   zero args included, is one hole.
 6. **`$$$ARGS` — name the list when replace comes next.** Refine
    `notify($$$A)` here until the hit list is right, then reuse the exact
    pattern in [grug-far](#grug-far) (`<leader>sR`, `\e`) with Replace
    `logger.debug($$$A)` — the name carries the captured arguments across,
-   and even the three-line call collapses into one rewritten line
-   (verified). Search picks the targets; the name makes them reusable.
+   and even the three-line call collapses into one rewritten line.
 7. **All uses of a module.** `local $X = require($MOD)` — every require
    assignment in the config, whatever the local is named; narrow `$MOD` to
    a literal (`require('buffers')`) to see where one module is pulled in.
@@ -1631,11 +1623,9 @@ Type the pattern into the `<leader>sa` prompt:
     trailing-field form is the one that does.)
 11. **Restrict by path glob.** `notify($A) -- --globs '*.lua'` — everything
     after ` -- ` goes to the CLI verbatim, same convention as `<leader>sg`.
-12. **Search another language.** Press `<M-l>` and pick it. Don't pass
-    ` -- --lang rust` instead: the picker already sends `--lang` for a
-    supported filetype, and ast-grep rejects the duplicate flag (it only
-    works from a buffer in "auto" mode) — the `<M-l>` switcher is always
-    safe.
+12. **Search another language.** Press `<M-l>` and pick it — don't pass
+    ` -- --lang rust`: the picker already sends `--lang` for a supported
+    filetype and ast-grep rejects the duplicate flag.
 
 <a id="picker-query-syntax"></a>
 ### Query syntax: live vs fuzzy

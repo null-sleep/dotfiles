@@ -1,19 +1,11 @@
--- pickers/astgrep.lua — live structural (AST) search via ast-grep.
---
--- USAGE
---   require('pickers.astgrep').search()                  (<leader>sa, project)
---   require('pickers.astgrep').search({ scope = 'file' }) (<leader>sA, current file)
+-- pickers/astgrep.lua — live structural (AST) search (<leader>sa project,
+-- <leader>sA current file). Pattern syntax, keys, and worked examples:
+-- GUIDE.md "Structural search (ast-grep)".
 --
 -- Every keystroke re-runs `ast-grep run --json=stream --pattern <prompt>`
 -- (snacks' proc finder: args array, no shell — quotes in patterns are safe)
--- and decodes the JSONL into jumpable items. Patterns are ast-grep syntax:
--- `$A` matches one AST node, `$$$A` matches zero or more (e.g.
--- `vim.keymap.set($$$A)`). Search-only — structural *replace* stays in
--- grug-far's ast-grep engine (<leader>sR, \e). Raw CLI flags pass through
--- after ` -- ` in the prompt, same as <leader>sg (so a literal ` -- ` inside
--- a pattern is unrepresentable). ast-grep reads from disk: unsaved edits
--- aren't matched. <a-h>/<a-i> include hidden/ignored files (mapped to
--- --no-ignore); from visual mode the selection seeds the pattern.
+-- and decodes the JSONL into jumpable items. ast-grep reads from disk, so
+-- unsaved edits aren't matched.
 --
 -- Language: defaults to the current buffer's filetype via the allowlist
 -- below; <M-l> in the picker switches it. A filetype NOT in the allowlist
@@ -93,10 +85,9 @@ function M.search(opts)
   end
   local lang = FT_TO_LANG[vim.bo.filetype]
   local cwd = vim.fn.getcwd()
-  -- From visual mode, seed the prompt with the selection (grep_word-style):
-  -- select real code, then edit $-holes into it. visual() self-guards (nil
-  -- outside visual mode) and exits visual mode itself. Newlines flatten to
-  -- spaces — the prompt is one line, and Lua is newline-insensitive.
+  -- Visual selection seeds the prompt. visual() self-guards (nil outside
+  -- visual mode) and exits visual mode itself; newlines flatten to spaces —
+  -- the prompt is one line, and Lua is newline-insensitive.
   local vis = Snacks.picker.util.visual()
 
   return Snacks.picker.pick({

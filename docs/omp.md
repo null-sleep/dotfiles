@@ -266,19 +266,17 @@ the look; `statusLine.compactThinkingLevel: true` folds it into a glyph on
 the model name instead of a suffix.
 
 The segment registry has no extension API, but it isn't sealed: the package
-root exports the live `SEGMENTS` record, segment ids are looked up in it at
-render time, and the settings schema checks the segment arrays only as a
-bare `array` — no id enum. The stowed
-`turn-count.ts` extension registers a `turn_count` segment there and
-`setup-settings.sh` appends the id to `leftSegments`, so `#N` (assistant
-messages on the active branch — resume/branch/tree stay accurate) plus
-Claude Code's context-growth bars render *inside* the native status line.
-Bars: per-turn prompt-size deltas (input + cache read/write; shrinks clamp
-to zero), last 15, scaled to the window max, drawn with `▁▂▃▄▅▆▇█` — same
-algorithm as `claude/.claude/statusline-command.sh`. Without the extension
-the unknown id renders invisible, and if the `SEGMENTS` export ever
-disappears the extension falls back to the `ctx.ui.setStatus` hook-status
-row. (`setFooter`, pi's whole-footer escape hatch, is still a no-op.)
+root exports the live `SEGMENTS` record and segment ids are looked up in it
+at render time, unvalidated by the settings schema. The stowed
+`turn-count.ts` extension registers a `turn_count` segment there, so `#N`
+(assistant messages on the active branch — resume/branch/tree stay
+accurate) plus Claude Code's context-growth bars (`▁▂▃▄▅▆▇█`, same
+algorithm as `claude/.claude/statusline-command.sh`) render *inside* the
+native status line. Without the extension the unknown id renders invisible;
+if the `SEGMENTS` export ever disappears the extension falls back to the
+`ctx.ui.setStatus` hook-status row. (`setFooter`, pi's whole-footer escape
+hatch, is still a no-op.) Full audit and caveats:
+[plans/omp-fork-customization.md](../plans/omp-fork-customization.md).
 
 The stowed `cwd-name.ts` registers `cwd_name` the same way, on the right
 side: the launch folder's basename (worktrees as `project/worktree`, taken
@@ -481,11 +479,11 @@ Session controls worth knowing:
 <a id="nvim-bridge"></a>
 ## nvim bridge
 
-`~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside
-`turn-count.ts` and `cwd-name.ts`) is the sidekick attention bridge (running `»` / done `●`
+`~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`
+and `cwd-name.ts`) is the sidekick attention bridge (running `»` / done `●`
 marks in nvim's agent view). It's a port of the pi extension with two
-omp-specific remaps: omp has
-no `agent_settled` event, so it listens on `agent_end` gated by
+omp-specific remaps: omp has no `agent_settled` event, so it listens on
+`agent_end` gated by
 `!willContinue && ctx.isIdle() && !ctx.hasPendingMessages()`, and `ctx.hasUI`
 replaces pi's subagent env-var guard (omp task children run in-process).
 No `@narumitw` packages are installed for omp — everything they backport to

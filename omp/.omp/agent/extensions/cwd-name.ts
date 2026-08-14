@@ -12,11 +12,10 @@ type CtxLike = { worktree?: { projectName?: string; worktreeName?: string } };
  * shows which project it's in: the basename of the working directory, or
  * `project/worktree` when the segment context identifies a linked git
  * worktree. Registered through the live `SEGMENTS` record like
- * turn-count.ts; `setup-settings.sh` puts the id in `rightSegments`. Inside
- * an nvim sidekick terminal ($NVIM inherited) nvim already shows the
- * project, so skip registration — the configured id then renders invisible.
- * Theme is re-read per render (reassigned module var) and `fg` called as a
- * method (private fields); render guards its own throws.
+ * turn-count.ts (which documents the mechanism and the theme/render
+ * caveats followed here). Inside an nvim sidekick terminal ($NVIM
+ * inherited) nvim already shows the project, so skip registration — the
+ * configured id then renders invisible.
  */
 export default function cwdName(_pi: ExtensionAPI) {
   if (process.env.NVIM) return;
