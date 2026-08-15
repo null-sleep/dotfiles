@@ -117,7 +117,7 @@ In PR mode, read the comments and reviews collected in 0d. **Do not restate** is
 
 **Output format — numbered list, NOT a table** (so code blocks render correctly):
 
-```
+````
 ### Phase 1 findings
 
 #### 1. service/trade/foo.go:142 — Logic
@@ -129,7 +129,7 @@ In PR mode, read the comments and reviews collected in 0d. **Do not restate** is
 ```
 
 #### 2. ...
-```
+````
 
 Above the list, include a one-line **Scope** note: which dimensions you evaluated and which you skipped (and why), plus any files you skim-only flagged.
 
@@ -206,6 +206,6 @@ If no ticket was found, or the ticket description is still accurate, state that 
 ## Hard rules
 
 - All output goes to the user, never to GitHub
-- Never advance phases without user confirmation between them
+- Never advance to Phase 3 without explicit user confirmation (Phase 2 follows Phase 1 automatically)
 - Stacked PRs: review only the diff against the immediate parent, not the cumulative stack
 - If a fetch step (`gh`, `git`, ticket MCP) fails, stop and report — do not silently substitute
