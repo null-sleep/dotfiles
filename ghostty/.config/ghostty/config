@@ -40,7 +40,7 @@ mouse-hide-while-typing = true
 macos-option-as-alt = true
 
 # No true "unlimited" scrollback option — go large instead.
-scrollback-limit = 100000
+scrollback-limit = 300000
 
 # SSH shell integration: wraps the `ssh` command to forward env vars and
 # auto-install Ghostty's terminfo on the remote host. Only works for
