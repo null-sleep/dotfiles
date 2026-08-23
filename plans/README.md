@@ -340,6 +340,19 @@ off or delete them as they land; add new ones freely.
   alongside rtk on the same Claude pane (rtk hooks Claude's own PreToolUse
   Bash output; this operates at the terminal-pane layer, so they may not
   actually overlap — unverified) before enabling both.
+- [ ] **Sync Vorssaint settings across machines** — installed 2026-08-23
+  (README → "Vorssaint"); nothing is tracked yet. It keeps everything in the
+  plain `NSUserDefaults` domain `com.vorssaint.utils` (no sandbox container, no
+  `Application Support` dir), so stowing the plist under `~/Library/Preferences`
+  can't work: verified 2026-08-23 that the first `cfprefsd` write replaces the
+  symlink with a regular file and the repo copy never sees the change — reads
+  follow the symlink until then, so it looks managed right up to the moment it
+  silently detaches (same class as omp's `config.yml` above). Pick between the
+  app's own export/import (writes `Vorssaint Settings.plist`, GUI-only) and
+  `defaults export`/`import com.vorssaint.utils` in a
+  `vorssaint/setup-settings.sh`, on the `omp/`/`pi/` pattern. The domain is 16
+  real keys plus ~50 `featureAvailable.*` booleans and no secrets, so either is
+  repo-safe; the open cost is re-exporting after every settings change.
 
 ## Known fragility
 

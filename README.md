@@ -41,7 +41,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [Tabularis](#tabularis) — [MCP integration](#mcp-integration) · [viu](#viu) · [yknotify](#yknotify)
+- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [Tabularis](#tabularis) — [MCP integration](#mcp-integration) · [viu](#viu) · [Vorssaint](#vorssaint) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -2083,6 +2083,16 @@ brew install viu
 ```
 
 Terminal image viewer — no config, not a stow package. Renders images (PNG, JPEG, GIF, etc.) directly in terminals with graphics support, including Ghostty: `viu path/to/image.png`.
+
+## Vorssaint
+
+```bash
+brew install --cask vorssaint
+```
+
+Free, open-source ([GPL-3.0](https://github.com/vorssaint/vorssaint-utils)) macOS menu bar toolkit that bundles a pile of small utilities — keep-awake timer, CPU/GPU/memory/temperature monitor, per-app volume mixer and output switching, clipboard history, snippets, screenshots, color picker — each of which installs and uninstalls individually from the app's settings hub. Apple Silicon, macOS 14+.
+
+Nothing is tracked here: it has no dotfile, and its settings export to a file from within the app for machine-to-machine migration. Enable only the utilities you want — several overlap with macOS built-ins and with [`rcmd`](#rcmd)'s app switching.
 
 ## yknotify
 
