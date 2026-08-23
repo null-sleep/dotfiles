@@ -22,7 +22,7 @@ appSwitcher:
   appSwitcherFeatures: [runningApps, launchableApps, bottomActions]
   switcherScreenPlacement: {position: center, offsetX: 0, offsetY: 150}
   osdSize: {width: 600, height: 550}
-  actionKeys: {hideKey: minus, actionKey: equal, exposeKey: section, enableHideAndActionKeys: true}
+  actionKeys: {hideKey: minus, actionKey: equal, exposeKey: period, enableHideAndActionKeys: true}
   hideOnlyFocusedAppOnMinus: false
   appSort: name
   appSortReverse: false
@@ -81,7 +81,6 @@ general:
   focusBehaviourMulti: sameSpaceWindow
   focusOnKeyUp: false
   activationMode: onRelease
-  fuzzySearch: true
   searchMatchMode: anchored
   searchOptionalPrefixes:
   - google
