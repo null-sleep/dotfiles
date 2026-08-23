@@ -91,5 +91,33 @@
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "custom:active",
-  "editorMode": "normal"
+  "editorMode": "normal",
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: two checkouts of this dotfiles setup — `null-sleep/dotfiles` (PUBLIC, ~/src/dotfiles) and `null-sleep/dotfiles-bitgo` (private, ~/src/dotfiles-bitgo, a downstream fork). Which one is in play depends on the working directory; never assume the private one.",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: main (default); no classic branch protection listed, rulesets not queryable here — do not assume unprotected",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Source control**: the two dotfiles checkouts and their own remotes only — ~/src/dotfiles -> github.com:null-sleep/dotfiles.git (public), and ~/src/dotfiles-bitgo -> github.com:null-sleep/dotfiles-bitgo.git (private), which also carries the public repo as its `upstream` remote. Commits move one way, upstream -> fork, via the fork's sync-upstream skill; never push fork commits to the public remote.",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: personal dotfiles management (stow-managed configs for nvim, zsh, ghostty, claude, etc.) — hobby/personal use given max subscription posture",
+      "**Trusted repo**: whichever of the two dotfiles checkouts is the working directory, plus its own remotes (see Source control). Clearance differs by checkout and does NOT transfer between them: in the private fork, private visibility clears confidential material for commits/pushes; in the PUBLIC repo nothing confidential is cleared — anything committed there is published, including private repo names, local paths, and infrastructure detail. In both, secrets and personal/entrusted sensitive data are never cleared by visibility alone.",
+      "**Org-specific CLIs**: None configured — non-standard CLIs seen (claude, opencode, pi, rtk) are personal tooling from this dotfiles repo, not org-specific",
+      "**Routine operations**: editing, stowing, and committing config routine under this repo's stow packages (nvim, zsh, ghostty, claude, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents) is expected personal workflow"
+    ]
+  }
 }
