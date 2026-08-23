@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 SETTINGS="$ROOT/claude/.claude/settings.json"
 
 jq -e '
-  .model == "opusplan"
+  (.model | type) == "string"
   and .statusLine == {
     "type": "command",
     "command": "bash $HOME/.claude/statusline-command.sh"

@@ -310,11 +310,12 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 ### Recommended manual settings
 
 Preference keys (`model`, `effortLevel`, `tui`, `statusLine`, `theme`, and
-`enabledPlugins`) arrive with the stowed `settings.json`. The package pins a
-reviewed `model` default, asserted by `claude/tests/settings-invariants.sh`.
-Saving a model via `/model` writes through the stowed symlink, so expect this
-line to dirty the repo routinely: commit a keeper deliberately (updating the
-test's pin in the same change) or discard the diff. A checkout that needs a
+`enabledPlugins`) arrive with the stowed `settings.json`. `model` is whichever
+value was last committed; `claude/tests/settings-invariants.sh` asserts only
+that the key is present and a string, not which model it names. Saving a model
+via `/model` writes through the stowed symlink, so expect this line to dirty
+the repo routinely: commit a keeper deliberately or discard the diff — either
+way the test stays green, which is why it no longer pins an exact value. A checkout that needs a
 different user-wide configuration must maintain its own complete downstream
 version of the file; Claude Code does not support a machine-local
 user-settings overlay. One key stays a deliberate judgment call and is *not*
