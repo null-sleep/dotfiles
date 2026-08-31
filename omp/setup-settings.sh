@@ -45,7 +45,7 @@ cd "$(mktemp -d)"
 
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-5.6-terra:high",
-  "smol": "openrouter/openai/gpt-5.6-luna:high",
+  "smol": "openrouter/openai/gpt-5.6-luna:medium",
   "slow": "openrouter/openai/gpt-5.6-sol:xhigh",
   "vision": "openrouter/openai/gpt-5.6-luna:high",
   "plan": "openrouter/openai/gpt-5.6-terra:xhigh",

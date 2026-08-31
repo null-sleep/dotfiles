@@ -68,7 +68,7 @@ omp completions zsh    # shell completion script (bash/zsh/fish)
 Inside the TUI:
 
 - `/model` — switch model through the full menu.
-- `Ctrl+P` — cycle forward: `smol` (Luna/high) → `default` (Terra/high) →
+- `Ctrl+P` — cycle forward: `smol` (Luna/medium) → `default` (Terra/high) →
   `slow` (Sol/xhigh).
 - `Shift+Ctrl+P` — cycle the same presets backward.
 - `Alt+P` — temporarily pick any model for the current session.
@@ -80,6 +80,12 @@ Inside the TUI:
   (remaps live in `~/.omp/agent/keybindings.yml`).
 - `/login` — OAuth/key selector; `/login anthropic` jumps to one provider.
 - `/usage` — provider usage and limits.
+
+The zsh `ompf` alias starts a new Luna/medium session with OpenAI priority
+serving: `omp --model @smol --service-tier priority`. Inside an existing
+session, `/fast` toggles the same service tier independently of the model role;
+turn it off before switching to Terra or Sol unless they should also use the
+more expensive priority tier.
 
 Tool approval defaults to `yolo` (auto-approve everything). `--approval-mode
 always-ask|write|yolo` overrides per session; `tools.approvalMode` persists it.
@@ -324,7 +330,7 @@ leaves `designer` unset and seeds the operational roles:
 ```yaml
 modelRoles:
   default: openrouter/openai/gpt-5.6-terra:high
-  smol: openrouter/openai/gpt-5.6-luna:high
+  smol: openrouter/openai/gpt-5.6-luna:medium
   slow: openrouter/openai/gpt-5.6-sol:xhigh
   vision: openrouter/openai/gpt-5.6-luna:high
   plan: openrouter/openai/gpt-5.6-terra:xhigh

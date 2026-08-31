@@ -142,6 +142,7 @@ alias vi=nvim
 
 # Coding agents
 alias oc=opencode
+alias ompf='omp --model @smol --service-tier priority'
 
 # Exec the bundle's real executable, not the Homebrew shim that symlinks into it —
 # a symlinked exec never registers with LaunchServices, so rcmd can't see the window.
