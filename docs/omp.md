@@ -333,7 +333,7 @@ modelRoles:
   smol: openrouter/openai/gpt-5.6-luna:medium
   slow: openrouter/openai/gpt-5.6-sol:xhigh
   vision: openrouter/openai/gpt-5.6-luna:high
-  plan: openrouter/openai/gpt-5.6-terra:xhigh
+  plan: openrouter/openai/gpt-5.6-sol:high
   commit: openrouter/openai/gpt-5.6-luna:medium
   tiny: openrouter/openai/gpt-5.6-luna:low
   task: openrouter/openai/gpt-5.6-terra:medium

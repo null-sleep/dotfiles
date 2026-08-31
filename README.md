@@ -1261,8 +1261,9 @@ that would land in this repo. And `--no-folding` matters because all that
 runtime state lives in the same directory tree as the one stowed file.
 
 `setup-settings.sh` is **fill-in-only** for the GPT-5.6 `modelRoles` presets
-(Terra for everyday/planning/task work; Luna for lightweight, vision, commit,
-and advisor work; and Sol for the `slow` slot), `defaultThinkingLevel` (`medium`),
+(Terra for everyday/task work; Luna for lightweight, vision, commit, and
+advisor work; and Sol for planning and the `slow` slot),
+`defaultThinkingLevel` (`medium`),
 `startup.quiet` (`true`) — assignments or values you've since changed survive
 a re-run — and **forces** the repo-owned `smol` → `default` → `slow` model
 cycle, local project-summary memory, the theme pair and status line below, plus
