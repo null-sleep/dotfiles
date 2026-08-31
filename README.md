@@ -1260,13 +1260,15 @@ Much less than pi: no theme ports (omp built-ins are used — see
 that would land in this repo. And `--no-folding` matters because all that
 runtime state lives in the same directory tree as the one stowed file.
 
-`setup-settings.sh` is **fill-in-only** for `modelRoles.default`
-(`openrouter/anthropic/claude-sonnet-5`), `defaultThinkingLevel` (`medium`),
-and `startup.quiet` (`true`) — a value you've since changed survives a re-run
-— and **forces** the repo-owned policy: local project-summary memory, the theme
-pair and status line below, plus web search order (`perplexity`, then the
-keyless `public` tier) with the `anthropic` OAuth backend excluded even as a
-fallback.
+`setup-settings.sh` is **fill-in-only** for the GPT-5.6 `modelRoles` presets
+(Terra for everyday/planning/task work; Luna for lightweight, vision, commit,
+and advisor work; and Sol for the `slow` slot), `defaultThinkingLevel` (`medium`),
+`startup.quiet` (`true`) — assignments or values you've since changed survive
+a re-run — and **forces** the repo-owned `smol` → `default` → `slow` model
+cycle, local project-summary memory, the theme pair and status line below, plus
+web search order (`perplexity`, then
+the keyless `public` tier) with the `anthropic` OAuth backend excluded even as
+a fallback.
 
 #### Local memory
 

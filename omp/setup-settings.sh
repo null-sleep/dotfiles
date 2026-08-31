@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-time setup: seed this machine's ~/.omp/agent/config.yml with the repo's
-# omp defaults — the OpenRouter Sonnet default model role, thinking level,
+# omp defaults — OpenRouter GPT-5.6 role presets, fallback thinking level,
 # quiet startup, local memory, and the repo-owned theme/status-line look.
 #
 # config.yml is deliberately NOT stowed. omp *writes* to it: `/settings` edits,
@@ -8,16 +8,16 @@
 # of that straight into this repo — the same split as pi's settings.json. This
 # script drives `omp config` instead of editing the YAML directly.
 #
-# Idempotent: fill-in keys are only set when untouched, so a model or thinking
-# level you later change by hand survives a re-run. Untouched-detection:
-#   • modelRoles.default — key presence in the record (robust).
+# Idempotent: fill-in keys are only set when untouched, so model-role assignments
+# or settings you later change by hand survive a re-run. Untouched-detection:
+#   • modelRoles — each missing role key is seeded; existing assignments win.
 #   • defaultThinkingLevel / startup.quiet — current effective value equals the
 #     schema default ("high" / false). `omp config get` merges defaults, so an
 #     explicit hand-set schema default is indistinguishable from unset and gets
 #     our value; accepted tradeoff. Re-runs are no-ops because the seeded
 #     values differ from the schema defaults.
-# The memory backend, theme, status-line, and web-search keys are *forced*
-# (repo-owned, like pi's theme slot): drifted values are corrected.
+# The model cycle, memory backend, theme, status-line, and web-search keys are
+# *forced* (repo-owned, like pi's theme slot): drifted values are corrected.
 #
 # Usage:
 #   bash ~/src/dotfiles/omp/setup-settings.sh
@@ -43,17 +43,31 @@ fi
 # `theme` key shadows theme.dark). Writes always go to the global layer.
 cd "$(mktemp -d)"
 
-DEFAULT_MODEL="openrouter/anthropic/claude-sonnet-5"
+DEFAULT_ROLES='{
+  "default": "openrouter/openai/gpt-5.6-terra:high",
+  "smol": "openrouter/openai/gpt-5.6-luna:high",
+  "slow": "openrouter/openai/gpt-5.6-sol:xhigh",
+  "vision": "openrouter/openai/gpt-5.6-luna:high",
+  "plan": "openrouter/openai/gpt-5.6-terra:xhigh",
+  "commit": "openrouter/openai/gpt-5.6-luna:medium",
+  "tiny": "openrouter/openai/gpt-5.6-luna:low",
+  "task": "openrouter/openai/gpt-5.6-terra:medium",
+  "advisor": "openrouter/openai/gpt-5.6-luna:medium"
+}'
 
 get() { omp config get "$1" --json | jq -r '.value'; }
 
 # Fill-in-only defaults (see header for the untouched-detection rules).
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
-if [ "$(jq -r 'has("default")' <<<"$roles")" = "false" ]; then
-  omp config set modelRoles "$(jq -c --arg m "$DEFAULT_MODEL" '. + {default: $m}' <<<"$roles")"
+merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + .' <<<"$roles")"
+if [ "$merged_roles" != "$roles" ]; then
+  omp config set modelRoles "$merged_roles"
 else
-  echo "modelRoles.default already set — left as-is."
+  echo "modelRoles presets already set — left as-is."
 fi
+
+# Forced model-switcher policy: fast, balanced, then flagship.
+omp config set cycleOrder '["smol","default","slow"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium
@@ -95,7 +109,7 @@ omp config set memory.backend local
 
 echo
 echo "Resulting omp config:"
-for key in modelRoles defaultThinkingLevel startup.quiet memory.backend \
+for key in modelRoles cycleOrder defaultThinkingLevel startup.quiet memory.backend \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
   statusLine.segmentOptions \

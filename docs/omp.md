@@ -5,10 +5,10 @@ can1357's batteries-included fork of pi that trades pi's minimal core for one
 fat binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
 reference. Everything here was checked against omp 17.2.15 (brew,
-`can1357/tap`), its docs, and the repo-seeded config: OpenRouter Sonnet as
-the seeded default model role (fill-in — a hand-picked model survives
-re-runs), medium thinking, and the repo-owned theme/status-line/web-search
-policy forced by `omp/setup-settings.sh`.
+`can1357/tap`), its docs, and the repo-seeded config: OpenRouter GPT-5.6
+model-role presets with role-specific thinking levels, medium fallback
+thinking, and the repo-owned theme/status-line/web-search policy forced by
+`omp/setup-settings.sh`.
 
 ## Contents
 
@@ -67,9 +67,12 @@ omp completions zsh    # shell completion script (bash/zsh/fish)
 
 Inside the TUI:
 
-- `/model` — switch model. `Ctrl+P` / `Shift+Ctrl+P` — cycle the `cycleOrder`
-  roles (`smol` → `default` → `slow`). `Alt+P` — temporary pick for this
-  session; `Alt+M` — open the selector and assign roles.
+- `/model` — switch model through the full menu.
+- `Ctrl+P` — cycle forward: `smol` (Luna/high) → `default` (Terra/high) →
+  `slow` (Sol/xhigh).
+- `Shift+Ctrl+P` — cycle the same presets backward.
+- `Alt+P` — temporarily pick any model for the current session.
+- `Alt+M` — open the selector and assign models to roles.
 - `Shift+Tab` — cycle thinking level (`minimal` … `max`; this setup seeds
   `defaultThinkingLevel: medium`).
 - `Ctrl+O` — expand a tool-call row; `Ctrl+T` — toggle thinking blocks.
@@ -147,10 +150,11 @@ Finished agents idle, then park after a TTL — messaging them (Hub or the
 model's `hub` tool) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
-**Advisor**: set `modelRoles.advisor`, then `/advisor on` (or `--advisor`) —
-a second model passively reviews each completed turn and injects notes,
-interrupting only for concerns/blockers. Its transcripts show up in the Hub
-as read-only rows.
+**Advisor**: this setup assigns `openrouter/openai/gpt-5.6-luna:medium` to
+`modelRoles.advisor` but leaves `advisor.enabled` false. Opt in with
+`/advisor on` (or `--advisor`) when a second model passively reviewing each
+completed turn is worth the added usage. It injects notes, interrupts only
+for concerns/blockers, and appears in the Hub as a read-only row.
 
 <a id="code-intel"></a>
 ## Code intelligence — lsp, debug, hashline
@@ -314,19 +318,27 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 
 omp routes everything through **model roles** — ten built-ins: `default`,
 `smol`, `slow`, `vision`, `plan`, `designer`, `commit`, `tiny`, `task`,
-`advisor`. Unset roles fall back to `default`/the active model, so this
-setup configures exactly one:
+`advisor`. Unset roles fall back to `default`/the active model. This setup
+leaves `designer` unset and seeds the operational roles:
 
 ```yaml
 modelRoles:
-  default: openrouter/anthropic/claude-sonnet-5
+  default: openrouter/openai/gpt-5.6-terra:high
+  smol: openrouter/openai/gpt-5.6-luna:high
+  slow: openrouter/openai/gpt-5.6-sol:xhigh
+  vision: openrouter/openai/gpt-5.6-luna:high
+  plan: openrouter/openai/gpt-5.6-terra:xhigh
+  commit: openrouter/openai/gpt-5.6-luna:medium
+  tiny: openrouter/openai/gpt-5.6-luna:low
+  task: openrouter/openai/gpt-5.6-terra:medium
+  advisor: openrouter/openai/gpt-5.6-luna:medium
 ```
 
-Role values accept a thinking suffix (`slow:
-anthropic/claude-opus-4-5:high`). `cycleOrder` (default `[smol, default,
-slow]`) decides what `Ctrl+P` cycles through. Roles feed features
-automatically: `plan` for plan mode, `task` for subagents, `tiny`/`smol` for
-titles and background classification, `commit` for `omp commit`.
+Each existing assignment survives setup re-runs; only missing role keys are
+seeded. `cycleOrder` is pinned to `[smol, default, slow]`, the sequence used by
+`Ctrl+P`/`Shift+Ctrl+P`. Roles feed features automatically: `plan` for
+plan mode, `task` for subagents, `tiny`/`smol` for background work, and
+`commit` for `omp commit`.
 
 **Reading OpenRouter GPT-5.6 names.** The picker exposes OpenRouter's full
 catalog, so one base tier may appear four times. The axes are independent:
