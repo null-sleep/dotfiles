@@ -19,7 +19,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
-- [Codex CLI](#codex-cli)
+- [Codex CLI](#codex-cli) · [desktop app](#codex-desktop-app)
 - [Linear CLI & agent skill](#linear-cli-agent-skill)
 - [OpenRouter](#openrouter) — the model gateway behind the agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
@@ -955,6 +955,31 @@ machine-local state, and no `config.toml` setting is worth sharing across
 machines yet — the install and `codex login` above are the
 reproducible-on-a-new-machine record, as with the
 [Cursor CLI](#cursor-cli-cursor-agent).
+
+## Codex desktop app
+
+The Codex GUI, for driving cloud and local Codex tasks outside the terminal.
+**There is no standalone Codex app any more** — OpenAI merged it into the
+ChatGPT desktop app in July 2026, where Codex is one mode alongside Chat and
+Work. Homebrew's `codex-app` cask is deprecated and disabled from
+2027-07-12; install the merged app instead:
+
+```bash
+brew install --cask chatgpt
+```
+
+In the [`Brewfile`](Brewfile), so `brew bundle` covers it on a fresh machine.
+The app self-updates, so there is no `brew upgrade` step — unlike the
+[Codex CLI](#codex-cli) cask. Do **not** install `chatgpt-classic`; that cask
+is the old chat-only app, kept alive under a new name by the same merge.
+
+**It shares `~/.codex/` with the CLI.** The bundle ships its own copy of the
+`codex` binary (`ChatGPT.app/Contents/Resources/codex`, matching the CLI
+version) and honours `CODEX_HOME`, so one `config.toml` covers both, and the
+app writes its own state (sqlite DBs, `plugins/`, `skills/`) alongside the
+CLI's. Auth looks separate, though: signing into the app leaves the CLI
+reporting `Not logged in`, so run `codex login` too. Nothing here is stowed,
+for the same reason as the [Codex CLI](#codex-cli).
 
 ## OpenRouter
 

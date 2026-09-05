@@ -143,6 +143,10 @@ cask "typora"          # markdown editor (`typora` shell alias)
 cask "rustrover"       # JetBrains Rust IDE
 cask "cursor"          # Cursor AI code editor (the IDE). The cursor-agent CLI is
                        # separate and NOT brewable — see README → "Cursor CLI".
+cask "chatgpt"         # ChatGPT desktop app — also the Codex desktop app since
+                       # the two merged (the standalone `codex-app` cask is
+                       # discontinued). Shares ~/.codex auth with the Codex CLI
+                       # above — see README → "Codex desktop app".
 cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
