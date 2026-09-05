@@ -19,6 +19,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
+- [Codex CLI](#codex-cli)
 - [Linear CLI & agent skill](#linear-cli-agent-skill)
 - [OpenRouter](#openrouter) — the model gateway behind the agents below
 - [opencode](#opencode) — [Theme](#opencode-theme)
@@ -61,7 +62,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `codex login` ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -170,6 +171,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `nvim` → `:checkhealth` | treesitter, snacks, lsp, blink.cmp all green |
 | Claude Code | statusline renders; theme is Catppuccin Latte ([Claude Code](#claude-code)) |
 | `cursor-agent` | statusline renders (model / ctx% / CH% / growth bars) ([Cursor CLI](#cursor-cli-cursor-agent)) |
+| `codex exec "say ok"` | answers via the signed-in OpenAI account ([Codex CLI](#codex-cli)) |
 | `printenv OPENROUTER_API_KEY` | prints a key ([OpenRouter](#openrouter)) |
 | `opencode run "say ok"` | answers via OpenRouter ([opencode](#opencode)) |
 | `pi -p "say ok"` | answers via OpenRouter ([pi](#pi)) |
@@ -919,6 +921,40 @@ no needs-input hook exists in its vocabulary. Verified 2026-08-10 against
 
 The Cursor **IDE** (separate from this CLI) is the `cursor` cask in the
 [`Brewfile`](Brewfile).
+
+## Codex CLI
+
+[Codex](https://github.com/openai/codex) — OpenAI's terminal coding agent, a
+peer to the [Claude Code](#claude-code) and
+[Cursor](#cursor-cli-cursor-agent) CLIs. Run as `codex` (TUI),
+`codex exec "<prompt>"` for one-shot, or `codex review` for a
+non-interactive review pass.
+
+```bash
+brew install --cask codex
+```
+
+In the [`Brewfile`](Brewfile), so `brew bundle` covers it on a fresh machine.
+A cask rather than the npm package, so brew owns the binary: upgrade with
+`brew upgrade --cask codex`. `codex doctor` reports the detected install
+method and flags a mismatch if a second copy ever lands on `PATH`.
+
+**Sign in** (one-time, interactive — ChatGPT sign-in or an API key):
+
+```bash
+codex login
+```
+
+Unlike [opencode](#opencode), [pi](#pi), and [omp](#omp), Codex is not
+[OpenRouter](#openrouter)-backed — it authenticates against an OpenAI account
+and stores the result in `~/.codex/auth.json`.
+
+**Nothing under `~/.codex/` is stowed**, so there is no `codex` stow package.
+The directory mixes credentials (`auth.json`) with session history and
+machine-local state, and no `config.toml` setting is worth sharing across
+machines yet — the install and `codex login` above are the
+reproducible-on-a-new-machine record, as with the
+[Cursor CLI](#cursor-cli-cursor-agent).
 
 ## OpenRouter
 

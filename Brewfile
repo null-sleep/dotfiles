@@ -85,6 +85,14 @@ brew "lua-language-server"
 cask "claude-code@latest"
 
 #-----------------------------------------------------------------------------
+# Codex CLI — OpenAI's terminal coding agent, a peer to Claude Code. Cask, not
+# npm, so brew owns the binary: upgrade with `brew upgrade --cask codex`.
+# Auth is an OpenAI account (`codex login`), not OpenRouter — README → "Codex
+# CLI".
+#-----------------------------------------------------------------------------
+cask "codex"
+
+#-----------------------------------------------------------------------------
 # OpenRouter-backed coding agents. opencode and omp both read
 # OPENROUTER_API_KEY from the environment (README → "OpenRouter"). The other
 # agent, pi, is npm-only — see the header note.
