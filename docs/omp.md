@@ -5,8 +5,8 @@ can1357's batteries-included fork of pi that trades pi's minimal core for one
 fat binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
 reference. Everything here was checked against omp 18.1.8 (brew,
-`can1357/tap`), its docs, and the repo-seeded config: OpenRouter GPT-5.6
-model-role presets with role-specific thinking levels, medium fallback
+`can1357/tap`), its docs, and the repo-seeded config: OpenRouter and OpenAI
+Codex model-role presets with role-specific thinking levels, medium fallback
 thinking, and the repo-owned theme/status-line/web-search policy forced by
 `omp/setup-settings.sh`.
 
@@ -322,29 +322,35 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 <a id="models"></a>
 ## Providers and model roles
 
-omp routes everything through **model roles** — ten built-ins: `default`,
-`smol`, `slow`, `vision`, `plan`, `designer`, `commit`, `tiny`, `task`,
-`advisor`. Unset roles fall back to `default`/the active model. This setup
-leaves `designer` unset and seeds the operational roles:
+omp routes everything through **model roles**. The default is OpenRouter Terra
+at high thinking; built-in roles feed features such as plan mode, subagents,
+background work, and `omp commit`. This setup also defines six custom roles
+used only as switchable presets:
 
 ```yaml
 modelRoles:
   default: openrouter/openai/gpt-5.6-terra:high
-  smol: openrouter/openai/gpt-5.6-luna:medium
+  smol: openrouter/openai/gpt-5.6-luna:xhigh
   slow: openrouter/openai/gpt-5.6-sol:xhigh
-  vision: openrouter/openai/gpt-5.6-luna:high
+  vision: openrouter/openai/gpt-5.6-terra:high
   plan: openrouter/openai/gpt-5.6-sol:high
   commit: openrouter/openai/gpt-5.6-luna:medium
   tiny: openrouter/openai/gpt-5.6-luna:low
   task: openrouter/openai/gpt-5.6-terra:medium
   advisor: openrouter/openai/gpt-5.6-luna:medium
+  med-vision: openrouter/openai/gpt-5.6-terra:high
+  oa-s: openai-codex/gpt-5.6-luna:high
+  oa-m: openai-codex/gpt-5.6-terra:high
+  oa-l: openai-codex/gpt-5.6-sol:xhigh
+  glm-l: openrouter/z-ai/glm-5.3:max
+  glm-fast: openrouter/z-ai/glm-5.3-flash:max
 ```
 
-Each existing assignment survives setup re-runs; only missing role keys are
-seeded. `cycleOrder` is pinned to `[smol, default, slow]`, the sequence used by
-`Ctrl+P`/`Shift+Ctrl+P`. Roles feed features automatically: `plan` for
-plan mode, `task` for subagents, `tiny`/`smol` for background work, and
-`commit` for `omp commit`.
+Existing assignments survive setup re-runs; only missing role and tag keys are
+seeded. `cycleOrder` is pinned to `smol`, `default`, `slow`, `tiny`,
+`med-vision`, `oa-s`, `oa-m`, `oa-l`, `glm-l`, `glm-fast`. `Ctrl+P` cycles that
+sequence; `Alt+O` opens the extension's fuzzy picker over the same effective
+configuration and applies the selected role's model and thinking suffix.
 
 **Reading OpenRouter GPT-5.6 names.** The picker exposes OpenRouter's full
 catalog, so one base tier may appear four times. The axes are independent:

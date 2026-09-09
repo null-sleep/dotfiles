@@ -1322,16 +1322,15 @@ Much less than pi: no theme ports (omp built-ins are used — see
 that would land in this repo. And `--no-folding` matters because all that
 runtime state lives in the same directory tree as the one stowed file.
 
-`setup-settings.sh` is **fill-in-only** for the GPT-5.6 `modelRoles` presets
-(Terra for everyday/task work; Luna for lightweight, vision, commit, and
-advisor work; and Sol for planning and the `slow` slot),
-`defaultThinkingLevel` (`medium`),
-`startup.quiet` (`true`) — assignments or values you've since changed survive
-a re-run — and **forces** the repo-owned `smol` → `default` → `slow` model
-cycle, local project-summary memory, the theme pair and status line below, plus
-web search order (`perplexity`, then
-the keyless `public` tier) with the `anthropic` OAuth backend excluded even as
-a fallback.
+`setup-settings.sh` is **fill-in-only** for the built-in and custom
+`modelRoles`/`modelTags` presets, including OpenRouter Terra at high thinking
+as the default model, and for `defaultThinkingLevel` (`medium`) and
+`startup.quiet` (`true`): assignments or values changed later survive a
+re-run. It **forces** the repo-owned ten-preset model cycle used by
+`Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O` fuzzy picker, local
+project-summary memory, the theme pair and status line below, plus web search
+order (`perplexity`, then the keyless `public` tier) with the `anthropic` OAuth
+backend excluded even as a fallback.
 
 #### Local memory
 

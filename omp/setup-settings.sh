@@ -1,21 +1,21 @@
 #!/bin/bash
 # One-time setup: seed this machine's ~/.omp/agent/config.yml with the repo's
-# omp defaults — OpenRouter GPT-5.6 role presets, fallback thinking level,
-# quiet startup, local memory, and the repo-owned theme/status-line look.
+# OpenRouter and OpenAI Codex model presets, fallback thinking level, quiet
+# startup, local memory, and the repo-owned theme/status-line look.
 #
 # config.yml is deliberately NOT stowed. omp *writes* to it: `/settings` edits,
 # migrations, and runtime state land there, so a stowed symlink would send all
 # of that straight into this repo — the same split as pi's settings.json. This
 # script drives `omp config` instead of editing the YAML directly.
 #
-# Idempotent: fill-in keys are only set when untouched, so model-role assignments
-# or settings you later change by hand survive a re-run. Untouched-detection:
-#   • modelRoles — each missing role key is seeded; existing assignments win.
+# Idempotent: fill-in keys are only set when untouched, so model-role and
+# model-tag assignments or settings you later change by hand survive a re-run.
+# Untouched-detection:
+#   • modelRoles / modelTags — each missing key is seeded; existing values win.
 #   • defaultThinkingLevel / startup.quiet — current effective value equals the
 #     schema default ("high" / false). `omp config get` merges defaults, so an
 #     explicit hand-set schema default is indistinguishable from unset and gets
-#     our value; accepted tradeoff. Re-runs are no-ops because the seeded
-#     values differ from the schema defaults.
+#     our value; accepted tradeoff. Re-runs are no-ops after seeding.
 # The model cycle, memory backend, theme, status-line, and web-search keys are
 # *forced* (repo-owned, like pi's theme slot): drifted values are corrected.
 #
@@ -45,14 +45,28 @@ cd "$(mktemp -d)"
 
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-5.6-terra:high",
-  "smol": "openrouter/openai/gpt-5.6-luna:medium",
+  "smol": "openrouter/openai/gpt-5.6-luna:xhigh",
   "slow": "openrouter/openai/gpt-5.6-sol:xhigh",
-  "vision": "openrouter/openai/gpt-5.6-luna:high",
+  "vision": "openrouter/openai/gpt-5.6-terra:high",
   "plan": "openrouter/openai/gpt-5.6-sol:high",
   "commit": "openrouter/openai/gpt-5.6-luna:medium",
   "tiny": "openrouter/openai/gpt-5.6-luna:low",
   "task": "openrouter/openai/gpt-5.6-terra:medium",
-  "advisor": "openrouter/openai/gpt-5.6-luna:medium"
+  "advisor": "openrouter/openai/gpt-5.6-luna:medium",
+  "med-vision": "openrouter/openai/gpt-5.6-terra:high",
+  "oa-s": "openai-codex/gpt-5.6-luna:high",
+  "oa-m": "openai-codex/gpt-5.6-terra:high",
+  "oa-l": "openai-codex/gpt-5.6-sol:xhigh",
+  "glm-l": "openrouter/z-ai/glm-5.3:max",
+  "glm-fast": "openrouter/z-ai/glm-5.3-flash:max"
+}'
+DEFAULT_MODEL_TAGS='{
+  "med-vision": {"name": "med-vision"},
+  "oa-s": {"name": "oa-s"},
+  "oa-m": {"name": "oa-m"},
+  "oa-l": {"name": "oa-l"},
+  "glm-l": {"name": "glm-l"},
+  "glm-fast": {"name": "glm-fast"}
 }'
 
 get() { omp config get "$1" --json | jq -r '.value'; }
@@ -66,8 +80,16 @@ else
   echo "modelRoles presets already set — left as-is."
 fi
 
-# Forced model-switcher policy: fast, balanced, then flagship.
-omp config set cycleOrder '["smol","default","slow"]'
+# Forced model-switcher policy. Alt+O opens a fuzzy picker over this list.
+tags="$(omp config get modelTags --json | jq -c '.value // {}')"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + .' <<<"$tags")"
+if [ "$merged_tags" != "$tags" ]; then
+  omp config set modelTags "$merged_tags"
+else
+  echo "modelTags presets already set — left as-is."
+fi
+
+omp config set cycleOrder '["smol","default","slow","tiny","med-vision","oa-s","oa-m","oa-l","glm-l","glm-fast"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium
@@ -109,7 +131,7 @@ omp config set memory.backend local
 
 echo
 echo "Resulting omp config:"
-for key in modelRoles cycleOrder defaultThinkingLevel startup.quiet memory.backend \
+for key in modelRoles modelTags cycleOrder defaultThinkingLevel startup.quiet memory.backend \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
   statusLine.segmentOptions \
