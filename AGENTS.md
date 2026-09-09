@@ -1,7 +1,7 @@
 # dotfiles
 
 Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, macos, rcmd,
-zellij, Codex, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents
+zellij, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents
 (`pi` stows
 its theme palettes and the minimal `Codex-footer.ts` extension — pi writes to
 its own settings.json, so that stays machine-local; `omp` stows only its

@@ -62,7 +62,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -944,6 +944,18 @@ method and flags a mismatch if a second copy ever lands on `PATH`.
 ```bash
 codex login
 ```
+
+**RTK instructions** (one-time, after `brew bundle` installs `rtk`):
+
+```bash
+rtk init -g --codex
+```
+
+This is Codex's supported instruction-only integration. It creates the
+machine-local `~/.codex/RTK.md` and references it from
+`~/.codex/AGENTS.md`; verify it with `rtk init -g --codex --show`. Do not add
+`rtk hook claude` to `~/.codex/hooks.json`: that hook speaks Claude's
+`PreToolUse` protocol, and Codex rejects its command-rewrite response.
 
 Unlike [opencode](#opencode), [pi](#pi), and [omp](#omp), Codex is not
 [OpenRouter](#openrouter)-backed — it authenticates against an OpenAI account
