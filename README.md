@@ -951,11 +951,14 @@ codex login
 rtk init -g --codex
 ```
 
-This is Codex's supported instruction-only integration. It creates the
+This is RTK's [supported Codex integration](https://github.com/rtk-ai/rtk/blob/master/docs/guide/getting-started/supported-agents.md#codex-cli):
+prompt-level instructions, not a programmatic hook. It creates the
 machine-local `~/.codex/RTK.md` and references it from
-`~/.codex/AGENTS.md`; verify it with `rtk init -g --codex --show`. Do not add
-`rtk hook claude` to `~/.codex/hooks.json`: that hook speaks Claude's
-`PreToolUse` protocol, and Codex rejects its command-rewrite response.
+`~/.codex/AGENTS.md`; verify it with `rtk init -g --codex --show`. Because
+Codex has no RTK hook, `rtk gain` may still warn `No hook installed` even when
+this setup is correct. Do not add `rtk hook claude` to
+`~/.codex/hooks.json`: that hook speaks Claude's `PreToolUse` protocol, and
+Codex rejects its command-rewrite response.
 
 Unlike [opencode](#opencode), [pi](#pi), and [omp](#omp), Codex is not
 [OpenRouter](#openrouter)-backed — it authenticates against an OpenAI account
