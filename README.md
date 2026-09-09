@@ -62,7 +62,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); `codex login` ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -949,11 +949,25 @@ Unlike [opencode](#opencode), [pi](#pi), and [omp](#omp), Codex is not
 [OpenRouter](#openrouter)-backed — it authenticates against an OpenAI account
 and stores the result in `~/.codex/auth.json`.
 
+**Permissions** — this setup gives Codex the same effective host access as the
+Claude Code configuration in this repo. Add these top-level keys to
+`~/.codex/config.toml`, then restart Codex:
+
+```toml
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+```
+
+Claude's project allowlist includes unrestricted shell interpreters (`bash`,
+`zsh -c`, and `python3`) and home-directory reads, so its named-command policy
+can already perform arbitrary host operations. Codex expresses that policy as
+full host access with approval prompts disabled.
+
 **Nothing under `~/.codex/` is stowed**, so there is no `codex` stow package.
 The directory mixes credentials (`auth.json`) with session history and
-machine-local state, and no `config.toml` setting is worth sharing across
-machines yet — the install and `codex login` above are the
-reproducible-on-a-new-machine record, as with the
+machine-local state. The permission policy above is documented rather than
+stowed so it can be deliberately enabled per machine; the install, login, and
+permission steps are the reproducible-on-a-new-machine record, as with the
 [Cursor CLI](#cursor-cli-cursor-agent).
 
 ## Codex desktop app
