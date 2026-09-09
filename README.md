@@ -109,7 +109,7 @@ stow --no-folding agents     # shared Agent Skills, including linear-cli
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
-stow --no-folding omp        # three extensions; config.yml stays machine-local — see the omp section
+stow --no-folding omp        # four extensions; config.yml stays machine-local — see the omp section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
@@ -1305,13 +1305,14 @@ designated-owner convention as brew for [opencode](#opencode) and npm for pi.
 ### What's managed
 
 Much less than pi: no theme ports (omp built-ins are used — see
-[Theme](#omp-theme)) and no extension installs (built in — see above).
+[Theme](#omp-theme)) and only four focused extensions.
 
 | File | Method |
 |---|---|
 | `~/.omp/agent/extensions/nvim-notify.ts` | Symlinked via stow (`--no-folding`); agent-view attention bridge |
 | `~/.omp/agent/extensions/turn-count.ts` | Symlinked via stow (`--no-folding`); turn count + context-growth bars as a native status-line segment |
 | `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
+| `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
 | `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
 | everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |

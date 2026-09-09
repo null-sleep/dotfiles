@@ -4,7 +4,7 @@ How to actually use [omp](https://github.com/can1357/oh-my-pi) (Oh My Pi),
 can1357's batteries-included fork of pi that trades pi's minimal core for one
 fat binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
-reference. Everything here was checked against omp 17.2.15 (brew,
+reference. Everything here was checked against omp 18.1.8 (brew,
 `can1357/tap`), its docs, and the repo-seeded config: OpenRouter GPT-5.6
 model-role presets with role-specific thinking levels, medium fallback
 thinking, and the repo-owned theme/status-line/web-search policy forced by
@@ -68,10 +68,10 @@ omp completions zsh    # shell completion script (bash/zsh/fish)
 Inside the TUI:
 
 - `/model` — switch model through the full menu.
-- `Ctrl+P` — cycle forward: `smol` (Luna/medium) → `default` (Terra/high) →
-  `slow` (Sol/xhigh).
-- `Shift+Ctrl+P` — cycle the same presets backward.
-- `Alt+P` — temporarily pick any model for the current session.
+- `Ctrl+P` / `Shift+Ctrl+P` — cycle the configured presets forward/backward.
+- `Alt+O` — open a fuzzy-searchable picker containing only those cycle
+  presets; selection applies both the model and its configured thinking level.
+- `Alt+P` — temporarily pick any available model for the current session.
 - `Alt+M` — open the selector and assign models to roles.
 - `Shift+Tab` — cycle thinking level (`minimal` … `max`; this setup seeds
   `defaultThinkingLevel: medium`).
