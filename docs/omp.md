@@ -352,6 +352,29 @@ seeded. `cycleOrder` is pinned to `smol`, `default`, `slow`, `tiny`,
 sequence; `Alt+O` opens the extension's fuzzy picker over the same effective
 configuration and applies the selected role's model and thinking suffix.
 
+Both GLM selectors also get model-specific automatic fallback chains, seeded
+fill-in-only so later hand edits survive setup re-runs:
+
+```yaml
+retry:
+  fallbackChains:
+    openrouter/z-ai/glm-5.3:
+      - openrouter/deepseek/deepseek-v4-pro-0813:max
+      - openrouter/qwen/qwen3.8-max:xhigh
+      - openai-codex/gpt-5.6-terra:high
+    openrouter/z-ai/glm-5.3-flash:
+      - openrouter/deepseek/deepseek-v4-flash-0731:max
+      - openrouter/qwen/qwen3.8-flash:high
+      - openai-codex/gpt-5.6-luna:high
+```
+
+`retry.modelFallback` is on by default. Model-selector keys apply whenever
+that exact GLM model is active, regardless of which role selected it. The
+first two alternatives preserve the OpenRouter path while moving off Z.AI;
+the final OpenAI Codex entry also escapes an OpenRouter-wide limit. The default
+`cooldown-expiry` revert policy returns to GLM after its suppression window
+ends. Unavailable providers or models are skipped.
+
 **Reading OpenRouter GPT-5.6 names.** The picker exposes OpenRouter's full
 catalog, so one base tier may appear four times. The axes are independent:
 

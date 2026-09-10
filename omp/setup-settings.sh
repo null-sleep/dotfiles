@@ -1,17 +1,18 @@
 #!/bin/bash
 # One-time setup: seed this machine's ~/.omp/agent/config.yml with the repo's
-# OpenRouter and OpenAI Codex model presets, fallback thinking level, quiet
-# startup, local memory, and the repo-owned theme/status-line look.
+# OpenRouter and OpenAI Codex model presets, GLM rate-limit fallback chains,
+# fallback thinking level, quiet startup, local memory, and the repo-owned theme/status-line look.
 #
 # config.yml is deliberately NOT stowed. omp *writes* to it: `/settings` edits,
 # migrations, and runtime state land there, so a stowed symlink would send all
 # of that straight into this repo — the same split as pi's settings.json. This
 # script drives `omp config` instead of editing the YAML directly.
 #
-# Idempotent: fill-in keys are only set when untouched, so model-role and
-# model-tag assignments or settings you later change by hand survive a re-run.
+# Idempotent: fill-in keys are only set when untouched, so assignments or
+# settings you later change by hand survive a re-run.
 # Untouched-detection:
-#   • modelRoles / modelTags — each missing key is seeded; existing values win.
+#   • modelRoles / modelTags / retry.fallbackChains — each missing key is
+#     seeded; existing values win.
 #   • defaultThinkingLevel / startup.quiet — current effective value equals the
 #     schema default ("high" / false). `omp config get` merges defaults, so an
 #     explicit hand-set schema default is indistinguishable from unset and gets
@@ -69,6 +70,19 @@ DEFAULT_MODEL_TAGS='{
   "glm-fast": {"name": "glm-fast"}
 }'
 
+DEFAULT_FALLBACK_CHAINS='{
+  "openrouter/z-ai/glm-5.3": [
+    "openrouter/deepseek/deepseek-v4-pro-0813:max",
+    "openrouter/qwen/qwen3.8-max:xhigh",
+    "openai-codex/gpt-5.6-terra:high"
+  ],
+  "openrouter/z-ai/glm-5.3-flash": [
+    "openrouter/deepseek/deepseek-v4-flash-0731:max",
+    "openrouter/qwen/qwen3.8-flash:high",
+    "openai-codex/gpt-5.6-luna:high"
+  ]
+}'
+
 get() { omp config get "$1" --json | jq -r '.value'; }
 
 # Fill-in-only defaults (see header for the untouched-detection rules).
@@ -80,7 +94,6 @@ else
   echo "modelRoles presets already set — left as-is."
 fi
 
-# Forced model-switcher policy. Alt+O opens a fuzzy picker over this list.
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
 merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + .' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
@@ -89,6 +102,15 @@ else
   echo "modelTags presets already set — left as-is."
 fi
 
+fallback_chains="$(omp config get retry.fallbackChains --json | jq -c '.value // {}')"
+merged_fallback_chains="$(jq -c --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '$defaults + .' <<<"$fallback_chains")"
+if [ "$merged_fallback_chains" != "$fallback_chains" ]; then
+  omp config set retry.fallbackChains "$merged_fallback_chains"
+else
+  echo "retry.fallbackChains presets already set — left as-is."
+fi
+
+# Forced model-switcher policy. Alt+O opens a fuzzy picker over this list.
 omp config set cycleOrder '["smol","default","slow","tiny","med-vision","oa-s","oa-m","oa-l","glm-l","glm-fast"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
@@ -131,11 +153,12 @@ omp config set memory.backend local
 
 echo
 echo "Resulting omp config:"
-for key in modelRoles modelTags cycleOrder defaultThinkingLevel startup.quiet memory.backend \
+for key in modelRoles modelTags retry.fallbackChains cycleOrder \
+  defaultThinkingLevel startup.quiet memory.backend \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
-  statusLine.segmentOptions \
-  providers.webSearchOrder providers.webSearchExclude; do
+  statusLine.segmentOptions providers.webSearchOrder \
+  providers.webSearchExclude; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done
 
