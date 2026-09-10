@@ -140,3 +140,25 @@ be rare now that README no longer carries its own keymap tables.
 - The `## Contents` TOC, when adding/removing/renaming a top-level section.
 - `## Quick start`'s numbered steps and inline links, if a Part 1 section's
   flow changes.
+
+## Commit identity: `dhruvjhr@gmail.com`, unsigned
+
+Commits to this repo are authored as **`dhruvjhr@gmail.com`** and are **not**
+GPG-signed. The checkout sets this as local config, so a plain `git commit` is
+already correct — do not pass author or signing flags to override it.
+
+**Why:** that is the personal identity this repo's history uses, and the
+machine's global identity may be a different address that should not appear
+here. Signing is left on globally; this repo is the deliberate exception,
+because a GPG key whose only UID is that other address cannot sign a commit
+authored as this one.
+
+**How to apply:**
+
+- Never "fix" a missing signature here by switching the author address, and
+  never disable signing in another repository to match this one.
+- If a commit lands with the wrong address (a fresh clone inherits the global
+  config, since local config is not cloned), re-apply
+  `git config --local user.email "dhruvjhr@gmail.com"` and
+  `git config --local commit.gpgsign false`, then amend if it is unpushed.
+- See README's [Commit identity in this repo](README.md#commit-identity-in-this-repo).

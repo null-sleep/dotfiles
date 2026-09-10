@@ -1996,6 +1996,30 @@ git config --global push.autoSetupRemote true
 git config --global remote.pushDefault origin
 ```
 
+<a id="commit-identity-in-this-repo"></a>
+### Commit identity in this repo
+
+**Commit here as `dhruvjhr@gmail.com`, unsigned.** That is the personal
+identity this repo's history uses. If the machine's global `user.email` is a
+different address (a work one, say), it should not end up in these commits, so
+the checkout carries the identity as local config — a plain `git commit` then
+does the right thing with no flags:
+
+```bash
+git config --local user.email "dhruvjhr@gmail.com"
+git config --local commit.gpgsign false
+```
+
+Re-apply both lines in a fresh clone: local config is not cloned, so a new
+checkout silently inherits whatever the global identity is.
+
+**Why unsigned:** commit signing is worth leaving on globally, but a GPG key
+whose only UID is a different address cannot sign a commit authored as this
+one — so this repo is the deliberate exception. Don't switch the author address
+here to regain a signature, and don't disable signing elsewhere to match. Add a
+matching UID to the key (`gpg --edit-key`, `adduid`) if you want signed commits
+here, then drop the `commit.gpgsign false` line.
+
 `gh`, the GitHub CLI (`brew "gh"` in the [`Brewfile`](Brewfile)), also needs a
 one-time auth per machine:
 
