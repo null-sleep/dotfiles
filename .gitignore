@@ -4,9 +4,19 @@
 # settings.local.json (per-machine personal overrides) stays ignored via the rule below.
 /.claude/worktrees/
 
+# Stop-hook audit records written per session by the agentic harness.
+/.claude/harness-runs/
+
 # Per-machine Claude Code local settings, wherever they appear (e.g. nvim/.config/nvim/.claude/).
 # Kept explicit so it survives the root-anchoring above and on machines without a global gitignore.
 **/.claude/settings.local.json
+
+# review-pr's active variant: a machine-local symlink to a tracked SKILL.*.md,
+# created by claude/setup-review-pr.sh. Deliberately untracked so stow and git
+# pull can never overwrite a per-machine choice — ignored here so the expected
+# symlink doesn't sit in `git status` forever. See README's "Which review skill
+# wins".
+/claude/.claude/skills/review-pr/SKILL.md
 
 # Finder drops these on any visited directory; no global excludesfile is
 # assumed (see the Claude comment above about machines without one).
