@@ -283,7 +283,7 @@ or hooks already there coexist untouched. Without it, stow would replace a
 non-existent `~/.claude/themes/` with a single directory symlink (a "fold"),
 which can't hold local files alongside the synced ones.
 
-The setup scripts are idempotent. `setup-settings.sh` is the only script that changes the deployment of `settings.json`: it validates that the live symlink belongs to the checkout running the script, safely backs up and replaces a semantically identical regular file, and refuses a divergent file unless its exact reviewed SHA-256 is supplied. The other scripts never modify tracked settings. `setup-statusline.sh` validates the canonical status line, `setup-theme.sh` validates `custom:active` and seeds `~/.claude/themes/active.json`, and `setup-lsp-plugins.sh` validates the plugin keys and reports missing server binaries. `setup-review-pr.sh` symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` (see [What's managed](#whats-managed) below).
+The setup scripts are idempotent. `setup-settings.sh` is the only script that changes the deployment of `settings.json`: it validates that the live symlink belongs to the checkout running the script, safely backs up and replaces a semantically identical regular file, and refuses a divergent file unless its exact reviewed SHA-256 is supplied. The other scripts never modify tracked settings. `setup-statusline.sh` validates the canonical status line, `setup-theme.sh` validates `custom:active` and seeds `~/.claude/themes/active.json`, and `setup-lsp-plugins.sh` validates the plugin keys and reports missing server binaries. `setup-review-pr.sh` symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` and links that skill into the other agent hosts (see [What's managed](#whats-managed) below and [Which review skill wins](#which-review-skill-wins)).
 
 If `setup-settings.sh` reports a divergent regular file, reconcile its contents into this checkout's tracked file first. Re-run the command it prints only after reviewing that exact SHA-256; the script rechecks the hash immediately before backing up the regular file and creating the Stow link, and restores the original automatically if linking fails. It never uses `stow --adopt`, which has the opposite ownership direction and can overwrite the package copy.
 
@@ -297,6 +297,9 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 | `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/review-pr/SKILL.generic.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
+| `~/.agents/skills/review-pr`, `~/.codex/skills/review-pr`, `~/.omp/agent/memories/*/skills/review-pr` | **Not** stowed — machine-local symlinks to the skill directory, created by `setup-review-pr.sh` so every agent host loads the same skill |
+| `~/.claude/REVIEW.md` | Symlinked via stow (`--no-folding`) — the review-skill precedence rules. The `@REVIEW.md` line that loads it in `~/.claude/CLAUDE.md` is **not** stowed (that file is machine-local), so add it by hand on a new machine |
+| `~/.codex/AGENTS.md` | **Not** stowed — machine-local; carries the same rules for Codex, which has no `@`-include |
 | `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/skills/linear-cli` | Symlinked by `setup-linear-cli.sh` to the vendored `~/.agents/skills/linear-cli`; no marketplace plugin or MCP |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
@@ -308,6 +311,30 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 `settings.json` **is stowed** (adopted 2026-08 so its preferences and guarded hook registrations sync across machines). Claude Code has no user-global `~/.claude/settings.local.json` override: `.claude/settings.local.json` is project-local. This package therefore assumes its user settings are shared by every machine using that checkout. User-scope changes made by `/config`, `/model`, or plugin commands are repository changes; afterward, verify the symlink with `setup-settings.sh --check` and review the Git diff. Put genuinely project-specific permissions in that project's `.claude/settings.local.json`.
 
 **`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
+
+<a id="which-review-skill-wins"></a>
+**Which review skill wins:** `review-pr` is the personal review flow for every
+agent, and `claude/REVIEW.md` is the tracked rule that says so. The same script
+links the skill directory into each host — `~/.agents/skills` (the cross-tool
+standard path Cursor, pi, omp, and OpenCode read), `~/.codex/skills`, and every
+existing `~/.omp/agent/memories/*/skills` (omp scopes skills per project, so
+there is no single path — an omp project created later needs a re-run). One
+file, the `SKILL.md` symlink, is what all of them load. The rules reach each
+tool through `~/.claude/REVIEW.md` (`@`-included by `~/.claude/CLAUDE.md`),
+`~/.codex/AGENTS.md`, and omp's per-project memory.
+
+This needs guarding because a third-party skill of the same name silently wins
+otherwise. Installing one — `warpdotdev/common-skills` ships a `review-pr` that
+emits a `review.json` for a CI pipeline — replaces `~/.claude/skills/review-pr`,
+the stow symlink, with a link into `~/.agents/skills/review-pr`, so Claude loads
+that skill instead of this one with no error and no change to any tracked file.
+`setup-review-pr.sh` therefore verifies `~/.claude/skills/review-pr` still
+resolves into this checkout before writing to it, moves any non-symlink
+`review-pr` it finds in a host directory aside to `review-pr.disabled` rather
+than overwriting it, and reports when it repoints a hijacked link. Project
+checkouts keep their own tracked `review-pr` / `code-review` skills — those are
+shared with a project's contributors and are left alone, so the precedence rule
+in `REVIEW.md` is what keeps them from being picked.
 
 ### Recommended manual settings
 
@@ -433,6 +460,10 @@ to (re)create the `SKILL.md` symlink. This is required, not optional — restow
 alone never creates `SKILL.md` (it's untracked), so
 `~/.claude/skills/review-pr/SKILL.md` stays absent or **dangling** until you
 run the script.
+
+The same run also (re)links the skill into the other agent hosts and is the fix
+if any tool starts loading a different review skill — see
+[Which review skill wins](#which-review-skill-wins).
 
 <a id="linear-cli-agent-skill"></a>
 ## Linear CLI & agent skill
