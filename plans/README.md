@@ -60,6 +60,12 @@ off or delete them as they land; add new ones freely.
   read-only `--config` overlay (omp never writes overlays) vs its costs —
   wrapping every launch path and shadowing `/settings` edits. Details in
   [omp-integration.md](omp-integration.md) → TODO.
+- [ ] **Build the Windows WSL2 + tmux remote omp host** — run omp and all
+  development tools inside Ubuntu, use `/collab` as the phone/laptop UI, and
+  keep Tailscale + Windows OpenSSH as the private recovery path for starting
+  WSL or reattaching after disconnects. The self-contained implementation,
+  security, reboot-recovery, and Plex-regression checklist is in
+  [omp-wsl2-remote-access.md](omp-wsl2-remote-access.md).
 - [x] **`sync-upstream`: make `finish` verify before advancing the marker** —
   done 2026-08-12 in the private downstream fork (where the skill lives).
   `finish` was advancing `UPSTREAM_HEAD` unconditionally, so a failed
@@ -501,6 +507,12 @@ Grouped by state, not priority.
 
 ## Ready to build — self-contained specs, not started
 
+- [omp-wsl2-remote-access.md](omp-wsl2-remote-access.md) — deploy a Windows
+  desktop as a 24/7 omp host without running omp on Windows: Ubuntu WSL2 owns
+  the Linux-native repositories and tools, tmux survives client disconnects,
+  `/collab` serves the phone/laptop UI, and Tailscale + Windows OpenSSH provides
+  a private start/recovery path. Includes exact phases, security boundaries,
+  reboot behavior, operations, and end-to-end/Plex acceptance checks.
 - [python-debug-test.md](python-debug-test.md) — Python debugging (nvim-dap-python
   + debugpy) and testing (neotest-python), the Rust/Go stacks' missing sibling —
   plus the venv convention neither of them needed (`uv` creates it,
