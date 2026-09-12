@@ -131,6 +131,7 @@ omp config set theme.light light-catppuccin
 omp config set statusLine.preset custom
 omp config set statusLine.separator none
 omp config set statusLine.transparent true
+omp config set statusLine.compactThinkingLevel false
 # turn_count is not a built-in segment: the stowed turn-count.ts extension
 # registers it in the live SEGMENTS record. Without the extension the unknown
 # id renders invisible — no error.
@@ -138,8 +139,9 @@ omp config set statusLine.leftSegments '["model","context_pct","cache_hit","turn
 # cwd_name is extension-registered too (cwd-name.ts): launch-folder basename,
 # right side, only when omp runs outside an nvim sidekick terminal.
 omp config set statusLine.rightSegments '["cwd_name","cost"]'
-# Thinking level rides the model segment. omp defaults it on (the check is
-# `!== false`), so pin it: the forced block should own the look, not a default.
+# Thinking level rides the model segment. Pin both its visibility and expanded
+# form so omp version/default changes cannot collapse ` · <level>` into the
+# leading model icon.
 omp config set statusLine.segmentOptions '{"model":{"showThinkingLevel":true}}'
 
 # Forced web-search policy: anonymous Perplexity first, then the keyless
@@ -156,8 +158,9 @@ echo "Resulting omp config:"
 for key in modelRoles modelTags retry.fallbackChains cycleOrder \
   defaultThinkingLevel startup.quiet memory.backend \
   theme.dark theme.light statusLine.preset statusLine.separator \
-  statusLine.transparent statusLine.leftSegments statusLine.rightSegments \
-  statusLine.segmentOptions providers.webSearchOrder \
+  statusLine.transparent statusLine.compactThinkingLevel \
+  statusLine.leftSegments statusLine.rightSegments statusLine.segmentOptions \
+  providers.webSearchOrder \
   providers.webSearchExclude; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done

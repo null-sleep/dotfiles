@@ -1353,9 +1353,23 @@ or both agents would obey.
 # the formula. By hand instead:
 brew trust can1357/tap && brew install can1357/tap/omp
 cd ~/src/dotfiles
+# Install turn_count/cwd_name extensions into the live OMP directory.
 stow --no-folding omp
-# Seed ~/.omp/agent/config.yml via `omp config` (one-time; idempotent)
+# Write the native status-line layout into machine-local config.yml.
 bash ~/src/dotfiles/omp/setup-settings.sh
+```
+
+Both commands are required; cloning or pulling the repo activates neither
+piece. `stow` supplies the `turn_count` extension that renders `#N` and the
+context-growth sparkline, while `setup-settings.sh` enables the built-in
+`context_pct` segment and places both segments in the status line. Start a new
+`omp` session afterward. Diagnose a missing segment with:
+
+```bash
+realpath ~/.omp/agent/extensions/turn-count.ts
+# Expected prefix: /Users/<you>/src/dotfiles/
+omp config get statusLine.leftSegments --json
+# Expected value includes: "context_pct" and "turn_count"
 ```
 
 The binary is Homebrew-managed, so `brew upgrade omp` owns updates — the same
@@ -1469,11 +1483,18 @@ belongs upstream.
 ### Status line
 
 `setup-settings.sh` forces the `custom` status-line preset with `separator
-none` and `transparent true` — the same minimal visual grammar as
+none`, `transparent true`, and expanded thinking-level text
+(`compactThinkingLevel false`) — the same minimal visual grammar as
 [Claude Code](#claude-code) and pi's `claude-footer.ts`, no powerline blocks.
 Left segments: `model`, `context_pct` (context window used), `cache_hit`
 (cache hit rate), `turn_count`. Right segments: `cwd_name`, then `cost`
 (session spend) flush-right.
+
+The `#N` sparkline appears only after the session has at least two distinct
+prompt-size samples with positive growth. If `#N` itself is absent, the
+`turn-count.ts` extension is not loaded; if `context_pct` is absent, re-run
+`setup-settings.sh`. Use the setup diagnostics above before changing the
+status-line settings by hand.
 
 `turn_count` and `cwd_name` are not built-ins — the stowed `turn-count.ts`
 and `cwd-name.ts` extensions register them in omp's live segment record:

@@ -259,6 +259,7 @@ statusLine:
   preset: custom
   separator: none
   transparent: true
+  compactThinkingLevel: false
   leftSegments: [model, context_pct, cache_hit, turn_count]
   rightSegments: [cwd_name, cost]
   segmentOptions:
@@ -270,10 +271,10 @@ omp's native status line configured through settings, plus one
 extension-registered segment (`turn_count`, below). Changing the look means
 editing `setup-settings.sh` (the forced block) and re-running it.
 
-The thinking level rides the `model` segment (` · ◑ med`). omp defaults it
-on, so `showThinkingLevel` is pinned only to keep the forced block owning
-the look; `statusLine.compactThinkingLevel: true` folds it into a glyph on
-the model name instead of a suffix.
+The thinking level rides the `model` segment (` · ◑ med`). Both
+`showThinkingLevel: true` and `compactThinkingLevel: false` are pinned so the
+expanded suffix survives omp default changes; setting the latter to `true`
+folds the level into a glyph on the model name instead.
 
 The segment registry has no extension API, but it isn't sealed: the package
 root exports the live `SEGMENTS` record and segment ids are looked up in it
