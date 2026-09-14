@@ -295,11 +295,11 @@ hatch, is still a no-op.) Full audit and caveats:
 [plans/omp-fork-customization.md](../plans/omp-fork-customization.md).
 
 The stowed `cwd-name.ts` registers `cwd_name` the same way, on the right
-side: the launch folder's basename (worktrees as `project/worktree`, taken
-from the segment context) so a shell-launched omp says which project or
-worktree it's in. When omp runs inside an nvim sidekick terminal (`$NVIM`
-inherited) the factory skips registration — nvim already shows the project —
-and the configured id renders invisible.
+side: the launch folder's basename, or just the worktree basename when omp
+recognizes a linked worktree. A shell-launched omp therefore stays identifiable
+without spending status-line width on the project prefix. When omp runs inside
+an nvim sidekick terminal (`$NVIM` inherited) the factory skips registration —
+nvim already shows the project — and the configured id renders invisible.
 
 Two gaps against pi's `claude-footer.ts` are accepted, not chased. **Context
 colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
