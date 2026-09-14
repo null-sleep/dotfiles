@@ -336,12 +336,14 @@ alias grba='git rebase --abort'
 
 # Remove alias from `antigen bundle git` if it exists to allow function definition
 unalias gd 2>/dev/null
-# Show git diff for last n commits, default 1
+# Show git diff for last n commits, default 1; a non-numeric argument is a path
 gd() {
   if [ -z "$1" ]; then
     git diff
-  else
+  elif [[ "$1" =~ '^[0-9]+$' ]]; then
     git diff HEAD~$1
+  else
+    git diff -- "$@"
   fi
 }
 
