@@ -1483,8 +1483,9 @@ belongs upstream.
 ### Status line
 
 `setup-settings.sh` forces the `custom` status-line preset with `separator
-none`, `transparent true`, and expanded thinking-level text
-(`compactThinkingLevel false`) — the same minimal visual grammar as
+none`, `transparent true`, a compact thinking-level glyph before the model
+name (`compactThinkingLevel true`), and a percentage context gauge without
+auto-compaction divider markers — the same minimal visual grammar as
 [Claude Code](#claude-code) and pi's `claude-footer.ts`, no powerline blocks.
 Left segments: `model`, `context_pct` (context window used), `cache_hit`
 (cache hit rate), `turn_count`. Right segments: `cwd_name`, then `cost`

@@ -259,7 +259,8 @@ statusLine:
   preset: custom
   separator: none
   transparent: true
-  compactThinkingLevel: false
+  compactThinkingLevel: true
+  contextLine: percentage
   leftSegments: [model, context_pct, cache_hit, turn_count]
   rightSegments: [cwd_name, cost]
   segmentOptions:
@@ -271,10 +272,14 @@ omp's native status line configured through settings, plus one
 extension-registered segment (`turn_count`, below). Changing the look means
 editing `setup-settings.sh` (the forced block) and re-running it.
 
-The thinking level rides the `model` segment (` · ◑ med`). Both
-`showThinkingLevel: true` and `compactThinkingLevel: false` are pinned so the
-expanded suffix survives omp default changes; setting the latter to `true`
-folds the level into a glyph on the model name instead.
+The thinking level replaces the usual model badge as a single glyph before
+the model name. Both `showThinkingLevel: true` and
+`compactThinkingLevel: true` are pinned so that concise marker survives omp
+version/default changes; setting the latter to `false` adds the verbose
+` · <level>` suffix instead.
+
+The context gauge uses `percentage`: its colored fill shows context use without
+the speculative-compaction and auto-compaction divider markers.
 
 The segment registry has no extension API, but it isn't sealed: the package
 root exports the live `SEGMENTS` record and segment ids are looked up in it
