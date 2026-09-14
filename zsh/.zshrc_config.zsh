@@ -260,8 +260,33 @@ alias gt=git  # NOTE: shadows the Graphite CLI's `gt` — remove this line if yo
 alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
-alias gbd='git branch | grep -v "^\*" | grep -vE "^\s*(master|main|hotfix)\s*$" | fzf -m | xargs git branch -D'
-alias gdm='git diff $(git_base_branch)...'
+## Select local branches for safe deletion; gbd never force-deletes.
+unalias gbd 2>/dev/null
+gbd() {
+  local current_branch
+  current_branch=$(git symbolic-ref --quiet --short HEAD) || return
+  local -a branches
+  branches=("${(@f)$(git for-each-ref --format='%(refname:short)' refs/heads \
+    | grep -vE '^(main|master|hotfix)$' \
+    | grep -Fxv "$current_branch" \
+    | fzf -m --prompt='Delete branch> ')}")
+  (( ${#branches[@]} )) || return
+  local branch
+  for branch in "${branches[@]}"; do
+    git branch -d -- "$branch" || return
+  done
+}
+## Show diff against the default branch, optionally limited to paths.
+unalias gdm 2>/dev/null
+gdm() {
+  local base
+  base=$(git_base_branch) || return
+  if (( $# )); then
+    git diff "${base}..." -- "$@"
+  else
+    git diff "${base}..."
+  fi
+}
 alias gs='git status'
 alias gl='git log'
 alias glg='git log --oneline --graph --decorate --all'
@@ -349,19 +374,28 @@ gd() {
 
 # Remove alias from `antigen bundle git` if it exists to allow function definition
 unalias gds 2>/dev/null
-# Show git diff (including staged changes) for last n commits, default 1
+# Show git diff (including staged changes) for last n commits, default 1; non-numeric arguments are paths
 gds() {
   if [ -z "$1" ]; then
     git diff --staged
-  else
+  elif [[ "$1" =~ '^[0-9]+$' ]]; then
     git diff --staged HEAD~$1
+  else
+    git diff --staged -- "$@"
   fi
 }
-
-# Show diff of only the Nth commit (default: last commit)
+# Show diff of only the Nth commit (default: last commit), optionally limited to paths
 gdn() {
-  local n="${1:-1}"
-  git diff HEAD~$n HEAD~$(($n - 1))
+  local n=1
+  if [[ "$1" =~ '^[0-9]+$' ]]; then
+    n="$1"
+    shift
+  fi
+  if (( $# )); then
+    git diff "HEAD~$n" "HEAD~$(($n - 1))" -- "$@"
+  else
+    git diff "HEAD~$n" "HEAD~$(($n - 1))"
+  fi
 }
 
 # Switch to a git worktree via fzf
