@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-time setup: register herdr's Claude Code and pi integrations, and drop
-# the release-matched herdr agent skill into ~/.claude/skills/. Run after
+# the release-matched herdr agent skill into ~/.agents/skills/. Run after
 # `stow --no-folding herdr` and `brew install herdr`.
 #
 # Idempotent — safe to re-run any time, and REQUIRED after every
@@ -80,14 +80,17 @@ echo "Installing herdr pi integration..."
 herdr integration install pi
 
 # --- Agent skill -----------------------------------------------------------
-# Regenerated unconditionally (single fast command) so it can't drift from the
-# installed herdr release across upgrades.
-mkdir -p "$HOME/.claude/skills/herdr"
-herdr --skill > "$HOME/.claude/skills/herdr/SKILL.md"
-if ! head -1 "$HOME/.claude/skills/herdr/SKILL.md" | grep -q '^---$'; then
+# Regenerated unconditionally (single fast command) so it cannot drift from the
+# installed Herdr release across upgrades. The shared adapter then exposes every
+# canonical Agent Skill to Claude Code.
+AGENT_SKILL="$HOME/.agents/skills/herdr"
+mkdir -p "$AGENT_SKILL"
+herdr --skill > "$AGENT_SKILL/SKILL.md"
+if ! head -1 "$AGENT_SKILL/SKILL.md" | grep -q '^---$'; then
   echo "WARNING: herdr --skill output has no YAML frontmatter — the skill" >&2
   echo "may not load. Check 'herdr --skill' output for this release." >&2
 fi
+"$ROOT/claude/setup-skill-adapters.sh"
 
 echo
 echo "Done. herdr integration status:"

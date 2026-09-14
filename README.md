@@ -105,7 +105,7 @@ cd ~/src/dotfiles
 stow nvim
 stow zsh
 stow --no-folding claude     # --no-folding: see the Claude Code section
-stow --no-folding agents     # shared Agent Skills, including linear-cli
+stow --no-folding agents     # generic global Agent Skills
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
@@ -268,22 +268,23 @@ bash ~/src/dotfiles/claude/setup-statusline.sh
 bash ~/src/dotfiles/claude/setup-theme.sh
 # Validate the LSP plugin config and check the server binaries
 bash ~/src/dotfiles/claude/setup-lsp-plugins.sh
+# Link Claude Code's legacy skill paths to canonical Agent Skills
+bash ~/src/dotfiles/claude/setup-skill-adapters.sh
 # Activate the review-pr skill for this machine (one-time)
 bash ~/src/dotfiles/claude/setup-review-pr.sh
-# Link Claude Code to the shared vendored Linear skill
-bash ~/src/dotfiles/claude/setup-linear-cli.sh
 # Seed rtk's machine-local files; its guarded hook is already tracked
 rtk init -g --no-patch
 ```
 
-The `--no-folding` flag is important: it keeps `~/.claude/themes/`,
-`~/.claude/skills/`, and `~/.claude/hooks/` as **real directories** with only
-the repo's individual files symlinked in, so any machine-local themes, skills,
-or hooks already there coexist untouched. Without it, stow would replace a
-non-existent `~/.claude/themes/` with a single directory symlink (a "fold"),
-which can't hold local files alongside the synced ones.
+The `--no-folding` flag keeps `~/.claude/themes/`, `~/.claude/hooks/`, and
+`~/.agents/skills/` as **real directories** with only the repo's individual
+files symlinked in, so machine-local files coexist untouched.
+`setup-skill-adapters.sh` likewise creates `~/.claude/skills/` as a real
+directory containing compatibility links. Without `--no-folding`, stow could
+replace one of the managed directories with a single directory symlink (a
+"fold"), which cannot hold local files alongside the synced ones.
 
-The setup scripts are idempotent. `setup-settings.sh` is the only script that changes the deployment of `settings.json`: it validates that the live symlink belongs to the checkout running the script, safely backs up and replaces a semantically identical regular file, and refuses a divergent file unless its exact reviewed SHA-256 is supplied. The other scripts never modify tracked settings. `setup-statusline.sh` validates the canonical status line, `setup-theme.sh` validates `custom:active` and seeds `~/.claude/themes/active.json`, and `setup-lsp-plugins.sh` validates the plugin keys and reports missing server binaries. `setup-review-pr.sh` symlinks `~/.claude/skills/review-pr/SKILL.md` to the tracked `SKILL.generic.md` and links that skill into the other agent hosts (see [What's managed](#whats-managed) below and [Which review skill wins](#which-review-skill-wins)).
+The setup scripts are idempotent. `setup-settings.sh` is the only script that changes the deployment of `settings.json`: it validates that the live symlink belongs to the checkout running the script, safely backs up and replaces a semantically identical regular file, and refuses a divergent file unless its exact reviewed SHA-256 is supplied. The other scripts never modify tracked settings. `setup-statusline.sh` validates the canonical status line, `setup-theme.sh` validates `custom:active` and seeds `~/.claude/themes/active.json`, and `setup-lsp-plugins.sh` validates the plugin keys and reports missing server binaries. `setup-skill-adapters.sh` links Claude Code's legacy skill directory to canonical Agent Skills without overwriting local paths; `setup-review-pr.sh` selects the active generic review skill and creates its Claude Code and Codex compatibility links.
 
 If `setup-settings.sh` reports a divergent regular file, reconcile its contents into this checkout's tracked file first. Re-run the command it prints only after reviewing that exact SHA-256; the script rechecks the hash immediately before backing up the regular file and creating the Stow link, and restores the original automatically if linking fails. It never uses `stow --adopt`, which has the opposite ownership direction and can overwrite the package copy.
 
@@ -294,14 +295,14 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 |---|---|
 | `~/.claude/statusline-command.sh` | Symlinked via stow |
 | `~/.claude/themes/*.json` (10 themes, incl. the `catppuccin-latte`/`dracula` pair the `theme` switcher uses) | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/review-pr/SKILL.generic.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md` above, created by `setup-review-pr.sh` |
-| `~/.agents/skills/review-pr`, `~/.codex/skills/review-pr`, `~/.omp/agent/memories/*/skills/review-pr` | **Not** stowed — machine-local symlinks to the skill directory, created by `setup-review-pr.sh` so every agent host loads the same skill |
+| `~/.agents/skills/nvim-theme-to-claude/SKILL.md` | Symlinked via the `agents` stow package (`--no-folding`) |
+| `~/.agents/skills/review-pr/SKILL.generic.md` | Symlinked via the `agents` stow package (`--no-folding`) |
+| `~/.agents/skills/review-pr/SKILL.md` | **Not** stowed — machine-local symlink to `SKILL.generic.md`, created by `setup-review-pr.sh` |
+| `~/.codex/skills/review-pr` and `~/.claude/skills/review-pr` | **Not** stowed — compatibility symlinks to the canonical skill directory, created by `setup-review-pr.sh` |
 | `~/.claude/REVIEW.md` | Symlinked via stow (`--no-folding`) — the review-skill precedence rules. The `@REVIEW.md` line that loads it in `~/.claude/CLAUDE.md` is **not** stowed (that file is machine-local), so add it by hand on a new machine |
 | `~/.codex/AGENTS.md` | **Not** stowed — machine-local; carries the same rules for Codex, which has no `@`-include |
-| `~/.claude/skills/keymap-audit/SKILL.md` | Symlinked via stow (`--no-folding`) |
-| `~/.claude/skills/linear-cli` | Symlinked by `setup-linear-cli.sh` to the vendored `~/.agents/skills/linear-cli`; no marketplace plugin or MCP |
+| `~/.agents/skills/keymap-audit/SKILL.md` | Symlinked via the `agents` stow package (`--no-folding`) |
+| `~/.claude/skills/*` | Compatibility symlinks created by `setup-skill-adapters.sh` for every canonical global skill except the separately selected `review-pr` |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
 | `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
@@ -310,28 +311,28 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 
 `settings.json` **is stowed** (adopted 2026-08 so its preferences and guarded hook registrations sync across machines). Claude Code has no user-global `~/.claude/settings.local.json` override: `.claude/settings.local.json` is project-local. This package therefore assumes its user settings are shared by every machine using that checkout. User-scope changes made by `/config`, `/model`, or plugin commands are repository changes; afterward, verify the symlink with `setup-settings.sh --check` and review the Git diff. Put genuinely project-specific permissions in that project's `.claude/settings.local.json`.
 
-**`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the file Claude actually loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. On a machine that needs project-specific tweaks, drop a private `SKILL.*.md` next to it and point `SKILL.md` there instead.
+**`review-pr`'s machine-local `SKILL.md`:** the repo tracks `SKILL.generic.md` (provider-neutral), but `SKILL.md` — the active entry point every host loads — is deliberately left untracked so stow can never overwrite a per-machine choice. `setup-review-pr.sh` creates `SKILL.md` as a symlink to `SKILL.generic.md`; re-running is idempotent. A private downstream may add another tracked variant and select it locally without changing this public generic source.
 
 <a id="which-review-skill-wins"></a>
 **Which review skill wins:** `review-pr` is the personal review flow for every
-agent, and `claude/REVIEW.md` is the tracked rule that says so. The same script
-links the skill directory into each host — `~/.agents/skills` (the cross-tool
-standard path Cursor, pi, omp, and OpenCode read), `~/.codex/skills`, and every
-existing `~/.omp/agent/memories/*/skills` (omp scopes skills per project, so
-there is no single path — an omp project created later needs a re-run). One
-file, the `SKILL.md` symlink, is what all of them load. The rules reach each
-tool through `~/.claude/REVIEW.md` (`@`-included by `~/.claude/CLAUDE.md`),
-`~/.codex/AGENTS.md`, and omp's per-project memory.
+agent, and `claude/REVIEW.md` is the tracked rule that says so. Cursor, pi,
+omp, and OpenCode read the canonical `~/.agents/skills/review-pr` directory
+directly. `setup-review-pr.sh` links that directory into Claude Code's
+documented `~/.claude/skills` location and Codex's `~/.codex/skills`
+location. One machine-selected `SKILL.md` symlink is therefore what every host
+loads; no per-project or per-memory copies are required. The precedence rules
+reach Claude through `~/.claude/REVIEW.md` (`@`-included by
+`~/.claude/CLAUDE.md`) and Codex through `~/.codex/AGENTS.md`.
 
 This needs guarding because a third-party skill of the same name silently wins
 otherwise. Installing one — `warpdotdev/common-skills` ships a `review-pr` that
-emits a `review.json` for a CI pipeline — replaces `~/.claude/skills/review-pr`,
-the stow symlink, with a link into `~/.agents/skills/review-pr`, so Claude loads
-that skill instead of this one with no error and no change to any tracked file.
-`setup-review-pr.sh` therefore verifies `~/.claude/skills/review-pr` still
-resolves into this checkout before writing to it, moves any non-symlink
-`review-pr` it finds in a host directory aside to `review-pr.disabled` rather
-than overwriting it, and reports when it repoints a hijacked link. Project
+emits a `review.json` for a CI pipeline — can replace the
+`~/.claude/skills/review-pr` compatibility link with a link into a different
+`~/.agents/skills/review-pr`, so Claude loads that skill instead with no error.
+`setup-review-pr.sh` therefore verifies that the canonical generic variant
+still resolves into this checkout before selecting it, moves any non-symlink
+`review-pr` it finds in a compatibility host aside to `review-pr.disabled`
+rather than overwriting it, and reports when it repoints a hijacked link. Project
 checkouts keep their own tracked `review-pr` / `code-review` skills — those are
 shared with a project's contributors and are left alone, so the precedence rule
 in `REVIEW.md` is what keeps them from being picked.
@@ -402,8 +403,10 @@ That command:
 
 `settings.json` doesn't name a specific theme directly — it pins the fixed slug `"theme": "custom:active"`, which resolves to `~/.claude/themes/active.json`. The [unified `theme` switcher](#unified-theme-switching) overwrites that file with the dark or light palette, and because Claude hot-reloads theme **files** (not the `theme` setting) the change applies to running sessions with no restart. To switch by hand instead, just pick a theme in `/theme`.
 
-**Adding more synced themes/skills:** drop the file into `claude/.claude/themes/`
-or `claude/.claude/skills/` in the repo and re-run `stow --no-folding claude`.
+**Adding more synced themes/skills:** drop a theme into
+`claude/.claude/themes/` or a skill into `agents/.agents/skills/`, then re-run
+`stow --no-folding` for the affected package. After adding a skill, run
+`claude/setup-skill-adapters.sh` so Claude Code receives its compatibility link.
 Stow is non-destructive — it links the new file alongside whatever is already in
 the target directory and **never overwrites** a real file; if a real file of the
 same name already exists it aborts the whole operation rather than clobbering
@@ -413,7 +416,11 @@ replace the tracked settings file. Themes you create locally via `/theme` land
 as real files in `~/.claude/themes/` and stay local until you deliberately move
 them into the repo and re-stow.
 
-To build another theme matching a different Neovim colorscheme, use the **`nvim-theme-to-claude`** skill (`claude/.claude/skills/`, synced to `~/.claude/skills/` via stow). It reads the nvim palette, maps it to Claude Code's color tokens, and reproduces nvim's exact diff-blend math — invoke it with something like "make a Claude theme matching my tokyonight nvim theme".
+To build another theme matching a different Neovim colorscheme, use the
+**`nvim-theme-to-claude`** skill (`agents/.agents/skills/`, synced to
+`~/.agents/skills/` via stow). It reads the nvim palette, maps it to Claude Code's
+color tokens, and reproduces nvim's exact diff-blend math — invoke it with
+"make a Claude theme matching my tokyonight nvim theme".
 
 ### Syncing to another machine
 
@@ -427,42 +434,43 @@ git -C ~/src/dotfiles push
 # 2. on the other machine
 cd ~/src/dotfiles
 git pull
-stow -R --no-folding claude            # the key command — see below
-bash ~/src/dotfiles/claude/setup-theme.sh   # validate custom:active + seed active.json
+stow -R --no-folding agents claude
+bash ~/src/dotfiles/claude/setup-theme.sh
+bash ~/src/dotfiles/claude/setup-skill-adapters.sh
+bash ~/src/dotfiles/claude/setup-review-pr.sh
 ```
 
 Then **restart Claude Code** so it discovers the new skill and theme.
 
-Use `stow -R --no-folding claude` (not a plain `stow claude`):
+Use `stow -R --no-folding agents claude` (not plain `stow`):
 
-- **`-R` (restow)** removes any stale links from the older checkout first. If
-  that machine has `~/.claude/themes` as an old folded directory symlink (from a
-  previous `stow claude`), `-R` unfolds it into a real directory before
-  relinking. It works whether the target is currently a real dir, a folded
-  symlink, or was never stowed.
-- **`--no-folding`** keeps `~/.claude/themes/`, `~/.claude/skills/`, and
-  `~/.claude/hooks/` as real directories, so the existing folders and any
-  machine-local files in them are preserved.
+- **`-R` (restow)** removes stale links from the older checkout first. If a
+  target is an old folded directory symlink, `-R` unfolds it into a real
+  directory before relinking.
+- **`--no-folding`** keeps `~/.claude/themes/`, `~/.claude/hooks/`, and
+  `~/.agents/skills/` as real directories, so existing folders and
+  machine-local files are preserved. `setup-skill-adapters.sh` creates
+  `~/.claude/skills/` as another real directory.
 - **Non-destructive**: if that machine already has a real `catppuccin-latte.json`
   or its own `nvim-theme-to-claude/` skill, stow aborts without touching
   anything. To merge, move only the conflicting file aside and compare it with
   the tracked version before restowing. Never use package-wide `--adopt` here:
   it can pull an unrelated regular `settings.json` over the tracked copy.
 
-For the skill only, skip the `setup-theme.sh` step — `git pull`,
-`stow -R --no-folding claude`, restart. The skill then lives at
-`~/.claude/skills/nvim-theme-to-claude/` and is invokable from any project.
+For a skill-only update, skip `setup-theme.sh`; restow `agents`, run
+`setup-skill-adapters.sh`, and restart the agent host. The canonical skill then
+lives under `~/.agents/skills/`, with Claude Code loading the corresponding
+compatibility link.
 
 **`review-pr` needs one more step**, because its `SKILL.md` is machine-local
-(see [What's managed](#whats-managed) above) rather than stowed: after
-`stow -R --no-folding claude`, run `bash ~/src/dotfiles/claude/setup-review-pr.sh`
-to (re)create the `SKILL.md` symlink. This is required, not optional — restow
-alone never creates `SKILL.md` (it's untracked), so
-`~/.claude/skills/review-pr/SKILL.md` stays absent or **dangling** until you
-run the script.
+(see [What's managed](#whats-managed) above) rather than stowed. After
+`stow -R --no-folding agents`, run
+`bash ~/src/dotfiles/claude/setup-review-pr.sh` to recreate the canonical
+`~/.agents/skills/review-pr/SKILL.md` symlink. Restow alone never creates that
+untracked entry point.
 
-The same run also (re)links the skill into the other agent hosts and is the fix
-if any tool starts loading a different review skill — see
+The same run also repairs the Claude Code and Codex compatibility links and is
+the fix if either host starts loading a different review skill — see
 [Which review skill wins](#which-review-skill-wins).
 
 <a id="linear-cli-agent-skill"></a>
@@ -472,7 +480,7 @@ if any tool starts loading a different review skill — see
 the Linear MCP. Homebrew owns the `linear` binary; the `agents` Stow package
 ships an audited copy of the upstream v2.5.0 Agent Skill to
 `~/.agents/skills/linear-cli`. Cursor, pi, omp, and OpenCode discover that
-standard path directly. `setup-linear-cli.sh` links Claude Code to the same
+standard path directly. `setup-skill-adapters.sh` links Claude Code to the same
 copy, so every agent uses identical instructions and no Linear MCP is enabled.
 The setup does not install a marketplace plugin; a machine migrated from the
 former plugin setup may retain its disabled cache until it is removed.
@@ -481,7 +489,7 @@ former plugin setup may retain its disabled cache until it is removed.
 cd ~/src/dotfiles
 brew bundle
 stow --no-folding agents claude
-bash claude/setup-linear-cli.sh
+bash claude/setup-skill-adapters.sh
 linear auth login
 
 # Only on a machine previously configured with the marketplace plugin:
@@ -807,7 +815,7 @@ CLI reference: `herdr --help` and each subcommand's own `--help`.
 
 **Agents driving Herdr themselves** (not just running inside it) is a
 separate surface: `herdr --skill` prints a bundled skill teaching an agent
-the CLI, installed to `~/.claude/skills/herdr/SKILL.md` by
+the CLI, installed to `~/.agents/skills/herdr/SKILL.md` by
 `setup-herdr.sh`. It gates itself on `HERDR_ENV=1` (only set inside a
 Herdr-managed pane), so it only activates for an agent actually running
 inside Herdr, not just because a task could use a background terminal.
@@ -834,7 +842,7 @@ rm ~/.config/herdr/config.toml && stow --no-folding herdr
 | `~/.config/herdr/config.toml` | Symlinked via stow (`--no-folding`) |
 | `~/.claude/hooks/herdr-agent-state.sh` | Generated by `herdr integration install claude` under an isolated temporary home; machine-local |
 | `~/.pi/agent/extensions/herdr-agent-state.ts` | Written by `herdr integration install pi`; machine-local |
-| `~/.claude/skills/herdr/SKILL.md` | Written by `herdr --skill`; machine-local |
+| `~/.agents/skills/herdr/SKILL.md` | Written by `herdr --skill`; machine-local; compatibility-linked by `setup-skill-adapters.sh` |
 
 The last three are release-matched to the installed `herdr` binary, so
 `setup-herdr.sh` regenerates them unconditionally — **always re-run it after

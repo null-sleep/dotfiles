@@ -225,7 +225,7 @@ must instead be **baked into which hook command was registered** — see
 same script.
 
 A single shared script, checked into the `claude` stow package (this repo
-already manages `~/.claude` via stow — see `claude/.claude/skills/`) at e.g.
+already manages `~/.claude` via stow — see `claude/.claude/hooks/`) at e.g.
 `claude/.claude/hooks/sidekick-notify.sh <category>`. Responsibilities:
 
 - No-op (exit 0 immediately) if `$NVIM` or `$SIDEKICK_SESSION` is unset —

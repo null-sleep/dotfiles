@@ -11,9 +11,9 @@ on explicit request). Do not skip or merge phases.
 Canonical source, one file for every tool (the `SKILL.md` symlink this
 machine's `setup-review-pr.sh` created):
 
-    ~/src/dotfiles/claude/.claude/skills/review-pr/SKILL.md
+    ~/src/dotfiles/agents/.agents/skills/review-pr/SKILL.md
 
-Linked into each agent host by `claude/setup-review-pr.sh`:
+Available to each agent host at:
 
 | Host | Path |
 | --- | --- |
@@ -23,8 +23,8 @@ Linked into each agent host by `claude/setup-review-pr.sh`:
 
 ## Never use these instead
 
-Any other review skill — a project-level `.claude/skills/review-pr/` or
-`.claude/skills/code-review/` in a project checkout, a plugin or marketplace
+Any other review skill — a project-level `.agents/skills/review-pr/` or
+`.agents/skills/code-review/` in a project checkout, a plugin or marketplace
 review skill or command, a bundled `code-review` / `security-review`, a
 built-in review command that bypasses the phases, or anything that emits a
 `review.json` for a CI pipeline to post — is **not** the personal review flow
@@ -57,5 +57,6 @@ conversation.
 
     bash ~/src/dotfiles/claude/setup-review-pr.sh
 
-Idempotent. Run it after `stow -R --no-folding claude`, which leaves the
-untracked `SKILL.md` symlink absent or dangling.
+Idempotent. Run it after `stow -R --no-folding agents` and
+`bash ~/src/dotfiles/claude/setup-skill-adapters.sh`; it restores the
+machine-local `SKILL.md` symlink and Claude Code's compatibility link.

@@ -12,11 +12,12 @@ this dotfiles repo so it syncs across machines.
 This repo's setup (see `README.md` → "Claude Code"):
 - Theme files live in `claude/.claude/themes/<slug>.json` and are symlinked into
   `~/.claude/themes/` via `stow --no-folding claude`.
-- `~/.claude/themes/` (and `~/.claude/skills/`) are kept as **real directories**
-  with only the repo's individual files symlinked in — `--no-folding` prevents
-  stow from collapsing them into directory symlinks, so machine-local themes and
-  skills coexist untouched. A theme is tracked only once its file is in the repo
-  and re-stowed; files created locally via `/theme` stay local until moved in.
+- Canonical skills live in `agents/.agents/skills/` and are stowed into
+  `~/.agents/skills/` with `stow --no-folding agents`. Claude Code's documented
+  `.claude/skills/` locations contain compatibility links created by
+  `claude/setup-skill-adapters.sh`; skill content is never copied between the
+  two trees. A theme is tracked only once its file is in the repo and re-stowed;
+  files created locally via `/theme` stay local until moved in.
 - Activation (`"theme": "custom:<slug>"` in `~/.claude/settings.json`) is a
   per-machine edit — `claude/setup-theme.sh` is the precedent for injecting it.
 

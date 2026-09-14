@@ -9,9 +9,9 @@ its own settings.json, so that stays machine-local; `omp` stows only its
 config.yml is seeded via `omp config` and stays machine-local, and
 `~/.omp/agent/` also holds runtime state, so it's stowed `--no-folding`; `herdr` stows only
 `config.toml` — `~/.config/herdr/` also holds runtime state, so it's stowed
-`--no-folding`; `agents` stows shared Agent Skills to `~/.agents/skills/`
-(currently the vendored linear-cli skill) — machine-local skills may sit
-alongside, so it's stowed `--no-folding`). NOT stow packages: `plans/` (design/feature
+`--no-folding`; `agents` stows generic global Agent Skills to
+`~/.agents/skills/` — machine-local skills may sit alongside, so it's stowed
+`--no-folding`). NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
 `docs/ripgrep.md`, `docs/pi.md`, `docs/omp.md` — distinct from `plans/`, which
@@ -82,7 +82,7 @@ bugs (wrong keys), not just cosmetic drift. Don't let it re-accumulate:
 
 Some headings are referenced by exact title text from other files in this
 repo:
-- `## Codex` ← `Codex/.Codex/skills/nvim-theme-to-Codex/SKILL.md`
+- `## Claude Code` ← `agents/.agents/skills/nvim-theme-to-claude/SKILL.md`
 - `### Format-on-save tools` ← `nvim/.config/nvim/GUIDE.md`
 
 Grep the repo before renaming any heading (`grep -rn '<heading text>' .`) and
