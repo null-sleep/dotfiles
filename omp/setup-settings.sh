@@ -1,27 +1,7 @@
 #!/bin/bash
-# One-time setup: seed this machine's ~/.omp/agent/config.yml with the repo's
-# OpenRouter and OpenAI Codex model presets, GLM rate-limit fallback chains,
-# fallback thinking level, quiet startup, local memory, and the repo-owned theme/status-line look.
-#
-# config.yml is deliberately NOT stowed. omp *writes* to it: `/settings` edits,
-# migrations, and runtime state land there, so a stowed symlink would send all
-# of that straight into this repo — the same split as pi's settings.json. This
-# script drives `omp config` instead of editing the YAML directly.
-#
-# Idempotent: fill-in keys are only set when untouched, so assignments or
-# settings you later change by hand survive a re-run.
-# Untouched-detection:
-#   • modelRoles / modelTags / retry.fallbackChains — each missing key is
-#     seeded; existing values win.
-#   • defaultThinkingLevel / startup.quiet — current effective value equals the
-#     schema default ("high" / false). `omp config get` merges defaults, so an
-#     explicit hand-set schema default is indistinguishable from unset and gets
-#     our value; accepted tradeoff. Re-runs are no-ops after seeding.
-# The model cycle, memory backend, theme, status-line, and web-search keys are
-# *forced* (repo-owned, like pi's theme slot): drifted values are corrected.
-#
-# Usage:
-#   bash ~/src/dotfiles/omp/setup-settings.sh
+# Seed OMP's machine-local config and gopls LSP command.
+# Preserves user overrides; forced settings are repo-owned.
+# Usage: bash ~/src/dotfiles/omp/setup-settings.sh
 
 set -euo pipefail
 
@@ -38,10 +18,7 @@ if ! command -v omp >/dev/null 2>&1; then
   exit 0
 fi
 
-# Run from an empty dir so nothing shadows the effective-value reads: a
-# project-level .omp/config.yml would, and $HOME is worse — there omp's claude
-# provider merges ~/.claude/settings.json as project-level config (its flat
-# `theme` key shadows theme.dark). Writes always go to the global layer.
+# Avoid project-level config when reading global settings.
 cd "$(mktemp -d)"
 
 DEFAULT_ROLES='{
@@ -85,7 +62,6 @@ DEFAULT_FALLBACK_CHAINS='{
 
 get() { omp config get "$1" --json | jq -r '.value'; }
 
-# Fill-in-only defaults (see header for the untouched-detection rules).
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + .' <<<"$roles")"
 if [ "$merged_roles" != "$roles" ]; then
@@ -110,7 +86,6 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-# Forced model-switcher policy. Alt+O opens a fuzzy picker over this list.
 omp config set cycleOrder '["smol","default","slow","tiny","med-vision","oa-s","oa-m","oa-l","glm-l","glm-fast"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
@@ -125,7 +100,7 @@ else
   echo "startup.quiet already set — left as-is."
 fi
 
-# Forced, repo-owned look: dark/light theme pair and the custom status line.
+# Repo-owned theme and status line.
 omp config set theme.dark dark-dracula
 omp config set theme.light light-catppuccin
 omp config set statusLine.preset custom
@@ -133,26 +108,53 @@ omp config set statusLine.separator none
 omp config set statusLine.transparent true
 omp config set statusLine.compactThinkingLevel true
 omp config set statusLine.contextLine percentage
-# turn_count is not a built-in segment: the stowed turn-count.ts extension
-# registers it in the live SEGMENTS record. Without the extension the unknown
-# id renders invisible — no error.
+# Registered by turn-count.ts.
 omp config set statusLine.leftSegments '["model","context_pct","cache_hit","turn_count"]'
-# cwd_name is extension-registered too (cwd-name.ts): launch-folder basename,
-# right side, only when omp runs outside an nvim sidekick terminal.
+# Registered by cwd-name.ts.
 omp config set statusLine.rightSegments '["cwd_name","cost"]'
-# Thinking level replaces the model badge as one compact glyph before the
-# model name. Pin both its visibility and compact form against version/default
-# changes.
+# Keep the thinking indicator compact.
 omp config set statusLine.segmentOptions '{"model":{"showThinkingLevel":true}}'
 
-# Forced web-search policy: anonymous Perplexity first, then the keyless
-# aggregate tier; never the Anthropic OAuth backend, even as a fallback.
+# Search backends.
 omp config set providers.webSearchOrder '["perplexity","public"]'
 omp config set providers.webSearchExclude '["anthropic"]'
 
-# Forced memory policy: keep cross-session knowledge in inspectable,
-# project-scoped summaries rather than a retrieval database or remote service.
+# Local project summaries.
 omp config set memory.backend local
+# Pin gopls for workers without the shell PATH.
+LSP_CONFIG_DIR="${PI_CONFIG_DIR:-$HOME/.omp/agent}"
+LSP_CONFIG="$LSP_CONFIG_DIR/lsp.json"
+if gopls_path="$(command -v gopls 2>/dev/null)"; then
+  mkdir -p "$LSP_CONFIG_DIR"
+  if [[ -e "$LSP_CONFIG" && ! -f "$LSP_CONFIG" ]]; then
+    echo "Warning: $LSP_CONFIG is not a regular file — gopls LSP override left unchanged." >&2
+  elif [[ -f "$LSP_CONFIG" ]] && ! jq -e 'type == "object"' "$LSP_CONFIG" >/dev/null; then
+    echo "Warning: $LSP_CONFIG is not a JSON object — gopls LSP override left unchanged." >&2
+  elif [[ -f "$LSP_CONFIG" ]] \
+    && jq -e 'has("servers") and ((.servers | type) != "object" or (.servers.gopls? != null and (.servers.gopls | type) != "object"))' "$LSP_CONFIG" >/dev/null; then
+    echo "Warning: $LSP_CONFIG has an invalid gopls server entry — left unchanged." >&2
+  else
+    if [[ -f "$LSP_CONFIG" ]] \
+      && jq -e 'if has("servers") then (.servers.gopls.command? // "") else (.gopls.command? // "") end | strings | length > 0' "$LSP_CONFIG" >/dev/null; then
+      echo "gopls LSP command already configured in $LSP_CONFIG — left as-is."
+    else
+      lsp_tmp="$(mktemp "${LSP_CONFIG}.XXXXXX")"
+      if [[ -f "$LSP_CONFIG" ]] && jq -e 'has("servers")' "$LSP_CONFIG" >/dev/null; then
+        jq --arg command "$gopls_path" '.servers.gopls = ((.servers.gopls // {}) + {command: $command})' \
+          "$LSP_CONFIG" >"$lsp_tmp"
+      elif [[ -f "$LSP_CONFIG" ]]; then
+        jq --arg command "$gopls_path" '.gopls = ((.gopls // {}) + {command: $command})' \
+          "$LSP_CONFIG" >"$lsp_tmp"
+      else
+        jq -n --arg command "$gopls_path" '{servers: {gopls: {command: $command}}}' >"$lsp_tmp"
+      fi
+      mv "$lsp_tmp" "$LSP_CONFIG"
+      echo "Configured OMP gopls command: $gopls_path"
+    fi
+  fi
+else
+  echo "Warning: gopls is not on PATH — install it with: go install golang.org/x/tools/gopls@latest" >&2
+fi
 
 echo
 echo "Resulting omp config:"

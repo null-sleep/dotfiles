@@ -1363,15 +1363,17 @@ brew trust can1357/tap && brew install can1357/tap/omp
 cd ~/src/dotfiles
 # Install turn_count/cwd_name extensions into the live OMP directory.
 stow --no-folding omp
-# Write the native status-line layout into machine-local config.yml.
+# Write the native status-line layout into machine-local config.yml and pin
+# gopls's resolved executable for OMP's LSP worker.
 bash ~/src/dotfiles/omp/setup-settings.sh
 ```
 
 Both commands are required; cloning or pulling the repo activates neither
 piece. `stow` supplies the `turn_count` extension that renders `#N` and the
 context-growth sparkline, while `setup-settings.sh` enables the built-in
-`context_pct` segment and places both segments in the status line. Start a new
-`omp` session afterward. Diagnose a missing segment with:
+`context_pct` segment, places both segments in the status line, and writes an
+absolute `gopls` command to `~/.omp/agent/lsp.json` when one is not already
+configured. Start a new `omp` session afterward. Diagnose a missing segment with:
 
 ```bash
 realpath ~/.omp/agent/extensions/turn-count.ts
@@ -1396,6 +1398,7 @@ Much less than pi: no theme ports (omp built-ins are used — see
 | `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
 | `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
+| `~/.omp/agent/lsp.json` | Seeded by `setup-settings.sh` with the resolved `gopls` path; preserves a user-configured command |
 | `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
 | everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |
 
@@ -1408,12 +1411,14 @@ runtime state lives in the same directory tree as the one stowed file.
 `modelRoles`/`modelTags` presets, including OpenRouter Terra at high thinking
 as the default model; the model-specific GLM rate-limit fallback chains; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
-chains, or values changed later survive a re-run. The GLM chains try a
-comparable DeepSeek model, then Qwen, then the direct OpenAI Codex provider so
-an OpenRouter-wide limit still has an independent exit. The script **forces**
-the repo-owned ten-preset model cycle used by `Ctrl+P`/`Shift+Ctrl+P` and the
-`Alt+O` fuzzy picker, local project-summary memory, the theme pair and status
-line below, plus web search order (`perplexity`, then the keyless `public`
+chains, or values changed later survive a re-run. The script also fills in an
+absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
+depend on the PATH of the terminal or GUI process that launched it. The GLM
+chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
+provider so an OpenRouter-wide limit still has an independent exit. The script
+**forces** the repo-owned ten-preset model cycle used by `Ctrl+P`/`Shift+Ctrl+P`
+and the `Alt+O` fuzzy picker, local project-summary memory, the theme pair and
+status line below, plus web search order (`perplexity`, then the keyless `public`
 tier) with the `anthropic` OAuth backend excluded even as a fallback.
 
 #### Local memory

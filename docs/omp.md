@@ -167,10 +167,12 @@ for concerns/blockers, and appears in the Hub as a read-only row.
 
 - **`lsp`** — one tool, many actions: `diagnostics` (file, glob, or `"*"`),
   `definition`, `references`, `hover`, `symbols`, `rename`, `code_actions`,
-  and raw requests. Servers are auto-detected from binaries on PATH (gopls,
-  rust-analyzer, lua-language-server et al. from the nvim setup are found —
-  no separate catalog to maintain, unlike pi-lsp). `--no-lsp` disables LSP
-  tools, formatting, and diagnostics for a session.
+  and raw requests. OMP enables a server only when its root marker is in the
+  launch directory; Go therefore needs `go.mod`, `go.work`, or `go.sum` there.
+  `omp/setup-settings.sh` records the resolved `gopls` executable in the
+  machine-local `~/.omp/agent/lsp.json`, avoiding dependence on the launching
+  terminal or GUI process's `PATH`. Start a new OMP session after changing it.
+  `--no-lsp` disables LSP tools, formatting, and diagnostics for a session.
 - **`debug`** — a full DAP driver: launch/attach, source/data/instruction
   breakpoints, step in/over/out, evaluate, stack/scopes/variables, even
   memory reads. Adapters resolve like LSP servers do. Ask for it: "debug
