@@ -36,7 +36,10 @@ DEFAULT_ROLES='{
   "oa-m": "openai-codex/gpt-5.6-terra:high",
   "oa-l": "openai-codex/gpt-5.6-sol:xhigh",
   "glm-l": "openrouter/z-ai/glm-5.3:max",
-  "glm-fast": "openrouter/z-ai/glm-5.3-flash:max"
+  "glm-fast": "openrouter/z-ai/glm-5.3-flash:max",
+  "cheap-l": "openrouter/z-ai/glm-5.3:max",
+  "dseek": "openrouter/deepseek/deepseek-v4.1-flash:max",
+  "kimi": "openrouter/moonshotai/kimi-k3:max"
 }'
 DEFAULT_MODEL_TAGS='{
   "med-vision": {"name": "med-vision"},
@@ -63,7 +66,12 @@ DEFAULT_FALLBACK_CHAINS='{
 get() { omp config get "$1" --json | jq -r '.value'; }
 
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
-merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + .' <<<"$roles")"
+migrated_roles="$(jq -c '
+  if (has("dseek") | not) and has("default-cheap") then .dseek = .["default-cheap"] else . end
+  | if (has("kimi") | not) and has("cheap-alt") then .kimi = .["cheap-alt"] else . end
+  | del(."default-cheap", ."cheap-alt")
+' <<<"$roles")"
+merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + .' <<<"$migrated_roles")"
 if [ "$merged_roles" != "$roles" ]; then
   omp config set modelRoles "$merged_roles"
 else
@@ -86,7 +94,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","default","default-cheap","slow","oa-m","oa-l","cheap-l","cheap-alt","oa-s"]'
+omp config set cycleOrder '["smol","default","dseek","kimi","slow","oa-m","oa-l","cheap-l","oa-s"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium
