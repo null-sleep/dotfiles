@@ -86,7 +86,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","default","slow","tiny","med-vision","oa-s","oa-m","oa-l","glm-l","glm-fast"]'
+omp config set cycleOrder '["smol","default","default-cheap","slow","oa-m","oa-l","cheap-l","cheap-alt","oa-s"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium

@@ -1416,11 +1416,14 @@ absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
 depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned ten-preset model cycle used by `Ctrl+P`/`Shift+Ctrl+P`
-and the `Alt+O` fuzzy picker, local project-summary memory, hidden thinking
+**forces** the repo-owned nine-preset model cycle — `smol`, `default`,
+`default-cheap`, `slow`, `oa-m`, `oa-l`, `cheap-l`, `cheap-alt`, `oa-s` — used
+by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O` fuzzy picker, local project-summary memory, hidden thinking
 blocks (revealed with `Ctrl+T` without omitting provider summaries), the theme
 pair and status line below, plus web search order (`perplexity`, then the keyless
 `public` tier) with the `anthropic` OAuth backend excluded even as a fallback.
+
+The role selectors, fallback chains, and cycle are **current personal defaults**, not a compatibility promise. Update them as provider availability, quality, pricing, and preferred reasoning levels change; keep `DEFAULT_ROLES`, `DEFAULT_FALLBACK_CHAINS`, and `cycleOrder` coherent when doing so.
 
 #### Local memory
 
