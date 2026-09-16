@@ -100,8 +100,11 @@ else
   echo "startup.quiet already set — left as-is."
 fi
 
-# Repo-owned theme and status line.
+# Repo-owned display, theme, and status line.
 omp config set theme.dark dark-dracula
+# Keep reasoning summaries available to Ctrl+T, but hidden until requested.
+omp config set hideThinkingBlock true
+
 omp config set theme.light light-catppuccin
 omp config set statusLine.preset custom
 omp config set statusLine.separator none
@@ -160,6 +163,7 @@ echo
 echo "Resulting omp config:"
 for key in modelRoles modelTags retry.fallbackChains cycleOrder \
   defaultThinkingLevel startup.quiet memory.backend \
+  hideThinkingBlock \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.compactThinkingLevel statusLine.contextLine \
   statusLine.leftSegments statusLine.rightSegments statusLine.segmentOptions \

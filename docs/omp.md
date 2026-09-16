@@ -75,7 +75,7 @@ Inside the TUI:
 - `Alt+M` — open the selector and assign models to roles.
 - `Shift+Tab` — cycle thinking level (`minimal` … `max`; this setup seeds
   `defaultThinkingLevel: medium`).
-- `Ctrl+O` — expand a tool-call row; `Ctrl+T` — toggle thinking blocks.
+- `Ctrl+O` — expand a tool-call row; `Ctrl+T` — show or hide thinking blocks.
 - `/settings` — the settings menu; `/hotkeys` — all active keybindings
   (remaps live in `~/.omp/agent/keybindings.yml`).
 - `/login` — OAuth/key selector; `/login anthropic` jumps to one provider.
@@ -89,6 +89,10 @@ more expensive priority tier.
 
 Tool approval defaults to `yolo` (auto-approve everything). `--approval-mode
 always-ask|write|yolo` overrides per session; `tools.approvalMode` persists it.
+
+Reasoning summaries start hidden (`hideThinkingBlock: true`) but remain available
+through `Ctrl+T`. `omitThinking` stays disabled: providers that honor it do not
+return a summary to reveal.
 
 omp's full docs ship in the repo:
 [github.com/can1357/oh-my-pi/tree/master/docs](https://github.com/can1357/oh-my-pi/tree/master/docs)

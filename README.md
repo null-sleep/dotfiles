@@ -1417,9 +1417,10 @@ depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
 **forces** the repo-owned ten-preset model cycle used by `Ctrl+P`/`Shift+Ctrl+P`
-and the `Alt+O` fuzzy picker, local project-summary memory, the theme pair and
-status line below, plus web search order (`perplexity`, then the keyless `public`
-tier) with the `anthropic` OAuth backend excluded even as a fallback.
+and the `Alt+O` fuzzy picker, local project-summary memory, hidden thinking
+blocks (revealed with `Ctrl+T` without omitting provider summaries), the theme
+pair and status line below, plus web search order (`perplexity`, then the keyless
+`public` tier) with the `anthropic` OAuth backend excluded even as a fallback.
 
 #### Local memory
 
