@@ -109,6 +109,12 @@ In PR mode, read the comments and reviews collected in 0d. **Do not restate** is
 - **Test coverage** — Critical paths and edge cases tested? Are tests meaningful and robust?
 - **Documentation** — Public APIs, complex algorithms, important decisions documented?
 
+**Simplification review:**
+- Flag redundant code or in-memory state. Prefer reusing or deriving from one canonical representation.
+  - Pay particular attention to duplicate maps, caches, and result fields.
+- Flag suspected over-engineering when a simpler design preserves the required behavior.
+  - Pay particular attention to added locks, coordination, and lifecycle machinery that do not protect correctness or solve a demonstrated problem.
+
 **For each issue found, produce:**
 1. Exact location: `repo-relative/path.go:LINE` (use a line range if the issue spans multiple lines)
 2. Problem and potential impact
