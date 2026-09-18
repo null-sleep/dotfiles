@@ -117,7 +117,7 @@ type SessionState = {
   initialScanPending: boolean;
   scanRunning: boolean;
   scanRequested: boolean;
-  scanTimer?: NodeJS.Timeout;
+  scanTimer?: Timer;
   recentActivityUntil: number;
 };
 
@@ -653,8 +653,21 @@ export default function openRouterSessionCost(pi: ExtensionAPI) {
           ) {
             enqueue(state, item.responseId);
           }
-          repaint(state);
-          pump(state);
+          try {
+            repaint(state);
+          } finally {
+            pump(state);
+          }
+        })
+        .catch((error) => {
+          try {
+            pi.logger.warn("OpenRouter session cost worker failed", {
+              responseId: item.responseId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          } catch {
+            // A detached worker must not leak a second failure to the process.
+          }
         });
     }
   };
@@ -1284,29 +1297,35 @@ export default function openRouterSessionCost(pi: ExtensionAPI) {
 
   const armScan = (state: SessionState, delayMs: number) => {
     if (activeState !== state || state.abort.signal.aborted) return;
-    clearTimeout(state.scanTimer);
-    state.scanTimer = setTimeout(() => {
+    if (state.scanTimer !== undefined) {
+      state.ctx.clearTimer(state.scanTimer);
+      state.scanTimer = undefined;
+    }
+    state.scanTimer = state.ctx.setTimeout(async () => {
       state.scanTimer = undefined;
       if (activeState !== state || state.abort.signal.aborted || state.scanRunning) return;
       state.scanRunning = true;
       state.scanRequested = false;
-      void scanAuxiliaryTranscripts(state)
-        .catch((error) => {
-          if (activeState !== state || state.abort.signal.aborted) return;
-          const root = state.artifactsDir ?? state.sessionFile ?? "transcripts";
-          setScanFailure(state, root, errorCode(error) ?? "reconciliation failed");
-        })
-        .finally(() => {
-          if (activeState !== state) return;
+      try {
+        await scanAuxiliaryTranscripts(state);
+      } catch (error) {
+        if (activeState !== state || state.abort.signal.aborted) return;
+        const root = state.artifactsDir ?? state.sessionFile ?? "transcripts";
+        setScanFailure(state, root, errorCode(error) ?? "reconciliation failed");
+      } finally {
+        if (activeState === state) {
           state.scanRunning = false;
           const rerun = state.scanRequested;
           state.scanRequested = false;
           state.initialScanPending = rerun && state.initialScanPending;
-          repaint(state);
-          armScan(state, rerun ? 0 : nextScanDelay(state));
-        });
+          try {
+            repaint(state);
+          } finally {
+            armScan(state, rerun ? 0 : nextScanDelay(state));
+          }
+        }
+      }
     }, delayMs);
-    state.scanTimer.unref();
   };
 
   const requestScan = (state: SessionState, immediate: boolean) => {
@@ -1321,8 +1340,10 @@ export default function openRouterSessionCost(pi: ExtensionAPI) {
   };
 
   const stopState = (state: SessionState) => {
-    clearTimeout(state.scanTimer);
-    state.scanTimer = undefined;
+    if (state.scanTimer !== undefined) {
+      state.ctx.clearTimer(state.scanTimer);
+      state.scanTimer = undefined;
+    }
     state.abort.abort();
   };
 
