@@ -274,9 +274,10 @@ statusLine:
 ```
 
 Unlike pi, the footer isn't replaced by a stowed TypeScript port — it's
-omp's native status line configured through settings, plus one
-extension-registered segment (`turn_count`, below). Changing the look means
-editing `setup-settings.sh` (the forced block) and re-running it.
+omp's native status line configured through settings, plus extension-registered
+segments (`turn_count` and `cwd_name`, below) and a narrow wrapper around the
+native `cost` segment. Changing the layout still means editing
+`setup-settings.sh` (the forced block) and re-running it.
 
 The thinking level replaces the usual model badge as a single glyph before
 the model name. Both `showThinkingLevel: true` and
@@ -288,16 +289,18 @@ The context gauge uses `percentage`: its colored fill shows context use without
 the speculative-compaction and auto-compaction divider markers.
 
 The segment registry has no extension API, but it isn't sealed: the package
-root exports the live `SEGMENTS` record and segment ids are looked up in it
-at render time, unvalidated by the settings schema. The stowed
-`turn-count.ts` extension registers a `turn_count` segment there, so `#N`
-(assistant messages on the active branch — resume/branch/tree stay
-accurate) plus Claude Code's context-growth bars (`▁▂▃▄▅▆▇█`, same
-algorithm as `claude/.claude/statusline-command.sh`) render *inside* the
-native status line. Without the extension the unknown id renders invisible;
-if the `SEGMENTS` export ever disappears the extension falls back to the
-`ctx.ui.setStatus` hook-status row. (`setFooter`, pi's whole-footer escape
-hatch, is still a no-op.) Full audit and caveats:
+root exports the live `SEGMENTS` record and segment ids are looked up there at
+render time. OMP 18.2 warns about unknown ids while loading and its `config set`
+command rejects them, so `setup-settings.sh` writes only the two segment arrays
+with the system Ruby YAML parser, under OMP's config-file lock and with an
+atomic rename. The stowed `turn-count.ts` extension registers a `turn_count`
+segment there, so `#N` (assistant messages on the active branch —
+resume/branch/tree stay accurate) plus Claude Code's context-growth bars
+(`▁▂▃▄▅▆▇█`, same algorithm as `claude/.claude/statusline-command.sh`) render
+*inside* the native status line. Without the extension the unknown id renders
+invisible; if the `SEGMENTS` export ever disappears the extension falls back
+to the `ctx.ui.setStatus` hook-status row. (`setFooter`, pi's whole-footer
+escape hatch, is still a no-op.) Full audit and caveats:
 [plans/omp-fork-customization.md](../plans/omp-fork-customization.md).
 
 The stowed `cwd-name.ts` registers `cwd_name` the same way, on the right
@@ -307,11 +310,29 @@ without spending status-line width on the project prefix. When omp runs inside
 an nvim sidekick terminal (`$NVIM` inherited) the factory skips registration —
 nvim already shows the project — and the configured id renders invisible.
 
-Two gaps against pi's `claude-footer.ts` are accepted, not chased. **Context
+The stowed `openrouter-session-cost.ts` wraps the native `cost` renderer only
+while the primary session's active model uses OpenRouter. It sums every unique
+OpenRouter assistant response in the session, including abandoned branches,
+from OpenRouter's generation metadata: BYOK generations use
+`upstream_inference_cost`; other generations use `total_cost`. It never
+substitutes OMP's local catalog estimate. Resolved records are stored as hidden
+session entries, so a resumed session renders its saved total without fetching
+old generations again.
+
+The display is `$2.87` while idle and `$2.87 + …` while the agent is responding
+or OpenRouter is still indexing a completed generation. Metadata is eventually
+consistent, so bounded background retries update the total without delaying the
+turn. Exhausted lookups render `$2.87 + ?` and retry on the next session
+reconciliation. A fresh OpenRouter session begins at `$0.00`. Subscription and
+other non-OpenRouter models, plus focused subagent views, delegate to the native
+renderer unchanged — including its `S0.66`-style subscription-equivalent spend.
+If the mutable segment export disappears, the same OpenRouter value falls back
+to the hook-status row instead of breaking startup.
+
+One gap against pi's `claude-footer.ts` is accepted, not chased. **Context
 colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
 500k/270k/150k absolute-token floors) rather than Claude's two-tier 70/90.
-And `cache_hit`/`cost` render `59.43%`/`$0.00` where the Claude footer shows
-`CH59%`/`$0.003`.
+And `cache_hit` renders `59.43%` where the Claude footer shows `CH59%`.
 
 Themes: omp keeps a **dark slot and a light slot** (`theme.dark:
 dark-dracula`, `theme.light: light-catppuccin`, both built-ins) and picks

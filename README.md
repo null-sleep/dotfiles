@@ -1361,7 +1361,7 @@ or both agents would obey.
 # the formula. By hand instead:
 brew trust can1357/tap && brew install can1357/tap/omp
 cd ~/src/dotfiles
-# Install turn_count/cwd_name extensions into the live OMP directory.
+# Install the focused extensions into the live OMP directory.
 stow --no-folding omp
 # Write the native status-line layout into machine-local config.yml and pin
 # gopls's resolved executable for OMP's LSP worker.
@@ -1369,17 +1369,29 @@ bash ~/src/dotfiles/omp/setup-settings.sh
 ```
 
 Both commands are required; cloning or pulling the repo activates neither
-piece. `stow` supplies the `turn_count` extension that renders `#N` and the
-context-growth sparkline, while `setup-settings.sh` enables the built-in
-`context_pct` segment, places both segments in the status line, and writes an
-absolute `gopls` command to `~/.omp/agent/lsp.json` when one is not already
-configured. Start a new `omp` session afterward. Diagnose a missing segment with:
+piece. `stow` supplies the custom status behavior: `turn_count` renders `#N`
+and the context-growth sparkline, while `openrouter-session-cost.ts` wraps the
+built-in `cost` segment with exact OpenRouter generation totals.
+`setup-settings.sh` enables `context_pct`, places the configured segments in the
+status line, and writes an absolute `gopls` command to
+`~/.omp/agent/lsp.json` when one is not already configured. Start a new `omp`
+session afterward. Diagnose missing custom status behavior with:
+
+OMP 18.2's `config set` command rejects extension-owned segment ids even though
+the runtime accepts them. For those two segment arrays only,
+`setup-settings.sh` uses macOS's system Ruby YAML parser under OMP's config-file
+lock and atomically renames the result; every other setting still goes through
+`omp config`. This preserves the extension ids on fresh setup without exposing
+`config.yml` through stow.
 
 ```bash
 realpath ~/.omp/agent/extensions/turn-count.ts
-# Expected prefix: /Users/<you>/src/dotfiles/
+realpath ~/.omp/agent/extensions/openrouter-session-cost.ts
+# Expected prefix for both: /Users/<you>/src/dotfiles/
 omp config get statusLine.leftSegments --json
 # Expected value includes: "context_pct" and "turn_count"
+omp config get statusLine.rightSegments --json
+# Expected value ends with: "cost"
 ```
 
 The binary is Homebrew-managed, so `brew upgrade omp` owns updates — the same
@@ -1389,7 +1401,7 @@ designated-owner convention as brew for [opencode](#opencode) and npm for pi.
 ### What's managed
 
 Much less than pi: no theme ports (omp built-ins are used — see
-[Theme](#omp-theme)) and only four focused extensions.
+[Theme](#omp-theme)) and only five focused extensions.
 
 | File | Method |
 |---|---|
@@ -1397,6 +1409,7 @@ Much less than pi: no theme ports (omp built-ins are used — see
 | `~/.omp/agent/extensions/turn-count.ts` | Symlinked via stow (`--no-folding`); turn count + context-growth bars as a native status-line segment |
 | `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
 | `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
+| `~/.omp/agent/extensions/openrouter-session-cost.ts` | Symlinked via stow (`--no-folding`); exact cumulative OpenRouter generation cost through the native `cost` segment |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
 | `~/.omp/agent/lsp.json` | Seeded by `setup-settings.sh` with the resolved `gopls` path; preserves a user-configured command |
 | `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
@@ -1511,19 +1524,31 @@ auto-compaction divider markers — the same minimal visual grammar as
 [Claude Code](#claude-code) and pi's `claude-footer.ts`, no powerline blocks.
 Left segments: `model`, `context_pct` (context window used), `cache_hit`
 (cache hit rate), `turn_count`. Right segments: `cwd_name`, then `cost`
-(session spend) flush-right.
+(native session spend or the extension's exact OpenRouter generation total)
+flush-right.
 
 The `#N` sparkline appears only after the session has at least two distinct
 prompt-size samples with positive growth. If `#N` itself is absent, the
-`turn-count.ts` extension is not loaded; if `context_pct` is absent, re-run
-`setup-settings.sh`. Use the setup diagnostics above before changing the
-status-line settings by hand.
+`turn-count.ts` extension is not loaded. If an OpenRouter session has no cost,
+check `openrouter-session-cost.ts` with the setup diagnostics above. If
+`context_pct` is absent, re-run `setup-settings.sh`; don't change status-line
+settings by hand first.
 
 `turn_count` and `cwd_name` are not built-ins — the stowed `turn-count.ts`
 and `cwd-name.ts` extensions register them in omp's live segment record:
 turn count + context-growth bars (`#N ▂▅█`), and the launch folder's name
 (hidden inside an nvim sidekick terminal, where nvim already shows the
 project). Without the extensions the ids render invisible. Details in
+[Status line and theme](docs/omp.md#statusline-theme).
+
+For OpenRouter, `cost` is `$2.87` while idle and `$2.87 + …` while the agent is
+responding or generation metadata is still indexing. BYOK routes sum
+OpenRouter's reported upstream inference cost; ordinary routes sum the
+OpenRouter account charge. Hidden per-generation records make the total
+session-wide, branch-aware, and immediately available after resume. Exhausted
+lookups show `+ ?`; catalog-price estimates are never substituted. Non-
+OpenRouter models retain OMP's native renderer, including `S…` for subscription
+price-equivalent spend. Details in
 [Status line and theme](docs/omp.md#statusline-theme).
 
 ### Claude subscription

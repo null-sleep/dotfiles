@@ -10,6 +10,11 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v ruby >/dev/null 2>&1; then
+  echo "Error: ruby is required to write extension-owned status-line segment ids."
+  exit 1
+fi
+
 if ! command -v omp >/dev/null 2>&1; then
   echo "Warning: omp is not on PATH — install it first:"
   echo "  brew install can1357/tap/omp"
@@ -65,6 +70,55 @@ DEFAULT_FALLBACK_CHAINS='{
 
 get() { omp config get "$1" --json | jq -r '.value'; }
 
+# OMP 18.2 validates `config set` segment arrays against built-ins even though
+# runtime rendering accepts extension-registered ids. Update only these two
+# arrays under the same lock and atomic-rename discipline as OMP's own writer.
+set_status_line_segments() {
+  local config_dir
+  config_dir="$(omp config path)"
+  ruby -ryaml -e '
+    dir = ARGV.fetch(0)
+    yml = File.join(dir, "config.yml")
+    yaml = File.join(dir, "config.yaml")
+    path = File.exist?(yml) || !File.exist?(yaml) ? yml : yaml
+    left = %w[model context_pct cache_hit turn_count]
+    right = %w[cwd_name cost]
+
+    File.open("#{path}.lock", File::RDWR | File::CREAT, 0o600) do |lock|
+      lock.flock(File::LOCK_EX)
+      source = File.exist?(path) ? File.read(path) : ""
+      data = source.empty? ? {} : YAML.safe_load(source, permitted_classes: [], aliases: false)
+      raise "#{path}: expected a YAML mapping" unless data.is_a?(Hash)
+
+      status = data["statusLine"]
+      raise "#{path}: statusLine must be a YAML mapping" unless status.nil? || status.is_a?(Hash)
+      status ||= {}
+      if status["leftSegments"] == left && status["rightSegments"] == right
+        puts "statusLine extension segments already set — left as-is."
+        next
+      end
+
+      status["leftSegments"] = left
+      status["rightSegments"] = right
+      data["statusLine"] = status
+      serialized = YAML.dump(data).delete_prefix("---\n")
+      mode = File.exist?(path) ? File.stat(path).mode & 0o777 : 0o600
+      tmp = "#{path}.tmp.#{$$}"
+      begin
+        File.open(tmp, File::WRONLY | File::CREAT | File::EXCL, mode) do |file|
+          file.write(serialized)
+          file.flush
+          file.fsync
+        end
+        File.rename(tmp, path)
+      ensure
+        File.delete(tmp) if File.exist?(tmp)
+      end
+      puts "✔ Set statusLine extension segments"
+    end
+  ' "$config_dir"
+}
+
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 migrated_roles="$(jq -c '
   if (has("dseek") | not) and has("default-cheap") then .dseek = .["default-cheap"] else . end
@@ -119,10 +173,8 @@ omp config set statusLine.separator none
 omp config set statusLine.transparent true
 omp config set statusLine.compactThinkingLevel true
 omp config set statusLine.contextLine percentage
-# Registered by turn-count.ts.
-omp config set statusLine.leftSegments '["model","context_pct","cache_hit","turn_count"]'
-# Registered by cwd-name.ts.
-omp config set statusLine.rightSegments '["cwd_name","cost"]'
+# `turn_count` and `cwd_name` are registered by stowed extensions.
+set_status_line_segments
 # Keep the thinking indicator compact.
 omp config set statusLine.segmentOptions '{"model":{"showThinkingLevel":true}}'
 
