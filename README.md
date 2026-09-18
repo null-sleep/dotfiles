@@ -1541,14 +1541,21 @@ turn count + context-growth bars (`#N ▂▅█`), and the launch folder's name
 project). Without the extensions the ids render invisible. Details in
 [Status line and theme](docs/omp.md#statusline-theme).
 
-For OpenRouter, `cost` is `$2.87` while idle and `$2.87 + …` while the agent is
-responding or generation metadata is still indexing. BYOK routes sum
-OpenRouter's reported upstream inference cost; ordinary routes sum the
-OpenRouter account charge. Hidden per-generation records make the total
-session-wide, branch-aware, and immediately available after resume. Exhausted
-lookups show `+ ?`; catalog-price estimates are never substituted. Non-
-OpenRouter models retain OMP's native renderer, including `S…` for subscription
-price-equivalent spend. Details in
+For OpenRouter, `cost` is the session-owned generation total: primary responses
+on every branch, default/named advisors, top-level and nested subagents, and
+their advisors. BYOK routes use OpenRouter's reported upstream inference cost;
+ordinary routes use the account charge. Hidden v2 records retain each response's
+source/agent attribution, deduplicate by response id, and restore the full total
+immediately after resume.
+
+The display is `$2.87` while settled, `$2.87 + …` during a primary response,
+initial transcript reconciliation, or generation-metadata indexing, and
+`$2.87 + ?` after an exhausted lookup or an unreadable/malformed owned
+transcript. Background advisor/subagent responses become visible after their
+assistant line is persisted (normally within one second while active or five
+seconds while idle). Catalog estimates are never substituted. Non-OpenRouter
+models and focused subagent views retain OMP's native renderer, including `S…`
+for subscription price-equivalent spend. Details in
 [Status line and theme](docs/omp.md#statusline-theme).
 
 ### Claude subscription

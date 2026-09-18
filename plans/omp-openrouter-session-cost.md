@@ -1,6 +1,6 @@
 # OMP OpenRouter session cost
 
-> **Status:** implemented and live-smoked 2026-09-17 against OMP 18.2.4 as a
+> **Status:** implemented and live-smoked 2026-09-18 against OMP 18.2.5 as a
 > stowed extension; the Homebrew binary remains unmodified.
 
 ## Problem
@@ -192,134 +192,321 @@ No permanent live-network test: it would spend model/API usage and be
 nondeterministic. The durable contract is proven by the actual TUI smoke test
 plus direct independent reconciliation against OpenRouter's generation API.
 
-## Current limitations
+## Advisor and subagent attribution plan
 
-The displayed total is exact for one deliberately narrow scope: OpenRouter
-assistant responses whose response ids are present in the primary session's
-persisted entries. It is a primary-session total, not a process-wide,
-turn-wide, or OpenRouter-account-wide total. Model calls made outside that
-entry stream are absent even when the primary turn triggered them.
+### Replaced boundary
 
-How easy each gap is to close depends on whether the solution must remain a
-dotfiles extension against the unmodified Homebrew OMP binary or may add a
-small upstream OMP event.
+Before this implementation, the live extension counted only OpenRouter
+assistant responses in the primary session manager's entries. Advisor,
+subagent, and subagent-advisor requests were billed but absent from that entry
+stream.
 
-### Advisors
+The implementation remains extension-only. OMP 18.2.5 exposes the root session
+id, session file, and artifact directory through `ReadonlySessionManager`, and
+persists every relevant normalized assistant message. It does not forward
+advisor or child-agent lifecycle events to the primary extension instance, so
+live attribution needs a background transcript reconciler rather than another
+`message_end` handler.
 
-Advisors are the easiest extension-only addition. OMP already persists each
-advisor's complete assistant messages, including OpenRouter response ids,
-beside the primary transcript:
-
-```text
-<session>/__advisor.jsonl
-<session>/__advisor.<slug>.jsonl
-```
-
-The primary session owns those top-level files unambiguously. A background
-auxiliary-transcript reconciler can discover them, extract unique OpenRouter
-response ids, pass those ids through the existing generation-metadata queue,
-and persist records in the primary session with `source: "advisor"` and the
-advisor slug. Resume can rebuild immediately from the primary session's cost
-records, while live reconciliation reads only transcript bytes added since the
-last snapshot and never performs file I/O in the status renderer.
-
-OMP's existing `getAdvisorCost()` is not an exact shortcut. It sums
-`message.usage.cost.total`, the same field that is zero for the active BYOK
-route. Folding that native aggregate into the displayed value would silently
-mix an estimate or platform charge with authoritative generation metadata and
-must not be done.
-
-### Title generation
-
-Title generation is the smallest host-side change, but it is not cleanly
-solvable by the current extension API. `generateTitleOnline()` already receives
-the complete normalized assistant response and the caller already knows the
-owning primary session id. OMP could emit or persist:
+OMP's persisted layout is a companion tree rooted beside the primary JSONL.
+Here `<root>` is the primary session filename without `.jsonl`:
 
 ```text
-source: title
-ownerSessionId
-responseId
-provider
+<root>.jsonl
+<root>/__advisor.jsonl
+<root>/__advisor.<slug>.jsonl
+<root>/<agentId>.jsonl
+<root>/<agentId>/__advisor.jsonl
+<root>/<agentId>/__advisor.<slug>.jsonl
+<root>/<agentId>/<nestedAgentId>.jsonl
 ```
 
-The extension could then resolve that response id exactly like a primary
-response. Today the title call runs through `completeSimple()` outside the
-primary extension event stream, and only the generated title becomes session
-metadata, so the response id is otherwise unreachable. A small upstream OMP
-change is preferable to monkey-patching the provider call or carrying a fork.
+At each level, OMP recurses from `<dir>/<agentId>.jsonl` only into the
+same-stem `<dir>/<agentId>/` directory. Nested ids are already fully qualified
+(for example `Parent.Child`). This is the same ownership walk used by OMP's
+persisted Agent Hub roster; the reconciler must mirror it rather than recursively
+accepting every JSONL below the artifact root.
 
-### Subagents
+Each valid child transcript begins with an optional fixed title slot followed
+by a session header. The header's `id` is the child's credential-routing
+session id.
+`parentSession` is a useful consistency check, but physical containment in the
+companion tree is authoritative: older transcripts can omit it, and a moved
+root can leave its historical path stale. Symlinked files/directories and paths
+whose resolved location escapes `<root>/` are ignored.
+The reconciler must re-read `getSessionFile()` and `getArtifactsDir()` before
+each pass: `/move` keeps the same session manager and id while relocating both
+paths.
 
-Subagents are feasible without a core change but have more lifecycle cases than
-advisors. OMP persists each child transcript under the primary session's
-artifact directory:
+OMP's `getAdvisorCost()` is not usable here. It sums
+`message.usage.cost.total`, the same zero field that required this extension in
+the first place.
 
-```text
-<session>/<agentId>.jsonl
+### Decision
+
+Extend `openrouter-session-cost.ts` with one general auxiliary-transcript
+reconciler. Keep the direct primary `message_end` path, the existing
+four-request OpenRouter lookup queue, the wrapped native `cost` segment, and
+the fallback hook-status row. The reconciler only discovers attributable
+response ids and supplies their owning credential session; it never prices a
+request itself.
+
+No filesystem work runs in the renderer. One serialized, self-scheduling scan
+per active primary session owns discovery, byte cursors, and rescheduling.
+Session switch or shutdown aborts both that scanner and the existing network
+work.
+Retain the current `ctx.hasUI` activation guard. Extension instances loaded in
+headless child sessions stay inert; only the primary UI instance scans and
+persists the root aggregate.
+
+### Attribution and persisted schema
+
+Write new resolutions under `openrouter-session-cost/v2`:
+
+```ts
+type CostAttribution = {
+  ownerSessionId: string;
+  source: "primary" | "advisor" | "subagent";
+  agentId: string | null;
+  advisorSlug: string | null;
+};
+
+type StoredCostRecordV2 = CostRecord & CostAttribution;
 ```
 
-The child session header records its parent, and the transcript retains each
-assistant response id. The advisor transcript reader should therefore be
-designed as a general auxiliary-transcript reconciler rather than followed by a
-second subagent-specific mechanism.
+The field invariants are:
 
-Exact subagent attribution must additionally handle:
+- Primary response: `source: "primary"`, `agentId: null`,
+  `advisorSlug: null`.
+- Primary advisor response: `source: "advisor"`, `agentId: null`; the default
+  advisor uses an empty slug and named advisors use their filename slug.
+- Subagent response: `source: "subagent"`, the transcript's full `agentId`,
+  `advisorSlug: null`.
+- Subagent-advisor response: `source: "advisor"`, the owning full `agentId`,
+  and the advisor slug.
 
-- background agents completing after the primary turn has settled;
-- parked agents resuming and appending new generations;
-- nested agent ids and their owning parent/turn;
-- child-session credential routing for OpenRouter metadata lookup;
-- the same response being visible from parent and focused-agent views without
-  double-counting; and
-- subagent advisors stored under
-  `<session>/<agentId>/__advisor*.jsonl`.
+`ownerSessionId` is always the primary session id, never the child transcript's
+session id. The latter is retained only in the in-memory discovery record for
+credential routing.
 
-Focusing a subagent continues to delegate the segment to OMP's native renderer.
-The primary view should aggregate child records only after they have an
-explicit `ownerSessionId`, `agentId`, and source category.
+The response id remains the accounting identity. A response seen in more than
+one place contributes once. A restored valid v2 record is canonical for its
+response id; otherwise primary entries win over auxiliary entries, then sorted
+relative transcript path and line order make conflicts deterministic. Log one
+sanitized warning for conflicting attribution, but never add both costs.
 
-### Other non-primary work
+The v1 reader remains only as persisted-data compatibility for existing
+primary responses. It accepts a record only when the response id is still in
+the primary session entries. All new primary and auxiliary resolutions write
+v2; no v1 entry is rewritten or duplicated merely to migrate it.
 
-This is the hardest category because it is open-ended rather than one known
-call site. Any current or future internal `completeSimple()` or side-agent call
-can bypass the primary transcript. Adding a scraper for each feature would
-continually drift.
+A valid v2 record whose `ownerSessionId` matches the active session restores
+immediately from the primary JSONL, including advisor and subagent spend. This
+is safe because v2 is appended only after the response has been observed in an
+owned transcript. The asynchronous scan recovers work lost before persistence;
+it does not subtract a billed, durably attributed response merely because an
+artifact was later removed.
 
-The durable OMP-side contract should be one completed-generation event emitted
-by every billable model-call surface after it has a normalized assistant
-response:
+### Bootstrap and reconciliation
+
+On `session_start`, `session_switch`, and `session_branch`:
+
+1. Abort the previous state and capture the new root session id/file.
+2. Scan primary session entries synchronously. Collect primary OpenRouter
+   response ids, restore valid v1/v2 records, and render the cached total
+   immediately.
+3. Mark the initial auxiliary reconciliation in flight and schedule it without
+   awaiting from the lifecycle handler.
+4. Walk the companion tree in stable path order. Validate title/session
+   headers, derive attribution and the owning credential session, and enqueue
+   only OpenRouter assistant response ids not already resolved or pending.
+5. Clear the initial-scan marker only after the captured tree snapshot has
+   parsed. Metadata lookups can remain pending independently.
+
+`session_tree` re-runs the primary-entry reconciliation and requests an
+immediate auxiliary scan. Primary `message_end` still enqueues directly and
+`agent_end` requests a scan so advisor output already flushed at the turn edge
+is picked up quickly.
+
+Each auxiliary file has a cursor containing file identity, last complete-line
+byte offset, validated header, and owner metadata. A scan snapshots the file
+size, streams only `[offset, snapshotSize)`, and advances the cursor only
+through newline-terminated JSON records. A trailing partial record is retained
+for the next pass. Inode replacement or size regression resets that file to
+offset zero; response-id deduplication makes the rescan harmless.
+
+The initial process scan necessarily reads historical auxiliary transcripts.
+Subsequent scans read only appended bytes. Directory enumeration remains
+bounded to the OMP companion-tree rule. One scan may be in flight; another
+trigger only requests one follow-up pass.
+
+Use a one-second cadence while the primary agent is responding, metadata is
+pending, a task/eval async job with an `agentId` is running, or the session is
+inside a short post-activity window. Back off to five seconds while quiescent.
+`ctx.getAsyncJobSnapshot()` is only a scheduling hint; native job aggregates
+never enter the cost total.
+
+### Credential routing
+
+Every queued discovery carries a `credentialSessionId`:
+
+- primary and top-level advisor responses use the primary session id;
+- subagent responses use that child transcript header's session id;
+- subagent-advisor responses use their owning child session id.
+
+Replace the single `apiKeyPromise` with a map keyed by credential session id,
+then call `getApiKeyForProvider("openrouter", credentialSessionId, ...)`.
+This preserves OMP's child credential affinity and still shares one resolution
+among requests from the same owner. Never enumerate, compare, log, or persist
+credentials.
+
+OMP gives an advisor a random provider-facing session id that is not persisted
+in its transcript. The repo's configured single OpenRouter key makes the
+stable owning-session lookup resolve the same account. A multiple-OpenRouter-
+account setup cannot prove the advisor's original account extension-only; a
+404/authorization failure must remain unresolved (`+ ?`) rather than trying
+arbitrary stored keys.
+
+### Queue, persistence, and failure semantics
+
+Queue items become `{ responseId, attribution, credentialSessionId }`. The
+process-wide immutable cache remains keyed only by response id and stores
+generation metadata, not session attribution. Reusing a cached generation in
+another owned transcript still writes a v2 record for that owner.
+
+Before `pi.appendEntry(...)`, require all of the following:
+
+- this is still the active primary state;
+- the discovery still belongs to that state's `ownerSessionId`;
+- the response id remains in the state's observed-response index; and
+- no valid v2/v1 record for that response id has already been persisted.
+
+Network retry, timeout, numeric validation, and four-request concurrency stay
+unchanged. Track transcript-scan failures separately from generation lookup
+failures:
+
+- `ENOENT` during discovery is a tolerated create/remove race and schedules
+  another pass.
+- A trailing unterminated line is pending input, not corruption.
+- A parseable non-session JSONL is unrelated and ignored.
+- A session-shaped malformed header is an owned-transcript failure even on its
+  first scan. A malformed complete record later in a valid transcript taints
+  that path but is skipped so later complete records remain discoverable. Clear
+  the taint only after replacement or truncation causes a clean scan from byte
+  zero.
+- An unreadable owned transcript, invalid reserved advisor transcript, or
+  exhausted metadata lookup means completeness is unknown. Log a concise path
+  basename/reason once and show `+ ?`.
+- A later successful lookup clears only the corresponding lookup failure.
+
+### Display semantics
+
+The primary OpenRouter view becomes the exact session-owned aggregate of
+primary, advisor, subagent, and subagent-advisor generation metadata. The
+status segment remains one number; v2 records retain the per-source attribution
+for reconciliation rather than adding another TUI surface.
+
+- `+ …` means the primary agent is responding, initial auxiliary reconciliation
+  is running, or at least one discovered response is awaiting metadata.
+- `+ ?` means a known lookup or owned-transcript reconciliation failed and
+  takes precedence when both markers apply.
+- A background auxiliary model call cannot be marked in flight before its
+  assistant record is persisted; discovery is therefore bounded by the scan
+  cadence. Do not show `+ …` merely because an unrelated async job exists.
+- Focused-agent views still delegate to OMP's native renderer. Returning to the
+  primary view shows the same aggregate; focus never adds another observation.
+- Non-OpenRouter primary models still delegate to the native subscription,
+  premium-request, advisor, and time-pricing renderer unchanged. Accumulated
+  OpenRouter auxiliary spend reappears when the primary view uses OpenRouter.
+
+### Implementation sequence
+
+1. Split generation metadata from attribution in the extension state; add the
+   v2 schema, v1 reader, uniform primary v2 writer, and per-credential key cache.
+2. Add the byte-cursor JSONL reader and companion-tree walker in the same
+   extension file. Keep it private; no second generic filesystem abstraction.
+3. Wire initial/incremental scheduling, scan failure state, cancellation, queue
+   discoveries, and pre-persist ownership checks.
+4. Update `README.md`'s status-line description and `docs/omp.md`'s detailed
+   semantics, delay/failure notes, resume behavior, and remaining exclusions.
+
+`omp/setup-settings.sh` and `AGENTS.md` do not change: the segment id, extension
+path, stow package inventory, and setup steps are unchanged.
+
+### Verification
+
+1. Build a throwaway Bun probe that loads the real extension factory after a
+   `mock.module` shim supplies the host-only package, with a fake
+   `ExtensionAPI`, temporary session tree, deterministic mocked generation
+   responses, and captured `appendEntry`/status calls. Exercise primary,
+   default/named advisors, top-level/nested subagents, and subagent advisors.
+2. In that probe, append after the initial scan and confirm only the new
+   response is looked up and persisted; then exercise `/move`, a named advisor
+   whose slug is `bak`, a partial final line, inode replacement, truncation, a
+   malformed first-seen child header, malformed complete JSON, an unrelated
+   JSONL, a symlink escape, duplicate response ids across sources, and session
+   cancellation.
+3. Verify v1 primary restoration, immediate v2 auxiliary restoration, invalid
+   owner/source-field combinations, deterministic conflict handling, and one
+   v2 append per response id.
+4. Verify credential resolution receives the primary id for primary/advisor
+   records and each child header id for child/subagent-advisor records.
+5. Re-run the existing missing-key, temporary 404, 429/5xx retry, timeout,
+   terminal HTTP, malformed payload, and invalid numeric-field probes with
+   auxiliary queue items included.
+6. Deploy through `stow --no-folding omp` and
+   `bash omp/setup-settings.sh`; confirm the right segment list still ends in
+   `cost`.
+7. In one small real OpenRouter session, enable the configured advisor, run a
+   foreground subagent, let a detached subagent finish after the primary turn,
+   wake the parked agent for another turn, spawn one nested agent, and exercise
+   a subagent advisor. Observe each persisted transcript category increase the
+   primary total once.
+8. Focus each child and return to the primary view. Confirm focused views stay
+   native and the primary aggregate neither disappears nor doubles.
+9. Exit and resume. The full v2 total must render from primary entries before
+   network reconciliation; new auxiliary responses must increase it after
+   their transcript append and metadata indexing delay.
+10. Independently enumerate every OpenRouter response id in the owned transcript
+    tree, query generation metadata directly, group by persisted attribution,
+    and compare the unique effective-cost sum with the display at two decimals.
+11. Remove the throwaway probe and review both user-facing docs against the
+    observed TUI behavior.
+
+No permanent live-network test: it would spend API usage and remain
+nondeterministic. The byte-cursor and ownership cases justify a deterministic
+probe during implementation, but this dotfiles repo should not gain a test
+framework solely for one extension.
+
+### Remaining non-primary work
+
+Title generation and other internal `completeSimple()` calls still expose no
+response id to extensions. Per-turn subagent attribution is also unavailable
+after restart: OMP persists the child transcript and agent id, but not the
+spawning `parentToolCallId` in that transcript.
+
+The durable upstream replacement for transcript scraping remains one replayable
+completed-generation event, or the same ownership fields persisted on the
+normalized assistant message:
 
 ```ts
 type BillableGeneration = {
   responseId: string;
   provider: string;
   ownerSessionId: string;
+  credentialSessionId: string;
   source: "primary" | "subagent" | "advisor" | "title" | "internal";
   agentId?: string;
+  advisorSlug?: string;
+  parentToolCallId?: string;
 };
 ```
 
-The host owns attribution; the extension owns OpenRouter lookup, bounded retry,
-deduplication, persistence, and display. This same event would make title
-generation and future internal calls straightforward without exposing their
-implementation details.
-
-### Recommended order
-
-1. Add advisor accounting through a general auxiliary-transcript reconciler.
-2. Extend the same reconciler to subagent and subagent-advisor transcripts.
-3. Propose the generic completed-generation event upstream for title generation
-   and future internal calls.
-4. Keep native aggregates and catalog-price estimates out of the exact total;
-   do not use them as an interim fallback.
-
-Every future path must preserve the guarantees of the primary-session
-implementation: authoritative OpenRouter generation metadata, an explicit
-owner and category, one durable record per response id, immediate resume
-restoration, bounded reconciliation, and no double-counting. Until those paths
-exist, the status value should be read as **primary-session OpenRouter spend
-only**.
+The host should own these identities. The extension should continue to own
+OpenRouter lookup, bounded retry, deduplication, persistence, and display.
+The live status value now includes primary, advisor, subagent, and
+subagent-advisor OpenRouter spend. Title/internal generations and per-turn
+subagent ownership remain excluded as described above.
 
 ## Non-goals
 

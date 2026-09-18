@@ -311,23 +311,55 @@ an nvim sidekick terminal (`$NVIM` inherited) the factory skips registration —
 nvim already shows the project — and the configured id renders invisible.
 
 The stowed `openrouter-session-cost.ts` wraps the native `cost` renderer only
-while the primary session's active model uses OpenRouter. It sums every unique
-OpenRouter assistant response in the session, including abandoned branches,
-from OpenRouter's generation metadata: BYOK generations use
-`upstream_inference_cost`; other generations use `total_cost`. It never
-substitutes OMP's local catalog estimate. Resolved records are stored as hidden
-session entries, so a resumed session renders its saved total without fetching
-old generations again.
+while the primary session's active model uses OpenRouter. Its session-owned
+aggregate includes every unique OpenRouter assistant response in the primary
+transcript (including abandoned branches), default/named advisor transcripts,
+top-level and nested subagent transcripts, and advisors owned by those
+subagents. OpenRouter generation metadata remains authoritative: BYOK
+generations use `upstream_inference_cost`; other generations use `total_cost`.
+OMP's catalog estimate is never substituted.
 
-The display is `$2.87` while idle and `$2.87 + …` while the agent is responding
-or OpenRouter is still indexing a completed generation. Metadata is eventually
-consistent, so bounded background retries update the total without delaying the
-turn. Exhausted lookups render `$2.87 + ?` and retry on the next session
-reconciliation. A fresh OpenRouter session begins at `$0.00`. Subscription and
-other non-OpenRouter models, plus focused subagent views, delegate to the native
-renderer unchanged — including its `S0.66`-style subscription-equivalent spend.
-If the mutable segment export disappears, the same OpenRouter value falls back
-to the hook-status row instead of breaking startup.
+Each resolved response is stored as a hidden `openrouter-session-cost/v2` entry
+with root-session, source, full-agent-id, and advisor-slug attribution. Response
+id is the accounting identity, so duplicate transcript observations count once;
+a durable v2 attribution wins on resume, otherwise a primary observation wins
+before the auxiliary tree's stable path/line order. Existing v1 entries still
+restore primary-response costs but are not rewritten solely for migration. A
+resumed session therefore paints its saved aggregate before filesystem or
+network reconciliation.
+
+The display is `$2.87` while settled. `$2.87 + …` means the primary agent is
+responding, the initial auxiliary scan is running, or a discovered generation
+is awaiting metadata. Advisor/subagent calls have no primary extension event,
+so they cannot be marked in flight before their finalized assistant line reaches
+the JSONL; the incremental scanner checks about once per second during activity
+and once per five seconds while quiescent. It reads only newly completed lines,
+resets safely after truncation/replacement, ignores unrelated JSONL and symlink
+escapes, and follows only OMP's file-to-same-stem companion directories.
+It re-reads the session and artifact paths before every pass, so `/move`
+preserves the aggregate and continues reconciliation from the relocated tree.
+
+`$2.87 + ?` takes precedence after an exhausted metadata lookup or when an owned
+transcript is unreadable or has a malformed complete record. A trailing partial
+line is merely retried. Generation lookups retain the five-second timeout,
+bounded retries, and four-request concurrency; session switch/shutdown cancels
+both lookup and scan work.
+
+Primary and top-level advisor requests resolve credentials through the primary
+session id. Child responses and child advisors use that child transcript's
+session id, preserving OMP's inherited credential affinity. OMP does not persist
+an advisor's random provider-facing session id, so an installation with multiple
+OpenRouter accounts cannot prove which account billed an advisor request; a
+failed lookup remains `+ ?` instead of probing arbitrary credentials. This
+repo's single configured OpenRouter key is unaffected.
+
+Subscription and other non-OpenRouter models, plus focused subagent views,
+delegate to the native renderer unchanged — including its `S0.66`-style
+subscription-equivalent spend. Returning to the primary OpenRouter view shows
+the same aggregate. Title/internal `completeSimple()` calls remain excluded, as
+does per-turn subagent attribution because child transcripts do not persist the
+spawning `parentToolCallId`. If the mutable segment export disappears, the same
+OpenRouter value falls back to the hook-status row instead of breaking startup.
 
 One gap against pi's `claude-footer.ts` is accepted, not chased. **Context
 colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
