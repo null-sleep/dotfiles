@@ -192,9 +192,137 @@ No permanent live-network test: it would spend model/API usage and be
 nondeterministic. The durable contract is proven by the actual TUI smoke test
 plus direct independent reconciliation against OpenRouter's generation API.
 
+## Current limitations
+
+The displayed total is exact for one deliberately narrow scope: OpenRouter
+assistant responses whose response ids are present in the primary session's
+persisted entries. It is a primary-session total, not a process-wide,
+turn-wide, or OpenRouter-account-wide total. Model calls made outside that
+entry stream are absent even when the primary turn triggered them.
+
+How easy each gap is to close depends on whether the solution must remain a
+dotfiles extension against the unmodified Homebrew OMP binary or may add a
+small upstream OMP event.
+
+### Advisors
+
+Advisors are the easiest extension-only addition. OMP already persists each
+advisor's complete assistant messages, including OpenRouter response ids,
+beside the primary transcript:
+
+```text
+<session>/__advisor.jsonl
+<session>/__advisor.<slug>.jsonl
+```
+
+The primary session owns those top-level files unambiguously. A background
+auxiliary-transcript reconciler can discover them, extract unique OpenRouter
+response ids, pass those ids through the existing generation-metadata queue,
+and persist records in the primary session with `source: "advisor"` and the
+advisor slug. Resume can rebuild immediately from the primary session's cost
+records, while live reconciliation reads only transcript bytes added since the
+last snapshot and never performs file I/O in the status renderer.
+
+OMP's existing `getAdvisorCost()` is not an exact shortcut. It sums
+`message.usage.cost.total`, the same field that is zero for the active BYOK
+route. Folding that native aggregate into the displayed value would silently
+mix an estimate or platform charge with authoritative generation metadata and
+must not be done.
+
+### Title generation
+
+Title generation is the smallest host-side change, but it is not cleanly
+solvable by the current extension API. `generateTitleOnline()` already receives
+the complete normalized assistant response and the caller already knows the
+owning primary session id. OMP could emit or persist:
+
+```text
+source: title
+ownerSessionId
+responseId
+provider
+```
+
+The extension could then resolve that response id exactly like a primary
+response. Today the title call runs through `completeSimple()` outside the
+primary extension event stream, and only the generated title becomes session
+metadata, so the response id is otherwise unreachable. A small upstream OMP
+change is preferable to monkey-patching the provider call or carrying a fork.
+
+### Subagents
+
+Subagents are feasible without a core change but have more lifecycle cases than
+advisors. OMP persists each child transcript under the primary session's
+artifact directory:
+
+```text
+<session>/<agentId>.jsonl
+```
+
+The child session header records its parent, and the transcript retains each
+assistant response id. The advisor transcript reader should therefore be
+designed as a general auxiliary-transcript reconciler rather than followed by a
+second subagent-specific mechanism.
+
+Exact subagent attribution must additionally handle:
+
+- background agents completing after the primary turn has settled;
+- parked agents resuming and appending new generations;
+- nested agent ids and their owning parent/turn;
+- child-session credential routing for OpenRouter metadata lookup;
+- the same response being visible from parent and focused-agent views without
+  double-counting; and
+- subagent advisors stored under
+  `<session>/<agentId>/__advisor*.jsonl`.
+
+Focusing a subagent continues to delegate the segment to OMP's native renderer.
+The primary view should aggregate child records only after they have an
+explicit `ownerSessionId`, `agentId`, and source category.
+
+### Other non-primary work
+
+This is the hardest category because it is open-ended rather than one known
+call site. Any current or future internal `completeSimple()` or side-agent call
+can bypass the primary transcript. Adding a scraper for each feature would
+continually drift.
+
+The durable OMP-side contract should be one completed-generation event emitted
+by every billable model-call surface after it has a normalized assistant
+response:
+
+```ts
+type BillableGeneration = {
+  responseId: string;
+  provider: string;
+  ownerSessionId: string;
+  source: "primary" | "subagent" | "advisor" | "title" | "internal";
+  agentId?: string;
+};
+```
+
+The host owns attribution; the extension owns OpenRouter lookup, bounded retry,
+deduplication, persistence, and display. This same event would make title
+generation and future internal calls straightforward without exposing their
+implementation details.
+
+### Recommended order
+
+1. Add advisor accounting through a general auxiliary-transcript reconciler.
+2. Extend the same reconciler to subagent and subagent-advisor transcripts.
+3. Propose the generic completed-generation event upstream for title generation
+   and future internal calls.
+4. Keep native aggregates and catalog-price estimates out of the exact total;
+   do not use them as an interim fallback.
+
+Every future path must preserve the guarantees of the primary-session
+implementation: authoritative OpenRouter generation metadata, an explicit
+owner and category, one durable record per response id, immediate resume
+restoration, bounded reconciliation, and no double-counting. Until those paths
+exist, the status value should be read as **primary-session OpenRouter spend
+only**.
+
 ## Non-goals
 
 - Changing OMP's persisted `message.usage.cost` or global `omp stats` database.
-- Combining main-session and subagent-session spend.
 - Replacing the `S…` subscription-equivalent display.
 - Carrying a forked OMP binary or changing OpenRouter routing/account settings.
