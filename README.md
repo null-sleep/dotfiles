@@ -2112,7 +2112,8 @@ The shell includes short commands for common pull-request operations:
 ```bash
 gco <branch>                  # check out a branch with git
 gco <github-pr-url>           # check out a PR with gh (any PR page URL: /files, /changes/…, #discussion_r…)
-gco <linear-issue-url>        # check out the linked PR (fzf picker if multiple)
+gco <linear-review-url>       # check out that Linear review's GitHub PR
+gco <linear-issue-url>        # check out a linked PR (fzf picker if multiple)
 gpr                           # select an open PR with fzf and check it out
 gpv                           # view the current branch's PR in the terminal
 gpo                           # open the current branch's PR in a browser
@@ -2120,9 +2121,9 @@ gpo                           # open the current branch's PR in a browser
 
 The PR URL and picker forms leave you on the PR's head branch and also handle
 PRs opened from forks. They require the `gh` installation and authentication
-above; `gpr` and the Linear-URL form additionally require `fzf`, which is
-included in the `Brewfile`. The Linear-URL form also uses `jq` and
-`linear` — see [Linear CLI & agent skill](#linear-cli-agent-skill).
+above; `gpr` and the Linear-issue URL form additionally require `fzf`, which is
+included in the `Brewfile`. Both Linear URL forms also use `jq` and `linear` —
+see [Linear CLI & agent skill](#linear-cli-agent-skill).
 
 ### SSH for GitHub
 

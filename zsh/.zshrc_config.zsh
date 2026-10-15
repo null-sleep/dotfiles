@@ -304,12 +304,13 @@ alias gpv='gh pr view'
 # Remove alias from `antigen bundle git` if it exists to allow function definition
 unalias gco 2>/dev/null
 gco() {
+  local prs label
   # Linear issue URL → resolve linked GitHub PR(s), fzf-pick if multiple.
   if [[ "$1" =~ '^https://linear\.app/[^/]+/issue/([A-Z][A-Z0-9]+-[0-9]+)([/?#].*)?$' ]]; then
     local issue_id="$match[1]"
-    local prs
+    label="PR for $issue_id"
     prs=$(linear issue view "$issue_id" --json \
-      | jq -r '.attachments.nodes[]
+      | jq -r '.attachments[]
           | select(.sourceType == "github" and (.url | test("/pull/[0-9]+(/|$)")))
           | [.metadata.number, .metadata.status, .metadata.repoName, .metadata.title, .url]
           | @tsv')
@@ -321,21 +322,61 @@ gco() {
       print -u2 "gco: no GitHub PRs linked to $issue_id"
       return 1
     fi
-    local selection
-    if [[ "$(print -r -- "$prs" | wc -l | tr -d ' ')" == "1" ]]; then
-      selection="$prs"
-    else
-      selection=$(print -r -- "$prs" | fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="PR for $issue_id> ") || return
+  # Linear review URL → find its exact GitHub PR from the title slug.
+  elif [[ "$1" =~ '^https://linear\.app/[^/]+/review/(.+)-([0-9a-f]{12})([/?#].*)?$' ]]; then
+    local review_slug="$match[1]"
+    local review_terms="${review_slug#*-}"
+    review_terms="${review_terms//-/ }"
+    label="PR for Linear review"
+    local review_response
+    review_response=$(linear api --variable term="$review_terms" <<'GRAPHQL'
+query($term: String!) {
+  searchIssues(term: $term, first: 50) {
+    nodes {
+      attachments {
+        nodes { sourceType url metadata }
+      }
+    }
+  }
+}
+GRAPHQL
+)
+    if (( $? != 0 )); then
+      print -u2 "gco: failed to resolve Linear review $review_slug"
+      return 1
     fi
-    local pr_url="${selection##*$'\t'}"
-    gh pr checkout "$pr_url" "${@:2}"
+    prs=$(print -r -- "$review_response" | jq -r --arg slug "$review_slug" '
+      .data.searchIssues.nodes[].attachments.nodes[]
+      | select(.sourceType == "github" and (.url | test("/pull/[0-9]+(/|$)")))
+      | select((.metadata.title | ascii_downcase | gsub("[^a-z0-9]+"; "")) == ($slug | gsub("-"; "")))
+      | [.metadata.number, .metadata.status, .metadata.repoName, .metadata.title, .url]
+      | @tsv')
+    if (( ${pipestatus[1]} != 0 )); then
+      print -u2 "gco: failed to resolve Linear review $review_slug"
+      return 1
+    fi
+    if [[ -z "$prs" ]]; then
+      print -u2 "gco: no GitHub PR found for Linear review $review_slug"
+      return 1
+    fi
   # Any PR-page URL works (…/files, /changes/<range>, #discussion_r…, ?w=1):
   # everything after the PR number is stripped before gh pr checkout.
   elif [[ "$1" =~ '^(https://github\.com/[^/]+/[^/]+/pull/[0-9]+)([/?#].*)?$' ]]; then
     gh pr checkout "$match[1]" "${@:2}"
+    return
   else
     git checkout "$@"
+    return
   fi
+
+  local selection
+  if [[ "$(print -r -- "$prs" | wc -l | tr -d ' ')" == "1" ]]; then
+    selection="$prs"
+  else
+    selection=$(print -r -- "$prs" | fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="$label> ") || return
+  fi
+  local pr_url="${selection##*$'\t'}"
+  gh pr checkout "$pr_url" "${@:2}"
 }
 
 # Select an open pull request and check out its head branch.
