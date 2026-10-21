@@ -60,6 +60,10 @@ brew "tree-sitter-cli" # builds treesitter parsers
 brew "go"
 brew "node"
 brew "python@3.12"     # keg-only; .zshrc_config.zsh prepends it to PATH
+brew "openjdk@17"     # keg-only; .zshrc_config.zsh selects it as the default JDK
+brew "openjdk@21"     # keg-only; select it per shell with `init-java 21`
+brew "openjdk@25"     # keg-only; select it per shell with `init-java 25`
+
 brew "elixir"          # runtime for elixirls (lsp.lua ensure_installed) — Mason's
                        # install fails on every launch without it; includes Erlang
 brew "ruff"            # python format-on-save (README → "Format-on-save tools");

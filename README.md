@@ -163,6 +163,7 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `z foo` / `zi` | jumps by frecency / opens an fzf picker ([zoxide](#directory-jumping-zoxide)) |
 | `command -v rg fd fzf zoxide direnv stow` | all resolve |
 | `python3 --version` | 3.12.x (not the system 3.9) |
+| `java -version`; `/usr/libexec/java_home -v 17`, `-v 21`, `-v 25` | OpenJDK 17 is the shell default; all three JDKs resolve |
 | `rustc --version` && `cargo --version` | both resolve (rustup) |
 | `ssh -T git@github.com` | `Hi <username>!` ([SSH for GitHub](#ssh-for-github)) |
 | Terminal glyphs | file-tree / git icons render, not tofu boxes (▯) — fonts installed |
@@ -197,6 +198,16 @@ brew install node
 # prepends its libexec/bin to PATH — that makes the unversioned `python3`/`pip3`
 # resolve to 3.12 instead of /usr/bin/python3.
 brew install python@3.12
+
+# Java 17, 21, and 25. These versions are keg-only. The zsh config exports
+# JAVA_HOME at the JDK root and defaults to 17; use `init-java 21` or
+# `init-java 25` to switch a shell. The system symlinks also let IDEs and
+# /usr/libexec/java_home discover every installed JDK.
+brew install openjdk@17 openjdk@21 openjdk@25
+for version in 17 21 25; do
+  sudo ln -sfn "/opt/homebrew/opt/openjdk@$version/libexec/openjdk.jdk" \
+    "/Library/Java/JavaVirtualMachines/openjdk-$version.jdk"
+done
 
 # Elixir (includes Erlang)
 brew install elixir

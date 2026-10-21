@@ -126,6 +126,18 @@ zstyle ':completion:*' completer _expand_alias _complete _ignored
 # system python3 (3.9). brew installs it keg-only, exposing the unversioned
 # binaries here. Guarded so it's a harmless no-op where the formula isn't present.
 [[ -d /opt/homebrew/opt/python@3.12/libexec/bin ]] && export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:$PATH"
+# OpenJDK is keg-only. JAVA_HOME must name the JDK root (not the Homebrew
+# formula prefix) for build tools that resolve its lib/ and include/ directories.
+# Java 17 stays the shell default; use `init-java 21` or `init-java 25` per shell.
+init-java() {
+  local prefix="/opt/homebrew/opt/openjdk@$1"
+  local java_home="$prefix/libexec/openjdk.jdk/Contents/Home"
+  [[ -d "$java_home" ]] || return 1
+  export JAVA_HOME="$java_home"
+  export PATH="$prefix/bin:$PATH"
+}
+[[ -d /opt/homebrew/opt/openjdk@17 ]] && init-java 17
+
 # Rust
 export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
