@@ -2121,6 +2121,8 @@ beyond the defaults `gh auth login` grants.
 The shell includes short commands for common pull-request operations:
 
 ```bash
+gnb <branch>                  # create and switch to <branch> from the current commit
+gnbm <branch>                 # fetch origin's default branch, then create and switch to <branch> from it
 gco <branch>                  # check out a branch with git
 gco <github-pr-url>           # check out a PR with gh (any PR page URL: /files, /changes/…, #discussion_r…)
 gco <linear-review-url>       # check out that Linear review's GitHub PR
@@ -2129,6 +2131,10 @@ gpr                           # select an open PR with fzf and check it out
 gpv                           # view the current branch's PR in the terminal
 gpo                           # open the current branch's PR in a browser
 ```
+
+`gnbm` reads `origin`'s configured default branch (`main` or `master`), fetches
+it, and starts the named branch at that fetched commit without checking out the
+default branch first. It requires exactly one branch-name argument.
 
 The PR URL and picker forms leave you on the PR's head branch and also handle
 PRs opened from forks. They require the `gh` installation and authentication

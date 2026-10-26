@@ -272,7 +272,6 @@ alias gt=git  # NOTE: shadows the Graphite CLI's `gt` — remove this line if yo
 alias ga='git add'
 alias gcmp='git checkout $(git_base_branch) && git pull'
 alias gcb='git checkout $(git branch | fzf)'
-## Select local branches for safe deletion; gbd never force-deletes.
 unalias gbd 2>/dev/null
 gbd() {
   local current_branch
@@ -406,6 +405,14 @@ alias gaa='git add --all'
 alias gau='git add -u' # Add only tracked files
 alias yolo='gcaa && gpf'
 alias gnb='git checkout -b'
+# Fetch the default branch and create/switch directly to a new branch from it.
+gnbm() {
+  (( $# == 1 )) || { print -u2 'usage: gnbm <branch>'; return 2; }
+  local base
+  base=$(git_base_branch) || return
+  git fetch origin "$base" || return
+  git checkout -b "$1" FETCH_HEAD
+}
 alias grb='git fetch origin && git rebase origin/$(git_base_branch)'
 alias grbc='git rebase --continue'
 alias grba='git rebase --abort'
