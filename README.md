@@ -1014,19 +1014,27 @@ Unlike [opencode](#opencode), [pi](#pi), and [omp](#omp), Codex is not
 [OpenRouter](#openrouter)-backed — it authenticates against an OpenAI account
 and stores the result in `~/.codex/auth.json`.
 
-**Permissions** — this setup gives Codex the same effective host access as the
-Claude Code configuration in this repo. Add these top-level keys to
-`~/.codex/config.toml`, then restart Codex:
+**Permissions** — use automatic approval review with the workspace sandbox.
+Add or update these top-level keys in `~/.codex/config.toml`, before any
+`[section]` headers, then restart Codex:
 
 ```toml
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
 ```
 
-Claude's project allowlist includes unrestricted shell interpreters (`bash`,
-`zsh -c`, and `python3`) and home-directory reads, so its named-command policy
-can already perform arbitrary host operations. Codex expresses that policy as
-full host access with approval prompts disabled.
+Run `codex` normally; no `--approve-for-me` flag is needed. These user-level
+defaults apply to every project, including repos under `~/src/`, unless
+project configuration, a selected profile, CLI flags, or managed policy
+changes the effective settings.
+
+Codex can edit workspace files and run routine local commands directly.
+Requests to modify files outside the workspace or use command network access
+are eligible for automatic approval review; the reviewer can approve or deny
+them based on risk and user authorization. Command network access remains off
+inside the sandbox by default. See OpenAI's
+[approval and sandbox documentation](https://learn.chatgpt.com/docs/agent-approvals-security#automatic-approval-reviews).
 
 **Nothing under `~/.codex/` is stowed**, so there is no `codex` stow package.
 The directory mixes credentials (`auth.json`) with session history and
