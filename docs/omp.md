@@ -389,33 +389,47 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 
 omp routes everything through **model roles**. The default is OpenRouter Terra
 at high thinking; built-in roles feed features such as plan mode, subagents,
-background work, and `omp commit`. This setup also defines six custom roles
-used only as switchable presets:
+background work, and `omp commit`. This setup exposes switchable cycle
+presets through model roles:
 
 ```yaml
+cycleOrder:
+  - smol
+  - tiny
+  - default
+  - argon
+  - dseek
+  - kimi
+  - slow
+  - carbon
+  - sonnet
+  - opus
+  - cheap-l
 modelRoles:
-  default: openrouter/openai/gpt-5.6-terra:high
   smol: openrouter/openai/gpt-5.6-luna:xhigh
-  slow: openrouter/openai/gpt-5.6-sol:xhigh
-  vision: openrouter/openai/gpt-5.6-terra:high
-  plan: openrouter/openai/gpt-5.6-sol:high
-  commit: openrouter/openai/gpt-5.6-luna:medium
   tiny: openrouter/openai/gpt-5.6-luna:low
-  task: openrouter/openai/gpt-5.6-terra:medium
-  advisor: openrouter/openai/gpt-5.6-luna:medium
-  med-vision: openrouter/openai/gpt-5.6-terra:high
-  oa-s: openai-codex/gpt-5.6-luna:high
-  oa-m: openai-codex/gpt-5.6-terra:high
-  oa-l: openai-codex/gpt-5.6-sol:xhigh
-  glm-l: openrouter/z-ai/glm-5.3:max
-  glm-fast: openrouter/z-ai/glm-5.3-flash:max
+  default: openrouter/openai/gpt-5.6-terra:high
+  argon: openrouter/google/gemini-4-argon:high
+  dseek: openrouter/deepseek/deepseek-v4.1-flash:max
+  kimi: openrouter/moonshotai/kimi-k3:max
+  slow: openrouter/openai/gpt-5.6-sol:xhigh
+  carbon: openrouter/google/gemini-4-carbon:high
+  sonnet: openrouter/anthropic/claude-sonnet-5.5:high
+  opus: openrouter/anthropic/claude-opus-5.5:high
+  cheap-l: openrouter/z-ai/glm-5.3:max
 ```
 
-Existing assignments survive setup re-runs; only missing role and tag keys are
-seeded. `cycleOrder` is pinned to `smol`, `default`, `slow`, `tiny`,
-`med-vision`, `oa-s`, `oa-m`, `oa-l`, `glm-l`, `glm-fast`. `Ctrl+P` cycles that
-sequence; `Alt+O` opens the extension's fuzzy picker over the same effective
-configuration and applies the selected role's model and thinking suffix.
+Existing role assignments survive setup re-runs; only missing role and tag keys
+are seeded. `setup-settings.sh` pins `cycleOrder` to the sequence above.
+`Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
+effective configuration and applies the selected role's model and thinking
+suffix.
+
+Both Gemini presets use OpenRouter and `high` thinking, which both models
+support. Argon is the more economical starting point for routine work; Carbon
+is geared toward difficult, long-running tasks and can spend more tokens even
+when the per-token rate is the same. Check current OpenRouter pricing before
+long runs.
 
 Both GLM selectors also get model-specific automatic fallback chains, seeded
 fill-in-only so later hand edits survive setup re-runs:

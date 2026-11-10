@@ -29,11 +29,15 @@ cd "$(mktemp -d)"
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-5.6-terra:high",
   "smol": "openrouter/openai/gpt-5.6-luna:xhigh",
+  "tiny": "openrouter/openai/gpt-5.6-luna:low",
   "slow": "openrouter/openai/gpt-5.6-sol:xhigh",
+  "sonnet": "openrouter/anthropic/claude-sonnet-5.5:high",
+  "opus": "openrouter/anthropic/claude-opus-5.5:high",
+  "argon": "openrouter/google/gemini-4-argon:high",
+  "carbon": "openrouter/google/gemini-4-carbon:high",
   "vision": "openrouter/openai/gpt-5.6-terra:high",
   "plan": "openrouter/openai/gpt-5.6-sol:high",
   "commit": "openrouter/openai/gpt-5.6-luna:medium",
-  "tiny": "openrouter/openai/gpt-5.6-luna:low",
   "task": "openrouter/openai/gpt-5.6-terra:medium",
   "advisor": "openrouter/openai/gpt-5.6-luna:medium",
   "med-vision": "openrouter/openai/gpt-5.6-terra:high",
@@ -51,10 +55,13 @@ DEFAULT_MODEL_TAGS='{
   "oa-s": {"name": "oa-s"},
   "oa-m": {"name": "oa-m"},
   "oa-l": {"name": "oa-l"},
+  "sonnet": {"name": "sonnet"},
+  "opus": {"name": "opus"},
+  "argon": {"name": "argon"},
+  "carbon": {"name": "carbon"},
   "glm-l": {"name": "glm-l"},
   "glm-fast": {"name": "glm-fast"}
 }'
-
 DEFAULT_FALLBACK_CHAINS='{
   "openrouter/z-ai/glm-5.3": [
     "openrouter/deepseek/deepseek-v4-pro-0813:max",
@@ -148,7 +155,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","default","dseek","kimi","slow","oa-m","oa-l","cheap-l","oa-s"]'
+omp config set cycleOrder '["smol","tiny","default","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium
