@@ -1399,7 +1399,7 @@ session afterward. Diagnose missing custom status behavior with:
 OMP 18.2's `config set` command rejects extension-owned segment ids even though
 the runtime accepts them. For those two segment arrays only,
 `setup-settings.sh` uses macOS's system Ruby YAML parser under OMP's config-file
-lock and atomically renames the result; every other setting still goes through
+lock and atomically renames the result; other `config.yml` settings go through
 `omp config`. This preserves the extension ids on fresh setup without exposing
 `config.yml` through stow.
 
@@ -1430,6 +1430,7 @@ Much less than pi: no theme ports (omp built-ins are used — see
 | `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
 | `~/.omp/agent/extensions/openrouter-session-cost.ts` | Symlinked via stow (`--no-folding`); exact cumulative OpenRouter generation cost through the native `cost` segment |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
+| `~/.omp/agent/models.yml` | Seeded by `setup-auto-code.sh`; machine-local Auto Code allowlist and conservative token limits |
 | `~/.omp/agent/lsp.json` | Seeded by `setup-settings.sh` with the resolved `gopls` path; preserves a user-configured command |
 | `~/.omp/agent/mcp.json` | **Not** tracked — machine-local; add servers with `/mcp` (see below) |
 | everything else in `~/.omp/agent/` | **Not** tracked — sessions, blobs, `agent.db`, auth |
@@ -1441,18 +1442,21 @@ runtime state lives in the same directory tree as the one stowed file.
 
 `setup-settings.sh` is **fill-in-only** for the built-in and custom
 `modelRoles`/`modelTags` presets, including OpenRouter Terra at high thinking
-as the default model; the model-specific GLM rate-limit fallback chains; and
+as the default model; the model-specific GLM fallback chains and empty Auto Code
+fallback; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
 chains, or values changed later survive a re-run. The script also fills in an
 absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
 depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned thirteen-preset model cycle — `smol`, `tiny`, `default`,
-`argon`, `dseek`, `kimi`, `slow`, `carbon`, `sonnet`, `opus`, `cheap-l`, `astra`,
-`fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O` fuzzy picker. `argon`
-and `carbon` select Gemini 4; `astra` and `fable` select GPT-6 Astra and Claude
-Fable 5.2. All four use OpenRouter. The script also forces local
+**forces** the repo-owned fourteen-preset model cycle — `smol`, `tiny`, `default`,
+`auto-code`, `argon`, `dseek`, `kimi`, `slow`, `carbon`, `sonnet`, `opus`,
+`cheap-l`, `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
+fuzzy picker. `auto-code` is an optional OpenRouter coding router with a
+repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
+`argon` and `carbon` select Gemini 4; `astra` and `fable` select GPT-6 Astra and
+Claude Fable 5.2. All five use OpenRouter. The script also forces local
 project-summary memory, hidden thinking blocks (revealed with `Ctrl+T` without
 omitting provider summaries), the theme pair and status line below, plus web search order
 (`perplexity`, then the keyless `public` tier) with the `anthropic` OAuth backend
@@ -1464,6 +1468,11 @@ pricing, and preferred reasoning levels change; keep `DEFAULT_ROLES`,
 `DEFAULT_FALLBACK_CHAINS`, and `cycleOrder` coherent. `dseek` labels DeepSeek,
 `kimi` labels Moonshot Kimi, and `sonnet`/`opus` label OpenRouter Claude Sonnet
 5.5/Opus 5.5.
+
+`setup-auto-code.sh` merges its router override into the machine-local models
+file, preserving other configuration values and plugins. It rewrites YAML on
+changes, so existing comments are not retained. The pool is fixed in that
+script rather than following later role edits; update it when changing models.
 
 #### Local memory
 

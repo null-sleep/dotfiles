@@ -22,6 +22,7 @@ if ! command -v omp >/dev/null 2>&1; then
   echo "\`omp config\`). Re-run this script after installing."
   exit 0
 fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Avoid project-level config when reading global settings.
 cd "$(mktemp -d)"
@@ -37,6 +38,7 @@ DEFAULT_ROLES='{
   "carbon": "openrouter/google/gemini-4-carbon:high",
   "astra": "openrouter/openai/gpt-6-astra:xhigh",
   "fable": "openrouter/anthropic/claude-fable-5.2:high",
+  "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-5.6-terra:high",
   "plan": "openrouter/openai/gpt-5.6-sol:high",
   "commit": "openrouter/openai/gpt-5.6-luna:medium",
@@ -63,10 +65,12 @@ DEFAULT_MODEL_TAGS='{
   "carbon": {"name": "carbon"},
   "astra": {"name": "astra"},
   "fable": {"name": "fable"},
+  "auto-code": {"name": "auto-code"},
   "glm-l": {"name": "glm-l"},
   "glm-fast": {"name": "glm-fast"}
 }'
 DEFAULT_FALLBACK_CHAINS='{
+  "openrouter/openrouter/auto-code": [],
   "openrouter/z-ai/glm-5.3": [
     "openrouter/deepseek/deepseek-v4-pro-0813:max",
     "openrouter/qwen/qwen3.8-max:xhigh",
@@ -159,7 +163,8 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","tiny","default","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l","astra","fable"]'
+omp config set cycleOrder '["smol","tiny","default","auto-code","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l","astra","fable"]'
+bash "$SCRIPT_DIR/setup-auto-code.sh"
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium

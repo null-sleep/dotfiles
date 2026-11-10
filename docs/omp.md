@@ -397,6 +397,7 @@ cycleOrder:
   - smol
   - tiny
   - default
+  - auto-code
   - argon
   - dseek
   - kimi
@@ -411,6 +412,7 @@ modelRoles:
   smol: openrouter/openai/gpt-5.6-luna:xhigh
   tiny: openrouter/openai/gpt-5.6-luna:low
   default: openrouter/openai/gpt-5.6-terra:high
+  auto-code: openrouter/openrouter/auto-code
   argon: openrouter/google/gemini-4-argon:high
   dseek: openrouter/deepseek/deepseek-v4.1-flash:max
   kimi: openrouter/moonshotai/kimi-k3:max
@@ -428,6 +430,20 @@ are seeded. `setup-settings.sh` pins `cycleOrder` to the sequence above.
 `Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
 effective configuration and applies the selected role's model and thinking
 suffix.
+
+The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
+with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.1 Sol,
+Claude Sonnet 5.5, Gemini 4 Argon, and Gemini 4 Carbon. `setup-auto-code.sh`
+merges the model override into machine-local `models.yml`, including a 1,000,000
+token context window and a 32,768 token output limit. It uses Chat Completions:
+OMP's OpenRouter Responses path did not enforce the request-body allowlist.
+The seeded empty fallback chain keeps retry recovery on the router instead of
+switching to an unrestricted model; an existing custom chain is preserved.
+
+The allowlist uses exact OpenRouter model IDs, not role names, so update
+`setup-auto-code.sh` when changing the pool. Role thinking suffixes and `@azure`
+provider pins are not inherited; OpenRouter picks the model, effort, and provider.
+There is no fixed task-cost cap, and an unavailable pool can fail a request.
 
 Both Gemini presets use OpenRouter and `high` thinking, which both models
 support. Argon is the more economical starting point for routine work; Carbon
