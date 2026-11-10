@@ -35,6 +35,8 @@ DEFAULT_ROLES='{
   "opus": "openrouter/anthropic/claude-opus-5.5:high",
   "argon": "openrouter/google/gemini-4-argon:high",
   "carbon": "openrouter/google/gemini-4-carbon:high",
+  "astra": "openrouter/openai/gpt-6-astra:xhigh",
+  "fable": "openrouter/anthropic/claude-fable-5.2:high",
   "vision": "openrouter/openai/gpt-5.6-terra:high",
   "plan": "openrouter/openai/gpt-5.6-sol:high",
   "commit": "openrouter/openai/gpt-5.6-luna:medium",
@@ -59,6 +61,8 @@ DEFAULT_MODEL_TAGS='{
   "opus": {"name": "opus"},
   "argon": {"name": "argon"},
   "carbon": {"name": "carbon"},
+  "astra": {"name": "astra"},
+  "fable": {"name": "fable"},
   "glm-l": {"name": "glm-l"},
   "glm-fast": {"name": "glm-fast"}
 }'
@@ -155,7 +159,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","tiny","default","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l"]'
+omp config set cycleOrder '["smol","tiny","default","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l","astra","fable"]'
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium

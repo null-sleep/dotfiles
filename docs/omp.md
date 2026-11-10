@@ -405,6 +405,8 @@ cycleOrder:
   - sonnet
   - opus
   - cheap-l
+  - astra
+  - fable
 modelRoles:
   smol: openrouter/openai/gpt-5.6-luna:xhigh
   tiny: openrouter/openai/gpt-5.6-luna:low
@@ -417,6 +419,8 @@ modelRoles:
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
   cheap-l: openrouter/z-ai/glm-5.3:max
+  astra: openrouter/openai/gpt-6-astra:xhigh
+  fable: openrouter/anthropic/claude-fable-5.2:high
 ```
 
 Existing role assignments survive setup re-runs; only missing role and tag keys

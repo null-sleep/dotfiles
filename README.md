@@ -1448,10 +1448,11 @@ absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
 depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned eleven-preset model cycle — `smol`, `tiny`, `default`,
-`argon`, `dseek`, `kimi`, `slow`, `carbon`, `sonnet`, `opus`, `cheap-l` — used by
-`Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O` fuzzy picker. `argon` and `carbon` select
-Gemini 4 through OpenRouter at high thinking. The script also forces local
+**forces** the repo-owned thirteen-preset model cycle — `smol`, `tiny`, `default`,
+`argon`, `dseek`, `kimi`, `slow`, `carbon`, `sonnet`, `opus`, `cheap-l`, `astra`,
+`fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O` fuzzy picker. `argon`
+and `carbon` select Gemini 4; `astra` and `fable` select GPT-6 Astra and Claude
+Fable 5.2. All four use OpenRouter. The script also forces local
 project-summary memory, hidden thinking blocks (revealed with `Ctrl+T` without
 omitting provider summaries), the theme pair and status line below, plus web search order
 (`perplexity`, then the keyless `public` tier) with the `anthropic` OAuth backend
