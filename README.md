@@ -1441,9 +1441,9 @@ that would land in this repo. And `--no-folding` matters because all that
 runtime state lives in the same directory tree as the one stowed file.
 
 `setup-settings.sh` is **fill-in-only** for the built-in and custom
-`modelRoles`/`modelTags` presets, including OpenRouter Terra at high thinking
-as the default model; the model-specific GLM fallback chains and empty Auto Code
-fallback; and
+`modelRoles`/`modelTags` presets (except the repo-owned `web` role), including
+OpenRouter Terra at high thinking as the default model; the model-specific GLM
+fallback chains and empty Auto Code fallback; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
 chains, or values changed later survive a re-run. The script also fills in an
 absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
@@ -1458,9 +1458,11 @@ repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#mode
 `argon` and `carbon` select Gemini 4; `astra` and `fable` select GPT-6 Astra and
 Claude Fable 5.2. All five use OpenRouter. The script also forces local
 project-summary memory, hidden thinking blocks (revealed with `Ctrl+T` without
-omitting provider summaries), the theme pair and status line below, plus web search order
-(`perplexity`, then the keyless `public` tier) with the `anthropic` OAuth backend
-excluded even as a fallback.
+omitting provider summaries), the theme pair and status line below, plus the
+`web` role and fallback chain: Perplexity, Public Web, then the non-hosted
+default search engines. Hosted search is omitted to avoid an Anthropic fallback.
+OMP may prepend xAI for X-only queries; 18.20.0 also prepends Hacker News for
+HN-only queries.
 
 The role selectors, fallback chains, and cycle are **current personal defaults**,
 not a compatibility promise. Update them as provider availability, quality,

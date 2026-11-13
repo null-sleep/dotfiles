@@ -140,7 +140,9 @@ migrated_roles="$(jq -c '
   | if (has("kimi") | not) and has("cheap-alt") then .kimi = .["cheap-alt"] else . end
   | del(."default-cheap", ."cheap-alt")
 ' <<<"$roles")"
-merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + .' <<<"$migrated_roles")"
+# Search preferences moved from providers.webSearch* to the web model role.
+# Keep these two entries repo-owned while preserving other roles and chains.
+merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + . + {web: "web/perplexity"}' <<<"$migrated_roles")"
 if [ "$merged_roles" != "$roles" ]; then
   omp config set modelRoles "$merged_roles"
 else
@@ -156,7 +158,9 @@ else
 fi
 
 fallback_chains="$(omp config get retry.fallbackChains --json | jq -c '.value // {}')"
-merged_fallback_chains="$(jq -c --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '$defaults + .' <<<"$fallback_chains")"
+# Retain the remaining non-hosted default engines after Public Web. Hosted
+# search is omitted because it can use the active Anthropic model.
+merged_fallback_chains="$(jq -c --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '$defaults + . + {web: ["web/public", "web/parallel", "web/exa", "web/firecrawl", "web/searxng", "web/startpage", "web/duckduckgo", "web/ecosia", "web/google", "web/mojeek"]}' <<<"$fallback_chains")"
 if [ "$merged_fallback_chains" != "$fallback_chains" ]; then
   omp config set retry.fallbackChains "$merged_fallback_chains"
 else
@@ -194,14 +198,10 @@ set_status_line_segments
 # Keep the thinking indicator compact.
 omp config set statusLine.segmentOptions '{"model":{"showThinkingLevel":true}}'
 
-# Search backends.
-omp config set providers.webSearchOrder '["perplexity","public"]'
-omp config set providers.webSearchExclude '["anthropic"]'
-
 # Local project summaries.
 omp config set memory.backend local
 # Pin gopls for workers without the shell PATH.
-LSP_CONFIG_DIR="${PI_CONFIG_DIR:-$HOME/.omp/agent}"
+LSP_CONFIG_DIR="$(omp config path)"
 LSP_CONFIG="$LSP_CONFIG_DIR/lsp.json"
 if gopls_path="$(command -v gopls 2>/dev/null)"; then
   mkdir -p "$LSP_CONFIG_DIR"
@@ -242,9 +242,7 @@ for key in modelRoles modelTags retry.fallbackChains cycleOrder \
   hideThinkingBlock \
   theme.dark theme.light statusLine.preset statusLine.separator \
   statusLine.transparent statusLine.compactThinkingLevel statusLine.contextLine \
-  statusLine.leftSegments statusLine.rightSegments statusLine.segmentOptions \
-  providers.webSearchOrder \
-  providers.webSearchExclude; do
+  statusLine.leftSegments statusLine.rightSegments statusLine.segmentOptions; do
   echo "  $key = $(omp config get "$key" --json | jq -c '.value')"
 done
 

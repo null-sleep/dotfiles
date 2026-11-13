@@ -4,10 +4,10 @@ How to actually use [omp](https://github.com/can1357/oh-my-pi) (Oh My Pi),
 can1357's batteries-included fork of pi that trades pi's minimal core for one
 fat binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
-reference. Everything here was checked against omp 18.1.8 (brew,
-`can1357/tap`), its docs, and the repo-seeded config: OpenRouter and OpenAI
-Codex model-role presets with role-specific thinking levels, medium fallback
-thinking, and the repo-owned theme/status-line/web-search policy forced by
+reference. The guide was originally checked against omp 18.1.8; the setup
+and search settings below were updated for 18.18.6 and 18.20.0. The repo
+seeds OpenRouter and OpenAI Codex model-role presets, medium fallback thinking,
+and the repo-owned theme/status-line/web-search policy through
 `omp/setup-settings.sh`.
 
 ## Contents
@@ -146,18 +146,19 @@ Custom ones are markdown + frontmatter in `.omp/agents/` (project) or
 read here (its frontmatter schema differs), even though Claude skills and
 commands are discovered.
 
-**Worktree-style isolation** is built in but off by default:
-`task.isolation.mode` (`auto`, `apfs`, `reflink`, …) gives an `isolated`
-flag per task — the child runs in a snapshot workspace and comes back as a
-patch or a `omp/task/<id>` branch (`task.isolation.merge`). Isolated agents
-are torn down after merging, not revivable.
+**Worktree-style isolation** is built in but off by default. Enable
+`task.isolation.enabled` to allow an `isolated` flag per task; choose the
+backend with `isolation.backend` (`auto`, `apfs`, `reflink`, …). The child
+runs in a snapshot workspace and comes back as a patch or a `omp/task/<id>`
+branch (`task.isolation.merge`). Isolated agents are torn down after merging,
+not revivable.
 
 **Agent Hub** (`Alt+A`) is the human-facing side: a live roster of every
 subagent with status, cost, tokens, and current tool; `Enter` focuses one to
 read its transcript and steer it by typing; `r` revives a parked agent, `x`
 kills, `t` toggles tree view, double-tap `←` returns to the main session.
 Finished agents idle, then park after a TTL — messaging them (Hub or the
-model's `hub` tool) revives them with history intact. `/jobs` is the quick
+model's `write agent://<id>`) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
 **Advisor**: this setup assigns `openrouter/openai/gpt-5.6-luna:medium` to
@@ -648,9 +649,13 @@ pi is native here.
   is `~` (relative file mentions resolve against the temp dir). Config reads
   from `$HOME` also shadow `theme.dark` (see
   [Status line and theme](#statusline-theme)).
-- `web_search` is repo-pinned to `perplexity` → `public` with the
-  `anthropic` OAuth backend excluded, even as a fallback
-  (`setup-settings.sh`).
+- `web_search` uses the repo-pinned `modelRoles.web` and
+  `retry.fallbackChains.web`: Perplexity, Public Web, then the non-hosted
+  default engines. Hosted search is omitted to avoid an Anthropic fallback.
+  OMP may prepend xAI for X-only queries; 18.20.0 also prepends Hacker News for
+  HN-only queries.
+  The old `providers.webSearchOrder`/`webSearchExclude` settings were migrated
+  upstream to the web role and fallback chain (`setup-settings.sh`).
 - `memory.backend` is repo-pinned to `local`. It consolidates persisted
   sessions into project-scoped summaries; inspect the active injection with
   `/memory view` and the full artifact with `read memory://root/MEMORY.md`.
