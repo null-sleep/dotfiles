@@ -1,7 +1,8 @@
 # dotfiles
 
 Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, macos, rcmd,
-zellij, claude, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents
+zellij, claude, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents,
+zed
 (`pi` stows
 its theme palettes and the minimal `claude-footer.ts` extension — pi writes to
 its own settings.json, so that stays machine-local; `omp` stows only its
@@ -9,7 +10,8 @@ its own settings.json, so that stays machine-local; `omp` stows only its
 config.yml is seeded via `omp config` and stays machine-local, and
 `~/.omp/agent/` also holds runtime state, so it's stowed `--no-folding`; `herdr` stows only
 `config.toml` — `~/.config/herdr/` also holds runtime state, so it's stowed
-`--no-folding`; `agents` stows generic global Agent Skills to
+`--no-folding`; `zed` stows `settings.json` + `keymap.json` — `~/.config/zed/`
+also holds runtime state (`prompts/`, `themes/`), so it's stowed `--no-folding`; `agents` stows generic global Agent Skills to
 `~/.agents/skills/` — machine-local skills may sit alongside, so it's stowed
 `--no-folding`). NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor

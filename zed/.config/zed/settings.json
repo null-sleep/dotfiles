@@ -1,0 +1,71 @@
+// Zed settings — stowed to ~/.config/zed/settings.json (see README → "Zed").
+// Zed rewrites this file when you change settings in its UI, so review
+// `git diff zed/` after UI tweaks. Defaults: `zed: open default settings`.
+{
+    "base_keymap": "Zed",
+    "vim_mode": false,
+    "vim": {
+        // nvim yanks to the system clipboard (y only); Zed's closest match.
+        "use_system_clipboard": "on_yank",
+    },
+
+    // Fonts — same family as Ghostty/Neovide.
+    "ui_font_size": 16,
+    "buffer_font_family": "Hack Nerd Font Mono",
+    "buffer_font_size": 15,
+
+    // Follows macOS light/dark (Zed's built-ins; swap for an extension theme).
+    "theme": {
+        "mode": "system",
+        "light": "One Light",
+        "dark": "One Dark",
+    },
+    "icon_theme": {
+        "mode": "system",
+        "light": "Zed (Default)",
+        "dark": "Zed (Default)",
+    },
+
+    // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10, relative
+    // numbers). Disabled for now; uncomment to enable.
+    // "tab_size": 4,
+    // "relative_line_numbers": "enabled",
+    // "vertical_scroll_margin": 10,
+    // "horizontal_scroll_margin": 8,
+    // "format_on_save": "on",
+    // "autosave": "on_focus_change",
+    // "show_whitespaces": "selection",
+
+    // Language servers/grammars outside Zed's built-ins (Go, Rust, TS, Python
+    // are built in). Installed automatically on first launch.
+    "auto_install_extensions": {
+        "elixir": true,
+        "lua": true,
+        "toml": true,
+        "dockerfile": true,
+        "make": true,
+    },
+
+    "git": {
+        "auto_fetch": { "enabled": false, "interval_secs": 60 },
+    },
+    "session": {
+        "trust_all_worktrees": true,
+    },
+
+    "agent": {
+        "threads_sidebar": {
+            "default_width": 222.0,
+        },
+        "favorite_models": [],
+        "model_parameters": [],
+    },
+    "agent_servers": {
+        "claude-acp": { "type": "registry" },
+        "codex-acp": { "type": "registry" },
+        "cursor": { "type": "registry" },
+        "pi-acp": { "type": "registry" },
+        "gemini": { "type": "registry" },
+        "github-copilot-cli": { "type": "registry" },
+    },
+}

@@ -1,0 +1,30 @@
+// Zed keymap — stowed to ~/.config/zed/keymap.json (see README → "Zed").
+// Space-leader bindings in vim normal mode, mirroring the nvim leader (' ').
+// Disabled for now while learning Zed's native keys — uncomment the array
+// below to enable. nvim keymaps live in GUIDE.md.
+[
+  // {
+  //   "context": "VimControl && !menu && vim_mode == normal",
+  //   "bindings": {
+  //     "space space": "file_finder::Toggle",
+  //     "space f f": "file_finder::Toggle",
+  //     "space f g": "pane::DeploySearch",
+  //     "space f s": "project_symbols::Toggle",
+  //     "space s": "outline::Toggle",
+  //     "space e": "project_panel::ToggleFocus",
+  //     "space b b": "tab_switcher::Toggle",
+  //     "space c a": "editor::ToggleCodeActions",
+  //     "space c r": "editor::Rename",
+  //     "space c f": "editor::Format",
+  //     "g r": "editor::FindAllReferences",
+  //     "space g g": "git_panel::ToggleFocus"
+  //   }
+  // },
+  // {
+  //   "context": "Editor && vim_mode == normal && !menu",
+  //   "bindings": {
+  //     "] d": "editor::GoToDiagnostic",
+  //     "[ d": "editor::GoToPreviousDiagnostic"
+  //   }
+  // }
+]

@@ -29,6 +29,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 *Editors*
 - [Neovim](#neovim)
 - [Neovide](#neovide)
+- [Zed](#zed)
 - [Typora](#typora)
 - [RustRover](#rustrover) — [Claude Code plugin](#claude-code-plugin)
 
@@ -61,7 +62,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr zed` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -113,6 +114,7 @@ stow --no-folding omp        # four extensions; config.yml stays machine-local �
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
+stow --no-folding zed        # needs the zed cask — see the Zed section
 # Optional — only if you uncommented its formula in the Brewfile:
 stow zellij                  # needs the zellij formula
 ```
@@ -1743,6 +1745,40 @@ Why the real path: Homebrew's `/opt/homebrew/bin/neovide` is a symlink *into* th
 Keymaps and runtime behavior (Cmd+C/V/S, zoom, jumplist keys, Force Click)
 are documented in the nvim config's own reference:
 `nvim/.config/nvim/GUIDE.md` → "Neovide".
+
+## Zed
+
+Native, GPU-rendered editor with built-in vim mode, LSP, and agent panel —
+being trialled as an alternative to [Neovim](#neovim). Installed by the
+Brewfile (`cask "zed"`, also puts `zed` on `PATH`).
+
+```bash
+stow --no-folding zed
+```
+
+Stowed to `~/.config/zed/`:
+
+- **`settings.json`** — Hack Nerd Font Mono, follows macOS light/dark
+  (One Light / One Dark), and the agent-panel sidebar width. Vim mode is off
+  by default (`vim_mode: false`; the `vim` block applies once enabled), and
+  nvim's editing defaults (tab size 4, scrolloff 10, relative numbers, format
+  on save) are present but commented out. `auto_install_extensions` pulls the
+  Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
+  Rust, TypeScript, Python are built in). The ACP agent entries
+  (`agent_servers`) are registry-installed from Zed's agent panel.
+- **`keymap.json`** — a small `<leader>` (space) layer for vim normal mode
+  (file finder, project search, symbols, outline, code actions, git panel),
+  currently commented out while learning Zed's native keys.
+
+`--no-folding` because `~/.config/zed/` also holds runtime state (`prompts/`,
+`themes/`) that must stay out of the repo. Zed rewrites `settings.json` when
+you change a setting in its UI — it writes through the symlink, so check
+`git diff zed/` afterwards. Extensions themselves live in
+`~/Library/Application Support/Zed/` and are not tracked.
+
+**First stow:** Zed creates a regular `~/.config/zed/settings.json` on first
+launch, which makes stow refuse. Move it aside first:
+`mv ~/.config/zed/settings.json ~/.config/zed/settings.json.bak`.
 
 ## Typora
 

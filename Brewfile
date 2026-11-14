@@ -143,6 +143,8 @@ brew "delphinus/sfmono-square/sfmono-square"  # formula: symlink its .otf into
 cask "ghostty"         # terminal; GPU-accelerated and native to macOS.
                        # Config in ghostty/ (then `stow ghostty`).
 cask "neovide-app"     # Neovim GUI
+cask "zed"             # Zed editor (+ `zed` CLI). Config in zed/ (then
+                       # `stow --no-folding zed`) — see README → "Zed".
 cask "typora"          # markdown editor (`typora` shell alias)
 cask "rustrover"       # JetBrains Rust IDE
 cask "cursor"          # Cursor AI code editor (the IDE). The cursor-agent CLI is
