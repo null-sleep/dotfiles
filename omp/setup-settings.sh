@@ -28,23 +28,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$(mktemp -d)"
 
 DEFAULT_ROLES='{
-  "default": "openrouter/openai/gpt-5.6-terra:high",
-  "smol": "openrouter/openai/gpt-5.6-luna:xhigh",
-  "tiny": "openrouter/openai/gpt-5.6-luna:low",
-  "slow": "openrouter/openai/gpt-5.6-sol:xhigh",
+  "default": "openrouter/openai/gpt-6.1-terra:high",
+  "luna": "openrouter/openai/gpt-6-luna:xhigh",
+  "haiku": "openrouter/anthropic/claude-haiku-5.5:medium",
+  "terra": "openrouter/openai/gpt-6.1-terra:high",
+  "sol": "openrouter/openai/gpt-6.1-sol:xhigh",
+  "smol": "@luna",
+  "tiny": "@haiku",
+  "slow": "@sol",
   "sonnet": "openrouter/anthropic/claude-sonnet-5.5:high",
   "opus": "openrouter/anthropic/claude-opus-5.5:high",
-  "argon": "openrouter/google/gemini-4-argon:high",
   "carbon": "openrouter/google/gemini-4-carbon:high",
   "astra": "openrouter/openai/gpt-6-astra:xhigh",
   "fable": "openrouter/anthropic/claude-fable-5.2:high",
   "auto-code": "openrouter/openrouter/auto-code",
-  "vision": "openrouter/openai/gpt-5.6-terra:high",
-  "plan": "openrouter/openai/gpt-5.6-sol:high",
-  "commit": "openrouter/openai/gpt-5.6-luna:medium",
-  "task": "openrouter/openai/gpt-5.6-terra:medium",
-  "advisor": "openrouter/openai/gpt-5.6-luna:medium",
-  "med-vision": "openrouter/openai/gpt-5.6-terra:high",
+  "vision": "openrouter/openai/gpt-6.1-terra:high",
+  "plan": "openrouter/openai/gpt-6.1-sol:high",
+  "commit": "openrouter/openai/gpt-6-luna:medium",
+  "task": "openrouter/openai/gpt-6.1-terra:medium",
+  "advisor": "openrouter/openai/gpt-6-luna:medium",
+  "med-vision": "openrouter/openai/gpt-6.1-terra:high",
   "oa-s": "openai-codex/gpt-5.6-luna:high",
   "oa-m": "openai-codex/gpt-5.6-terra:high",
   "oa-l": "openai-codex/gpt-5.6-sol:xhigh",
@@ -61,7 +64,6 @@ DEFAULT_MODEL_TAGS='{
   "oa-l": {"name": "oa-l"},
   "sonnet": {"name": "sonnet"},
   "opus": {"name": "opus"},
-  "argon": {"name": "argon"},
   "carbon": {"name": "carbon"},
   "astra": {"name": "astra"},
   "fable": {"name": "fable"},
@@ -135,10 +137,21 @@ set_status_line_segments() {
 }
 
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
+# The cycle uses model-named roles. On the first run, move the old smol/slow
+# selectors to luna/sol and copy the old default to terra (default itself is
+# left alone), and alias the built-in smol/tiny/slow roles to the new names so
+# background features keep a cheap or strong model.
 migrated_roles="$(jq -c '
   if (has("dseek") | not) and has("default-cheap") then .dseek = .["default-cheap"] else . end
   | if (has("kimi") | not) and has("cheap-alt") then .kimi = .["cheap-alt"] else . end
   | del(."default-cheap", ."cheap-alt")
+  | if has("luna") then . else
+      (if has("smol") then .luna = .smol else . end)
+      | (if has("slow") then .sol = .slow else . end)
+      | (if has("default") then .terra = .default else . end)
+      | .smol = "@luna" | .tiny = "@haiku" | .slow = "@sol"
+    end
+  | del(.argon)
 ' <<<"$roles")"
 # Search preferences moved from providers.webSearch* to the web model role.
 # Keep these two entries repo-owned while preserving other roles and chains.
@@ -150,7 +163,7 @@ else
 fi
 
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
-merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + .' <<<"$tags")"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon)' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
   omp config set modelTags "$merged_tags"
 else
@@ -167,7 +180,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["smol","tiny","default","auto-code","argon","dseek","kimi","slow","carbon","sonnet","opus","cheap-l","astra","fable"]'
+omp config set cycleOrder '["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","dseek","kimi","astra","fable"]'
 bash "$SCRIPT_DIR/setup-auto-code.sh"
 
 if [ "$(get defaultThinkingLevel)" = "high" ]; then

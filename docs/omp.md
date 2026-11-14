@@ -162,7 +162,7 @@ Finished agents idle, then park after a TTL — messaging them (Hub or the
 model's `write agent://<id>`) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
-**Advisor**: this setup assigns `openrouter/openai/gpt-5.6-luna:medium` to
+**Advisor**: this setup assigns `openrouter/openai/gpt-6-luna:medium` to
 `modelRoles.advisor` but leaves `advisor.enabled` false. Opt in with
 `/advisor on` (or `--advisor`) when a second model passively reviewing each
 completed turn is worth the added usage. It injects notes, interrupts only
@@ -389,17 +389,17 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 <a id="models"></a>
 ## Providers and model roles
 
-omp routes everything through **model roles**. The default is OpenRouter
-Sonnet 5.5 at high thinking; built-in roles feed features such as plan mode,
-subagents, background work, and `omp commit`. The cycle presets are roles named
-after their models (`luna`, `haiku`, `terra`, `sol`, …); `smol`, `tiny`, and
-`slow` alias `@luna`, `@haiku`, and `@sol` so background work keeps a cheap or
-strong model. This setup exposes switchable cycle presets through model roles:
+omp routes everything through **model roles**. The default is OpenRouter Terra
+at high thinking; built-in roles feed features such as plan mode, subagents,
+background work, and `omp commit`. The cycle presets are roles named after
+their models (`sonnet`, `luna`, `haiku`, `sol`, …); `smol`, `tiny`, and `slow`
+alias `@luna`, `@haiku`, and `@sol` so background work keeps a cheap or strong
+model. This setup exposes switchable cycle presets through model roles:
 
 ```yaml
 cycleOrder:
   - default
-  - terra
+  - sonnet
   - carbon
   - opus
   - sol
@@ -408,16 +408,14 @@ cycleOrder:
   - auto-code
   - dseek
   - kimi
-  - sonnet
-  - cheap-l
   - astra
   - fable
 modelRoles:
-  default: openrouter/anthropic/claude-sonnet-5.5:high
-  luna: openrouter/openai/gpt-5.6-luna:xhigh
+  default: openrouter/openai/gpt-6.1-terra:high
+  luna: openrouter/openai/gpt-6-luna:xhigh
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
-  terra: openrouter/openai/gpt-5.6-terra:high
-  sol: openrouter/openai/gpt-5.6-sol:xhigh
+  terra: openrouter/openai/gpt-6.1-terra:high
+  sol: openrouter/openai/gpt-6.1-sol:xhigh
   smol: "@luna"
   tiny: "@haiku"
   slow: "@sol"
@@ -434,8 +432,9 @@ modelRoles:
 
 Existing role assignments survive setup re-runs; only missing role and tag keys
 are seeded. The first run on a machine without a `luna` role migrates the old
-`smol`/`slow`/`default` selectors to `luna`/`sol`/`terra`, then sets `default`
-to Sonnet. `setup-settings.sh` pins `cycleOrder` to the sequence above.
+`smol`/`slow` selectors to `luna`/`sol` and copies the old `default` to `terra`.
+`terra` stays a role but is not in the cycle, since `default` selects the same
+model. `setup-settings.sh` pins `cycleOrder` to the sequence above.
 `Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
 effective configuration and applies the selected role's model and thinking
 suffix.

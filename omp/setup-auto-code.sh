@@ -25,7 +25,7 @@ ruby -ryaml -e '
     openai/gpt-6.1-terra
     openai/gpt-6.1-sol
     anthropic/claude-sonnet-5.5
-    google/gemini-4-argon
+    anthropic/claude-opus-5.5
     google/gemini-4-carbon
   ]
 

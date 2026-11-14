@@ -44,7 +44,7 @@ ruby -ryaml -e '
   raise "unrelated plugin changed" unless plugins.find { |p| p["id"] == "unrelated-plugin" }["enabled"] == true
   auto = plugins.find { |p| p["id"] == "auto-router" }
   raise "existing exclusion changed" unless auto["excluded_models"] == ["openai/example"]
-  expected = %w[openai/gpt-6-luna openai/gpt-6.1-terra openai/gpt-6.1-sol anthropic/claude-sonnet-5.5 google/gemini-4-argon google/gemini-4-carbon]
+  expected = %w[openai/gpt-6-luna openai/gpt-6.1-terra openai/gpt-6.1-sol anthropic/claude-sonnet-5.5 anthropic/claude-opus-5.5 google/gemini-4-carbon]
   raise "incorrect pool" unless auto["allowed_models"] == expected
   raise "file mode changed" unless File.stat(path).mode & 0o777 == 0o640
 ' "$OMP_TEST_DIR/models.yaml"

@@ -1444,7 +1444,7 @@ runtime state lives in the same directory tree as the one stowed file.
 
 `setup-settings.sh` is **fill-in-only** for the built-in and custom
 `modelRoles`/`modelTags` presets (except the repo-owned `web` role), including
-OpenRouter Sonnet 5.5 at high thinking as the default model; the model-specific GLM
+OpenRouter Terra at high thinking as the default model; the model-specific GLM
 fallback chains and empty Auto Code fallback; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
 chains, or values changed later survive a re-run. The script also fills in an
@@ -1452,9 +1452,9 @@ absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
 depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned fourteen-preset model cycle — `default`, `terra`,
+**forces** the repo-owned twelve-preset model cycle — `default`, `sonnet`,
 `carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `dseek`, `kimi`,
-`sonnet`, `cheap-l`, `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
+`astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
 fuzzy picker. `smol`, `tiny`, and `slow` alias `@luna`, `@haiku`, `@sol`. `auto-code` is an optional OpenRouter coding router with a
 repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
 `carbon` selects Gemini 4; `astra` and `fable` select GPT-6 Astra and
