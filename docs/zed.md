@@ -305,7 +305,7 @@ without moving focus.
 
 **External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
 `agent_servers` entries in `settings.json`) install from `zed: acp registry`;
-omp isn't in the registry, so it's a `custom` entry running `omp acp`. All of them
+omp isn't in the registry, so it's a `custom` entry running `omp acp --approval-mode yolo`. All of them
 appear in the `+` menu and sidebar like any thread. They bring
 their own auth (`/login` in a Claude thread) and instructions (`CLAUDE.md`,
 not Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+`
@@ -400,31 +400,44 @@ Queued messages: `cmd-ctrl-e` edits, `cmd-shift-backspace` drops,
 `cmd-alt-backspace` clears. No key collapses a message or tool card — click
 its header. Stop is the button next to send.
 
-**Stop approving every command:** `agent.tool_permissions` (replaced the
-old `always_allow_tool_actions` boolean). `default: "allow"` auto-approves,
-and per-tool `always_confirm` / `always_deny` regexes keep the dangerous
-cases interactive; the permission card's "Always for <tool>/<pattern>"
-menu writes these rules for you.
+**Stop approving every command** — the stowed `settings.json` mirrors omp's
+`yolo` across all three layers that can prompt:
+
+- **Zed Agent tools** — `agent.tool_permissions` (replaced the old
+  `always_allow_tool_actions` boolean). `default: "allow"` auto-approves;
+  `always_deny` blocks silently (edits to `.env`, `*.pem`, `*.key`). Avoid
+  `always_confirm` and per-tool `"default": "confirm"` — each is a prompt.
+  Zed's hardcoded `rm -rf` guards (`/`, `~`, `$HOME`, `.`, `..`) always block.
+- **Zed Agent sandbox** — `terminal` and `fetch` run in an OS sandbox that
+  prompts for network hosts and writes outside the project. `.git` metadata
+  is never writable inside it, so any narrower grant still prompts on every
+  `git commit`; `sandbox_permissions.allow_unsandboxed: true` turns it off,
+  matching omp, which has no sandbox.
+- **External agents** keep their own permission model; Zed's settings above
+  don't reach them. omp's `acp` mode asks before every bash call unless yolo
+  is set explicitly (the built-in default doesn't count), hence
+  `"args": ["acp", "--approval-mode", "yolo"]`. Claude starts in
+  `default_mode: "bypassPermissions"`; `shift-tab`
+  (`agent::CycleModeSelector`) cycles modes per thread.
 
 ```jsonc
 "agent": {
+  "sandbox_permissions": { "allow_unsandboxed": true },
   "tool_permissions": {
     "default": "allow",
     "tools": {
-      "terminal": {
-        "always_confirm": [{ "pattern": "sudo\\s" }, { "pattern": "git\\s+push" }],
-        "always_deny": [{ "pattern": "rm\\s+-rf\\s+(/|~)" }]
-      },
       "edit_file": { "always_deny": [{ "pattern": "\\.env" }, { "pattern": "\\.(pem|key)$" }] }
     }
   }
+},
+"agent_servers": {
+  "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },
+  "omp": { "type": "custom", "command": "/opt/homebrew/bin/omp", "args": ["acp", "--approval-mode", "yolo"] }
 }
 ```
 
-This governs Zed Agent's built-in tools (`terminal`, `edit_file`, `fetch`,
-`mcp:<server>:<tool>`, …). External agents keep their own permission
-model — for a Claude thread that is the session mode `shift-tab` cycles
-(`agent::CycleModeSelector`), not this setting.
+A permission card's "Always for <tool>/<pattern>" menu still writes rules
+into `settings.json` if a prompt ever appears.
 
 <a id="review"></a>
 ## Reviewing agent edits

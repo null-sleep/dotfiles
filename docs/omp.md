@@ -83,7 +83,7 @@ Inside the TUI:
 - `/usage` — provider usage and limits.
 
 The zsh `ompf` alias starts a new Luna/medium session with OpenAI priority
-serving: `omp --model @smol --service-tier priority`. Inside an existing
+serving: `omp --model @luna --service-tier priority`. Inside an existing
 session, `/fast` toggles the same service tier independently of the model role;
 turn it off before switching to Terra or Sol unless they should also use the
 more expensive priority tier.
@@ -392,8 +392,8 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 omp routes everything through **model roles**. The default is OpenRouter Terra
 at high thinking; built-in roles feed features such as plan mode, subagents,
 background work, and `omp commit`. The cycle presets are roles named after
-their models (`sonnet`, `luna`, `haiku`, `sol`, …); `smol`, `tiny`, and `slow`
-alias `@luna`, `@haiku`, and `@sol` so background work keeps a cheap or strong
+their models (`sonnet`, `luna`, `haiku`, `sol`, …); `smol` and `tiny` alias
+`@haiku` and `slow` aliases `@sol` so background work keeps a cheap or strong
 model. This setup exposes switchable cycle presets through model roles:
 
 ```yaml
@@ -416,7 +416,7 @@ modelRoles:
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
   terra: openrouter/openai/gpt-6.1-terra:high
   sol: openrouter/openai/gpt-6.1-sol:xhigh
-  smol: "@luna"
+  smol: "@haiku"
   tiny: "@haiku"
   slow: "@sol"
   auto-code: openrouter/openrouter/auto-code
@@ -655,8 +655,11 @@ extensions run. Zed's generic comparison is in
 What the adapter forwards (probed on 18.4.12):
 
 - File reads/writes go through Zed (`fs/*`) with diff content, shell runs in
-  Zed terminals, and approvals arrive as permission cards — so Zed's review
-  loop and follow work.
+  Zed terminals, and Zed's review loop and follow work. Approvals would
+  arrive as permission cards, but ACP mode only skips bash approval when
+  yolo is set *explicitly* — the built-in `tools.approvalMode` default
+  doesn't count — so the Zed entry passes `--approval-mode yolo` (probed on
+  18.20.0: without it, every bash call raised a card).
 - Session modes Default / Plan (Zed's mode selector, `shift-tab`), plus
   model and thinking selectors. `default_config_options.model` is what Zed
   writes when you pick a model; commit a keeper deliberately or discard the

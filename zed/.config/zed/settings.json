@@ -57,11 +57,11 @@
     },
 
     "agent": {
+        // omp-like: no sandbox approval prompts. Zed's OS sandbox never lets
+        // terminal commands write .git metadata, so any narrower grant still
+        // prompts on every `git commit`.
         "sandbox_permissions": {
-            "network_hosts": [
-                "zed.dev",
-                "openrouter.ai"
-            ]
+            "allow_unsandboxed": true
         },
         "default_model": {
             "provider": "openrouter",
@@ -69,30 +69,18 @@
             "enable_thinking": true,
             "effort": "medium"
         },
-        // Zed Agent's built-in tools run without a prompt, except the
-        // patterns below (external ACP agents keep their own permission
-        // mode — see docs/zed.md → Inside a thread).
+        // omp-like `yolo`: Zed Agent's built-in tools never prompt. Deny
+        // rules block silently (no prompt); Zed's built-in `rm -rf /`, `~`,
+        // `.` guards still apply. External ACP agents keep their own
+        // permission mode — see docs/zed.md → Inside a thread.
         "tool_permissions": {
             "default": "allow",
             "tools": {
-                "terminal": {
-                    "always_confirm": [
-                        { "pattern": "sudo\\s" },
-                        { "pattern": "git\\s+push" },
-                        { "pattern": "git\\s+reset\\s+--hard" }
-                    ],
-                    "always_deny": [
-                        { "pattern": "rm\\s+-rf\\s+(/|~)" }
-                    ]
-                },
                 "edit_file": {
                     "always_deny": [
                         { "pattern": "\\.env" },
                         { "pattern": "\\.(pem|key)$" }
                     ]
-                },
-                "delete_path": {
-                    "default": "confirm"
                 }
             }
         },
@@ -106,14 +94,17 @@
         "antigravity-acp": {
             "type": "registry"
         },
-        "claude-acp": { "type": "registry" },
+        // Start Claude threads in bypass mode (omp-like); shift-tab cycles.
+        "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },
         "codex-acp": { "type": "registry" },
         "cursor": { "type": "registry" },
         "pi-acp": { "type": "registry" },
+        // `--approval-mode yolo`: omp's ACP mode asks before every bash call
+        // unless yolo is set explicitly; the built-in default doesn't count.
         "omp": {
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",
-            "args": ["acp"]
+            "args": ["acp", "--approval-mode", "yolo"]
         },
         "gemini": { "type": "registry" },
         "github-copilot-cli": { "type": "registry" },

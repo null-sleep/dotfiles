@@ -375,9 +375,6 @@ Open calls from review; each is a one-line change once decided.
 - [ ] **`space s w` from visual mode** — confirm the text finder keeps the
   selection as its query (documented for the active editor; verify the
   visual case).
-- [ ] **Tool approvals** are a setting, not a key: `agent.tool_permissions`
-  ([`docs/zed.md`](zed.md#inside-thread)). Decide whether to add
-  `default: "allow"` with `always_confirm` guards to `settings.json`.
 
 <a id="adopting"></a>
 ## Adopting a row

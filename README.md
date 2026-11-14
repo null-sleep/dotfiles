@@ -1455,7 +1455,7 @@ provider so an OpenRouter-wide limit still has an independent exit. The script
 **forces** the repo-owned twelve-preset model cycle — `default`, `sonnet`,
 `carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `dseek`, `kimi`,
 `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
-fuzzy picker. `smol`, `tiny`, and `slow` alias `@luna`, `@haiku`, `@sol`. `auto-code` is an optional OpenRouter coding router with a
+fuzzy picker. `smol` and `tiny` alias `@haiku`; `slow` aliases `@sol`. `auto-code` is an optional OpenRouter coding router with a
 repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
 `carbon` selects Gemini 4; `astra` and `fable` select GPT-6 Astra and
 Claude Fable 5.2. All four use OpenRouter. The script also forces local
@@ -1767,9 +1767,10 @@ Stowed to `~/.config/zed/`:
 
 - **`settings.json`** — Hack Nerd Font Mono, theme pinned to Dracula Solid
   (`"mode": "dark"`, so it ignores the macOS appearance), the agent-panel sidebar width, and
-  `agent.tool_permissions` (Zed Agent tools auto-approved, with
-  `always_confirm`/`always_deny` guards for `sudo`, `git push`, `rm -rf`,
-  secrets, and deletions). Vim mode is off
+  agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
+  auto-approved (`.env`/key-file edits silently denied), its terminal sandbox
+  off, Claude threads starting in `bypassPermissions`, and omp run with
+  `--approval-mode yolo` (details: [`docs/zed.md`](docs/zed.md#inside-thread)). Vim mode is off
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
   nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
   format on save off) are present but commented out. `auto_install_extensions` pulls the
@@ -1777,7 +1778,7 @@ Stowed to `~/.config/zed/`:
   Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
   Rust, TypeScript, Python are built in). The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except
-  `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp` (needs omp
+  `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp --approval-mode yolo` (needs omp
   installed; see [omp](#omp)). The absolute path is deliberate: an older
   `~/.local/bin/omp` can shadow Homebrew's on `PATH`.
 - **`keymap.json`** — empty while learning Zed's native keys; the vim-mode
