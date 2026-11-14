@@ -54,6 +54,22 @@ off or delete them as they land; add new ones freely.
   - `command_aliases`: short palette names, like `gd` → `git::Diff`, `gbd` →
     `git::BranchDiff`, `tsd` → `editor::ToggleSplitDiff`. A light
     alternative to filling `keymap.json` while still learning.
+- [ ] **Try resuming Zed Terminal Threads after a restart** (found
+  2026-11-14) — Zed 1.28.1 recreates each thread as an empty shell, so the
+  omp session has to be resumed by hand. Steps and the full background are in
+  `docs/zed.md` → "Terminal Threads after a restart".
+  - Cheapest: set `agent.terminal_init_command` to `"omp -c"` in
+    `zed/.config/zed/settings.json`, restart Zed, and check that a restored
+    thread continues the right session and starts in the project cwd. Fine
+    with one thread per project; several threads would share one session.
+    Keep it, or revert and note why in `docs/zed.md`.
+  - If per-thread resume matters: build Zed from
+    [PR #65484](https://github.com/zed-industries/zed/pull/65484)
+    (`ZED_TERMINAL_THREAD_ID`) and write an omp hook plus wrapper that map
+    thread id to session id. Only worth it if the cheap option isn't enough.
+  - Revisit when stock Zed gets it: watch
+    [zed#57428](https://github.com/zed-industries/zed/discussions/57428) and
+    the release notes; drop the workaround then.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several
