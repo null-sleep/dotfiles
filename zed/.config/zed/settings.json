@@ -91,7 +91,8 @@
         },
         // Zed rewrites this block (and omp's default_config_options.model
         // below) every time you pick a model, so a diff here is expected.
-        // Commit it or discard it; either is fine.
+        // Commit it or leave it; never discard it (that silently resets
+        // the model you picked).
         "default_model": {
             "provider": "openai-subscribed",
             "model": "gpt-5.6-terra",
@@ -134,7 +135,8 @@
         // by omp/setup-settings.sh (omp acp crashes if the file is missing).
         "omp": {
             // Written by Zed when you pick a model in an omp thread; drift
-            // is expected, commit or discard (see agent.default_model).
+            // is expected, commit or leave it, never discard (see
+            // agent.default_model).
             "default_config_options": {
                 "model": "openrouter/anthropic/claude-sonnet-5.5"
             },
