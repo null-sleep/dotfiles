@@ -72,6 +72,10 @@
         // Collapse thinking blocks (Zed Agent and ACP agents like omp);
         // click a block's header to expand it.
         "thinking_display": "always_collapsed",
+        // Start new terminal-command and edit cards collapsed; click a card
+        // to see its output or diff.
+        "expand_terminal_card": false,
+        "expand_edit_card": false,
         // omp-like: no sandbox approval prompts. Zed's OS sandbox never lets
         // terminal commands write .git metadata, so any narrower grant still
         // prompts on every `git commit`.
