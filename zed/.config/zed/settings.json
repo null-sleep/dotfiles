@@ -69,6 +69,9 @@
     "file_scan_exclusions": ["...", "**/.worktrees", "**/.claude/worktrees"],
 
     "agent": {
+        // Collapse thinking blocks (Zed Agent and ACP agents like omp);
+        // click a block's header to expand it.
+        "thinking_display": "always_collapsed",
         // omp-like: no sandbox approval prompts. Zed's OS sandbox never lets
         // terminal commands write .git metadata, so any narrower grant still
         // prompts on every `git commit`.
