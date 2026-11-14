@@ -89,6 +89,7 @@ Used many times a day; each is covered in full below.
 | `cmd-alt-j` / `cmd-alt-;` | toggle threads sidebar (show/hide) / jump focus to it and back |
 | `ctrl-tab` / `ctrl-shift-tab` | thread switcher, most recent first — from the message box too |
 | `cmd-n` | new thread (panel focused) |
+| `cmd-b` / `cmd-r` | hide / show the agent dock (`cmd-b` agentic layout, `cmd-r` classic); `cmd-?` shows and focuses it |
 | `enter` / `cmd-enter` | send / send and follow (in a thread) |
 | `ctrl-shift-r` | open agent diff (review changes) |
 | `alt-shift-y` / `alt-shift-z` | keep all / reject all agent edits |
@@ -536,6 +537,23 @@ A dock panel (right dock in classic layout, left in agentic), so the
 then `shift-escape`. Same key to restore; `ctrl-alt-w` also closes the dock
 and unzooms. `cmd-r` (`cmd-b` in agentic layout) hides the dock without
 moving focus. Details and other panels: [Zoom](#zoom).
+
+**Hide the chat and bring it back.** The panel lives in a dock, so it hides
+like one:
+
+| goal | key |
+|---|---|
+| hide, focus stays put | `cmd-b` (agentic layout, left dock) / `cmd-r` (classic layout, right dock) |
+| hide the dock you are focused in | `ctrl-alt-w` |
+| show it again | the same `cmd-b` / `cmd-r`; or `cmd-?`, which also focuses the message box |
+| hide every dock, then restore them | `cmd-alt-y` |
+| hide / show the thread list only | `cmd-alt-j` |
+
+`cmd-?` pressed while the panel is focused returns to the editor but leaves
+the panel open (`close_panel_on_toggle` is off), so it is not a hide key.
+If `cmd-b` hits the wrong dock, you are in the other layout: check with
+`workspace: use agentic layout` / `use classic layout` from the palette.
+Layouts are described under [Panes, tabs, and docks](#panes-docks).
 
 **External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
 `agent_servers` entries in `settings.json`) install from `zed: acp registry`;
