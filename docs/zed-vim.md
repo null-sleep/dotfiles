@@ -51,7 +51,7 @@ Used many times a day; each is covered in full below.
 | keys | does | nvim habit it replaces |
 |---|---|---|
 | `:` | command palette (also every `:w`, `:q`, `:sp`) | `:` |
-| `cmd-p`, `gS`, `g/` | file finder, project symbols, project search | `<leader>sf`, `<leader>ss`, `<leader>sg` |
+| `cmd-p`, `alt-cmd-f`, `gS` | file finder, live-grep picker, project symbols (all with preview) | `<leader>sf`, `<leader>sg`, `<leader>ss` |
 | `gs`, `cmd-shift-b` | symbols in this file (modal), outline panel | `<leader>sd`, `<leader>o` |
 | `gd` / `gy` / `gI` / `gA` | definition / type / implementation / references | `gd` / `gy` / `gri` / `grr` |
 | `grn` / `gra` / `K` | rename / code actions / hover | `grn` / `<leader>ca` / `K` |
@@ -158,7 +158,10 @@ clears highlights, like nvim's `<Esc>` map here. `/` uses Rust regex (see
 
 Tab-strip `:` commands (`:ls`, `:tabn`, `:tabnew`…) are in [`:` commands](#ex).
 In pickers, on top of the [native picker keys](zed.md#pickers): `ctrl-u`
-clears the query, `ctrl-w` deletes a word, `ctrl-h` backspaces. No default
+clears the query, `ctrl-w` deletes a word, `ctrl-h` backspaces. The
+pickers are Telescope-style since 1.9 — resizable, with a preview pane —
+and `alt-cmd-f` (`text_finder::Toggle`) is the live-grep picker, seeded
+from the selection; `g/` stays the editable multibuffer. No default
 replaces nvim's `<leader><leader>` smart picker — `cmd-p` (recent files
 rank first on an empty query) or `ctrl-tab` come closest; `space f` opens
 the finder only from non-editor panes (project panel, empty pane).
@@ -186,8 +189,11 @@ the finder only from non-editor panes (project panel, empty pane).
 
 Multiple definitions or references open a multibuffer: `cmd-down`/`cmd-up`
 step through excerpts ([multibuffer keys](zed.md#search-multibuffers)),
-`g space` drops into the file, `ctrl-o` comes back. Diagnostics as a
-quickfix list: `:cl`, `:cn`/`:cp` ([`:` commands](#ex)).
+`g space` drops into the file, `ctrl-o` comes back. Prefer a Telescope-style
+picker with preview instead? `"lsp_results_location": "picker"` globally,
+or per binding with `{ "open_results_in": "picker" }` — the nvim
+`<leader>pr` peek habit ([keymap doc](zed-vim-keymap.md#lsp)). Diagnostics
+as a quickfix list: `:cl`, `:cn`/`:cp` ([`:` commands](#ex)).
 
 Popups: `ctrl-n`/`ctrl-p` cycle signature overloads; `escape` closes. In
 the completion menu `ctrl-n`/`ctrl-p` (or `tab`/`shift-tab`) move,

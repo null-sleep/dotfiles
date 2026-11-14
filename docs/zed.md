@@ -101,6 +101,9 @@ Used many times a day; each is covered in full below.
 3. **Multibuffers are Zed's quickfix list — but editable.** Project search,
    diagnostics, references, project diff, and agent review all open one
    buffer of excerpts from many files; edit in place, `cmd-s` saves all.
+   Since 1.9 most of these also have a Telescope-style picker with a
+   preview pane (`alt-cmd-f` live grep, `lsp_results_location: "picker"`)
+   for when you want to look, not edit.
 4. **The agent panel is just a dock panel.** Threads (Zed Agent, external
    ACP agents, Terminal Threads) live in the Threads Sidebar; focus, zoom,
    and close are the generic dock operations.
@@ -119,8 +122,9 @@ mechanics are under [Adding your own bindings](#custom-bindings).
 | binding | action | what it does |
 |---|---|---|
 | `cmd-shift-p` | `command_palette::Toggle` | every action, with its binding; sorted by recency |
-| `cmd-p` | `file_finder::Toggle` | fuzzy file finder; pre-fills from the selection (`file_finder.prefill_query_from_selection`) |
-| `cmd-t` / `cmd-shift-o` | `project_symbols::Toggle` / `outline::Toggle` | workspace symbols / current-file symbols (modal) |
+| `cmd-p` | `file_finder::Toggle` | fuzzy file finder with preview; pre-fills from the selection (`file_finder.prefill_query_from_selection`) |
+| `alt-cmd-f` | `text_finder::Toggle` | live-grep picker with preview (Telescope `live_grep`); pre-fills from the selection or an open search; from the project-search view it carries the query over |
+| `cmd-t` / `cmd-shift-o` | `project_symbols::Toggle` / `outline::Toggle` | workspace symbols (with preview) / current-file symbols (modal) |
 | `cmd-shift-b` | `outline_panel::ToggleFocus` | outline as a panel; in a multibuffer, a tree of its files |
 | `ctrl-tab` / `ctrl-shift-tab` | `tab_switcher::Toggle` | MRU tab switcher with file preview |
 | `cmd-alt-o` | `projects::OpenRecent` | recent projects |
@@ -132,8 +136,16 @@ mechanics are under [Adding your own bindings](#custom-bindings).
 
 Inside any picker (`menu` context): `enter` confirms, `cmd-enter` opens in
 a split, `escape`/`ctrl-c` cancels, `ctrl-n`/`ctrl-p` or arrows move. In
-the file finder, `cmd-shift-i` toggles ignored files. The pickers are fixed
-(no Telescope-style ecosystem); live-grep is the project search multibuffer.
+the file finder, `cmd-shift-i` toggles ignored files.
+
+**Telescope-style pickers (1.9+):** picker modals resize by dragging, the
+file finder, text finder, and project symbols show a live preview pane, and
+`"lsp_results_location": "picker"` turns references / definition /
+implementation results into a filterable picker instead of a multibuffer
+(per binding: `["editor::FindAllReferences", { "open_results_in": "picker" }]`).
+So the choice is yours per feature: picker for a quick look, multibuffer
+(`cmd-shift-f`, `cmd-shift-m`) when you want to edit the results in place.
+Still no plugin ecosystem — the set of pickers is fixed.
 
 <a id="panes-docks"></a>
 ## Panes, tabs, and docks
@@ -319,7 +331,11 @@ Every thread across open projects, grouped by project. Settings:
 | `cmd-g` | `agents_sidebar::ToggleThreadHistory` | all threads, all projects, chronological; `backspace` un-archives, hover-trash deletes |
 
 Mouse-free loop: `cmd-alt-;`, `down`/`up`, `enter`, read, `cmd-alt-;`
-again — or skip the sidebar and `ctrl-tab` from inside a thread.
+again — or skip the sidebar and `ctrl-tab` from inside a thread. To
+**cycle threads directly** there is no default key, but the actions exist:
+`multi_workspace::NextThread` / `PreviousThread` (and `NextProject` /
+`PreviousProject`) — bind them, e.g. `alt-]` / `alt-[`, which is what
+[`docs/zed-vim-keymap.md`](zed-vim-keymap.md#ai) proposes.
 
 <a id="inside-thread"></a>
 ## Inside a thread
@@ -351,6 +367,32 @@ message box). Most keys work from both.
 Queued messages: `cmd-ctrl-e` edits, `cmd-shift-backspace` drops,
 `cmd-alt-backspace` clears. No key collapses a message or tool card — click
 its header. Stop is the button next to send.
+
+**Stop approving every command:** `agent.tool_permissions` (replaced the
+old `always_allow_tool_actions` boolean). `default: "allow"` auto-approves,
+and per-tool `always_confirm` / `always_deny` regexes keep the dangerous
+cases interactive; the permission card's "Always for <tool>/<pattern>"
+menu writes these rules for you.
+
+```jsonc
+"agent": {
+  "tool_permissions": {
+    "default": "allow",
+    "tools": {
+      "terminal": {
+        "always_confirm": [{ "pattern": "sudo\\s" }, { "pattern": "git\\s+push" }],
+        "always_deny": [{ "pattern": "rm\\s+-rf\\s+(/|~)" }]
+      },
+      "edit_file": { "always_deny": [{ "pattern": "\\.env" }, { "pattern": "\\.(pem|key)$" }] }
+    }
+  }
+}
+```
+
+This governs Zed Agent's built-in tools (`terminal`, `edit_file`, `fetch`,
+`mcp:<server>:<tool>`, …). External agents keep their own permission
+model — for a Claude thread that is the session mode `shift-tab` cycles
+(`agent::CycleModeSelector`), not this setting.
 
 <a id="review"></a>
 ## Reviewing agent edits

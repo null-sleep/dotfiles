@@ -48,6 +48,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
   - [Toggles, yanks, misc](#misc)
 - [The keymap block](#block)
 - [Caveats](#caveats)
+- [To check](#to-check)
 - [Adopting a row](#adopting)
 
 ---
@@ -83,8 +84,8 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | nvim | Zed default | call | why |
 |---|---|---|---|
 | `<leader>sf` files | `cmd-p` | borrow | keeps the `s*` family intact |
-| `<leader>sg` live grep | `g/`, `cmd-shift-f` | borrow | `g/` is good, `sg` is reflex |
-| `<leader>sw` grep word/selection | — | try | `pane::DeploySearch` seeds from the selection: `viw` then `space s w` |
+| `<leader>sg` live grep | `alt-cmd-f` picker, `g/` multibuffer | borrow | `text_finder::Toggle` is Telescope `live_grep` (preview, 1.9+); `g/` stays for editing results |
+| `<leader>sw` grep word/selection | `alt-cmd-f` | borrow | the text finder pre-fills from the selection (1.9 notes): `viw` then `space s w` |
 | `<leader>ss` workspace symbols | `gS` | borrow | alias; `gS` stays |
 | `<leader>sd` document symbols | `gs` | borrow | alias; `gs` stays |
 | `<leader>s/`, `<leader>sb` in-buffer fuzzy | `/`, `cmd-f` | default | `/` is the same thing |
@@ -103,7 +104,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | nvim | Zed default | call | why |
 |---|---|---|---|
 | `gd`, `gD`, `gy`, `gri`, `grr`, `grn`, `gra`, `gO`, `K`, `[d`/`]d` | same keys | default | Zed ships these; nvim's `grt` has no Zed twin, `gy` is it |
-| `<leader>pd/pt/pi/pr` peek floats | `ctrl-w d`, `ctrl-w D` | default | no peek; a split is closest |
+| `<leader>pd/pt/pi/pr` peek floats | `ctrl-w d`, `ctrl-w D` | borrow | the picker-with-preview result mode (`open_results_in: "picker"`, 1.9+) is the peek; `gd`/`gA` keep the multibuffer |
 | `<leader>ca` code action | `gra`, `g.` | borrow | daily reflex |
 | `<leader>cf` format | `cmd-shift-i` | borrow | `editor::Format` |
 | `<leader>ce` diagnostic float | `K` | default | hover includes the diagnostic |
@@ -151,6 +152,8 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<leader>ax` kill session | — | borrow | as close dock (`workspace::CloseActiveDock`); stopping is the thread's button |
 | `<leader>an` new session | `cmd-alt-shift-n` (panel) | borrow | `agent::ToggleNewThreadMenu` is the agent picker |
 | `<leader>al` session picker | `ctrl-tab` (panel) | borrow | `agents_sidebar::ToggleThreadSwitcher` |
+| `<M-]>` / `<M-[>` cycle sessions | — | borrow | `multi_workspace::NextThread` / `PreviousThread` have no default key; same `alt-]`/`alt-[` |
+| `<M-n>` fork session | — | skip | no equivalent |
 | `<leader>av` agent view | `cmd-alt-j` | borrow | the threads sidebar is the dashboard |
 | `<leader>at` / `as` send ref / text | `cmd->` | borrow | visual only: `agent::AddSelectionToThread` |
 | `<leader>ad` (new) review diff | `ctrl-shift-r` (agent diff, thread) | borrow | `agent::OpenAgentDiff`; no nvim equivalent |
@@ -218,14 +221,18 @@ Every *borrow* and *try*, grouped by context, ready to paste into
 
       // pickers and search
       "space s f": "file_finder::Toggle",
-      "space s g": "pane::DeploySearch",
-      "space s w": "pane::DeploySearch",       // try: select the word first
+      "space s g": "text_finder::Toggle",      // live-grep picker; g/ = multibuffer
+      "space s w": "text_finder::Toggle",      // select the word first
       "space s s": "project_symbols::Toggle",
       "space s d": "outline::Toggle",
       "space s r": "workspace::ReopenLastPicker",
       "space s k": "zed::OpenKeymap",
 
-      // LSP
+      // LSP — p* = "peek": results in a picker with preview
+      "space p d": ["editor::GoToDefinition", { "open_results_in": "picker" }],
+      "space p t": ["editor::GoToTypeDefinition", { "open_results_in": "picker" }],
+      "space p i": ["editor::GoToImplementation", { "open_results_in": "picker" }],
+      "space p r": ["editor::FindAllReferences", { "open_results_in": "picker" }],
       "space c a": "editor::ToggleCodeActions",
       "space c f": "editor::Format",
       "space c d": "diagnostics::Deploy",
@@ -250,6 +257,8 @@ Every *borrow* and *try*, grouped by context, ready to paste into
       "space a l": "agents_sidebar::ToggleThreadSwitcher",
       "space a v": "multi_workspace::ToggleWorkspaceSidebar",
       "space a d": "agent::OpenAgentDiff",
+      "alt-]": "multi_workspace::NextThread",
+      "alt-[": "multi_workspace::PreviousThread",
 
       // debugger
       "space d b": "editor::ToggleBreakpoint",
@@ -276,7 +285,16 @@ Every *borrow* and *try*, grouped by context, ready to paste into
     "bindings": {
       "space a t": "agent::AddSelectionToThread",
       "space a s": "agent::AddSelectionToThread",
-      "space s w": "pane::DeploySearch"        // grep the selection
+      "space s w": "text_finder::Toggle"       // grep the selection
+    }
+  },
+
+  // ── Inside the agent panel / threads sidebar: cycle threads ─────────
+  {
+    "context": "AgentPanel || ThreadsSidebar",
+    "bindings": {
+      "alt-]": "multi_workspace::NextThread",
+      "alt-[": "multi_workspace::PreviousThread"
     }
   },
 
@@ -328,11 +346,38 @@ the docs don't show — add it via the keymap editor (`space s k` →
 - **Vim contexts are `Editor`-only**, hence the `!Editor && !Terminal`
   block for panels. It doesn't collide with vim.json's own `space f`,
   `space /`, `space shift-s`, `space w …` there.
-- **`space s w` seeding** is documented (1.24 notes) for the *file finder*;
-  project search doing the same is the "try".
 - **Leader chords wait 1 s** before `space` falls through to
   `vim::WrappingRight`; turn on the which-key popup while learning
   ([how](zed.md#custom-bindings)).
+
+<a id="to-check"></a>
+## To check
+
+Open calls from review; each is a one-line change once decided.
+
+- [ ] **Git prefix: `space g *` or `space v *`?** nvim's diffview keys are
+  `<leader>vv`/`vp`/`vf`; the block puts them under `g` next to
+  `space g g`. Rule 2 (muscle memory) argues for `v`; one git prefix argues
+  for `g`. Pick one after a week of reaching for it.
+- [ ] **`ctrl-\` terminal toggle: keep as *try* or drop to *default*?** As
+  bound (editor only) it opens the terminal but can't close it from inside
+  — the shell gets `ctrl-\` (SIGQUIT). Either add
+  `{ "context": "Terminal", "bindings": { "ctrl-\\": "terminal_panel::Toggle" } }`
+  so it works both ways, or settle on `` ctrl-` ``.
+- [ ] **Do `space a n` / `space a l` / `space a d` fire from a plain
+  editor?** Their defaults are bound only in `AgentPanel` / `ThreadsSidebar`
+  / agent-diff contexts. If they need the panel focused, prefix them with
+  `agent::ToggleFocus` via `workspace::SendKeystrokes`, or drop them.
+- [ ] **`alt-]` / `alt-[` from the message box** — the `AgentPanel ||
+  ThreadsSidebar` block should cover it; confirm they don't insert a
+  character in `AcpThread > Editor`.
+- [ ] **`alt-h/j/k/l` resize** — keep only if actually used.
+- [ ] **`space s w` from visual mode** — confirm the text finder keeps the
+  selection as its query (documented for the active editor; verify the
+  visual case).
+- [ ] **Tool approvals** are a setting, not a key: `agent.tool_permissions`
+  ([`docs/zed.md`](zed.md#inside-thread)). Decide whether to add
+  `default: "allow"` with `always_confirm` guards to `settings.json`.
 
 <a id="adopting"></a>
 ## Adopting a row
