@@ -1813,8 +1813,9 @@ Zed docs, all checked against Zed 1.28.1 (each says so at the top; after an
 upgrade, re-verify against the new tag and bump that line):
 
 - [`docs/zed.md`](docs/zed.md) — default macOS bindings by area, the
-  agent-panel / threads-sidebar / review workflows, and how to add bindings
-  to `keymap.json`.
+  agent-panel / threads-sidebar / review workflows, how to add bindings
+  to `keymap.json`, and what happens to Terminal Threads after a restart
+  (resume by hand, patch options, Zed's plans).
 - [`docs/zed-vim.md`](docs/zed-vim.md) — vim mode: in-file and cross-file
   navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps,
   and `:` commands.

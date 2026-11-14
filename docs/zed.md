@@ -314,7 +314,8 @@ appear in the `+` menu and sidebar like any thread. They bring
 their own auth (`/login` in a Claude thread) and instructions (`CLAUDE.md`,
 not Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+`
 menu > Terminal) are a plain terminal tracked as a thread — run `claude`/
-`pi`/`codex` there for the CLI itself (sidekick-in-nvim). One-key launches:
+`pi`/`codex` there for the CLI itself (sidekick-in-nvim). They do not resume
+after a Zed restart ([details](#terminal-thread-restore)). One-key launches:
 see [Adding your own bindings](#custom-bindings).
 
 **omp's model dropdown** is omp's own ACP `model` select, not Zed's model
@@ -356,6 +357,143 @@ What each side gives you:
   `git::Diff`), no waiting/done signals in the sidebar.
 - **Both** sit in the Threads Sidebar, can be renamed, cycled, and are
   bound by the same `agent_servers` registry entries.
+- **Restore after a Zed restart differs.** ACP threads go to Thread History
+  and can be reopened, subject to the adapter's session support (open bugs
+  zed#54750, #58887: external ACP threads loading empty or losing their
+  `session_id`; not checked against `omp acp`). A Terminal Thread comes back
+  as an empty shell, not as the agent session. See
+  [Terminal Threads after a restart](#terminal-thread-restore).
+
+<a id="terminal-thread-restore"></a>
+### Terminal Threads after a restart
+
+**What happens.** When the project reopens, Zed recreates each open Terminal
+Thread's sidebar entry with a fresh shell. The agent process, scrollback,
+and any half-typed prompt are gone. Zed 1.28.1 stores only a title, custom
+title, creation time, working directory, and project/worktree paths per
+thread (`sidebar_terminal_threads` in
+`~/Library/Application Support/Zed/db/0-stable/db.sqlite`), so it has no
+command or session id to resume from. The agent's conversation itself is
+safe: each CLI keeps its sessions on disk, and you resume from the shell.
+
+**Known quirks:**
+
+- A thread closed with its **×** is deleted, not archived. Nothing in Thread
+  History brings it back; open a new Terminal Thread and resume from there.
+- Some users report the recreated shell starting in `/` instead of the
+  project directory. A thread with no stored working directory would explain
+  that [INFERENCE]; not seen here.
+- The sidebar title is the shell's, not the session's. Rename threads
+  (`shift-r` in the sidebar) before a restart if you want to tell them apart
+  afterwards.
+
+#### Resume by hand
+
+Per thread, in this order:
+
+1. Select the restored entry in the Threads Sidebar, or open a new Terminal
+   Thread (`+` menu > Terminal) if you closed it.
+2. Run `pwd`. If it is not the project root, `cd` there; sessions are looked
+   up by directory, so the wrong directory finds nothing.
+3. Run the resume command for the CLI you were using:
+
+   | CLI | latest session here | pick from a list | exact session |
+   |---|---|---|---|
+   | omp | `omp -c` | `omp -r` | `omp -r <id-prefix>` |
+   | claude | `claude -c` | `claude -r` | `claude -r <session-id>` |
+   | pi | `pi -c` | `pi -r` | `pi --session <path\|id>` |
+
+   Flags are from each CLI's `--help`. `claude -c` is documented as the most
+   recent conversation *in the current directory*; omp stores sessions in
+   per-directory folders under `~/.omp/agent/sessions/`; pi's scoping is
+   unchecked.
+4. omp after a crash or an update that interrupted a running turn:
+   `omp --restore` resumes like `-r`, then continues the unfinished turn and
+   its subagents.
+
+**Several threads in one project:** `-c` gives every thread the *same*
+latest session. Use the picker (`-r`) instead and choose a different session
+in each thread. Zed does not record which thread had which session, so the
+picker's titles and timestamps are the only clue. That missing mapping is
+what `ZED_TERMINAL_THREAD_ID` (below) would supply.
+
+#### Automating it
+
+Nothing here is adopted; `settings.json` sets none of these, and none was
+tried in a running Zed. Options, easiest first:
+
+- **`agent.terminal_init_command`** (shipped). Zed types the command into
+  every new *and* recreated Terminal Thread, e.g. `"omp -c"`. Fine with one
+  thread per project; with several, they all resume the same session. It also
+  fires for threads you wanted as plain shells.
+- **`ZED_TERMINAL_THREAD_ID` plus a hook and wrapper** (unmerged
+  [PR #65484](https://github.com/zed-industries/zed/pull/65484); needs a
+  custom Zed build). The CLI records its session id keyed by that variable,
+  and a wrapper resumes it. One user's Claude version: a `SessionStart` hook
+  writes `.session_id` from the hook's stdin JSON to
+  `$XDG_STATE_HOME/claude-zed-threads/$ZED_TERMINAL_THREAD_ID`, and a
+  `claude-zed` wrapper runs `claude --resume <id>` when that file exists. The
+  PR description has a Codex wrapper. This is the only per-thread approach
+  reported working.
+- **A persistent shell underneath** (tmux, zellij, or
+  [zmx](../plans/zmx-session-persistence.md)): the CLI keeps running when
+  Zed quits and a restored thread reattaches
+  ([zed#25227](https://github.com/zed-industries/zed/discussions/25227)).
+  With no thread id the session name could only come from the cwd, so
+  threads in one project would share a session [INFERENCE: via
+  `terminal_init_command`]. A reboot still ends it. tmux is installed here;
+  zmx is not.
+- **Not available:** a setting that maps thread to session.
+  [PR #58693](https://github.com/zed-industries/zed/pull/58693) proposed
+  `terminal_command: "claude --session-id {session_id}"` plus a matching
+  `terminal_resume_command`. Zed closed it (Jun 15) because they want to
+  design it themselves across shells and OSes. It would not fit omp anyway:
+  `omp --help` has no flag to choose a session id, unlike
+  `claude --session-id <uuid>`.
+
+#### Patches and Zed's plans
+
+**Is Zed working on it?** Acknowledged and planned, with no design, date or
+assignee. Evidence:
+
+- A Zed maintainer (macraig) on
+  [zed#57428](https://github.com/zed-industries/zed/discussions/57428), May
+  25: "This is already on our ToDo list. We just need a bit of time to figure
+  out the best way to implement it in terminals."
+- A Zed maintainer (anantdgoel) closing PR #58693, Jun 15: "we'll make sure
+  this capability lands", pointing at issue #58697. That issue is closed and
+  is only the *default command* request, which shipped as
+  `agent.terminal_init_command`; it is not a resume tracker.
+- A Zed reviewer (smitbarmase) on PR #65484, Oct 12: restoring is "on our
+  list (#57428), but we haven't settled on how yet, so it might be a while";
+  he asked users to try the PR and report back.
+- Still open as of the last comments I read (Oct 2026). No linked Zed issue,
+  milestone, or release note for resume exists that I found.
+
+**Patch options**, none merged into Zed 1.28.1:
+
+- **[PR #65484](https://github.com/zed-industries/zed/pull/65484)** (open,
+  Oct 2026) adds `ZED_TERMINAL_THREAD_ID` to the Terminal Thread shell
+  environment; you supply the hook and wrapper. Cost: you build Zed from the
+  PR branch (the author used Zed's `script/bundle-*` scripts; not checked
+  here) and give up the stable release and its auto-updates. Several users
+  report it working on macOS and Linux; one reported a startup crash that
+  turned out to be a security agent killing the debug build.
+- **No patch, just a request:**
+  [discussion #60306](https://github.com/zed-industries/zed/discussions/60306)
+  asks for the same per-terminal id as an env var or as `{terminal_id}` in
+  `terminal_init_command`. Nothing to install; add a +1 there if you want it.
+- **Writing rows into `sidebar_terminal_threads` yourself.** One user's tmux
+  bridge ([#57428](https://github.com/zed-industries/zed/discussions/57428),
+  Jul 15) registers sessions as threads so a restored thread reattaches. It
+  writes Zed's private SQLite, Zed sees new rows only after a reload, and its
+  author says it should not become the contract. Not recommended.
+
+**Practical choice today:** resume by hand, or `terminal_init_command` if you
+keep one thread per project. If per-thread resume matters enough, the PR
+#65484 build plus a wrapper is the only per-thread route reported working.
+Its examples cover Claude and Codex, so an omp hook and wrapper would be
+yours to write. Watch #57428 and PR #65484 to learn when stock Zed gets it.
 
 Rule of thumb: ACP for Zed Agent and Codex when the in-editor review loop
 is the point; Terminal Threads for a harness you have customised (Claude,
@@ -586,6 +724,13 @@ companion [`docs/zed-vim.md`](zed-vim.md).
 - **Zed rewrites `settings.json`** through the stow symlink whenever you
   change a setting in its UI — run `git diff zed/` afterwards. The keymap
   editor does the same to `keymap.json`.
+- **Terminal Threads restart as empty shells.** The sidebar entry returns,
+  the agent session does not: resume with `omp -c` / `omp -r` (or the CLI's
+  equivalent) from the right directory. Zed has planned per-thread resume
+  but has no design or date
+  ([details and patch options](#terminal-thread-restore)).
+- **Closing a Terminal Thread with its `×` deletes it**; unlike an ACP
+  thread it never reaches Thread History.
 - **Closing docks:** `cmd-w` closes the tab, not the dock (1.22+) — use
   `ctrl-alt-w`. `cmd-?` toggles focus, not visibility; hide with
   `cmd-r`/`cmd-b` or set `close_panel_on_toggle`.

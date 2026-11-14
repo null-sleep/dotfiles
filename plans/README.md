@@ -44,6 +44,16 @@ off or delete them as they land; add new ones freely.
   mirroring non-existent nvim keys and binding `g r` was removed
   2026-11-14), then flip rows to *adopted* or back to *default* as they
   prove themselves. GUIDE.md stays the owner of nvim's keys.
+- [ ] **Try two cheap Zed settings** (found 2026-11-14) — both go in
+  `zed/.config/zed/settings.json`; document whichever sticks in
+  `docs/zed.md`.
+  - `terminal.env` with `EDITOR`/`VISUAL` = `zed --wait`: `git commit` run in
+    Zed's terminal then opens the message in a Zed tab, while terminals
+    outside Zed keep nvim
+    ([Hidden Gems 4](https://zed.dev/blog/hidden-gems-part-4)).
+  - `command_aliases`: short palette names, like `gd` → `git::Diff`, `gbd` →
+    `git::BranchDiff`, `tsd` → `editor::ToggleSplitDiff`. A light
+    alternative to filling `keymap.json` while still learning.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several

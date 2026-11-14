@@ -683,7 +683,11 @@ What you lose in an ACP thread:
 
 Rule of thumb: the terminal (sidekick in nvim, or a Zed Terminal Thread) is
 the default, since the setup above lives there; an ACP thread for
-review-heavy edits in a project open in Zed.
+review-heavy edits in a project open in Zed. One catch: a Terminal Thread
+comes back as an empty shell after a Zed restart, so resume the omp session
+with `omp -c` / `omp -r` (see
+[`docs/zed.md`](zed.md#terminal-thread-restore)); ACP threads restore from
+Thread History, subject to the adapter's session support.
 
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet
