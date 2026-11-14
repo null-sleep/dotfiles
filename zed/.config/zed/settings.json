@@ -14,9 +14,9 @@
     "buffer_font_family": "Hack Nerd Font Mono",
     "buffer_font_size": 15,
 
-    // Follows macOS light/dark (Zed's built-ins; swap for an extension theme).
+    // Pinned dark; "system" follows macOS, which is in light mode.
     "theme": {
-        "mode": "system",
+        "mode": "dark",
         "light": "One Light",
         "dark": "Dracula Solid",
     },

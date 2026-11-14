@@ -1758,8 +1758,8 @@ stow --no-folding zed
 
 Stowed to `~/.config/zed/`:
 
-- **`settings.json`** — Hack Nerd Font Mono, follows macOS light/dark
-  (One Light / One Dark), the agent-panel sidebar width, and
+- **`settings.json`** — Hack Nerd Font Mono, theme pinned to Dracula Solid
+  (`"mode": "dark"`, so it ignores the macOS appearance), the agent-panel sidebar width, and
   `agent.tool_permissions` (Zed Agent tools auto-approved, with
   `always_confirm`/`always_deny` guards for `sudo`, `git push`, `rm -rf`,
   secrets, and deletions). Vim mode is off
