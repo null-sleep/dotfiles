@@ -70,6 +70,14 @@ off or delete them as they land; add new ones freely.
   - Revisit when stock Zed gets it: watch
     [zed#57428](https://github.com/zed-industries/zed/discussions/57428) and
     the release notes; drop the workaround then.
+- [ ] **Look into quieting omp's "Run Command" cards in Zed** (found
+  2026-11-14) — every `bash` call in an omp ACP thread draws a card with the
+  full command; output is already collapsed (`expand_terminal_card: false`)
+  but the header can't be hidden through Zed settings or omp config. The only
+  route found is a small stdio filter between Zed and `omp acp` that drops
+  `kind: "execute"` tool-call updates (execute-only variant keeps edit cards
+  and Review Changes). Findings, options, and costs in
+  [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md); nothing built.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several
@@ -607,6 +615,11 @@ Grouped by state, not priority.
   @<role>` so Zed's new-thread menu doubles as an omp preset picker with the
   role's thinking level. The scoped model dropdown shipped instead; revisit
   if most Zed omp threads start on the same one or two non-default presets.
+- [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md) — open idea
+  (2026-11-14): omp's `bash` calls render as full-command "Run Command" cards
+  in Zed; no Zed or omp setting hides the header. Documents what each side
+  sends, and the options (fewer bash calls, an ACP filter wrapper, Terminal
+  Threads, upstream requests); recommends trying an execute-only filter.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
