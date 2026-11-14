@@ -1765,7 +1765,9 @@ Stowed to `~/.config/zed/`:
   on save) are present but commented out. `auto_install_extensions` pulls the
   Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
   Rust, TypeScript, Python are built in). The ACP agent entries
-  (`agent_servers`) are registry-installed from Zed's agent panel.
+  (`agent_servers`) are registry-installed from Zed's agent panel, except
+  `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp` (needs omp
+  installed; see [omp](#omp)).
 - **`keymap.json`** — a small `<leader>` (space) layer for vim normal mode
   (file finder, project search, symbols, outline, code actions, git panel),
   currently commented out while learning Zed's native keys.

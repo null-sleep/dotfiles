@@ -636,6 +636,12 @@ replaces pi's subagent env-var guard (omp task children run in-process).
 No `@narumitw` packages are installed for omp — everything they backport to
 pi is native here.
 
+**Zed:** `omp acp` is a stdio ACP server, wired as a `custom` entry in
+`agent_servers` in the stowed Zed `settings.json`. It reuses `~/.omp`
+auth/config. The registry `pi-acp` drives `pi`, not omp. TUI-only features
+(plan mode, `--goal`, Ctrl+P cycling) and the extensions above may not apply
+in Zed threads.
+
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet
 

@@ -54,9 +54,15 @@
     },
 
     "agent": {
+        "sandbox_permissions": {
+            "network_hosts": [
+                "zed.dev",
+                "openrouter.ai"
+            ]
+        },
         "default_model": {
-            "provider": "openai-subscribed",
-            "model": "gpt-5.6-terra",
+            "provider": "openrouter",
+            "model": "openai/gpt-6-luna",
             "enable_thinking": true,
             "effort": "medium"
         },
@@ -67,10 +73,18 @@
         "model_parameters": [],
     },
     "agent_servers": {
+        "antigravity-acp": {
+            "type": "registry"
+        },
         "claude-acp": { "type": "registry" },
         "codex-acp": { "type": "registry" },
         "cursor": { "type": "registry" },
         "pi-acp": { "type": "registry" },
+        "omp": {
+            "type": "custom",
+            "command": "/opt/homebrew/bin/omp",
+            "args": ["acp"]
+        },
         "gemini": { "type": "registry" },
         "github-copilot-cli": { "type": "registry" },
     },

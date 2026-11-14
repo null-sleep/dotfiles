@@ -304,8 +304,9 @@ dock (also unzooms). `cmd-r` (`cmd-b` in agentic layout) hides the dock
 without moving focus.
 
 **External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
-`agent_servers` entries in `settings.json`) install from `zed: acp registry`
-and then appear in the `+` menu and sidebar like any thread. They bring
+`agent_servers` entries in `settings.json`) install from `zed: acp registry`;
+omp isn't in the registry, so it's a `custom` entry running `omp acp`. All of them
+appear in the `+` menu and sidebar like any thread. They bring
 their own auth (`/login` in a Claude thread) and instructions (`CLAUDE.md`,
 not Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+`
 menu > Terminal) are a plain terminal tracked as a thread — run `claude`/
