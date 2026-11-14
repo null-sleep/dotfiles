@@ -468,6 +468,15 @@ diff buffers:
 | `alt-enter` / `cmd-alt-enter` | `editor::OpenExcerpts` / `…Split` | open the real file at the cursor (`g space`) |
 | `shift-enter` | `editor::ExpandExcerpts` | show more context around the excerpt |
 
+**No quickfix-style curation (Zed 1.28.1).** You can't prune a results
+multibuffer down to a few hand-picked matches, or send picker or file-finder
+results into one; no action removes a single excerpt, and the list is a live
+view of the query, not a saved set. Workarounds: narrow the query or its
+`cmd-shift-j` globs, keep the results tab open and use `cmd-alt-enter` to
+open matches in a split, or edit in place (`cmd-d`, `option-click`). Files
+you edit can drop out of the list when it refreshes. Read from the source,
+not tested.
+
 <a id="git"></a>
 ## Git
 
