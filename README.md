@@ -1775,7 +1775,9 @@ Stowed to `~/.config/zed/`:
 `--no-folding` because `~/.config/zed/` also holds runtime state (`prompts/`,
 `themes/`) that must stay out of the repo. Zed rewrites `settings.json` when
 you change a setting in its UI — it writes through the symlink, so check
-`git diff zed/` afterwards. Extensions themselves live in
+`git diff zed/` afterwards. `agent.default_model` in particular changes
+every time you pick a model in the agent panel; that churn is left
+uncommitted on purpose. Extensions themselves live in
 `~/Library/Application Support/Zed/` and are not tracked.
 
 **First stow:** Zed creates a regular `~/.config/zed/settings.json` on first
