@@ -1773,6 +1773,7 @@ Stowed to `~/.config/zed/`:
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
   nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
   format on save off) are present but commented out. `auto_install_extensions` pulls the
+  `dracula` theme extension (source of Dracula Solid, which isn't built in) and the
   Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
   Rust, TypeScript, Python are built in). The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except

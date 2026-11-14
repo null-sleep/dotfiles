@@ -38,8 +38,10 @@
     // "show_whitespaces": "selection",
 
     // Language servers/grammars outside Zed's built-ins (Go, Rust, TS, Python
-    // are built in). Installed automatically on first launch.
+    // are built in), plus the theme extension that provides "Dracula Solid".
+    // Installed automatically on first launch.
     "auto_install_extensions": {
+        "dracula": true,
         "elixir": true,
         "lua": true,
         "toml": true,

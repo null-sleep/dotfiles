@@ -1,3 +1,2 @@
-setup-settings\.sh
-setup-auto-code\.sh
-tests
+^/setup-.*\.sh
+^/tests
