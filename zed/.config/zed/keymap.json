@@ -1,5 +1,17 @@
 // Zed keymap — stowed to ~/.config/zed/keymap.json (see README → "Zed").
-// Empty while learning Zed's native keys. The vim-mode bindings to carry over
-// from nvim, with a block to paste, live in docs/zed-vim-keymap.md; adopt rows
-// from there. nvim keymaps live in GUIDE.md.
-[]
+// Nearly empty while learning Zed's native keys. The vim-mode bindings to
+// carry over from nvim, with a block to paste, live in
+// docs/zed-vim-keymap.md; adopt rows from there. nvim keymaps live in
+// GUIDE.md.
+[
+    // Step through agent threads in sidebar order. Zed has no default key for
+    // this; ctrl-tab opens the MRU switcher instead. Scoped to the agent panel
+    // and threads sidebar so alt-] / alt-[ still type normally in editors.
+    {
+        "context": "AgentPanel || ThreadsSidebar",
+        "bindings": {
+            "alt-]": "multi_workspace::NextThread",
+            "alt-[": "multi_workspace::PreviousThread"
+        }
+    }
+]

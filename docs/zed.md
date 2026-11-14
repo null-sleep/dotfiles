@@ -88,6 +88,7 @@ Used many times a day; each is covered in full below.
 | `shift-escape` / `ctrl-alt-w` | zoom the focused panel / close the focused dock |
 | `cmd-alt-j` / `cmd-alt-;` | toggle threads sidebar (show/hide) / jump focus to it and back |
 | `ctrl-tab` / `ctrl-shift-tab` | thread switcher, most recent first — from the message box too |
+| `alt-]` / `alt-[` | next / previous thread directly, no switcher (bound in `keymap.json`; agent panel and sidebar only) |
 | `cmd-n` | new thread (panel focused) |
 | `cmd-b` / `cmd-r` | hide / show the agent dock (`cmd-b` agentic layout, `cmd-r` classic); `cmd-?` shows and focuses it |
 | `enter` / `cmd-enter` | send / send and follow (in a thread) |
@@ -817,8 +818,12 @@ Mouse-free loop: `cmd-alt-;`, `down`/`up`, `enter`, read, `cmd-alt-;`
 again — or skip the sidebar and `ctrl-tab` from inside a thread. To
 **cycle threads directly** there is no default key, but the actions exist:
 `multi_workspace::NextThread` / `PreviousThread` (and `NextProject` /
-`PreviousProject`) — bind them, e.g. `alt-]` / `alt-[`, which is what
-[`docs/zed-vim-keymap.md`](zed-vim-keymap.md#ai) proposes.
+`PreviousProject`). `zed/.config/zed/keymap.json` binds `alt-]` / `alt-[` to
+the first two under the `AgentPanel || ThreadsSidebar` context, so they work
+from the message box and the sidebar but still type `‘` / `“` in editors
+(see [`docs/zed-vim-keymap.md`](zed-vim-keymap.md#ai)). Tested working from
+the message box in a live Zed (2026-11-14); that editors still type `‘` / `“`
+is read from the keymap contexts, not tried.
 
 <a id="inside-thread"></a>
 ## Inside a thread

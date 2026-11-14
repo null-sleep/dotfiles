@@ -1,9 +1,9 @@
 # Zed vim mode — recommended keymap
 
-**Status:** proposal, nothing adopted yet (2026-11-14).
-`zed/.config/zed/keymap.json` is an empty array (the earlier draft, which
-mirrored nvim keys that don't exist, was removed); adopt rows from the
-block below into it.
+**Status:** proposal, with `<M-]>` / `<M-[>` (cycle threads) adopted and
+tested (2026-11-14). `zed/.config/zed/keymap.json` holds only that row (the
+earlier draft, which mirrored nvim keys that don't exist, was removed); adopt
+further rows from the block below.
 
 **Basis: Zed 1.28.1** (`zed --version`) — every action and default named
 here was checked against the `v1.28.1` tag
@@ -159,7 +159,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<leader>ax` kill session | — | borrow | as close dock (`workspace::CloseActiveDock`); stopping is the thread's button |
 | `<leader>an` new session | `cmd-alt-shift-n` (panel) | borrow | `agent::ToggleNewThreadMenu` is the agent picker |
 | `<leader>al` session picker | `ctrl-tab` (panel) | borrow | `agents_sidebar::ToggleThreadSwitcher` |
-| `<M-]>` / `<M-[>` cycle sessions | — | borrow | `multi_workspace::NextThread` / `PreviousThread` have no default key; same `alt-]`/`alt-[` |
+| `<M-]>` / `<M-[>` cycle sessions | `alt-]` / `alt-[` (agent panel, sidebar) | adopted | `multi_workspace::NextThread` / `PreviousThread` have no default key; bound in `keymap.json` |
 | `<M-n>` fork session | — | skip | no equivalent |
 | `<leader>av` agent view | `cmd-alt-j` | borrow | the threads sidebar is the dashboard |
 | `<leader>at` / `as` send ref / text | `cmd->` | borrow | visual only: `agent::AddSelectionToThread` |
@@ -265,8 +265,6 @@ Every *borrow* and *try*, grouped by context, ready to paste into
       "space a l": "agents_sidebar::ToggleThreadSwitcher",
       "space a v": "multi_workspace::ToggleWorkspaceSidebar",
       "space a d": "agent::OpenAgentDiff",
-      "alt-]": "multi_workspace::NextThread",
-      "alt-[": "multi_workspace::PreviousThread",
 
       // debugger
       "space d b": "editor::ToggleBreakpoint",
@@ -376,9 +374,6 @@ Open calls from review; each is a one-line change once decided.
   editor?** Their defaults are bound only in `AgentPanel` / `ThreadsSidebar`
   / agent-diff contexts. If they need the panel focused, prefix them with
   `agent::ToggleFocus` via `workspace::SendKeystrokes`, or drop them.
-- [ ] **`alt-]` / `alt-[` from the message box** — the `AgentPanel ||
-  ThreadsSidebar` block should cover it; confirm they don't insert a
-  character in `AcpThread > Editor`.
 - [ ] **`alt-h/j/k/l` resize** — keep only if actually used.
 - [ ] **`space s w` from visual mode** — confirm the text finder keeps the
   selection as its query (documented for the active editor; verify the
@@ -388,7 +383,9 @@ Open calls from review; each is a one-line change once decided.
 ## Adopting a row
 
 1. Paste the block (or a subset) into `zed/.config/zed/keymap.json`,
-   replacing the empty `[]`. Zed reloads keymaps on save.
+   replacing the file's array. The block already contains the `alt-]` /
+   `alt-[` thread-cycling entry that `keymap.json` holds today, so replace
+   rather than append. Zed reloads keymaps on save.
 2. If a key does nothing, `dev: open key context view` shows the context
    under the cursor; `cmd-shift-p` shows what the action is bound to.
 3. After a week, update the **Status** line and the call column: *borrow*
