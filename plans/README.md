@@ -79,6 +79,13 @@ off or delete them as they land; add new ones freely.
   `kind: "execute"` tool-call updates (execute-only variant keeps edit cards
   and Review Changes). Findings, options, and costs in
   [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md); nothing built.
+- [ ] **Verify Zed autosave and the stale-buffer fix** (shipped 2026-11-14) —
+  `autosave` is now `after_delay` 1000 ms to stop `settings.json` tabs going
+  stale. Still to check in Zed: the `●` clears after 1s, an outside change
+  reaches an open tab, and agent edits in the review view behave. If the
+  stale tab returns, try `session.restore_unsaved_buffers: false`. Reasoning,
+  nvim comparison, and the format-on-save policy in
+  [zed-buffer-sync-and-formatting.md](zed-buffer-sync-and-formatting.md).
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several
@@ -621,6 +628,10 @@ Grouped by state, not priority.
   in Zed; no Zed or omp setting hides the header. Documents what each side
   sends, and the options (fewer bash calls, an ACP filter wrapper, Terminal
   Threads, upstream requests); recommends trying an execute-only filter.
+- [zed-buffer-sync-and-formatting.md](zed-buffer-sync-and-formatting.md) —
+  decision record (2026-11-14): why a Zed tab went stale, how Zed reloads
+  buffers and saves omp's writes, the nvim comparison, the autosave and
+  format-on-save choices, and the pending checks. Prune once verified.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
