@@ -52,7 +52,7 @@ Used many times a day; each is covered in full below.
 |---|---|---|
 | `:` | command palette (also every `:w`, `:q`, `:sp`) | `:` |
 | `cmd-p`, `gS`, `g/` | file finder, project symbols, project search | `<leader>sf`, `<leader>ss`, `<leader>sg` |
-| `gs` | symbols in this file (modal; `cmd-shift-b` is the panel) | `<leader>o` |
+| `gs`, `cmd-shift-b` | symbols in this file (modal), outline panel | `<leader>sd`, `<leader>o` |
 | `gd` / `gy` / `gI` / `gA` | definition / type / implementation / references | `gd` / `gy` / `gri` / `grr` |
 | `grn` / `gra` / `K` | rename / code actions / hover | `grn` / `<leader>ca` / `K` |
 | `cmd-down` / `cmd-up`, `g space` | next / prev excerpt, open the real file (multibuffer) | `]q` / `[q`, `<CR>` |
@@ -169,7 +169,7 @@ the finder only from non-editor panes (project panel, empty pane).
 | keys | action | does |
 |---|---|---|
 | `gd`, `ctrl-]` / `gD` | `editor::GoToDefinition` / `GoToDeclaration` | definition / declaration |
-| `gy`, `grt` | `editor::GoToTypeDefinition` | type definition |
+| `gy` | `editor::GoToTypeDefinition` | type definition (no `grt` in Zed) |
 | `gI`, `gri` | `editor::GoToImplementation` | implementation |
 | `gA`, `grr` | `editor::FindAllReferences` | references, as a multibuffer |
 | `grn`, `cd` | `editor::Rename` | rename symbol |

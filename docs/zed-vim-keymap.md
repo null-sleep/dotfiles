@@ -6,31 +6,31 @@ don't exist (`<leader>ff`/`fg`/`fs`, `<leader>cr`); replace it with the
 block below when adopting.
 
 Which of the nvim config's bindings to carry into Zed vim mode, which to
-drop in favour of Zed's defaults, and why. Guidance for experimenting, not
-a finished keymap: adopt a row, live with it, then tick the status.
-Defaults are documented in [`docs/zed-vim.md`](zed-vim.md); the mechanics
-of `keymap.json` in [`docs/zed.md`](zed.md#custom-bindings); the nvim side
-in `nvim/.config/nvim/GUIDE.md` → Keymap index.
+drop for Zed's defaults, and why. Guidance for experimenting, not a
+finished keymap: adopt a row, live with it, then update the Status.
 
 Three rules behind every call:
 
-1. **Keep a Zed default when it is already two keys and mnemonic** (`gd`,
-   `]d`, `]c`, `du`/`dp`, `gS`, `ZZ`). Rebinding those buys nothing.
-2. **Borrow an nvim key when it is daily muscle memory with no cheap
-   Zed equivalent** (`H`/`L`, `ctrl-h/j/k/l`, `jk`, `<leader><leader>`,
+1. **Don't rebind a Zed default that is already two keys and mnemonic**
+   (`gd`, `]d`, `]c`, `du`/`dp`, `gS`, `ZZ`). A leader alias *beside* it
+   is fine when the leader key is the reflex.
+2. **Borrow an nvim key when it is daily muscle memory with no cheap Zed
+   equivalent** (`H`/`L`, `ctrl-h/j/k/l`, `jk`, `<leader><leader>`,
    `<leader>e`, `<leader>aa`).
-3. **Never shadow a Zed chord prefix.** `space g` is fine; `g r` is not
-   (it delays `grn`/`gra`/`grr` by the 1 s chord timeout).
+3. **Never shadow a Zed chord prefix.** `space g` is fine; `g r` is not —
+   it delays `grn`/`gra`/`grr` by the 1 s chord timeout (the old draft
+   bound it).
 
 Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 `keymap.json` (`space s f`). `<leader>` is `space` in both.
 
 ## References
 
-- [`docs/zed-vim.md`](zed-vim.md) — the defaults each row competes with
+- [`docs/zed-vim.md`](zed-vim.md) — the defaults each row competes with;
+  anything not listed here stays on them
 - [`docs/zed.md` → Adding your own bindings](zed.md#custom-bindings) —
-  contexts, chords, `null`, `SendKeystrokes`
-- [All actions](https://zed.dev/docs/all-actions) — every name below was
+  contexts, chord timeout, which-key popup, `null`
+- [All actions](https://zed.dev/docs/all-actions) — every action below was
   checked here or in the v1.28.1 keymaps
 - `nvim/.config/nvim/GUIDE.md` → Keymap index, LSP, Picker, Git, AI,
   Debugging — the source of the nvim column
@@ -47,7 +47,6 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
   - [Debugger](#debugger)
   - [Toggles, yanks, misc](#misc)
 - [The keymap block](#block)
-- [Deliberately left on Zed defaults](#defaults)
 - [Caveats](#caveats)
 - [Adopting a row](#adopting)
 
@@ -56,28 +55,27 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 <a id="decisions"></a>
 ## Decisions by area
 
-Columns: the nvim key, what Zed gives you out of the box, the call, and
-the reason. **Calls:** *borrow* = bind the nvim key; *default* = learn
-Zed's key instead; *try* = plausible, verify in use; *skip* = no Zed
-equivalent worth faking.
+**Calls:** *borrow* = bind the nvim key (or the Zed key named in *why*);
+*default* = learn Zed's key instead; *try* = plausible, verify in use;
+*skip* = no Zed equivalent worth faking.
 
 <a id="nav"></a>
 ### Files, tabs, panes
 
 | nvim | Zed default | call | why |
 |---|---|---|---|
-| `H` / `L` prev/next buffer | `[b` / `]b` | borrow | most-pressed nav keys in nvim; loses `H`/`L` screen-top/bottom, which the nvim config already gave up |
-| `<C-h/j/k/l>` split nav | `ctrl-w h/j/k/l` | borrow | one key vs two; needs the `Dock` block too or it dead-ends at panels |
+| `H` / `L` prev/next buffer | `[b` / `]b` | borrow | most-pressed nav keys; loses `vim::WindowTop`/`WindowBottom` (`M` stays), as nvim did |
+| `<C-h/j/k/l>` split nav | `ctrl-w h/j/k/l` | borrow | one key vs two; needs the `Dock` block or it dead-ends at panels |
 | `<A-h/j/k/l>` resize | `ctrl-w <`/`>`/`-`/`+` | try | rarely used; `ctrl-w _`/`=` cover the common cases |
-| `gb` alternate buffer | `ctrl-^` | borrow | `ctrl-^` is awkward on a Mac keyboard; loses `gb` block-comment (`cmd-k cmd-/` remains) |
-| `jj` / `jk` escape | `escape`, `ctrl-c`, `ctrl-[` | borrow `jk` | `jj` too makes every `j` in insert mode wait 1 s; one is enough |
-| `<leader><leader>` smart picker | `cmd-p` (recent-first on empty query) | borrow | daily; `cmd-p` is the same picker |
+| `gb` alternate buffer | `ctrl-^` | borrow | `ctrl-^` is awkward on a Mac; loses `gb` block-comment (`cmd-k cmd-/` remains) |
+| `jj` / `jk` escape | `escape`, `ctrl-c`, `ctrl-[` | borrow | `jk` only; one escape chord is enough |
+| `<leader><leader>` smart picker | `cmd-p` (recent-first when empty) | borrow | daily; same picker |
 | `<leader>bb` buffer picker | `ctrl-tab` | borrow | MRU tab switcher with preview |
-| `<leader>bx` close buffer | `ZZ`, `ctrl-w c`, `cmd-w` | borrow | pairs with `bo`; `ZZ` also saves, which is not always wanted |
-| `<leader>bo` close others | `cmd-alt-t` | borrow | `pane::CloseOtherItems`, not `CloseInactiveTabsAndPanes` (that also collapses splits) |
-| `<leader>qq` quit all | `cmd-q` | skip | `cmd-q` is already one chord |
+| `<leader>bx` close buffer | `ZZ`, `ctrl-w c`, `cmd-w` | borrow | pairs with `bo`; `ZZ` also saves |
+| `<leader>bo` close others | `cmd-alt-t` | borrow | `pane::CloseOtherItems`; `CloseInactiveTabsAndPanes` would also collapse splits |
+| `<leader>qq` quit all | `cmd-q` | skip | already one chord |
 | `<C-w>v` / `<C-w>s` splits | `ctrl-w v` / `ctrl-w s` | default | identical |
-| `]q` / `[q` quickfix | `cmd-down` / `cmd-up` excerpts | default | Zed has no quickfix; multibuffer excerpts are the analogue |
+| `]q` / `[q` quickfix | `cmd-down` / `cmd-up` excerpts | default | no quickfix; multibuffer excerpts are the analogue |
 
 <a id="pickers"></a>
 ### Pickers and search
@@ -85,18 +83,18 @@ equivalent worth faking.
 | nvim | Zed default | call | why |
 |---|---|---|---|
 | `<leader>sf` files | `cmd-p` | borrow | keeps the `s*` family intact |
-| `<leader>sg` live grep | `g/`, `cmd-shift-f` | borrow | project search multibuffer; `g/` is good but `sg` is reflex |
-| `<leader>sw` grep word/selection | — | try | `pane::DeploySearch` seeds the box from the selection: `viw` then `space s w` |
-| `<leader>ss` workspace symbols | `gS` | borrow | both; `gS` stays |
-| `<leader>sd` document symbols | `gs` | borrow | both; `gs` stays |
-| `<leader>s/`, `<leader>sb` in-buffer fuzzy | `/`, `cmd-f` | default | `/` is the same thing in vim mode |
-| `<leader>sr` resume picker | `cmd-k cmd-p` | borrow | `workspace::ReopenLastPicker` is exactly it |
-| `<leader>sk` keymap picker | `cmd-k cmd-s` | borrow | the keymap editor is a searchable picker |
+| `<leader>sg` live grep | `g/`, `cmd-shift-f` | borrow | `g/` is good, `sg` is reflex |
+| `<leader>sw` grep word/selection | — | try | `pane::DeploySearch` seeds from the selection: `viw` then `space s w` |
+| `<leader>ss` workspace symbols | `gS` | borrow | alias; `gS` stays |
+| `<leader>sd` document symbols | `gs` | borrow | alias; `gs` stays |
+| `<leader>s/`, `<leader>sb` in-buffer fuzzy | `/`, `cmd-f` | default | `/` is the same thing |
+| `<leader>sr` resume picker | `cmd-k cmd-p` | borrow | `workspace::ReopenLastPicker` |
+| `<leader>sk` keymap picker | `cmd-k cmd-s` | borrow | the keymap editor is searchable |
 | `<leader>so` recent files | `cmd-p` empty query | skip | same list |
 | `<leader>sm` modified files | git panel | default | `space g g` below |
 | `<leader>sq` / `sl` quickfix picker | `cmd-shift-m` | default | diagnostics multibuffer |
 | `<leader>sa` AST search, `<leader>sh` help | — | skip | no equivalent |
-| picker `<C-v>` / `<C-s>` open in split | `cmd-enter` | default | one secondary-confirm, no split direction |
+| picker `<C-v>` / `<C-s>` split | `cmd-enter` | default | one secondary-confirm, no direction |
 | picker `<C-q>` to quickfix | — | skip | results are already a multibuffer |
 
 <a id="lsp"></a>
@@ -104,9 +102,9 @@ equivalent worth faking.
 
 | nvim | Zed default | call | why |
 |---|---|---|---|
-| `gd`, `gD`, `gy`, `gri`, `grr`, `grn`, `gra`, `grt`, `gO`, `K`, `[d`/`]d` | same keys | default | Zed ships the Neovim 0.11 set; nothing to do |
-| `<leader>pd/pt/pi/pr` peek floats | `ctrl-w d`, `ctrl-w D` | default | no peek in Zed; a split is the closest |
-| `<leader>ca` code action | `gra`, `g.` | borrow | daily reflex, one extra row |
+| `gd`, `gD`, `gy`, `gri`, `grr`, `grn`, `gra`, `gO`, `K`, `[d`/`]d` | same keys | default | Zed ships these; nvim's `grt` has no Zed twin, `gy` is it |
+| `<leader>pd/pt/pi/pr` peek floats | `ctrl-w d`, `ctrl-w D` | default | no peek; a split is closest |
+| `<leader>ca` code action | `gra`, `g.` | borrow | daily reflex |
 | `<leader>cf` format | `cmd-shift-i` | borrow | `editor::Format` |
 | `<leader>ce` diagnostic float | `K` | default | hover includes the diagnostic |
 | `<leader>cd` diagnostic list | `cmd-shift-m`, `:cl` | borrow | `diagnostics::Deploy` |
@@ -123,7 +121,7 @@ equivalent worth faking.
 | `<leader>e` file tree | `cmd-shift-e`, `:E` | borrow | daily |
 | `<leader>o` outline sidebar | `cmd-shift-b` | borrow | daily |
 | `<leader>O` outline popup | `gs` | default | same modal |
-| `<C-\>` floating terminal, `<C-/>` panel | `` ctrl-` `` | try `ctrl-\` | one toggle in Zed; `` ctrl-` `` is fine too |
+| `<C-\>` float term, `<C-/>` panel | `` ctrl-` `` | try | as `ctrl-\`; editor-only, so it can't close the terminal (there the shell gets it) |
 | tree `a`/`d`/`r`/`x`/`c`/`p` | `%`/`D`/`R`/… (netrw-style) | default | different vocabulary; learn Zed's |
 
 <a id="git"></a>
@@ -131,16 +129,16 @@ equivalent worth faking.
 
 | nvim | Zed default | call | why |
 |---|---|---|---|
-| `<leader>hs` stage/unstage hunk | `dO` (toggle), `du` (stage + next) | default | the `d` operator layer is better than the leader here |
+| `<leader>hs` stage/unstage hunk | `dO` (toggle), `du` (stage + next) | default | the `d` operator layer beats the leader |
 | `<leader>hr` reset hunk | `dp` | default | |
 | `<leader>hp` preview hunk | `do` | default | |
 | `<leader>hb` blame line | `gB` | default | |
 | `<leader>tb` inline blame toggle | — | borrow | `editor::ToggleGitBlameInline` has no key |
-| `<leader>Gg` Neogit status | `ctrl-shift-g`, `:G` | borrow as `space g g` | daily; the draft already had it |
+| `<leader>Gg` Neogit status | `ctrl-shift-g`, `:G` | borrow | as `space g g`; daily |
 | `<leader>Gc`/`Gp`/`Gu`/… popups | panel `cmd-enter`, `ctrl-g up/down` | default | the panel is the popup |
-| `<leader>vv` uncommitted diff | `ctrl-g d` from the panel | borrow as `space g d` | `git::Diff` from anywhere |
-| `<leader>vp` PR vs base | `cmd-alt-g r` | borrow as `space g r` | `git::ReviewDiff` |
-| `<leader>vf` file history | — | borrow as `space g f` | `git::FileHistory` has no key |
+| `<leader>vv` uncommitted diff | `ctrl-g d` (git panel) | borrow | as `space g d`: `git::Diff` from anywhere |
+| `<leader>vp` PR vs base | `cmd-alt-g r` | borrow | as `space g r`: `git::ReviewDiff` |
+| `<leader>vf` file history | — | borrow | as `space g f`: `git::FileHistory` has no key |
 | `<leader>vn` / `vh` last-N commits | — | skip | git graph / file history instead |
 | `<leader>vq` close diff | `cmd-w`, `ZZ` | default | it's a tab |
 
@@ -150,14 +148,15 @@ equivalent worth faking.
 | nvim | Zed default | call | why |
 |---|---|---|---|
 | `<leader>aa` toggle CLI | `cmd-?`, `:A` | borrow | daily |
-| `<leader>ax` kill session | — | borrow as close dock | `workspace::CloseActiveDock`; killing is the thread's stop button |
-| `<leader>an` new session (agent picker) | `cmd-alt-shift-n` | borrow | `agent::ToggleNewThreadMenu` is the agent picker |
-| `<leader>al` session picker | `ctrl-tab` in the panel | borrow | `agents_sidebar::ToggleThreadSwitcher` |
+| `<leader>ax` kill session | — | borrow | as close dock (`workspace::CloseActiveDock`); stopping is the thread's button |
+| `<leader>an` new session | `cmd-alt-shift-n` (panel) | borrow | `agent::ToggleNewThreadMenu` is the agent picker |
+| `<leader>al` session picker | `ctrl-tab` (panel) | borrow | `agents_sidebar::ToggleThreadSwitcher` |
 | `<leader>av` agent view | `cmd-alt-j` | borrow | the threads sidebar is the dashboard |
-| `<leader>at` / `as` send ref / selection | `cmd->` | borrow (visual) | `agent::AddSelectionToThread` |
-| `<leader>ad` (new) review diff | `ctrl-shift-r` | borrow | `agent::OpenAgentDiff`; the nvim config has no equivalent key |
+| `<leader>at` / `as` send ref / text | `cmd->` | borrow | visual only: `agent::AddSelectionToThread` |
+| `<leader>ad` (new) review diff | `ctrl-shift-r` (agent diff, thread) | borrow | `agent::OpenAgentDiff`; no nvim equivalent |
 | `<leader>ae`/`aE`/`ab`/`aq`/`af`/`ac` send context | `@` picker | default | `@diagnostics`, `@file`, `@symbol` in the message box |
-| `<leader>aj` unread, `<leader>ar` label | sidebar `R` | skip / default | |
+| `<leader>ar` label session | sidebar `R` | default | rename the thread |
+| `<leader>aj` jump to unread | — | skip | no equivalent action |
 | `<C-.>` focus CLI | `cmd-?` | default | |
 
 <a id="debugger"></a>
@@ -166,7 +165,7 @@ equivalent worth faking.
 | nvim | Zed default | call | why |
 |---|---|---|---|
 | `<F5>` continue, `<F9>` breakpoint, `<F10>` over, `<F11>` into | `f5`, `f9`, `f10`, `f11` | default | identical |
-| `<F12>` step out | `shift-f11` | borrow `<leader>dO` | `f12` is go-to-definition in Zed |
+| `<F12>` step out | `shift-f11` | default | `f12` is go-to-definition; `space d O` below covers it |
 | `<leader>db` / `dc` / `di` / `do` / `dO` | F-keys only | borrow | the leader layer is what gets used away from the F row |
 | `<leader>dq` terminate | `shift-f5` | borrow | `debugger::Stop` |
 | `<leader>dl` run last | `f5` (idle) | borrow | `debugger::Rerun` |
@@ -180,9 +179,9 @@ equivalent worth faking.
 |---|---|---|---|
 | `<leader>tn` relative numbers | — | borrow | `editor::ToggleRelativeLineNumbers` |
 | `<leader>td` diagnostics on/off | — | borrow | `editor::ToggleDiagnostics` |
-| `<leader>tq` quickfix window | `cmd-shift-m` | default | same as `<leader>cd` above |
+| `<leader>tq` quickfix window | `cmd-shift-m` | default | same as `<leader>cd` |
 | `<leader>tf` / `tL` format/lint-on-save | — | skip | settings, not actions |
-| `yp` / `yP` yank path | `cmd-k p` | borrow | `editor::CopyRelativePath` / `CopyPath`; the `y`-operator prefix is free |
+| `yp` / `yP` yank path | `cmd-k p` (absolute only) | borrow | `editor::CopyRelativePath` / `CopyPath` |
 | `yu` permalink | — | borrow | `editor::CopyPermalinkToLine` |
 | `<Esc>` clear highlights | `escape` | default | `editor::Cancel` already does it |
 | `gcc`, `ys`/`cs`/`ds` | same | default | |
@@ -191,8 +190,8 @@ equivalent worth faking.
 <a id="block"></a>
 ## The keymap block
 
-Everything marked *borrow* or *try*, grouped by context, ready to paste
-into `zed/.config/zed/keymap.json`. Comment out rows you have not adopted.
+Every *borrow* and *try*, grouped by context, ready to paste into
+`zed/.config/zed/keymap.json`. Comment out rows you have not adopted.
 
 ```jsonc
 [
@@ -311,53 +310,29 @@ into `zed/.config/zed/keymap.json`. Comment out rows you have not adopted.
 ]
 ```
 
-Not in the block, on purpose: a one-key "new Claude thread".
-`agent::NewExternalAgentThread` takes the agent as an argument, but its
-shape was not verifiable from the docs — add it through the keymap editor
-(`space s k` → `Add Keybinding`), which fills in the accepted form.
-
-<a id="defaults"></a>
-## Deliberately left on Zed defaults
-
-So you don't reach for a mapping that isn't coming:
-
-- **LSP:** `gd` `gD` `gy` `gri` `grr` `grn` `gra` `grt` `gO` `K` `[d` `]d`
-  — identical to nvim.
-- **Hunks:** `]c` `[c`, `do` `dp` `du` `dU` `dO`, `gB` — the `d`-operator
-  layer replaces `<leader>h*`.
-- **Tabs/panes beyond `H`/`L`:** `]b` `[b` `]B` `[B`, `ctrl-w` everything,
-  `ZZ`/`ZQ`, `ctrl-o`/`ctrl-i`.
-- **Multibuffer:** `cmd-down`/`cmd-up`, `g space` — the quickfix analogue.
-- **Editing:** `gcc`, surround, `cx`, `gl`/`ga` multi-cursor, `[x`/`]x`.
-- **Agent context:** `@file`, `@diagnostics`, `@symbol` in the message box
-  instead of `<leader>ae`/`ab`/`af`.
-- **Native chords that are already good:** `cmd-p`, `cmd-shift-f`, `cmd-?`,
-  `cmd-shift-e`, `shift-escape` (zoom), `cmd-k cmd-s` (keymap editor).
+Not in the block: a one-key "new Claude thread".
+`agent::NewExternalAgentThread` takes the agent as an argument whose shape
+the docs don't show — add it via the keymap editor (`space s k` →
+`Add Keybinding`), which fills in the accepted form.
 
 <a id="caveats"></a>
 ## Caveats
 
-- **`H`/`L` lose their motions.** `shift-h`/`shift-l` are
-  `vim::WindowTop`/`WindowBottom` by default; `M` keeps the middle. The
-  nvim config made the same trade.
-- **`ctrl-j`/`ctrl-k` in normal mode** are `vim::Down` and (unbound) — safe
-  to take. Don't bind them in `vim_mode == insert`: `ctrl-k` is digraph.
-- **`ctrl-l`** is screen redraw in Vim; nothing in Zed needs it.
-- **`alt-h/j/k/l`** on macOS: Zed treats `alt` as a modifier, so no
-  dead-key issue, but they're also free for anything else — low priority.
-- **`gb` block comment** goes away; `g shift-b` (blame) is untouched.
-- **`space` chords wait 1 s** before falling through to
-  `vim::WrappingRight`. Enable `"which_key": { "enabled": true }` while
-  learning the layer; `alt-/` lists pending completions.
-- **`space s w` seeding from the selection** is from the 1.24 release notes
-  for the *file finder*; project search behaving the same is the "try".
-- **`y p`/`y shift-p`/`y u`** sit on the yank operator: `yp` is harmless
-  (`p` is no motion), but if any `y`-prefixed text object you use starts
-  with `p`/`u`, move these to `space y *`.
-- **Vim contexts are `Editor`-only**, which is why the leader keys are
-  duplicated into a `!Editor && !Terminal` block for panels.
-- **`g r` must not be bound** (the old draft had it) — it delays Zed's
-  `grn`/`gra`/`grr`.
+- **What `ctrl-h/j/k/l` displace in normal mode:** `editor::Backspace`,
+  `vim::Down`, `editor::KillRingCut`, `editor::ScrollCursorCenter` (`zz`
+  does the same) — none worth keeping. Never bind them in insert mode:
+  `ctrl-k` is digraph there.
+- **`y` becomes a chord prefix** for `y p`/`y shift-p`/`y u`. Nothing is
+  lost (`p`/`u` are not motions, text objects start with `i`/`a`); `y`
+  just resolves on the next key, as an operator does anyway.
+- **Vim contexts are `Editor`-only**, hence the `!Editor && !Terminal`
+  block for panels. It doesn't collide with vim.json's own `space f`,
+  `space /`, `space shift-s`, `space w …` there.
+- **`space s w` seeding** is documented (1.24 notes) for the *file finder*;
+  project search doing the same is the "try".
+- **Leader chords wait 1 s** before `space` falls through to
+  `vim::WrappingRight`; turn on the which-key popup while learning
+  ([how](zed.md#custom-bindings)).
 
 <a id="adopting"></a>
 ## Adopting a row
@@ -365,10 +340,9 @@ So you don't reach for a mapping that isn't coming:
 1. Paste the block (or a subset) into `zed/.config/zed/keymap.json`,
    replacing the old commented draft. Zed reloads keymaps on save.
 2. If a key does nothing, `dev: open key context view` shows the context
-   under the cursor; `cmd-shift-p` shows what the action is currently
-   bound to.
+   under the cursor; `cmd-shift-p` shows what the action is bound to.
 3. After a week, update the **Status** line and the call column: *borrow*
    → **adopted**, or back to *default* with a one-line reason. Rows that
    flip to *default* get deleted from the block, not commented.
-4. Keep GUIDE.md as the owner of nvim's keys; this doc only records the
-   Zed side of the mapping.
+4. GUIDE.md stays the owner of nvim's keys; this doc records only the Zed
+   side of the mapping.

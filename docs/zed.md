@@ -109,9 +109,9 @@ Used many times a day; each is covered in full below.
 
 **Coming from the nvim config:** `cmd-p` is `<leader>sf`, `cmd-shift-f` is
 `<leader>sg`, `cmd-shift-e` is `<leader>e`, `cmd-.` is `<leader>ca`, and
-`cmd-?` is roughly `<leader>aa` (sidekick). The commented-out block in
-`zed/.config/zed/keymap.json` wires those leader keys up for vim mode — see
-[Adding your own bindings](#custom-bindings).
+`cmd-?` is roughly `<leader>aa` (sidekick). Which leader keys to carry into
+vim mode is decided in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md); the
+mechanics are under [Adding your own bindings](#custom-bindings).
 
 <a id="pickers"></a>
 ## Pickers and navigation
