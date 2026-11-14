@@ -1771,17 +1771,17 @@ Stowed to `~/.config/zed/`:
   `always_confirm`/`always_deny` guards for `sudo`, `git push`, `rm -rf`,
   secrets, and deletions). Vim mode is off
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
-  nvim's editing defaults (tab size 4, scrolloff 10, relative numbers, format
-  on save) are present but commented out. `auto_install_extensions` pulls the
+  nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
+  format on save off) are present but commented out. `auto_install_extensions` pulls the
   Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
   Rust, TypeScript, Python are built in). The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except
   `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp` (needs omp
   installed; see [omp](#omp)). The absolute path is deliberate: an older
   `~/.local/bin/omp` can shadow Homebrew's on `PATH`.
-- **`keymap.json`** — a small `<leader>` (space) layer for vim normal mode
-  (file finder, project search, symbols, outline, code actions, git panel),
-  currently commented out while learning Zed's native keys.
+- **`keymap.json`** — empty while learning Zed's native keys; the vim-mode
+  bindings to adopt from nvim are proposed in
+  [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
 
 `--no-folding` because `~/.config/zed/` also holds runtime state (`prompts/`,
 `themes/`) that must stay out of the repo. Zed rewrites `settings.json` when

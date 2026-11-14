@@ -1,9 +1,9 @@
 # Zed vim mode — recommended keymap
 
-**Status:** proposal, nothing adopted yet (2026-11-14). The draft block in
-`zed/.config/zed/keymap.json` predates this doc and mirrors nvim keys that
-don't exist (`<leader>ff`/`fg`/`fs`, `<leader>cr`); replace it with the
-block below when adopting.
+**Status:** proposal, nothing adopted yet (2026-11-14).
+`zed/.config/zed/keymap.json` is an empty array (the earlier draft, which
+mirrored nvim keys that don't exist, was removed); adopt rows from the
+block below into it.
 
 Which of the nvim config's bindings to carry into Zed vim mode, which to
 drop for Zed's defaults, and why. Guidance for experimenting, not a
@@ -18,7 +18,7 @@ Three rules behind every call:
    equivalent** (`H`/`L`, `ctrl-h/j/k/l`, `jk`, `<leader><leader>`,
    `<leader>e`, `<leader>aa`).
 3. **Never shadow a Zed chord prefix.** `space g` is fine; `g r` is not —
-   it delays `grn`/`gra`/`grr` by the 1 s chord timeout (the old draft
+   it delays `grn`/`gra`/`grr` by the 1 s chord timeout (the removed draft
    bound it).
 
 Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
@@ -383,7 +383,7 @@ Open calls from review; each is a one-line change once decided.
 ## Adopting a row
 
 1. Paste the block (or a subset) into `zed/.config/zed/keymap.json`,
-   replacing the old commented draft. Zed reloads keymaps on save.
+   replacing the empty `[]`. Zed reloads keymaps on save.
 2. If a key does nothing, `dev: open key context view` shows the context
    under the cursor; `cmd-shift-p` shows what the action is bound to.
 3. After a week, update the **Status** line and the call column: *borrow*

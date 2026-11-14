@@ -26,13 +26,14 @@
         "dark": "Zed (Default)",
     },
 
-    // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10, relative
-    // numbers). Disabled for now; uncomment to enable.
+    // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10,
+    // sidescrolloff 8, absolute numbers) and autosave.lua (save on focus
+    // loss). Formatting stays manual, as in nvim (<leader>cf). Disabled for
+    // now; uncomment to enable.
     // "tab_size": 4,
-    // "relative_line_numbers": "enabled",
     // "vertical_scroll_margin": 10,
     // "horizontal_scroll_margin": 8,
-    // "format_on_save": "on",
+    // "format_on_save": "off",
     // "autosave": "on_focus_change",
     // "show_whitespaces": "selection",
 

@@ -541,8 +541,8 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   blocks the `Workspace` default too.
 - **Vim leader.** In `VimControl` contexts `space` is `vim::WrappingRight`;
   any `space …` chord in `vim_mode == normal` shadows it — the trick behind
-  the commented-out leader block in this repo's keymap.json. Add `!menu` so
-  completions and pickers keep their keys.
+  the leader block proposed in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md).
+  Add `!menu` so completions and pickers keep their keys.
 - **One-key agent launches.** `agent::NewExternalAgentThread` takes the
   agent to start; `agent::NewTerminalThread` opens a Terminal Thread. The
   argument shape was not verified against 1.28.1 — bind it through

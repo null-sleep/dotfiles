@@ -80,8 +80,8 @@ Used many times a day; each is covered in full below.
    layers ([Panels](#panels)) rather than the full mode machine.
 4. **The leader is unclaimed.** `space` is `vim::WrappingRight` in editors
    and has only a handful of defaults in non-editor panes (`space f`,
-   `space /`, `space w h`…), so the leader block drafted in
-   `zed/.config/zed/keymap.json` can take it over later.
+   `space /`, `space w h`…), so the leader block proposed in
+   [`docs/zed-vim-keymap.md`](zed-vim-keymap.md) can take it over later.
 5. **Tabs are nvim buffers; panes are nvim windows.** `]b`/`[b` and
    `gt`/`gT` walk the same tab strip (no separate tab-page layer);
    `ctrl-w` moves between panes.
