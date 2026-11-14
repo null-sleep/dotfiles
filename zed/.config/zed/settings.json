@@ -33,6 +33,13 @@
         "option_as_meta": true,
     },
 
+    // Hide the Keep/Reject agent-review buttons in the editor toolbar.
+    // The thread's "Reject All / Keep All" bar above the message box has
+    // no setting; `alt-shift-y` keeps all. Review stays at ctrl-shift-r.
+    "toolbar": {
+        "agent_review": false,
+    },
+
     // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10,
     // sidescrolloff 8, absolute numbers) and autosave.lua (save on focus
     // loss). Formatting stays manual, as in nvim (<leader>cf). Disabled for

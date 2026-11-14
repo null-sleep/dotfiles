@@ -906,7 +906,10 @@ The review buffer is a multibuffer, so the [multibuffer keys](#search-multibuffe
 
 `"agent.single_file_review": true` shows agent hunks inline in each file
 with the same keys, replacing its git hunks while review is active.
-Checkpoints were removed in 1.27 — reject or git is the undo path. Which
+Checkpoints were removed in 1.27 — reject or git is the undo path. This
+config sets `"toolbar": { "agent_review": false }`, hiding the Keep/Reject
+buttons in the editor toolbar; the "Reject All / Keep All" bar above the
+message box has no setting, so `alt-shift-y` is the way to clear it. Which
 agents' edits reach this buffer at all, and how to review the rest:
 [Agent edits](#diff-review-agents).
 

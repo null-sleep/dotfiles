@@ -1779,7 +1779,8 @@ Stowed to `~/.config/zed/`:
   `terminal.option_as_meta` makes Option act as Alt in Zed's terminal, so
   omp's `Alt+O` picker works there (otherwise it types `ø`). Thinking blocks,
   command cards, and edit cards start collapsed (`thinking_display`,
-  `expand_terminal_card`, `expand_edit_card`). Vim mode is off
+  `expand_terminal_card`, `expand_edit_card`), and the editor toolbar's
+  Keep/Reject agent-review buttons are hidden (`toolbar.agent_review`). Vim mode is off
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
   nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
   format on save off) are present but commented out. `auto_install_extensions` pulls the
