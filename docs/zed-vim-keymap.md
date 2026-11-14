@@ -5,6 +5,13 @@
 mirrored nvim keys that don't exist, was removed); adopt rows from the
 block below into it.
 
+**Basis: Zed 1.28.1 source + docs.** Every Zed action and default named
+here was checked against the installed Zed (`zed --version` → 1.28.1): the
+source at the `v1.28.1` tag (`assets/keymaps/default-macos.json`,
+`vim.json`) and [All actions](https://zed.dev/docs/all-actions). After a
+Zed upgrade, re-check a row against the new tag before adopting it, then
+update this line.
+
 Which of the nvim config's bindings to carry into Zed vim mode, which to
 drop for Zed's defaults, and why. Guidance for experimenting, not a
 finished keymap: adopt a row, live with it, then update the Status.

@@ -56,6 +56,14 @@
         "trust_all_worktrees": true,
     },
 
+    // Hide in-repo git worktrees (repo scripts' `.worktrees/`, Claude Code's
+    // `.claude/worktrees/`) from the parent checkout: gone from the project
+    // panel, and from file finder/search even with ignored files toggled on.
+    // Also blocks Zed Agent's read/list/grep tools there. Opening a worktree
+    // directly still works; the worktree picker reads `git worktree list`.
+    // "..." keeps Zed's defaults. See docs/zed-worktrees.md.
+    "file_scan_exclusions": ["...", "**/.worktrees", "**/.claude/worktrees"],
+
     "agent": {
         // omp-like: no sandbox approval prompts. Zed's OS sandbox never lets
         // terminal commands write .git metadata, so any narrower grant still

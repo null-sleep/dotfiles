@@ -1787,6 +1787,10 @@ Stowed to `~/.config/zed/`:
   [`docs/zed.md`](docs/zed.md#agent-panel)); `bash ~/src/dotfiles/omp/setup-settings.sh`
   generates it. Run that before the first omp thread (`omp acp` crashes if
   the file is missing) and again after changing roles.
+  `file_scan_exclusions` adds `**/.worktrees` and `**/.claude/worktrees` to
+  Zed's defaults, hiding a main checkout's nested git worktrees from its
+  project panel, search, and Zed Agent's file tools (see
+  [`docs/zed-worktrees.md`](docs/zed-worktrees.md)).
 - **`keymap.json`** — empty while learning Zed's native keys; the vim-mode
   bindings to adopt from nvim are proposed in
   [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
@@ -1812,7 +1816,13 @@ how to add bindings to `keymap.json` — and its companion
 navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps, and
 `:` commands. [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md) is the
 per-key recommendation for which nvim bindings to carry over (with the
-`keymap.json` block to paste).
+`keymap.json` block to paste). [`docs/zed-worktrees.md`](docs/zed-worktrees.md)
+covers git worktrees: creating, switching, and deleting from the worktree
+picker, `create_worktree` setup hooks, and fitting Zed to a repo whose own
+script manages worktrees (per-worktree ports, Docker stacks). All four docs
+are based on Zed 1.28.1 source + docs (the `v1.28.1` tag and zed.dev) and
+say so at the top; after a Zed upgrade, re-verify against the new tag and
+bump that line.
 
 ## Typora
 

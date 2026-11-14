@@ -5,9 +5,14 @@ bindings that matter, the workflows behind them (agent threads, review,
 git, search), and how to add your own. Install/stow steps live in README's
 `## Zed` section; vim mode has its own companion, [`docs/zed-vim.md`](zed-vim.md);
 nvim's keymaps live in `nvim/.config/nvim/GUIDE.md`.
-Checked against the `v1.28.1` default keymap (the installed version) and
-the docs below. Nvim comparisons are deliberately brief — learn Zed's
-native keys first.
+Nvim comparisons are deliberately brief — learn Zed's native keys first.
+
+**Basis: Zed 1.28.1 source + docs.** Bindings and behavior here were
+checked against the installed Zed (`zed --version` → 1.28.1): the source at
+the `v1.28.1` tag (`assets/keymaps/default-macos.json`, `vim.json`) and the
+zed.dev docs and release notes below, except statements marked "not
+verified". After a Zed upgrade, re-check a claim against the new tag before
+relying on it, then update this line.
 
 ## References
 
@@ -128,7 +133,7 @@ mechanics are under [Adding your own bindings](#custom-bindings).
 | `cmd-shift-b` | `outline_panel::ToggleFocus` | outline as a panel; in a multibuffer, a tree of its files |
 | `ctrl-tab` / `ctrl-shift-tab` | `tab_switcher::Toggle` | MRU tab switcher with file preview |
 | `cmd-alt-o` | `projects::OpenRecent` | recent projects |
-| `cmd-ctrl-b` / `cmd-ctrl-w` | `branches::OpenRecent` / `git::Worktree` | branch and worktree pickers |
+| `cmd-ctrl-b` / `cmd-ctrl-w` | `branches::OpenRecent` / `git::Worktree` | branch and worktree pickers; worktree workflow in [`docs/zed-worktrees.md`](zed-worktrees.md) |
 | `ctrl-g` | `go_to_line::Toggle` | go to line |
 | `ctrl--` / `ctrl-_` | `pane::GoBack` / `pane::GoForward` | jump list (`ctrl-o`/`ctrl-i`) |
 | `cmd-k cmd-p` | `workspace::ReopenLastPicker` | reopen the last picker |
