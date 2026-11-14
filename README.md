@@ -1781,9 +1781,14 @@ Stowed to `~/.config/zed/`:
   command cards, and edit cards start collapsed (`thinking_display`,
   `expand_terminal_card`, `expand_edit_card`), and the editor toolbar's
   Keep/Reject agent-review buttons are hidden (`toolbar.agent_review`). Vim mode is off
-  by default (`vim_mode: false`; the `vim` block applies once enabled), and
-  nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
-  format on save off) are present but commented out. `auto_install_extensions` pulls the
+  by default (`vim_mode: false`; the `vim` block applies once enabled).
+  `autosave` is on, 1s after the last edit, like nvim's auto-save.nvim:
+  Zed never reloads a buffer with unsaved edits when the file changes on
+  disk (git, an agent, `omp`), so keeping buffers clean avoids stale tabs;
+  it also makes Zed ignore `format_on_save`, so formatting stays manual as
+  in nvim (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). nvim's other
+  editing defaults (tab size 4, scrolloff 10) are present but commented out.
+  `auto_install_extensions` pulls the
   `dracula` theme extension (source of Dracula Solid, which isn't built in) and the
   Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
   Rust, TypeScript, Python are built in). The ACP agent entries

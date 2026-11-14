@@ -40,15 +40,21 @@
         "agent_review": false,
     },
 
+    // Autosave 1s after the last edit, like nvim's auto-save.nvim (1s
+    // debounce). Keeps buffers clean so Zed reloads them when git or an agent
+    // changes the file on disk; Zed never reloads a dirty buffer. Zed's
+    // default.json says `format_on_save` is ignored while autosave is
+    // `after_delay` (it is on by default for Go, Rust, Elixir, Kotlin, ...),
+    // so editor saves stay unformatted, as in nvim (<leader>cf). Agent writes
+    // are checked separately; see docs/zed.md → Gotchas.
+    "autosave": { "after_delay": { "milliseconds": 1000 } },
+
     // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10,
-    // sidescrolloff 8, absolute numbers) and autosave.lua (save on focus
-    // loss). Formatting stays manual, as in nvim (<leader>cf). Disabled for
-    // now; uncomment to enable.
+    // sidescrolloff 8, absolute numbers). Disabled for now; uncomment to
+    // enable.
     // "tab_size": 4,
     // "vertical_scroll_margin": 10,
     // "horizontal_scroll_margin": 8,
-    // "format_on_save": "off",
-    // "autosave": "on_focus_change",
     // "show_whitespaces": "selection",
 
     // Language servers/grammars outside Zed's built-ins (Go, Rust, TS, Python

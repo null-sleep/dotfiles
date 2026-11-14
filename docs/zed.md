@@ -1029,6 +1029,41 @@ companion [`docs/zed-vim.md`](zed-vim.md).
 - **Zed rewrites `settings.json`** through the stow symlink whenever you
   change a setting in its UI — run `git diff zed/` afterwards. The keymap
   editor does the same to `keymap.json`.
+- **A tab can go stale if it has unsaved edits.** Zed reloads a buffer
+  when its file changes on disk (git pull, an agent, a terminal) only while
+  the buffer is clean; a buffer with unsaved edits is left alone, and
+  restored unsaved buffers (`session.restore_unsaved_buffers`, Zed's
+  default) survive restarts. A `●` on a tab you did not edit means it is
+  stale: do not `cmd-s` it, which would write the old text over the file
+  through the stow symlink. Run `editor: reload file`
+  (`editor::ReloadFile`, reloads from disk) or close it with Don't Save.
+  `settings.json` is the usual victim: Zed, git and agents all write it.
+  This config sets `autosave` to `after_delay` 1000 ms (like nvim's
+  auto-save.nvim, plus `autoread`/`checktime` there) so buffers rarely stay
+  dirty. Known upstream issues:
+  [#38109](https://github.com/zed-industries/zed/issues/38109)
+  (out-of-sync buffers, closed), [#49162](https://github.com/zed-industries/zed/issues/49162)
+  (ACP `readTextFile` can serve a stale buffer, open).
+
+  **Agent edits and autosave** (read from the v1.28.1 source, not tested):
+  ACP `write_text_file`, which omp uses, edits the buffer, records the edit
+  for the review view, then saves it to disk at once, so agent edits are on
+  disk before you review them with or without autosave. Reject restores the
+  old text and saves again. Autosave adds nothing for those writes.
+  Separately, that path formats the buffer first whenever the language's
+  `format_on_save` is not `off`, and Zed defaults it on for Go, Rust,
+  Elixir, Kotlin and a few others. Zed's `default.json` note that
+  `format_on_save` is ignored under `after_delay` is about editor saves;
+  whether it also covers agent writes is unverified.
+
+  **Policy here:** your own saves stay unformatted (format on demand with
+  `editor: format`, `cmd-shift-i`, like nvim's `<leader>cf`); agent writes
+  keep Zed's defaults, since omp's docs say formatting may change the text it
+  writes, and the project's own formatter (gofmt, rustfmt, pre-commit, CI) is
+  the source of truth. No per-language `format_on_save: "off"`: settings.json
+  is global, so it would also switch off formatting in every other Rust or Go
+  project. The only repo file this touches is `fixtures/animal.rs`, which
+  isn't rustfmt-clean, so an agent write could reformat it.
 - **Terminal Threads restart as empty shells.** The sidebar entry returns,
   the agent session does not: resume with `omp -c` / `omp -r` (or the CLI's
   equivalent) from the right directory. Zed has planned per-thread resume
