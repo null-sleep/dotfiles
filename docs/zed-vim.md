@@ -51,10 +51,10 @@ Used many times a day; each is covered in full below.
 | keys | does | nvim habit it replaces |
 |---|---|---|
 | `:` | command palette (also every `:w`, `:q`, `:sp`) | `:` |
-| `cmd-p`, `gS`, `g/` | file finder, project symbols, project search | `<leader>ff`, `<leader>fs`, `<leader>fg` |
+| `cmd-p`, `gS`, `g/` | file finder, project symbols, project search | `<leader>sf`, `<leader>ss`, `<leader>sg` |
 | `gs` | symbols in this file (modal; `cmd-shift-b` is the panel) | `<leader>o` |
 | `gd` / `gy` / `gI` / `gA` | definition / type / implementation / references | `gd` / `gy` / `gri` / `grr` |
-| `grn` / `gra` / `K` | rename / code actions / hover | `<leader>cr` / `<leader>ca` / `K` |
+| `grn` / `gra` / `K` | rename / code actions / hover | `grn` / `<leader>ca` / `K` |
 | `cmd-down` / `cmd-up`, `g space` | next / prev excerpt, open the real file (multibuffer) | `]q` / `[q`, `<CR>` |
 | `]d` `[d`, `]c` `[c` | next diagnostic, next hunk | same |
 | `]b` `[b`, `ctrl-^` | next/prev tab, alternate file | `L`/`H`, `gb` |
@@ -393,25 +393,7 @@ in `keymap.json` (how-to in [`docs/zed.md`](zed.md#custom-bindings)):
 <a id="later"></a>
 ## Later: mapping the nvim bindings
 
-Deliberately not done yet — learn the defaults first. When it is time, the
-commented block in `zed/.config/zed/keymap.json` is the starting point and
-these are the nvim habits (from GUIDE.md's keymap index) with the cleanest
-Zed targets:
-
-| nvim | Zed action to bind | note |
-|---|---|---|
-| `H` / `L` | `pane::ActivatePreviousItem` / `ActivateNextItem` | loses `H`/`L` screen-top/bottom motions |
-| `<C-h/j/k/l>` | `workspace::ActivatePane<Dir>` | plus the `Dock` opt-in so it reaches panels |
-| `<A-h/j/k/l>` | `vim::ResizePane<Dir>` | |
-| `gb` | `pane::AlternateFile` | `gb` is block-comment by default |
-| `jj` / `jk` | `vim::NormalBefore` | insert-mode context |
-| `<leader><leader>`, `<leader>ff` | `file_finder::Toggle` | |
-| `<leader>fg` / `<leader>fs` | `pane::DeploySearch` / `project_symbols::Toggle` | |
-| `<leader>e` / `<leader>o` | `project_panel::ToggleFocus` / `outline_panel::ToggleFocus` | |
-| `<leader>ca` / `cr` / `cf` | `editor::ToggleCodeActions` / `Rename` / `Format` | |
-| `<leader>h*` | `git::StageAndNext`, `git::Restore`, `editor::BlameHover` | or just learn `du`/`dp`/`gB` |
-| `<leader>aa` / `<leader>ax` | `agent::ToggleFocus` / `workspace::CloseActiveDock` | |
-| `<leader>bx` / `<leader>bo` | `pane::CloseActiveItem` / `workspace::CloseInactiveTabsAndPanes` | |
-| `<leader>qq` | `workspace::CloseWindow` | |
-| `<leader>tn` | `editor::ToggleRelativeLineNumbers` | |
-| `]q` / `[q` | `editor::GoToDiagnostic` / `…Previous…` | no quickfix; diagnostics or `cmd-down` excerpts are the analogue |
+Deliberately not done yet — learn the defaults first. The per-key
+recommendations (borrow / default / try / skip, with a pasteable
+`keymap.json` block) live in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md);
+its status line tracks what has been adopted.

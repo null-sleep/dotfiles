@@ -36,16 +36,14 @@ off or delete them as they land; add new ones freely.
   companion `docs/zed-vim.md` (navigation in-file / across files / tabs /
   panes / panels, Zed-specific `g`/`]`/`ctrl-w` maps, `:` commands,
   opt-ins), defaults only.
-- [ ] **Map the nvim bindings onto Zed vim mode** — after living with the
-  defaults for a while. Candidates and their Zed actions are tabled in
-  `docs/zed-vim.md` → "Later: mapping the nvim bindings" (`H`/`L`,
-  `<C-hjkl>` + the `Dock` block, `gb`, `jj`, the `<leader>` layer already
-  drafted in `zed/.config/zed/keymap.json`). Decide per key whether the
-  Zed default is good enough (`]b`/`[b`, `du`/`dp`, `gS`) before
-  overriding it, and keep GUIDE.md as the owner of nvim's keys. Known
-  conflict in the drafted block: `"g r": editor::FindAllReferences` would
-  shadow (or delay by the 1 s chord timeout) Zed's own `g r n`/`g r a`/
-  `g r r` — drop it in favour of `g A`/`g r r`.
+- [ ] **Adopt the Zed vim-mode keymap** — the per-key recommendations
+  (borrow / default / try / skip) and the pasteable block are in
+  `docs/zed-vim-keymap.md` (2026-11-14); its Status line is the tracker.
+  Remaining work is living with it: paste the block over the stale draft in
+  `zed/.config/zed/keymap.json` (which mirrors non-existent nvim keys
+  `<leader>ff`/`fg`/`fs`/`cr` and binds `g r`, shadowing Zed's `grn`/`gra`/
+  `grr`), then flip rows to *adopted* or back to *default* as they prove
+  themselves. GUIDE.md stays the owner of nvim's keys.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several

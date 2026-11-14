@@ -107,8 +107,8 @@ Used many times a day; each is covered in full below.
 5. **Your keymap.json loads after the defaults**, so a later definition in
    the same context wins. Binding `null` unbinds.
 
-**Coming from the nvim config:** `cmd-p` is `<leader>ff`, `cmd-shift-f` is
-`<leader>fg`, `cmd-shift-e` is `<leader>e`, `cmd-.` is `<leader>ca`, and
+**Coming from the nvim config:** `cmd-p` is `<leader>sf`, `cmd-shift-f` is
+`<leader>sg`, `cmd-shift-e` is `<leader>e`, `cmd-.` is `<leader>ca`, and
 `cmd-?` is roughly `<leader>aa` (sidekick). The commented-out block in
 `zed/.config/zed/keymap.json` wires those leader keys up for vim mode — see
 [Adding your own bindings](#custom-bindings).

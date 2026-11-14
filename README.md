@@ -1785,7 +1785,9 @@ bindings by area, the agent-panel / threads-sidebar / review workflows, and
 how to add bindings to `keymap.json` — and its companion
 [`docs/zed-vim.md`](docs/zed-vim.md) for vim mode: in-file and cross-file
 navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps, and
-`:` commands.
+`:` commands. [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md) is the
+per-key recommendation for which nvim bindings to carry over (with the
+`keymap.json` block to paste).
 
 ## Typora
 
