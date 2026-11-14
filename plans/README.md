@@ -32,16 +32,20 @@ off or delete them as they land; add new ones freely.
     is nothing to strip and nothing to assert.
   - `claude/tests/settings-invariants.sh` updated in both repos to match
     (`== true`, and `has(...) | not`).
-- [ ] **Document Zed's native vim workflows** — `docs/zed.md` (added
-  2026-11-14) covers Zed's own keys and the agent/review/git workflows, with
-  vim mode as a one-section summary. Once vim mode is actually switched on
-  (`vim_mode: true` in `zed/.config/zed/settings.json`), write up the
-  vim-native workflows — `ctrl-w` pane flow, `d o`/`d p`/`d u` hunk review,
-  `g r*`/`g s`/`g /` LSP+search, `:` panel commands, the space-leader layer
-  from `keymap.json`, sneak/subword/surround opt-ins — either as a second
-  half of `docs/zed.md` or a companion `docs/zed-vim.md`. Keep nvim
-  comparisons short, as in the existing doc; nvim's own keys stay in
-  `GUIDE.md`.
+- [x] **Document Zed's native vim workflows** — done 2026-11-14 as the
+  companion `docs/zed-vim.md` (navigation in-file / across files / tabs /
+  panes / panels, Zed-specific `g`/`]`/`ctrl-w` maps, `:` commands,
+  opt-ins), defaults only.
+- [ ] **Map the nvim bindings onto Zed vim mode** — after living with the
+  defaults for a while. Candidates and their Zed actions are tabled in
+  `docs/zed-vim.md` → "Later: mapping the nvim bindings" (`H`/`L`,
+  `<C-hjkl>` + the `Dock` block, `gb`, `jj`, the `<leader>` layer already
+  drafted in `zed/.config/zed/keymap.json`). Decide per key whether the
+  Zed default is good enough (`]b`/`[b`, `du`/`dp`, `gS`) before
+  overriding it, and keep GUIDE.md as the owner of nvim's keys. Known
+  conflict in the drafted block: `"g r": editor::FindAllReferences` would
+  shadow (or delay by the 1 s chord timeout) Zed's own `g r n`/`g r a`/
+  `g r r` — drop it in favour of `g A`/`g r r`.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several

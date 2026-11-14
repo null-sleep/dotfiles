@@ -1781,8 +1781,11 @@ launch, which makes stow refuse. Move it aside first:
 `mv ~/.config/zed/settings.json ~/.config/zed/settings.json.bak`.
 
 Learning the keys? See [`docs/zed.md`](docs/zed.md) — default macOS
-bindings by area, the agent-panel / threads-sidebar / review workflows, vim
-mode, and how to add bindings to `keymap.json`.
+bindings by area, the agent-panel / threads-sidebar / review workflows, and
+how to add bindings to `keymap.json` — and its companion
+[`docs/zed-vim.md`](docs/zed-vim.md) for vim mode: in-file and cross-file
+navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps, and
+`:` commands.
 
 ## Typora
 
