@@ -4,20 +4,18 @@
 # whole catalog (~870); `omp acp --models` does not narrow it, `enabledModels`
 # does. Regenerated from modelRoles on every run; re-run after changing roles.
 #
-# Pitfalls this handles (all verified against `omp acp` session/new output):
-# - A role value is a selector string, a comma list, or an array of them; each
-#   entry may be an `@alias[:level]`, a `:thinking` suffix, an `@upstream` pin
-#   (which can itself contain `/`, e.g. `@google-vertex/global/flex`), or a
-#   bare/partial id (`gpt-6-luna-pr`) that omp resolves fuzzily.
-# - Pinned ids in `enabledModels` are silently dropped; strip the pin.
-# - Patterns match by model name across providers: a bare `*` does not cross
-#   `/`, so `*/*<id>` is used (`*/` = provider, inner `*` = optional vendor
-#   folder like openrouter's `anthropic/`). Anthropic writes `5-5` where
-#   openrouter writes `5.5`, hence `[.-]` between version digits.
-# - Bare/partial selectors are not complete ids, so they are emitted as-is
-#   (omp matches them fuzzily) instead of as an exact-ended glob.
-# - Bedrock lists ~8 regional copies per Claude model and is not configured,
-#   so it is disabled. This replaces any global `disabledProviders`.
+# Pitfalls handled (verified against `omp acp` session/new output):
+# - Role values are a selector string, comma list, or array. Entries may be
+#   `@alias[:level]` (followed), carry a `:thinking` suffix (stripped) or an
+#   `@upstream` pin that can contain `/`, e.g. `@google-vertex/global/flex`
+#   (stripped: `enabledModels` silently drops pinned ids), or be a
+#   bare/partial id (`gpt-6-luna-pr`), emitted as-is for omp's fuzzy match.
+# - Full ids become `*/*<id>`: a bare `*` doesn't cross `/`, so `*/` is the
+#   provider and the inner `*` an optional vendor folder (openrouter's
+#   `anthropic/`). `[.-]` between version digits matches both Anthropic's
+#   `5-5` and openrouter's `5.5`.
+# - Bedrock (~8 regional copies per Claude model, unconfigured) is disabled;
+#   this replaces any global `disabledProviders`.
 # - `omp acp --config <missing file>` crashes, so the file is written
 #   atomically and must exist before the first Zed omp thread.
 set -euo pipefail

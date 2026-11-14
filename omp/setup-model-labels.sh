@@ -31,12 +31,12 @@ ruby -rjson -ryaml -ropen3 -e '
     raise "omp models #{provider} failed" unless status.success?
     JSON.parse(out).fetch("models").select { |m| m["provider"] == provider }
   end
-  # The static catalog can omit subscription models that OMP discovers only at
-  # session start (openai-codex/gpt-6.1-sol and gpt-6-astra here), so they
-  # would show unlabelled in Zed. Also label every subscription model a role
-  # selects, taking its display name from the openrouter twin. Role values
-  # may be a string, a comma list, or an array; `@alias` entries are skipped
-  # (their targets are roles too), as are `@upstream` pins and `:thinking`.
+  # The static catalog can omit subscription models OMP discovers only at
+  # session start (e.g. openai-codex/gpt-6.1-sol), leaving them unlabelled,
+  # so also label each subscription model a role selects, named after its
+  # openrouter twin. Role values are a string, comma list, or array; `@alias`
+  # entries are skipped (their targets are roles too); `@upstream` pins and
+  # `:thinking` suffixes are stripped.
   out, status = Open3.capture2("omp", "config", "get", "modelRoles", "--json")
   raise "omp config get modelRoles failed" unless status.success?
   roles = JSON.parse(out).fetch("value") || {}

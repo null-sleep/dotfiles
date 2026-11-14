@@ -2,7 +2,7 @@
 
 Status: parked (2026-11-14). Option 1, the scoped model dropdown, shipped
 instead; see README → Zed and `docs/zed.md` → Agent panel. Revisit if most
-new omp threads in Zed start on the same one or two non-default models.
+new omp threads in Zed start on the same one or two non-default presets.
 
 ## Problem
 
@@ -12,12 +12,13 @@ for external agents: `agent.favorite_models` and `alt-tab`
 (`agent::CycleFavoriteModels`) cover only Zed's own agent. omp's `Ctrl+P`
 cycle and the `Alt+O` preset picker (`cycle-model-picker.ts`) are TUI-only.
 
-Shipped fix: `omp/setup-zed-models.sh` writes `~/.omp/agent/zed-models.yml`
-(`enabledModels` = one `*/*<model-name>` pattern per model behind a chat
-role, so each appears from every logged-in source; Bedrock disabled) and the
-`omp` `agent_servers` entry passes it with `--config`. The dropdown drops to
-about 20 entries. It is alphabetical, not in cycle order, and picking a model
-does not apply the role's thinking suffix; Thinking is set separately.
+## Option 1 (shipped): scoped model dropdown
+
+`omp/setup-zed-models.sh` writes `~/.omp/agent/zed-models.yml` (one
+`enabledModels` pattern per role model, every logged-in source; Bedrock
+disabled), passed via `--config`. The dropdown drops to about 20 entries,
+alphabetical rather than cycle order; Thinking stays a separate select, so a
+role's thinking suffix isn't applied.
 
 ## Option 2: one agent entry per preset
 
