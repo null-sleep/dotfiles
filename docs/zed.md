@@ -86,7 +86,9 @@ Used many times a day; each is covered in full below.
 | `cmd-w` / `ctrl--` | close tab / jump back |
 | `cmd-?` | focus agent panel; again, back to the editor |
 | `shift-escape` / `ctrl-alt-w` | zoom the focused panel / close the focused dock |
-| `cmd-alt-j` / `cmd-n` | toggle threads sidebar / new thread (panel focused) |
+| `cmd-alt-j` / `cmd-alt-;` | toggle threads sidebar (show/hide) / jump focus to it and back |
+| `ctrl-tab` / `ctrl-shift-tab` | thread switcher, most recent first — from the message box too |
+| `cmd-n` | new thread (panel focused) |
 | `enter` / `cmd-enter` | send / send and follow (in a thread) |
 | `ctrl-shift-r` | open agent diff (review changes) |
 | `alt-shift-y` / `alt-shift-z` | keep all / reject all agent edits |
@@ -740,7 +742,8 @@ Every thread across open projects, grouped by project. Settings:
 
 | binding | action | what it does |
 |---|---|---|
-| `cmd-alt-j` / `cmd-alt-;` | `multi_workspace::ToggleWorkspaceSidebar` / `FocusWorkspaceSidebar` | show-collapse (anywhere) / focus without toggling |
+| `cmd-alt-j` | `multi_workspace::ToggleWorkspaceSidebar` | show/hide the sidebar. Showing it also moves focus into it; hiding it from inside returns focus to where you were |
+| `cmd-alt-;` | `multi_workspace::FocusWorkspaceSidebar` | **focus it and come back** — see below |
 | `up` / `down` (`ctrl-p` / `ctrl-n`) | `menu::SelectPrevious` / `SelectNext` | move through threads |
 | `left` / `right` | `menu::SelectParent` / `SelectChild` | collapse / expand a project group |
 | `enter` / `space` | `menu::Confirm` | switch to the thread |
@@ -749,6 +752,39 @@ Every thread across open projects, grouped by project. Settings:
 | `shift-r` | `agent::RenameSelectedThread` | rename |
 | `shift-backspace` / `cmd-shift-backspace` | `agent::ArchiveSelectedThread` / `RemoveSelectedThread` | archive to history (running threads must finish first) / delete |
 | `cmd-g` | `agents_sidebar::ToggleThreadHistory` | all threads, all projects, chronological; `backspace` un-archives, hover-trash deletes |
+
+<a id="sidebar-focus"></a>
+**How `cmd-alt-;` works** (read from `multi_workspace.rs` at the `v1.28.1`
+tag). It is a two-state toggle with a one-slot memory, not a cycle through
+recent panels:
+
+- **Focus is elsewhere** (message box, editor, terminal, any panel): it
+  remembers the exact widget that has focus, opens the sidebar if it was
+  hidden, and focuses the sidebar.
+- **Focus is already in the sidebar**: it hands focus back to the remembered
+  widget. If nothing was remembered, it falls back to the active editor pane.
+
+So from the message box, `cmd-alt-;` lands on the thread list and a second
+press returns to the half-typed message, cursor intact. Notes:
+
+- Only one slot. Press it from the editor, then again from the sidebar, and
+  you return to the editor; it never remembers more than the last place you
+  left.
+- If the sidebar was hidden, `cmd-alt-;` opens it and leaves it open after
+  you return. Use `cmd-alt-j` from inside it to hide it again.
+- It is distinct from `cmd-alt-j`: that one is show/hide (and happens to
+  focus the sidebar when it opens). Choose `cmd-alt-;` to peek and return,
+  `cmd-alt-j` to change layout.
+- `enter` on a thread switches to it. Focus then lands in that thread, and
+  the remembered slot still points at the old widget, so the next
+  `cmd-alt-;` goes to the sidebar, not back to the old thread. Untested.
+
+**`ctrl-tab` vs `cmd-alt-;`.** `ctrl-tab` opens the MRU thread switcher and
+`ctrl-shift-tab` opens it starting from the last entry; it needs no visible
+sidebar. Hold-`ctrl`-and-release behavior is assumed from the tab-switcher
+analogy, not verified. `cmd-alt-;` is for browsing the full grouped list,
+filtering with `cmd-f`, renaming, archiving, or starting a thread in a
+specific project.
 
 Mouse-free loop: `cmd-alt-;`, `down`/`up`, `enter`, read, `cmd-alt-;`
 again — or skip the sidebar and `ctrl-tab` from inside a thread. To
