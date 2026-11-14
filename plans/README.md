@@ -32,6 +32,16 @@ off or delete them as they land; add new ones freely.
     is nothing to strip and nothing to assert.
   - `claude/tests/settings-invariants.sh` updated in both repos to match
     (`== true`, and `has(...) | not`).
+- [ ] **Document Zed's native vim workflows** — `docs/zed.md` (added
+  2026-11-14) covers Zed's own keys and the agent/review/git workflows, with
+  vim mode as a one-section summary. Once vim mode is actually switched on
+  (`vim_mode: true` in `zed/.config/zed/settings.json`), write up the
+  vim-native workflows — `ctrl-w` pane flow, `d o`/`d p`/`d u` hunk review,
+  `g r*`/`g s`/`g /` LSP+search, `:` panel commands, the space-leader layer
+  from `keymap.json`, sneak/subword/surround opt-ins — either as a second
+  half of `docs/zed.md` or a companion `docs/zed-vim.md`. Keep nvim
+  comparisons short, as in the existing doc; nvim's own keys stay in
+  `GUIDE.md`.
 - [ ] **Evaluate omp local memory before enabling autolearn** —
   `memory.backend: local` is now repo-pinned through
   `omp/setup-settings.sh`. Use the automatic summary pipeline for several

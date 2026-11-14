@@ -1780,6 +1780,10 @@ you change a setting in its UI — it writes through the symlink, so check
 launch, which makes stow refuse. Move it aside first:
 `mv ~/.config/zed/settings.json ~/.config/zed/settings.json.bak`.
 
+Learning the keys? See [`docs/zed.md`](docs/zed.md) — default macOS
+bindings by area, the agent-panel / threads-sidebar / review workflows, vim
+mode, and how to add bindings to `keymap.json`.
+
 ## Typora
 
 GUI markdown editor with live (WYSIWYG) rendering — handy for reading or heavy editing of `.md` files.
