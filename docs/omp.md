@@ -664,8 +664,8 @@ What the adapter forwards (probed on 18.4.12):
   18.20.0: without it, every bash call raised a card).
 - Session modes Default / Plan (Zed's mode selector, `shift-tab`), plus
   model and thinking selectors. `default_config_options.model` is what Zed
-  writes when you pick a model; commit a keeper deliberately or discard the
-  diff.
+  writes when you pick a model; it's expected uncommitted drift — leave the
+  diff in place and commit a model change only on purpose.
 - ~70 slash commands, skills as `skill:*`; images, embedded context, HTTP/SSE
   MCP servers; session list/load/fork/resume.
 - No version lag: the adapter ships in the same binary as the CLI.
