@@ -52,8 +52,13 @@
     "git": {
         "auto_fetch": { "enabled": false, "interval_secs": 60 },
     },
+    // Reopen the last-closed workspace even if its window was closed before
+    // quitting (the default "last_session" only restores windows still open
+    // at quit).
+    "restore_on_startup": "last_workspace",
     "session": {
         "trust_all_worktrees": true,
+        "restore_unsaved_buffers": true,
     },
 
     // Hide in-repo git worktrees (`.worktrees/` from repo scripts,
