@@ -1759,7 +1759,10 @@ stow --no-folding zed
 Stowed to `~/.config/zed/`:
 
 - **`settings.json`** — Hack Nerd Font Mono, follows macOS light/dark
-  (One Light / One Dark), and the agent-panel sidebar width. Vim mode is off
+  (One Light / One Dark), the agent-panel sidebar width, and
+  `agent.tool_permissions` (Zed Agent tools auto-approved, with
+  `always_confirm`/`always_deny` guards for `sudo`, `git push`, `rm -rf`,
+  secrets, and deletions). Vim mode is off
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
   nvim's editing defaults (tab size 4, scrolloff 10, relative numbers, format
   on save) are present but commented out. `auto_install_extensions` pulls the

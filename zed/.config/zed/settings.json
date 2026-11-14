@@ -66,6 +66,33 @@
             "enable_thinking": true,
             "effort": "medium"
         },
+        // Zed Agent's built-in tools run without a prompt, except the
+        // patterns below (external ACP agents keep their own permission
+        // mode — see docs/zed.md → Inside a thread).
+        "tool_permissions": {
+            "default": "allow",
+            "tools": {
+                "terminal": {
+                    "always_confirm": [
+                        { "pattern": "sudo\\s" },
+                        { "pattern": "git\\s+push" },
+                        { "pattern": "git\\s+reset\\s+--hard" }
+                    ],
+                    "always_deny": [
+                        { "pattern": "rm\\s+-rf\\s+(/|~)" }
+                    ]
+                },
+                "edit_file": {
+                    "always_deny": [
+                        { "pattern": "\\.env" },
+                        { "pattern": "\\.(pem|key)$" }
+                    ]
+                },
+                "delete_path": {
+                    "default": "confirm"
+                }
+            }
+        },
         "threads_sidebar": {
             "default_width": 222.0,
         },
