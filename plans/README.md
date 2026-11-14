@@ -576,6 +576,11 @@ Grouped by state, not priority.
   for this directory itself — status headers, prune-on-land, anchor citations,
   a `plans-audit` skill — distilled from the 2026-07-18 consolidation. See the
   TODO entry above.
+- [zed-omp-preset-agents.md](zed-omp-preset-agents.md) — parked option
+  (2026-11-14): extra `agent_servers` entries running `omp acp --model
+  @<role>` so Zed's new-thread menu doubles as an omp preset picker with the
+  role's thinking level. The scoped model dropdown shipped instead; revisit
+  if most Zed omp threads start on the same one or two non-default presets.
 
 ## As-needed toolkit — known-good options, not scheduled work
 

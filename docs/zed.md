@@ -305,13 +305,28 @@ without moving focus.
 
 **External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
 `agent_servers` entries in `settings.json`) install from `zed: acp registry`;
-omp isn't in the registry, so it's a `custom` entry running `omp acp --approval-mode yolo`. All of them
+omp isn't in the registry, so it's a `custom` entry running `omp acp
+--approval-mode yolo --config ~/.omp/agent/zed-models.yml`. All of them
 appear in the `+` menu and sidebar like any thread. They bring
 their own auth (`/login` in a Claude thread) and instructions (`CLAUDE.md`,
 not Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+`
 menu > Terminal) are a plain terminal tracked as a thread — run `claude`/
 `pi`/`codex` there for the CLI itself (sidekick-in-nvim). One-key launches:
 see [Adding your own bindings](#custom-bindings).
+
+**omp's model dropdown** is omp's own ACP `model` select, not Zed's model
+selector: `agent.favorite_models` and `alt-tab` don't reach it, and omp's
+`Ctrl+P` cycle and `Alt+O` preset picker are TUI-only. Unscoped it lists
+omp's whole catalog (~870). `omp/setup-zed-models.sh` (run by `setup-settings.sh`) writes
+`~/.omp/agent/zed-models.yml`: one `enabledModels` name pattern per model
+behind omp's chat roles (`*/*claude-opus-5[.-]5`), so each appears from
+every logged-in source — OpenRouter, Anthropic OAuth, and ChatGPT (OpenAI
+Codex) — while Bedrock's regional copies are disabled for these threads.
+Subscription entries read `… (sub)` (`omp/setup-model-labels.sh`). The
+`--config` arg applies it. The list is alphabetical, not in cycle order, and
+picking a model leaves the separate Thinking select unchanged. Per-preset
+agent entries (start a thread on Opus at `high` in one click) are parked in
+[`plans/zed-omp-preset-agents.md`](../plans/zed-omp-preset-agents.md).
 
 **ACP thread or Terminal Thread?** Same brain, different cockpit: an ACP
 thread runs the agent's own core (Codex's `codex-core`, Claude's Agent SDK)
@@ -432,7 +447,7 @@ its header. Stop is the button next to send.
 },
 "agent_servers": {
   "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },
-  "omp": { "type": "custom", "command": "/opt/homebrew/bin/omp", "args": ["acp", "--approval-mode", "yolo"] }
+  "omp": { "type": "custom", "command": "/opt/homebrew/bin/omp", "args": ["acp", "--approval-mode", "yolo", "--config", "~/.omp/agent/zed-models.yml"] }
 }
 ```
 

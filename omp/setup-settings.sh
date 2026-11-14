@@ -183,6 +183,8 @@ fi
 omp config set cycleOrder '["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","dseek","kimi","astra","fable"]'
 bash "$SCRIPT_DIR/setup-auto-code.sh"
 
+bash "$SCRIPT_DIR/setup-zed-models.sh"
+
 if [ "$(get defaultThinkingLevel)" = "high" ]; then
   omp config set defaultThinkingLevel medium
 else

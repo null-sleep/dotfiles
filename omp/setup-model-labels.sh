@@ -1,7 +1,8 @@
 #!/bin/bash
-# Suffix anthropic/* model names with " (sub)" so the Claude-subscription
-# models stand apart from their identically named openrouter/* twins in
-# pickers that show only the name (Zed's ACP model selector).
+# Suffix subscription-provider model names with " (sub)" so the Claude
+# (anthropic) and ChatGPT (openai-codex) subscription models stand apart from
+# their identically named openrouter/* twins in pickers that show only the
+# name (Zed's ACP model selector).
 set -euo pipefail
 
 config_dir="$(omp config path)"
@@ -16,15 +17,45 @@ if [[ ! -e "$config_dir/models.yml" && ! -e "$config_dir/models.yaml" && -e "$co
   fi
 fi
 
-omp models anthropic --json | ruby -rjson -ryaml -e '
+providers=(anthropic openai-codex)
+ruby -rjson -ryaml -ropen3 -e '
   suffix = " (sub)"
   dir = ARGV.fetch(0)
+  wanted = ARGV.drop(1)
   yml = File.join(dir, "models.yml")
   yaml = File.join(dir, "models.yaml")
   path = File.exist?(yml) || !File.exist?(yaml) ? yml : yaml
   raise "#{path}: refusing to replace a symlink" if File.symlink?(path)
-  models = JSON.parse($stdin.read).fetch("models").select { |m| m["provider"] == "anthropic" }
-  raise "no anthropic models listed; is omp logged in?" if models.empty?
+  models = wanted.flat_map do |provider|
+    out, status = Open3.capture2("omp", "models", provider, "--json")
+    raise "omp models #{provider} failed" unless status.success?
+    JSON.parse(out).fetch("models").select { |m| m["provider"] == provider }
+  end
+  # The static catalog can omit subscription models that OMP discovers only at
+  # session start (openai-codex/gpt-6.1-sol and gpt-6-astra here), so they
+  # would show unlabelled in Zed. Also label every subscription model a role
+  # selects, taking its display name from the openrouter twin. Role values
+  # may be a string, a comma list, or an array; `@alias` entries are skipped
+  # (their targets are roles too), as are `@upstream` pins and `:thinking`.
+  out, status = Open3.capture2("omp", "config", "get", "modelRoles", "--json")
+  raise "omp config get modelRoles failed" unless status.success?
+  roles = JSON.parse(out).fetch("value") || {}
+  known = models.map { |m| [m["provider"], m["id"]] }
+  selectors = roles.values.flat_map { |v| Array(v) }.grep(String)
+    .flat_map { |v| v.split(",") }.map(&:strip).reject { |s| s.empty? || s.start_with?("@") }
+  selectors.each do |selector|
+    provider, id = selector.sub(/:[a-z]+\z/, "").sub(/@.*\z/, "").split("/", 2)
+    next unless wanted.include?(provider) && id && !id.empty? && !known.include?([provider, id])
+    vendor = provider == "anthropic" ? "anthropic" : "openai"
+    twin_id = provider == "anthropic" ? id.gsub(/(\d)-(\d)/, "\\1.\\2") : id
+    out, status = Open3.capture2("omp", "models", "find", twin_id, "--json")
+    next unless status.success?
+    twin = JSON.parse(out).fetch("models").find { |m| m["provider"] == "openrouter" && m["id"] == "#{vendor}/#{twin_id}" }
+    next unless twin
+    models << { "provider" => provider, "id" => id, "name" => twin.fetch("name") }
+    known << [provider, id]
+  end
+  raise "no subscription models listed; is omp logged in?" if models.empty?
 
   def mapping(parent, key, path)
     value = parent[key]
@@ -38,8 +69,8 @@ omp models anthropic --json | ruby -rjson -ryaml -e '
     data = source.empty? ? {} : YAML.safe_load(source, permitted_classes: [], aliases: false)
     raise "#{path}: expected a YAML mapping" unless data.is_a?(Hash)
     before = Marshal.dump(data)
-    overrides = mapping(mapping(mapping(data, "providers", path), "anthropic", path), "modelOverrides", path)
     models.each do |m|
+      overrides = mapping(mapping(mapping(data, "providers", path), m.fetch("provider"), path), "modelOverrides", path)
       model = mapping(overrides, m.fetch("id"), path)
       # A name set by hand (without the suffix) wins.
       next if model["name"] && !model["name"].end_with?(suffix)
@@ -63,6 +94,7 @@ omp models anthropic --json | ruby -rjson -ryaml -e '
     ensure
       File.delete(tmp) if File.exist?(tmp)
     end
-    puts "Labelled #{models.length} anthropic models in #{path}"
+    counts = models.group_by { |m| m["provider"] }.map { |p, ms| "#{ms.length} #{p}" }.join(", ")
+    puts "Labelled #{counts} models in #{path}"
   end
-' "$config_dir"
+' "$config_dir" "${providers[@]}"
