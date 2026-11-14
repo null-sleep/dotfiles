@@ -7,12 +7,10 @@ git, search), and how to add your own. Install/stow steps live in README's
 nvim's keymaps live in `nvim/.config/nvim/GUIDE.md`.
 Nvim comparisons are deliberately brief — learn Zed's native keys first.
 
-**Basis: Zed 1.28.1 source + docs.** Bindings and behavior here were
-checked against the installed Zed (`zed --version` → 1.28.1): the source at
-the `v1.28.1` tag (`assets/keymaps/default-macos.json`, `vim.json`) and the
-zed.dev docs and release notes below, except statements marked "not
-verified". After a Zed upgrade, re-check a claim against the new tag before
-relying on it, then update this line.
+**Basis: Zed 1.28.1** (`zed --version`) — checked against the `v1.28.1`
+tag (`assets/keymaps/default-macos.json`, `vim.json`) and the zed.dev docs
+and release notes below; "not verified" marks claims checked nowhere. After
+a Zed upgrade, re-check against the new tag and bump the version here.
 
 ## References
 

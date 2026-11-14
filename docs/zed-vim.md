@@ -7,11 +7,10 @@ panes, and panels, and the Zed-specific `g`/`]`/`z`/`ctrl-w` maps that
 replace nvim's leader keys. **Default bindings only** — mapping the nvim
 config's own keys is a later step (see the last section).
 
-**Basis: Zed 1.28.1 source + docs.** Every binding and behavior here was
-checked against the installed Zed (`zed --version` → 1.28.1): the source at
-the `v1.28.1` tag (`assets/keymaps/vim.json`, `default-macos.json`) and the
-[Vim mode](https://zed.dev/docs/vim) docs. After a Zed upgrade, re-check a
-claim against the new tag before relying on it, then update this line.
+**Basis: Zed 1.28.1** (`zed --version`) — checked against the `v1.28.1`
+tag (`assets/keymaps/vim.json`, `default-macos.json`) and the
+[Vim mode](https://zed.dev/docs/vim) docs. After a Zed upgrade, re-check
+against the new tag and bump the version here.
 
 Notation: letter keys are written vim-style (`gd`, `]b`, `ZZ`); chords and
 modifiers in Zed's keymap style (`ctrl-w h`, `cmd-p`, `g space`). In
