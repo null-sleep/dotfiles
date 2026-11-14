@@ -222,7 +222,7 @@ chord can start; insert mode still deletes a word.
 | `ctrl-w shift-<arrow>` / `ctrl-w x` | `workspace::SwapPane<Dir>` / `SwapPaneAdjacent` | swap with the neighbour / next pane |
 | `ctrl-w >` / `<` / `+` / `-` | `vim::ResizePane<Dir>` | resize (nvim `<A-hjkl>`) |
 | `ctrl-w _` / `ctrl-w =` | `vim::MaximizePane` / `ResetPaneSizes` | maximize / equalize |
-| `shift-escape` | `workspace::ToggleZoom` | zoom the pane or panel (native key) |
+| `shift-escape` | `workspace::ToggleZoom` | zoom the focused pane or panel; again to restore (native key — see [`zed.md` → Zoom](zed.md#zoom)) |
 
 Closing (`ctrl-w c`/`q`/`o`/`a`) and `ctrl-w gt`/`gT`: [Files and
 tabs](#files-tabs); `ctrl-w d` and other split jumps: [Code nav](#code-nav).

@@ -348,7 +348,7 @@ Still no plugin ecosystem — the set of pickers is fixed.
 |---|---|---|
 | `cmd-b` / `cmd-r` / `cmd-j` | `workspace::ToggleLeftDock` / `ToggleRightDock` / `ToggleBottomDock` | show/hide a dock without moving focus |
 | `cmd-alt-y` | `workspace::ToggleAllDocks` | hide/show every dock — from a dock or empty pane; inside an editor the deeper `git::ToggleStaged` binding wins |
-| `shift-escape` | `workspace::ToggleZoom` | zoom the focused pane or panel to the whole window |
+| `shift-escape` | `workspace::ToggleZoom` | zoom the focused pane or panel to fill the window; again to restore — see [Zoom](#zoom) |
 | `ctrl-alt-w` | `workspace::CloseActiveDock` | close the focused dock (was `cmd-w` before 1.22); also unzooms |
 | `cmd-shift-e` | `project_panel::ToggleFocus` | project tree (`:E`); also reveals the current file |
 | `ctrl-shift-g` / `cmd-shift-d` | git / debug `::ToggleFocus` | other panels (outline: [Pickers](#pickers), terminal: [Terminal](#terminal-tasks-debugger)) |
@@ -372,6 +372,43 @@ press close it.
 **Panel layouts:** `workspace: use agentic layout` puts agent panel and
 threads sidebar left, project/git right; `workspace: use classic layout`
 (the default for existing users) restores editor-first docks.
+
+<a id="zoom"></a>
+### Zoom — `shift-escape`
+
+One key, `workspace::ToggleZoom`, toggles zoom on **whatever has focus**.
+Check focus first: the same key zooms the editor, the agent thread, or the
+terminal depending on where the cursor is. It is in the global (context-free)
+block of the default keymap, so it needs no `keymap.json` entry.
+
+| focused thing | what `shift-escape` does |
+|---|---|
+| agent panel / thread | zooms the thread to fill the window; the header button (top right, "Enable Full Screen" / "Disable Full Screen") is the same action |
+| terminal panel | zooms the terminal, all its splits together; button tooltip says Zoom In / Zoom Out |
+| debugger panel | zooms the panel |
+| editor (center pane) | zooms that pane; with splits open, the other panes are hidden until you zoom out. A pane with no tabs doesn't zoom |
+| project / git / outline panel | nothing — their source defines no zoom handling in v1.28.1 (not tested) |
+| git commit box | **expands the commit editor instead** (`git::ExpandCommitEditor`) |
+
+**Getting out:**
+
+- `shift-escape` again, with focus still in the zoomed thing. If focus moved
+  elsewhere, click back into it first.
+- `ctrl-alt-w` closes the focused dock, which also unzooms.
+- Opening another dock (`cmd-b` / `cmd-r` / `cmd-j`, or a panel's
+  `ToggleFocus`) drops the zoom: Zed hides the zoomed panel's dock and
+  unzooms center panes.
+- Closing the last tab in a zoomed center pane, or the last terminal
+  in a zoomed terminal panel, unzooms.
+
+**Related, not the same:** `ctrl-w _` (vim) maximizes a pane *within* its
+split group, and `ctrl-cmd-f` / `fn-f` (`zed::ToggleFullScreen`) puts the
+whole macOS window in full screen. Zoom keeps the window layout and only
+hides the rest of the workspace.
+
+Basis: v1.28.1 `default-macos.json` and the `workspace`, `agent_ui`,
+`terminal_view`, and `debugger_ui` crate sources; the table is read from
+source, not tested panel by panel.
 
 <a id="editing-lsp"></a>
 ## Editing and LSP
@@ -493,10 +530,10 @@ A dock panel (right dock in classic layout, left in agentic), so the
 | `ctrl-tab` / `ctrl-shift-tab` | `agents_sidebar::ToggleThreadSwitcher` | MRU thread switcher, like the tab switcher |
 | `cmd-alt-c` / `cmd-alt-m` | `agent::OpenSettings` / `ToggleOptionsMenu` | AI settings page / the `…` menu |
 
-**Full-screen a thread and come back:** `cmd-?` then `shift-escape` to
-zoom. To return: `shift-escape` then `cmd-?`, or `ctrl-alt-w` to close the
-dock (also unzooms). `cmd-r` (`cmd-b` in agentic layout) hides the dock
-without moving focus.
+**Full-screen a thread and come back:** click into the thread (or `cmd-?`),
+then `shift-escape`. Same key to restore; `ctrl-alt-w` also closes the dock
+and unzooms. `cmd-r` (`cmd-b` in agentic layout) hides the dock without
+moving focus. Details and other panels: [Zoom](#zoom).
 
 **External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
 `agent_servers` entries in `settings.json`) install from `zed: acp registry`;
