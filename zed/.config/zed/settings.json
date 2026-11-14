@@ -83,8 +83,8 @@
             "allow_unsandboxed": true
         },
         "default_model": {
-            "provider": "openrouter",
-            "model": "openai/gpt-6-luna",
+            "provider": "openai-subscribed",
+            "model": "gpt-5.6-terra",
             "enable_thinking": true,
             "effort": "medium"
         },
@@ -123,6 +123,9 @@
         // `--config`: scopes the model dropdown to omp's role models; written
         // by omp/setup-settings.sh (omp acp crashes if the file is missing).
         "omp": {
+            "default_config_options": {
+                "model": "openrouter/anthropic/claude-sonnet-5.5"
+            },
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",
             "args": ["acp", "--approval-mode", "yolo", "--config", "~/.omp/agent/zed-models.yml"]
