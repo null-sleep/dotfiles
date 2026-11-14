@@ -661,7 +661,9 @@ What the adapter forwards (probed on 18.4.12):
 - Claude subscription in Zed's review loop: `omp login` (or `/login`) with
   Anthropic OAuth, then pick an `anthropic/…` model in the thread. The
   Claude ACP agent needs an API key for that; check `omp usage` if those
-  models vanish (the refresh token expires).
+  models vanish (the refresh token expires). `omp/setup-model-labels.sh`
+  suffixes them ` (sub)` so they differ from the identically named
+  `openrouter/anthropic/…` entries.
 
 What you lose in an ACP thread:
 
