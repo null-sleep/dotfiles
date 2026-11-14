@@ -33,7 +33,7 @@ DEFAULT_ROLES='{
   "haiku": "openrouter/anthropic/claude-haiku-5.5:medium",
   "terra": "openrouter/openai/gpt-6.1-terra:high",
   "sol": "openrouter/openai/gpt-6.1-sol:xhigh",
-  "smol": "@luna",
+  "smol": "@haiku",
   "tiny": "@haiku",
   "slow": "@sol",
   "sonnet": "openrouter/anthropic/claude-sonnet-5.5:high",
@@ -43,7 +43,7 @@ DEFAULT_ROLES='{
   "fable": "openrouter/anthropic/claude-fable-5.2:high",
   "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-6.1-terra:high",
-  "plan": "openrouter/openai/gpt-6.1-sol:high",
+  "plan": "openrouter/anthropic/claude-opus-5.5:high",
   "commit": "openrouter/openai/gpt-6-luna:medium",
   "task": "openrouter/openai/gpt-6.1-terra:medium",
   "advisor": "openrouter/openai/gpt-6-luna:medium",
@@ -149,7 +149,7 @@ migrated_roles="$(jq -c '
       (if has("smol") then .luna = .smol else . end)
       | (if has("slow") then .sol = .slow else . end)
       | (if has("default") then .terra = .default else . end)
-      | .smol = "@luna" | .tiny = "@haiku" | .slow = "@sol"
+      | .smol = "@haiku" | .tiny = "@haiku" | .slow = "@sol"
     end
   | del(.argon)
 ' <<<"$roles")"
