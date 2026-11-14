@@ -313,6 +313,37 @@ menu > Terminal) are a plain terminal tracked as a thread — run `claude`/
 `pi`/`codex` there for the CLI itself (sidekick-in-nvim). One-key launches:
 see [Adding your own bindings](#custom-bindings).
 
+**ACP thread or Terminal Thread?** Same brain, different cockpit: an ACP
+thread runs the agent's own core (Codex's `codex-core`, Claude's Agent SDK)
+with Zed as the UI; a Terminal Thread runs the full CLI with its own TUI.
+What each side gives you:
+
+- **ACP gets Zed's integration.** Every key in [Inside a thread](#inside-thread)
+  and [Reviewing agent edits](#review) applies: keep/reject per hunk in the
+  review multibuffer (`ctrl-shift-r`, `cmd-y`/`cmd-alt-z`), follow the agent
+  through files (`cmd-enter`), `@file`/`@symbol`/`@diagnostics` from Zed's
+  own index, `cmd->` to quote a selection, image paste, a searchable
+  transcript (`cmd-f`, `shift-pageup`), plan and tool cards, permission
+  cards with "Always for <tool>/<pattern>", desktop notifications when the
+  agent is waiting, Zed's MCP servers forwarded, thread history/archive —
+  and one set of keys for every agent, Zed Agent included.
+- **Terminal gets the whole CLI.** Slash commands, hooks, status line,
+  plugins, skills, the CLI's current version, and your own config for it
+  (this repo's `claude/` hooks and skills, pi's extensions) all run; over
+  ACP only what the adapter forwards exists, and the adapter can lag the
+  CLI. Auth is the CLI's — Zed's Terminal Threads post (May 2026) says this
+  is the only way to use Claude Code on a Claude *subscription* in Zed;
+  Codex's native login works either way. In exchange the thread is a
+  terminal: scrollback instead of a transcript, no review loop (use
+  `git::Diff`), no waiting/done signals in the sidebar.
+- **Both** sit in the Threads Sidebar, can be renamed, cycled, and are
+  bound by the same `agent_servers` registry entries.
+
+Rule of thumb: ACP for Zed Agent and Codex when the in-editor review loop
+is the point; Terminal Threads for a harness you have customised (Claude,
+pi). Zed profiles, Skills, and `AGENTS.md` apply to neither — external
+agents read their own instruction files.
+
 <a id="threads-sidebar"></a>
 ## Threads sidebar
 
