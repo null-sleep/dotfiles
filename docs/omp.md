@@ -24,6 +24,7 @@ and the repo-owned theme/status-line/web-search policy through
 - [Local memory and autolearn](#memory)
 - [Magic keywords and session controls](#keywords)
 - [nvim bridge](#nvim-bridge)
+- [Zed — ACP thread or terminal](#zed-acp)
 - [Gotchas cheat-sheet](#gotchas)
 - [Command quick-reference](#commands)
 
@@ -626,21 +627,52 @@ Session controls worth knowing:
 <a id="nvim-bridge"></a>
 ## nvim bridge
 
-`~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`
-and `cwd-name.ts`) is the sidekick attention bridge (running `»` / done `●`
-marks in nvim's agent view). It's a port of the pi extension with two
-omp-specific remaps: omp has no `agent_settled` event, so it listens on
-`agent_end` gated by
+`~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`,
+`cycle-model-picker.ts`, and `cwd-name.ts`) is the sidekick attention
+bridge (running `»` / done `●` marks in nvim's agent view). It's a port of
+the pi extension with two omp-specific remaps: omp has no `agent_settled`
+event, so it listens on `agent_end` gated by
 `!willContinue && ctx.isIdle() && !ctx.hasPendingMessages()`, and `ctx.hasUI`
 replaces pi's subagent env-var guard (omp task children run in-process).
 No `@narumitw` packages are installed for omp — everything they backport to
 pi is native here.
 
-**Zed:** `omp acp` is a stdio ACP server, wired as a `custom` entry in
-`agent_servers` in the stowed Zed `settings.json`. It reuses `~/.omp`
-auth/config. The registry `pi-acp` drives `pi`, not omp. TUI-only features
-(plan mode, `--goal`, Ctrl+P cycling) and the extensions above may not apply
-in Zed threads.
+<a id="zed-acp"></a>
+## Zed — ACP thread or terminal
+
+`omp acp` is a stdio ACP server built into the omp binary, wired as a
+`custom` entry in `agent_servers` in the stowed Zed `settings.json` (the
+registry `pi-acp` drives `pi`, not omp). Both modes share `~/.omp` auth,
+config, model roles, and skills; they differ in UI and in which stowed
+extensions run. Zed's generic comparison is in
+[`docs/zed.md`](zed.md#agent-panel).
+
+What the adapter forwards (probed on 18.4.12):
+
+- File reads/writes go through Zed (`fs/*`) with diff content, shell runs in
+  Zed terminals, and approvals arrive as permission cards — so Zed's review
+  loop and follow work.
+- Session modes Default / Plan (Zed's mode selector, `shift-tab`), plus
+  model and thinking selectors. `default_config_options.model` is what Zed
+  writes when you pick a model; leave that churn uncommitted.
+- ~70 slash commands, skills as `skill:*`; images, embedded context, HTTP/SSE
+  MCP servers; session list/load/fork/resume.
+- No version lag: the adapter ships in the same binary as the CLI.
+- Claude subscription in Zed's review loop: `omp login` (or `/login`) with
+  Anthropic OAuth, then pick an `anthropic/…` model in the thread. The
+  Claude ACP agent needs an API key for that; check `omp usage` if those
+  models vanish (the refresh token expires).
+
+What you lose in an ACP thread:
+
+- The extensions: `nvim-notify` needs `$NVIM`, and `turn-count` and
+  `cycle-model-picker` (`Alt+O`) only act when `ctx.hasUI`.
+- omp's TUI: status line, theme, keybindings (Ctrl+P cycling), and launch
+  flags such as `--goal` and `--profile`.
+
+Rule of thumb: the terminal (sidekick in nvim, or a Zed Terminal Thread) is
+the default, since the setup above lives there; an ACP thread for
+review-heavy edits in a project open in Zed.
 
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet
