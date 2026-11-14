@@ -655,7 +655,9 @@ extensions run. Zed's generic comparison is in
 What the adapter forwards (probed on 18.4.12):
 
 - File reads/writes go through Zed (`fs/*`) with diff content, shell runs in
-  Zed terminals, and Zed's review loop and follow work. Approvals would
+  Zed terminals, and Zed's review loop and follow work — unlike Claude Agent,
+  whose edits reportedly bypass review (not verified;
+  [`docs/zed.md` → Agent edits](zed.md#diff-review-agents)). Approvals would
   arrive as permission cards, but ACP mode only skips bash approval when
   yolo is set *explicitly* — the built-in `tools.approvalMode` default
   doesn't count — so the Zed entry passes `--approval-mode yolo` (probed on

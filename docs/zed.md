@@ -50,6 +50,7 @@ equivalents appear in parentheses or a third column next to each binding.
 
 - [Daily keys — the quick glance](#quick-glance)
 - [The mental model](#mental-model)
+- **[Reviewing changes — local diffs and PRs](#diff-review)**
 - [Pickers and navigation](#pickers)
 - [Panes, tabs, and docks](#panes-docks)
 - [Editing and LSP](#editing-lsp)
@@ -79,7 +80,7 @@ Used many times a day; each is covered in full below.
 | `f2` / `cmd-.` | rename / code actions |
 | `cmd-shift-i` / `cmd-/` | format / toggle comment |
 | `cmd-shift-e` / `ctrl-shift-g` | project panel / git panel |
-| `ctrl-g d` | project diff (from the git panel) |
+| `ctrl-g d` / `git: diff branch` | uncommitted diff (from the git panel) / branch vs its base — the PR view |
 | `` ctrl-` `` | terminal |
 | `cmd-\` / `cmd-k cmd-<arrow>` | split right / move between panes |
 | `cmd-w` / `ctrl--` | close tab / jump back |
@@ -118,6 +119,196 @@ Used many times a day; each is covered in full below.
 `cmd-?` is roughly `<leader>aa` (sidekick). Which leader keys to carry into
 vim mode is decided in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md); the
 mechanics are under [Adding your own bindings](#custom-bindings).
+
+<a id="diff-review"></a>
+## Reviewing changes — local diffs and PRs
+
+Every view here is an editable multibuffer: the
+[multibuffer keys](#search-multibuffers) apply, edits save to the real
+files, and LSP works inside them. The outline panel (`cmd-shift-b`) lists
+the focused diff's files — the only file list a branch diff has (not
+verified).
+
+**Basis:** read from the v1.28.1 source and keymaps, not yet tried in a
+running Zed; the checks still to run are in
+[Untested in the app](#diff-review-untested).
+
+**Pick the view by the question:**
+
+| question | open | diffs against |
+|---|---|---|
+| what haven't I committed? [1] | `ctrl-g d` in the git panel, `git: diff` anywhere | `HEAD` (staged hunks drawn hollow) |
+| only staged / only unstaged? | `git: view staged changes` / `git: view unstaged changes`, or right-click in the git panel | `HEAD`→index / index→working tree |
+| everything on this branch, committed or not — the PR view | `git: diff branch` | merge-base with the default branch |
+| the same against another base (stacked PR, release branch) | `git: compare with branch`, or the `Base:` button in a branch diff | merge-base with the branch you pick |
+| one commit | git panel History tab (`cmd-2`), `git graph: open`, `git: file history` | the commit's parent |
+| what did the agent change? | depends on the agent — [Agent edits](#diff-review-agents) | — |
+
+[1] `git: diff` obeys `git.diff_base` (default `head`); `git: diff head`
+always shows uncommitted changes. See [Branch diff](#branch-diff).
+
+### Uncommitted changes — the project diff
+
+`ctrl-g d` is bound only in the git panel; elsewhere use `git: diff`, or
+`ctrl-shift-d` from a thread's message box. Hunk by hunk, `cmd-y` /
+`cmd-shift-y` stage / unstage and `cmd-alt-z` (`git::RestoreAndNext`)
+reverts, each jumping to the next hunk; `cmd-ctrl-y` stages everything and
+`cmd-enter` commits straight from the diff. The rest of the keys are under
+[Git](#git).
+
+<a id="branch-diff"></a>
+### Branch diff — committed and uncommitted, against a base
+
+`git: diff branch` (`git::DiffBranch`; `git::BranchDiff` still works) has
+no default key. It is Zed's local PR view:
+
+- **Contents:** `git diff --merge-base <base>` — the branch's commits *plus*
+  uncommitted edits. With a clean tree, the same files as GitHub's "Files
+  changed" (not verified). The tab reads `Changes since origin/main`.
+- **Default base:** the first of `upstream/HEAD`, `origin/HEAD`,
+  `init.defaultBranch`, `main`, `master`; if none resolves, it opens the
+  project diff instead. `git remote set-head origin --auto` fills a missing
+  `origin/HEAD`.
+- **Toolbar:** a `+N −M` stat; `Base: origin/main` picks another base (any
+  local or remote branch); `Review Diff` (`cmd-alt-g r`, shown when AI is
+  on and the diff is non-empty) opens a thread on the last-used agent with
+  the diff attached and a review prompt auto-sent.
+- **No hunk stage/restore.** Edit the text, or stage from the project diff.
+- **Limits:** the base must be a branch and the other side is always the
+  working tree — no tag or commit base, no branch-vs-branch. For "my last N
+  commits": `git branch -f review-base HEAD~N`, then
+  `git: compare with branch` → `review-base` (not verified; holds because
+  the merge-base of `HEAD` and `HEAD~N` is `HEAD~N`).
+- **As the default:** `"git": { "diff_base": "default_branch" }` points
+  `git: diff`, the gutter, and file colors at the default branch's
+  merge-base. Not set here; `git: toggle diff base` flips it by rewriting
+  the stowed `settings.json`, which dirties the repo.
+
+### Reviewing a PR
+
+Zed has no GitHub PR integration — no PR list, review comments, or
+approve; `git: create pull request` only opens the host's new-PR page.
+Check the PR out and use the branch diff:
+
+1. `gh pr checkout <N>` in a terminal, or in a separate worktree to leave
+   the current checkout alone ([`docs/zed-worktrees.md`](zed-worktrees.md)).
+2. Fetch: `ctrl-g ctrl-g` in the git panel (`git.auto_fetch` is off here).
+   A stale base after the PR was rebased drags unrelated commits into the
+   diff (not verified).
+3. `git: compare with branch` → `origin/<base>`
+   (`gh pr view <N> --json baseRefName -q .baseRefName`). For a PR into
+   the default branch, plain `git: diff branch` is enough.
+4. Walk it: `cmd-down`/`cmd-up` between excerpts, `cmd-shift-b` for the
+   file list, `alt-enter` into the real file; `f12`/`alt-shift-f12` work as
+   usual.
+5. Optional agent pass: `Review Diff` in the toolbar, or `@` → branch diff
+   in any thread (not verified: the `@` menu label).
+6. Comment and approve on GitHub: `gh pr review <N>` or the web UI.
+
+Inline diff review comments (`editor::SubmitDiffReviewComment`, `Send
+Review to Agent`) exist in 1.28.1 but sit behind the staff-only
+`diff-review` feature flag, and stable builds ignore `feature_flags`
+overrides. [Delta](https://zed.dev/blog/delta-public-beta) (public beta,
+Sep 2026) is Zed's separate PR replacement — review inside the agent's
+thread, on an isolated copy of its worktrees — and doesn't view GitHub PRs
+either.
+
+<a id="diff-review-agents"></a>
+### Agent edits
+
+The thread's review buffer (`ctrl-shift-r`, [keys](#review)) only sees
+edits that go through Zed:
+
+- **Zed Agent:** every edit.
+- **ACP agents that write through Zed** (ACP v1's `fs/write_text_file`,
+  still offered in 1.28.1): every edit. `omp acp` does
+  ([`docs/omp.md`](omp.md#zed-acp), probed on omp 18.4.12).
+- **ACP agents that write to disk themselves** (Claude Agent): none — edits
+  are final (not verified; reported in
+  [zed#50142](https://github.com/zed-industries/zed/issues/50142) and
+  [#56048](https://github.com/zed-industries/zed/discussions/56048)). A Zed
+  maintainer said in June 2026 that ACP v2 drops these filesystem APIs and
+  external-agent review needs a new design, with no timeline.
+- **Terminal Threads** (omp/claude/pi CLIs): none.
+
+For the rest, git is the review. Commit or stash before handing over a
+task; then `git: diff` shows exactly what the agent changed, `cmd-alt-z`
+reverts a hunk, and `cmd-y` stages what you keep. Once the agent commits,
+use `git: diff branch` or the History tab.
+
+<a id="diff-display"></a>
+### Display
+
+- **Split vs unified:** side-by-side by default since 0.224;
+  `editor: toggle split diff` (`editor::ToggleSplitDiff`) flips one view,
+  `"diff_view_style": "unified"` changes the default. Zed's docs name
+  project, file-history, and stash diffs; branch, staged/unstaged, and
+  commit diffs use the same split editor in source (not verified in the
+  app). Inline editor hunks are always unified.
+- **Inline hunks** in a normal editor: `cmd-'` / `cmd-"` as under
+  [Git](#git); `editor: toggle all diff hunks` flips them all.
+- `"git": { "show_stage_restore_buttons": false }` hides the per-hunk
+  buttons; word-level highlighting is on unless `word_diff_enabled: false`.
+
+<a id="diff-review-untested"></a>
+### Untested in the app
+
+Claims above still to check in a running Zed. Per item: fix the text above
+if reality differs, then delete the item; note the date and Zed version in
+the commit message.
+
+**Uncommitted**
+
+- [ ] **Project diff keys:** `cmd-y` stages and moves on, `cmd-alt-z`
+  reverts, `cmd-enter` commits from the diff.
+- [ ] **Staged / unstaged views:** `git: view staged changes` shows only
+  staged hunks; right-clicking a file in the git panel offers both views.
+
+**Branch diff**
+
+- [ ] **Contents:** on a feature branch with an uncommitted edit, the tab
+  reads `Changes since origin/main` and shows the commits plus the edit.
+- [ ] **Matches GitHub:** on a pushed PR with a clean tree, the same files
+  as "Files changed".
+- [ ] **Changing the base:** `Base:` re-bases the view;
+  `git: compare with branch` opens the same picker.
+- [ ] **No stage/restore:** no hunk buttons, `cmd-y` / `cmd-alt-z` do
+  nothing, typing edits the real file.
+- [ ] **File list:** `cmd-shift-b` lists the branch diff's files.
+- [ ] **Review Diff:** the button and `cmd-alt-g r` open a thread with the
+  diff attached and the prompt sent; note which agent it picks.
+- [ ] **Last N commits:** `git branch -f review-base HEAD~3`, compare with
+  `review-base` → exactly those 3 commits plus uncommitted edits.
+- [ ] **No default branch:** without `origin/HEAD`, `main`, or `master`,
+  `git: diff branch` opens the uncommitted diff.
+- [ ] **`git: toggle diff base`:** `git: diff` becomes the branch diff and
+  the gutter follows; `git diff zed/` shows `diff_base`. Toggle back and
+  discard.
+
+**PRs**
+
+- [ ] **Walkthrough:** a PR into a non-default branch, fetched and compared
+  with `origin/<base>`, matches the PR's file list.
+- [ ] **Stale base:** skipping the fetch after a rebase onto newer base
+  commits shows those commits in the diff.
+- [ ] **`@` branch diff:** a thread's `@` menu lists it; record the label.
+- [ ] **No review comments:** hovering a hunk shows no add-comment button.
+
+**Agent edits**
+
+- [ ] **Zed Agent:** an edit appears under `ctrl-shift-r` and `cmd-alt-z`
+  rejects it; with `agent.single_file_review` on, the controls appear in
+  the file.
+- [ ] **omp ACP thread:** an edit appears under `ctrl-shift-r`; reject
+  restores the file.
+- [ ] **Claude Agent:** the edit lands on disk and the review buffer stays
+  empty.
+
+**Display**
+
+- [ ] **Split toggle coverage:** `editor: toggle split diff` works in
+  branch, staged, and commit diffs; `diff_view_style: "unified"` sets each
+  one's default.
 
 <a id="pickers"></a>
 ## Pickers and navigation
@@ -240,9 +431,11 @@ diff buffers:
 <a id="git"></a>
 ## Git
 
-Three surfaces: the **git panel** (`ctrl-shift-g`) for the file list and
+Four surfaces: the **git panel** (`ctrl-shift-g`) for the file list and
 commit box, the **project diff** (`ctrl-g d` from the panel, or
-`git: diff`) as an editable multibuffer, and **inline hunks** in any editor.
+`git: diff`) and **branch diff** (`git: diff branch`) as editable
+multibuffers, and **inline hunks** in any editor. Which diff to open for
+which review is in [Reviewing changes](#diff-review).
 
 | binding | action | where |
 |---|---|---|
@@ -255,18 +448,17 @@ commit box, the **project diff** (`ctrl-g d` from the panel, or
 | `cmd-f8` / `cmd-shift-f8` | `editor::GoToHunk` / `…Previous…` | editor (`] c` / `[ c`) |
 | `cmd-'` / `cmd-"` | `editor::ToggleSelectedDiffHunks` / `ExpandAllDiffHunks` | show old text inline (`d o`); `escape` collapses |
 | `cmd-alt-g b` / `cmd-k cmd-b` | `git::Blame` / `editor::BlameHover` | blame column / current line (`g shift-b`) |
-| `cmd-alt-g r` / `cmd-alt-g m` | `git::ReviewDiff` / `OpenModifiedFiles` | branch review / open every changed file |
+| `cmd-alt-g r` / `cmd-alt-g m` | `git::ReviewDiff` / `OpenModifiedFiles` | in a branch diff: send it to an agent thread for review / open every changed file |
 | `tab` | `git_panel::FocusEditor` / `FocusChanges` | list <-> commit box (`i`) |
 | `cmd-enter` / `cmd-shift-enter` | `git::Commit` / `git::Amend` | commit box |
 | `alt-tab` | `git::GenerateCommitMessage` | AI message (`agent.commit_message_model`) |
 | `shift-escape` | `git::ExpandCommitEditor` | full-size commit editor |
 | `ctrl-g ctrl-g` / `ctrl-g up` / `ctrl-g down` | `git::Fetch` / `Push` / `Pull` | panel; `shift-up`/`shift-down` for force-push / pull-rebase |
 
-**Split vs unified:** project/branch diffs are side-by-side by default since
-0.224; `editor: toggle split diff` (`editor::ToggleSplitDiff`) flips a view,
-`"diff_view_style": "unified"` changes the default. Inline editor hunks are
-always unified. Unbound but useful: `git::Switch` (branch picker, also
-deletes branches), `git::StashAll`/`StashPop`, `editor::ToggleGitBlameInline`.
+Split vs unified and the other display settings are under
+[Reviewing changes → Display](#diff-display). Unbound but useful:
+`git::Switch` (branch picker, also deletes branches),
+`git::StashAll`/`StashPop`, `editor::ToggleGitBlameInline`.
 
 <a id="terminal-tasks-debugger"></a>
 ## Terminal, tasks, debugger
@@ -339,7 +531,9 @@ What each side gives you:
 
 - **ACP gets Zed's integration.** Every key in [Inside a thread](#inside-thread)
   and [Reviewing agent edits](#review) applies: keep/reject per hunk in the
-  review multibuffer (`ctrl-shift-r`, `cmd-y`/`cmd-alt-z`), follow the agent
+  review multibuffer (`ctrl-shift-r`, `cmd-y`/`cmd-alt-z`; only for agents
+  that write through Zed — omp does, Claude doesn't, see
+  [Agent edits](#diff-review-agents)), follow the agent
   through files (`cmd-enter`), `@file`/`@symbol`/`@diagnostics` from Zed's
   own index, `cmd->` to quote a selection, image paste, a searchable
   transcript (`cmd-f`, `shift-pageup`), plan and tool cards, permission
@@ -353,8 +547,9 @@ What each side gives you:
   CLI. Auth is the CLI's — Zed's Terminal Threads post (May 2026) says this
   is the only way to use Claude Code on a Claude *subscription* in Zed;
   Codex's native login works either way. In exchange the thread is a
-  terminal: scrollback instead of a transcript, no review loop (use
-  `git::Diff`), no waiting/done signals in the sidebar.
+  terminal: scrollback instead of a transcript, no review loop (review with
+  git: [Agent edits](#diff-review-agents)), no waiting/done signals in the
+  sidebar.
 - **Both** sit in the Threads Sidebar, can be renamed, cycled, and are
   bound by the same `agent_servers` registry entries.
 - **Restore after a Zed restart differs.** ACP threads go to Thread History
@@ -610,8 +805,10 @@ The review buffer is a multibuffer, so the [multibuffer keys](#search-multibuffe
 | `alt-shift-u` | `agent::UndoLastReject` | bring back the last rejected hunk |
 
 `"agent.single_file_review": true` shows agent hunks inline in each file
-with the same keys. Checkpoints were removed in 1.27 — reject or git is the
-undo path.
+with the same keys, replacing its git hunks while review is active.
+Checkpoints were removed in 1.27 — reject or git is the undo path. Which
+agents' edits reach this buffer at all, and how to review the rest:
+[Agent edits](#diff-review-agents).
 
 <a id="inline-prediction"></a>
 ## Inline assistant and edit prediction
@@ -666,7 +863,7 @@ companion [`docs/zed-vim.md`](zed-vim.md).
 
 ```jsonc
 [
-  { "bindings": { "cmd-k cmd-r": "git::ReviewDiff" } },          // global
+  { "bindings": { "cmd-k cmd-r": "git::DiffBranch" } },          // global
   {
     "context": "Editor && vim_mode == normal && !menu",          // scoped
     "bindings": {
@@ -731,6 +928,11 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   ([details and patch options](#terminal-thread-restore)).
 - **Closing a Terminal Thread with its `×` deletes it**; unlike an ACP
   thread it never reaches Thread History.
+- **`cmd-alt-g r` is not "open the branch diff".** `git::ReviewDiff` only
+  works from inside a branch diff and sends it to an agent thread; open the
+  diff itself with `git: diff branch` (no default key).
+- **Branch diffs use whatever `origin/<base>` you last fetched**, and
+  `git.auto_fetch` is off here. Fetch before reviewing a PR.
 - **Closing docks:** `cmd-w` closes the tab, not the dock (1.22+) — use
   `ctrl-alt-w`. `cmd-?` toggles focus, not visibility; hide with
   `cmd-r`/`cmd-b` or set `close_panel_on_toggle`.

@@ -1761,6 +1761,9 @@ Native, GPU-rendered editor with built-in vim mode, LSP, and agent panel —
 being trialled as an alternative to [Neovim](#neovim). Installed by the
 Brewfile (`cask "zed"`, also puts `zed` on `PATH`).
 
+Its main job here is reviewing changes — uncommitted, branch/PR, and agent
+edits; see [`docs/zed.md` → Reviewing changes](docs/zed.md#diff-review).
+
 ```bash
 stow --no-folding zed
 ```
@@ -1812,9 +1815,10 @@ launch, which makes stow refuse. Move it aside first:
 Zed docs, all checked against Zed 1.28.1 (each says so at the top; after an
 upgrade, re-verify against the new tag and bump that line):
 
-- [`docs/zed.md`](docs/zed.md) — default macOS bindings by area, the
-  agent-panel / threads-sidebar / review workflows, how to add bindings
-  to `keymap.json`, and what happens to Terminal Threads after a restart
+- [`docs/zed.md`](docs/zed.md) — **reviewing changes** (uncommitted,
+  branch/PR, agent edits), default macOS bindings by area, the
+  agent-panel / threads-sidebar workflows, how to add bindings to
+  `keymap.json`, and what happens to Terminal Threads after a restart
   (resume by hand, patch options, Zed's plans).
 - [`docs/zed-vim.md`](docs/zed-vim.md) — vim mode: in-file and cross-file
   navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps,

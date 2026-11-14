@@ -145,7 +145,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<leader>Gg` Neogit status | `ctrl-shift-g`, `:G` | borrow | as `space g g`; daily |
 | `<leader>Gc`/`Gp`/`Gu`/… popups | panel `cmd-enter`, `ctrl-g up/down` | default | the panel is the popup |
 | `<leader>vv` uncommitted diff | `ctrl-g d` (git panel) | borrow | as `space g d`: `git::Diff` from anywhere |
-| `<leader>vp` PR vs base | `cmd-alt-g r` | borrow | as `space g r`: `git::ReviewDiff` |
+| `<leader>vp` PR vs base | `git: diff branch` (no key) | borrow | as `space g p`: `git::DiffBranch` (merge-base, like `vp`); `space g c` picks another base. Not `cmd-alt-g r`, which sends the diff to an agent ([guide](zed.md#branch-diff)) |
 | `<leader>vf` file history | — | borrow | as `space g f`: `git::FileHistory` has no key |
 | `<leader>vn` / `vh` last-N commits | — | skip | git graph / file history instead |
 | `<leader>vq` close diff | `cmd-w`, `ZZ` | default | it's a tab |
@@ -253,7 +253,8 @@ Every *borrow* and *try*, grouped by context, ready to paste into
       // git
       "space g g": "git_panel::ToggleFocus",
       "space g d": "git::Diff",
-      "space g r": "git::ReviewDiff",
+      "space g p": "git::DiffBranch",          // PR view: merge-base vs default branch
+      "space g c": "git::CompareWithBranch",   // same, pick the base
       "space g f": "git::FileHistory",
       "space t b": "editor::ToggleGitBlameInline",
 

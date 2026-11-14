@@ -277,12 +277,14 @@ recenter, counts work, `:` opens the palette.
 | `dO` | `git::ToggleStaged` | toggle the hunk's staged state |
 | `gB` | `editor::BlameHover` | blame popup (`<leader>hb`) |
 
-The project diff (`ctrl-g d` from the [git panel](#panels)) is an editor,
-so `]c`/`[c`, `du`, `dp`, and all motions work in it; `g space` opens the
-file. The agent review buffer (`ctrl-shift-r`) has no vim defaults — use
-the native keep/reject keys in
-[`docs/zed.md` → Reviewing agent edits](zed.md#review). `cmd->` quotes a
-visual selection into the thread.
+The project diff (`ctrl-g d` from the [git panel](#panels)) and branch diff
+(`git: diff branch`) are editors, so `]c`/`[c`, motions, and edits work in
+them; `du`/`dp` stage and revert in the project diff only. `g space` opens
+the file. Which diff to use when:
+[`docs/zed.md` → Reviewing changes](zed.md#diff-review). The agent review
+buffer (`ctrl-shift-r`) has no vim defaults — use the native keep/reject
+keys in [`docs/zed.md` → Reviewing agent edits](zed.md#review). `cmd->`
+quotes a visual selection into the thread.
 
 <a id="editing"></a>
 ## Editing extras
