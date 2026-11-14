@@ -1775,7 +1775,11 @@ Stowed to `~/.config/zed/`:
   agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
   auto-approved (`.env`/key-file edits silently denied), its terminal sandbox
   off, Claude threads starting in `bypassPermissions`, and omp run with
-  `--approval-mode yolo` (details: [`docs/zed.md`](docs/zed.md#inside-thread)). Vim mode is off
+  `--approval-mode yolo` (details: [`docs/zed.md`](docs/zed.md#inside-thread)).
+  `terminal.option_as_meta` makes Option act as Alt in Zed's terminal, so
+  omp's `Alt+O` picker works there (otherwise it types `ø`). Thinking blocks,
+  command cards, and edit cards start collapsed (`thinking_display`,
+  `expand_terminal_card`, `expand_edit_card`). Vim mode is off
   by default (`vim_mode: false`; the `vim` block applies once enabled), and
   nvim's editing defaults (tab size 4, scrolloff 10, autosave on focus loss,
   format on save off) are present but commented out. `auto_install_extensions` pulls the

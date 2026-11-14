@@ -26,6 +26,13 @@
         "dark": "Zed (Default)",
     },
 
+    // Option acts as Alt/Meta in Zed's terminal (matches Ghostty's
+    // `macos-option-as-alt`); without it `alt-o` types `ø` and omp's
+    // `Alt+O` model picker never fires.
+    "terminal": {
+        "option_as_meta": true,
+    },
+
     // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10,
     // sidescrolloff 8, absolute numbers) and autosave.lua (save on focus
     // loss). Formatting stays manual, as in nvim (<leader>cf). Disabled for
