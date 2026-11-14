@@ -389,36 +389,41 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 <a id="models"></a>
 ## Providers and model roles
 
-omp routes everything through **model roles**. The default is OpenRouter Terra
-at high thinking; built-in roles feed features such as plan mode, subagents,
-background work, and `omp commit`. This setup exposes switchable cycle
-presets through model roles:
+omp routes everything through **model roles**. The default is OpenRouter
+Sonnet 5.5 at high thinking; built-in roles feed features such as plan mode,
+subagents, background work, and `omp commit`. The cycle presets are roles named
+after their models (`luna`, `haiku`, `terra`, `sol`, …); `smol`, `tiny`, and
+`slow` alias `@luna`, `@haiku`, and `@sol` so background work keeps a cheap or
+strong model. This setup exposes switchable cycle presets through model roles:
 
 ```yaml
 cycleOrder:
-  - smol
-  - tiny
   - default
+  - terra
+  - carbon
+  - opus
+  - sol
+  - luna
+  - haiku
   - auto-code
-  - argon
   - dseek
   - kimi
-  - slow
-  - carbon
   - sonnet
-  - opus
   - cheap-l
   - astra
   - fable
 modelRoles:
-  smol: openrouter/openai/gpt-5.6-luna:xhigh
-  tiny: openrouter/openai/gpt-5.6-luna:low
-  default: openrouter/openai/gpt-5.6-terra:high
+  default: openrouter/anthropic/claude-sonnet-5.5:high
+  luna: openrouter/openai/gpt-5.6-luna:xhigh
+  haiku: openrouter/anthropic/claude-haiku-5.5:medium
+  terra: openrouter/openai/gpt-5.6-terra:high
+  sol: openrouter/openai/gpt-5.6-sol:xhigh
+  smol: "@luna"
+  tiny: "@haiku"
+  slow: "@sol"
   auto-code: openrouter/openrouter/auto-code
-  argon: openrouter/google/gemini-4-argon:high
   dseek: openrouter/deepseek/deepseek-v4.1-flash:max
   kimi: openrouter/moonshotai/kimi-k3:max
-  slow: openrouter/openai/gpt-5.6-sol:xhigh
   carbon: openrouter/google/gemini-4-carbon:high
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
@@ -428,14 +433,16 @@ modelRoles:
 ```
 
 Existing role assignments survive setup re-runs; only missing role and tag keys
-are seeded. `setup-settings.sh` pins `cycleOrder` to the sequence above.
+are seeded. The first run on a machine without a `luna` role migrates the old
+`smol`/`slow`/`default` selectors to `luna`/`sol`/`terra`, then sets `default`
+to Sonnet. `setup-settings.sh` pins `cycleOrder` to the sequence above.
 `Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
 effective configuration and applies the selected role's model and thinking
 suffix.
 
 The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
 with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.1 Sol,
-Claude Sonnet 5.5, Gemini 4 Argon, and Gemini 4 Carbon. `setup-auto-code.sh`
+Claude Sonnet 5.5, Claude Opus 5.5, and Gemini 4 Carbon. `setup-auto-code.sh`
 merges the model override into machine-local `models.yml`, including a 1,000,000
 token context window and a 32,768 token output limit. It uses Chat Completions:
 OMP's OpenRouter Responses path did not enforce the request-body allowlist.
@@ -447,11 +454,10 @@ The allowlist uses exact OpenRouter model IDs, not role names, so update
 provider pins are not inherited; OpenRouter picks the model, effort, and provider.
 There is no fixed task-cost cap, and an unavailable pool can fail a request.
 
-Both Gemini presets use OpenRouter and `high` thinking, which both models
-support. Argon is the more economical starting point for routine work; Carbon
-is geared toward difficult, long-running tasks and can spend more tokens even
-when the per-token rate is the same. Check current OpenRouter pricing before
-long runs.
+The Carbon preset uses OpenRouter and `high` thinking, which the model
+supports. Carbon is geared toward difficult, long-running tasks and can spend
+more tokens per task than cheaper presets. Check current OpenRouter pricing
+before long runs.
 
 Both GLM selectors also get model-specific automatic fallback chains, seeded
 fill-in-only so later hand edits survive setup re-runs:
@@ -654,7 +660,8 @@ What the adapter forwards (probed on 18.4.12):
   loop and follow work.
 - Session modes Default / Plan (Zed's mode selector, `shift-tab`), plus
   model and thinking selectors. `default_config_options.model` is what Zed
-  writes when you pick a model; leave that churn uncommitted.
+  writes when you pick a model; commit a keeper deliberately or discard the
+  diff.
 - ~70 slash commands, skills as `skill:*`; images, embedded context, HTTP/SSE
   MCP servers; session list/load/fork/resume.
 - No version lag: the adapter ships in the same binary as the CLI.

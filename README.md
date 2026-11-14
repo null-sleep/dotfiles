@@ -1444,7 +1444,7 @@ runtime state lives in the same directory tree as the one stowed file.
 
 `setup-settings.sh` is **fill-in-only** for the built-in and custom
 `modelRoles`/`modelTags` presets (except the repo-owned `web` role), including
-OpenRouter Terra at high thinking as the default model; the model-specific GLM
+OpenRouter Sonnet 5.5 at high thinking as the default model; the model-specific GLM
 fallback chains and empty Auto Code fallback; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
 chains, or values changed later survive a re-run. The script also fills in an
@@ -1452,13 +1452,13 @@ absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
 depend on the PATH of the terminal or GUI process that launched it. The GLM
 chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
 provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned fourteen-preset model cycle — `smol`, `tiny`, `default`,
-`auto-code`, `argon`, `dseek`, `kimi`, `slow`, `carbon`, `sonnet`, `opus`,
-`cheap-l`, `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
-fuzzy picker. `auto-code` is an optional OpenRouter coding router with a
+**forces** the repo-owned fourteen-preset model cycle — `default`, `terra`,
+`carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `dseek`, `kimi`,
+`sonnet`, `cheap-l`, `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
+fuzzy picker. `smol`, `tiny`, and `slow` alias `@luna`, `@haiku`, `@sol`. `auto-code` is an optional OpenRouter coding router with a
 repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
-`argon` and `carbon` select Gemini 4; `astra` and `fable` select GPT-6 Astra and
-Claude Fable 5.2. All five use OpenRouter. The script also forces local
+`carbon` selects Gemini 4; `astra` and `fable` select GPT-6 Astra and
+Claude Fable 5.2. All four use OpenRouter. The script also forces local
 project-summary memory, hidden thinking blocks (revealed with `Ctrl+T` without
 omitting provider summaries), the theme pair and status line below, plus the
 `web` role and fallback chain: Perplexity, Public Web, then the non-hosted
@@ -1777,7 +1777,8 @@ Stowed to `~/.config/zed/`:
   Rust, TypeScript, Python are built in). The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except
   `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp` (needs omp
-  installed; see [omp](#omp)).
+  installed; see [omp](#omp)). The absolute path is deliberate: an older
+  `~/.local/bin/omp` can shadow Homebrew's on `PATH`.
 - **`keymap.json`** — a small `<leader>` (space) layer for vim normal mode
   (file finder, project search, symbols, outline, code actions, git panel),
   currently commented out while learning Zed's native keys.
@@ -1786,8 +1787,10 @@ Stowed to `~/.config/zed/`:
 `themes/`) that must stay out of the repo. Zed rewrites `settings.json` when
 you change a setting in its UI — it writes through the symlink, so check
 `git diff zed/` afterwards. `agent.default_model` in particular changes
-every time you pick a model in the agent panel; that churn is left
-uncommitted on purpose. Extensions themselves live in
+every time you pick a model in the agent panel, so expect it to dirty the
+repo routinely — same as Claude Code's `/model` (see
+[Claude Code](#claude-code)): commit a keeper deliberately or discard the
+diff. Extensions themselves live in
 `~/Library/Application Support/Zed/` and are not tracked.
 
 **First stow:** Zed creates a regular `~/.config/zed/settings.json` on first
