@@ -6,6 +6,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
 **[Part 1: Essentials](#part-1-essentials)**
 - [Quick start (fresh machine)](#quick-start-fresh-machine)
+- [Developer Tools](#developer-tools) — faster builds/tests
 - [Fonts](#fonts)
 - [Setup](#setup) · [Stow](#stow)
 - [Verify your setup](#verify-your-setup)
@@ -55,7 +56,7 @@ Ordered path for a brand-new macOS machine. Each step links to its detailed
 section below; the rest of this README is reference material for individual tools.
 
 1. **Homebrew** — `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-2. **Xcode Command Line Tools** (C compiler for treesitter) — `xcode-select --install`
+2. **Xcode Command Line Tools** (C compiler for treesitter) — `xcode-select --install`; then allow your terminal, editor, and IDE under [Developer Tools](#developer-tools) so Rust (and other compiled) builds aren't slowed by macOS security scans
 3. **Clone this repo** to `~/src/dotfiles` (HTTPS for now — the [Git](#git) step later rewrites GitHub to SSH):
    ```bash
    mkdir -p ~/src && git clone https://github.com/null-sleep/dotfiles.git ~/src/dotfiles
@@ -66,6 +67,32 @@ section below; the rest of this README is reference material for individual tool
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
+
+## Developer Tools
+
+macOS scans every freshly built, unsigned binary (Gatekeeper/XProtect) on first
+run, adding seconds per iteration to Rust builds (build scripts, proc macros,
+`cargo nextest`) and, anecdotally, Go. Apps listed under **Developer Tools** are
+exempt. Once per machine:
+
+```bash
+sudo spctl developer-mode enable-terminal   # adds Terminal.app, reveals the pane (no `status` action)
+```
+
+1. System Settings → Privacy & Security → **Developer Tools** → add every app
+   you build from: **Ghostty**, **Terminal**, **Neovide**, **Zed** (its built-in
+   terminal spawns from Zed, not your shell), plus any IDE (e.g. RustRover).
+2. Fully quit and restart each app; run `cargo clean` once.
+
+Trade-off: the exemption skips checks for *every* binary the app launches, so
+add only apps you develop from. Ad-hoc-signed multiplexers (herdr, zellij) may
+need re-adding after an update. Apple documents none of this; it comes from:
+
+- [Faster Rust builds on Mac](https://nnethercote.github.io/2025/09/04/faster-rust-builds-on-mac.html) — measured: build scripts 0.5-3.9s → 0.1s, rustc tests 9m42s → 3m33s
+- [nextest macOS note](https://nexte.st/docs/installation/macos/) — tell-tale: trivial tests taking >0.2s
+- [Zed macOS build docs](https://github.com/zed-industries/zed/blob/main/docs/src/development/macos.md#speeding-up-verification)
+- [cargo#17467](https://github.com/rust-lang/cargo/issues/17467) — re-running a copied binary re-triggers the scan
+- [golang/go#37885](https://golang.org/issue/37885) — `syspolicyd` load from repeated `go build` (unconfirmed)
 
 ## Fonts
 
