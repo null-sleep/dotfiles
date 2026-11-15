@@ -558,7 +558,7 @@ Split vs unified and the other display settings are under
 hooks still run. Pull is non-interactive too; README's git setup sets
 `pull.rebase true`, so plain `ctrl-g down` rebases as well. Zed has no
 interactive-rebase UI and no highlighting for `git-rebase-todo`; conflicts
-get native "Use ours / Use theirs / Use Both / Resolve with Agent" buttons
+get native "Use <branch> / Use <other branch> / Use Both / Resolve with Agent" buttons
 (`conflict_view.rs`). Git commands that need an editor (`git commit` without
 `-m`, `git rebase -i`) go to `$GIT_EDITOR`: in Zed's terminal and in the
 environment Zed captures for agents and tasks, zsh sets it to `zed-editor`

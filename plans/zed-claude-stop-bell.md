@@ -1,8 +1,9 @@
 # Instant Claude terminal bell (Zed + Ghostty)
 
 Status: implemented 2026-11-15. `Stop` and `PermissionRequest` (via an
-AskUserQuestion prompt) verified live in Zed stable 1.28.1
-(pop-up: terminal icon, Claude's session title, project name, no caption).
+AskUserQuestion prompt) verified live in Zed stable 1.28.1 (pop-up: terminal
+icon, Claude's session title, project name, no caption). Ghostty's bell, Dock
+bounce and desktop banner also confirmed.
 Replaces the global `preferredNotifChannel: "terminal_bell"` setting.
 
 ## Target
@@ -108,8 +109,3 @@ one `terminalSequence`. Claude's parser accepts several sequences in one string.
 Verified live: `Question for you · MCP server setup` and `Finished · MCP server
 setup` (before glyphs). A renamed thread showed only its name, which is why
 the glyphs were added; with them it shows `✓ Claude Notifications` (verified).
-
-## Left to verify
-
-In Ghostty, check the instant Dock bounce + 🔔 and the delayed desktop banner,
-then prune this file.
