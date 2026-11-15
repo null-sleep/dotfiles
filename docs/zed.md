@@ -976,6 +976,43 @@ agents' edits reach this buffer at all, and how to review the rest:
   hides them until you hold `alt`. Rebinding context:
   `Editor && edit_prediction`.
 
+<a id="hosted-model-cost"></a>
+### Zed Pro vs OpenRouter tokens
+
+This setup runs models through OpenRouter (prepaid credits). Zed's hosted
+models bill list price **+10%** and need Zed Pro ($10/month, includes $5 of
+token credit); OpenRouter bills list price with a **5.5%** fee on credit
+purchases ($0.80 minimum). Pro is also what unlocks unlimited Zed edit
+predictions (the `zed` provider above), so the comparison depends on whether
+you'd pay for Pro anyway. Per month, with `S` = list-price token spend:
+
+| route | cost |
+|---|---|
+| OpenRouter | `1.055 × S` |
+| Zed Pro, tokens only | `5 + 1.1 × S` (above the $5 credit) |
+| Zed Pro, already paying for edit predictions | `1.1 × S − 5` extra |
+
+- **Tokens alone:** OpenRouter is cheaper at every spend level.
+- **Pro for edit predictions anyway:** Zed's tokens are cheaper than
+  OpenRouter while `S` is under about **$111/month** (`0.045 × S < 5`). Above
+  that, OpenRouter wins again.
+- **Best with Pro already paid: hybrid.** Zed costs 4.5% more per token at
+  every spend level; the $5 credit is a fixed monthly rebate, not a
+  per-token discount. Spend the first ~$4.55 of list-price usage on Zed's
+  hosted models (set the spend limit to $0 so overage never bills), then
+  switch to the OpenRouter key. That saves a flat ~$4.80/month at any spend,
+  where Zed-only shrinks to zero at $111 and goes negative after. The credit
+  only covers models Zed hosts, used in Zed's own agent, inline assist, and
+  commit messages (not omp threads).
+- **Small top-ups:** the $0.80 minimum makes a $5 OpenRouter top-up a 16%
+  fee, worse than Zed's 10%; $10 is 8%.
+- Zed's spend limit (default $10 of overage, settable to $0) is postpaid and
+  billed in arrears; an OpenRouter balance is already a hard cap.
+
+Prices from zed.dev's [Plans & Pricing](https://zed.dev/docs/account/plans-and-pricing)
+and OpenRouter's [FAQ](https://openrouter.ai/docs/faq.md#pricing-and-fees),
+checked 2026-11-15; re-check before relying on the break-even.
+
 <a id="vim-mode"></a>
 ## Vim mode
 
