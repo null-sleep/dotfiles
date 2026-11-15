@@ -52,3 +52,5 @@ iterm2/com.googlecode.iterm2.plist
 # put that state under git — this makes such a slip inert either way.
 /herdr/.config/herdr/*
 !/herdr/.config/herdr/config.toml
+/fixtures/target/
+/fixtures/Cargo.lock
