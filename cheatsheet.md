@@ -6,7 +6,7 @@ To edit it, press `cmd-shift-v` (show source).
 Toggle vim mode: `cmd-k cmd-v`
 
 Sections: Review changes, Agent threads, Pickers and navigation, Editing and LSP,
-Docks and terminal, Tabs / closing / panes, Zed itself, Gotchas, Vim mode (last).
+Docks and panels, Tabs / closing / panes, Zed itself, Gotchas, Vim mode (last).
 
 ## Review changes
 - `ctrl-g d` in the git panel — uncommitted changes
@@ -63,16 +63,91 @@ Docks and terminal, Tabs / closing / panes, Zed itself, Gotchas, Vim mode (last)
 - `cmd-s` — save (formats in some languages)
 - `cmd-k s` — save without formatting
 
-## Docks and terminal
+## Docks and panels
+
+### Open or focus a panel
 - `cmd-shift-e` — project panel
+- `cmd-shift-b` — outline panel
+- `ctrl-shift-g` — git panel
+- `cmd-shift-d` — debug panel
+- `cmd-?` — agent panel
+- `alt-cmd-j` — threads sidebar: show / hide (showing it also focuses it)
+- `alt-cmd-;` — threads sidebar: jump to it, press again to return to where you were
+- `cmd-shift-c` — collab panel
+- `` ctrl-` `` — terminal panel
+- Press a focus key again while focused to return to the editor (the panel stays open)
+- `` ctrl-` `` is the exception: it closes the focused terminal panel
+
+### Docks
 - `cmd-b` / `cmd-r` / `cmd-j` — toggle left / right / bottom dock
 - The agent dock is `cmd-b` in the agentic layout, `cmd-r` in classic
+- `alt-cmd-y` — hide / show every dock
 - `shift-escape` — zoom the focused pane or panel; again to restore
 - `ctrl-alt-w` — close the focused dock (`cmd-w` closes the tab, not the dock)
 - `f6` / `shift-f6` — cycle focus between docks and center
-- `` ctrl-` `` — terminal
+- `ctrl-alt-=` / `ctrl-alt--` — grow / shrink the focused dock
+- `ctrl-alt-0` — reset the dock size
+
+### Project panel
+- `space` — preview the selected file
+- `enter` / `f2` — rename
+- `cmd-n` — new file
+- `alt-cmd-n` — new folder
+- `cmd-d` — duplicate
+- `cmd-x` / `cmd-c` / `cmd-v` — cut / copy / paste
+- `backspace` — move to trash
+- `left` / `right` — collapse / expand
+- `cmd-left` / `cmd-right` — collapse / expand all
+- `cmd-z` / `cmd-shift-z` — undo / redo file operations
+- `alt-cmd-r` — reveal in Finder
+- `alt-cmd-c` — copy path
+
+### Git panel
+- `cmd-1` / `cmd-2` — Changes / History tab
+- `space` — stage / unstage the selected file
+- `shift-space` — stage a range
+- `ctrl-cmd-y` / `ctrl-cmd-shift-y` — stage all / unstage all
+- `backspace` — restore the selected file (asks first)
+- `tab` in the Changes list — jump to the commit box
+- `tab` in the commit box — back to the list
+- `cmd-enter` — commit
+- `cmd-shift-enter` — amend
+- `alt-tab` in the commit box — generate a commit message
+- `ctrl-g up` / `ctrl-g down` — push / pull
+- Fetch and the project diff are under Review changes
+
+### Threads sidebar
+- `alt-cmd-j` — show / hide the sidebar
+- `alt-cmd-;` — focus it from anywhere (e.g. the message box); again, back to the same spot
+- `up` / `down` — move through threads (`ctrl-p` / `ctrl-n` also work)
+- `left` / `right` — collapse / expand a project group
+- `enter` — switch to the selected thread
+- `cmd-f` — filter threads by title
+- `cmd-n` — new thread in the selected project
+- `shift-r` — rename
+- `shift-backspace` — archive; `cmd-shift-backspace` — delete
+- `cmd-g` — all threads, all projects, in time order
+- `ctrl-tab` / `ctrl-shift-tab` — thread switcher
+- `alt-]` / `alt-[` — next / previous thread
+
+### Terminal panel
+- `` ctrl-` `` — open / close the terminal panel
+- `ctrl-~` — new terminal tab
+- `cmd-n` — new terminal tab (panel focused)
+- `cmd-d` — split
+- `cmd-f` — search
+- `cmd-k` — clear (so `cmd-k` chords don't fire in a terminal)
+- `ctrl-shift-space` — vi-style scrollback selection
 - `cmd-shift-r` — task picker
 - `alt-cmd-r` — rerun the last task
+
+### Debugger
+- `f4` — start a session (from anywhere)
+- `f5` — continue (while stopped)
+- `f10` / `f11` / `shift-f11` — step over / into / out (while stopped)
+- `f9` in an editor — toggle breakpoint
+- `f6` — pause a running session (otherwise it cycles dock focus)
+- `shift-f5` — stop the session
 
 ## Tabs, closing, panes
 
@@ -184,3 +259,41 @@ Toggle: `cmd-k cmd-v`. Zoom, docks, and the other non-vim keys above still apply
 - `do` — show hunk diff
 - `dp` — revert hunk
 - `du` — stage hunk and go to next
+
+### Panels
+Project, outline, and git lists: `j` / `k` move. Project, outline, and the git
+Changes list also take `h` / `l` (collapse / expand) and `gg` / `G` (first / last).
+`:` opens the palette in panels (not in editors or the terminal).
+
+#### Project panel
+- `enter` / `t` — open (permanent tab)
+- `p` — preview open
+- `v` / `o` — open in a vertical / horizontal split
+- `%` — new file
+- `d` — new directory
+- `R` — rename
+- `D` — delete
+- `x` — reveal in Finder
+- `-` — select parent
+- `}` / `{` — next / previous directory
+- `]c` / `[c` — next / previous git change
+- `/` — search in this directory
+
+#### Git panel
+- `x` — stage / unstage
+- `X` / `U` — stage all / unstage all
+- `gf` — open the diff
+- `gx` — stage a range
+- `i` — into the commit box
+- `tab` — back to the list
+
+#### Outline panel
+- `enter` — focus the editor at the entry
+- `-` — parent entry
+
+#### Threads sidebar
+- `h` / `l` — collapse / expand a project group
+- `/` — filter (`escape` cancels)
+- `o` — new thread in this project
+- `dd` — delete thread
+- `]p` / `[p` — next / previous project
