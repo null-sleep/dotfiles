@@ -463,8 +463,17 @@ merges the results, so a language you have not opened yet contributes
 nothing — open one file per language after launching Zed. Servers also run
 per worktree ([`zed-worktrees.md`](zed-worktrees.md)), and servers that
 only index open files return less than ones that scan the project. Check
-what is running with `dev: open language server logs`. Read from the
-v1.28.1 source (`LspStore::symbols`), not tested in the app.
+what is running with `dev: open language server logs`; restart a stuck one
+with `editor: restart language server` (e.g. after adding a `Cargo.toml`).
+
+**Server roots follow manifests, not the project root.** Zed walks up from
+the file to the nearest manifest (`Cargo.toml` for Rust, `go.mod` for Go).
+This repo has neither at its root, only `fixtures/Cargo.toml` and
+`fixtures/go.mod`, so opening the dotfiles repo starts servers rooted at
+`fixtures/`, and only once you open `animal.rs` / `animal.go`. A Rust file
+with no `Cargo.toml` above it gets a server with no workspace, which is
+the "Failed to discover workspace" error. Read from the v1.28.1 source
+(`LspStore::symbols`, `manifest_tree.rs`), not tested in the app.
 
 **The `cmd-t` prompt is one name query.** Unlike nvim's `<leader>ss`
 (first word to the LSP, the rest fuzzy-filters by file path), Zed sends the

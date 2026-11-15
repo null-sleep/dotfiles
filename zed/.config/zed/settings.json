@@ -152,7 +152,7 @@
             // agent.default_model).
             "default_config_options": {
                 "mode": "default",
-                "model": "openrouter/anthropic/claude-sonnet-5.5"
+                "model": "anthropic/claude-sonnet-5-5"
             },
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",
