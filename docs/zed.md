@@ -83,7 +83,7 @@ Used many times a day; each is covered in full below.
 | `ctrl-g d` / `git: diff branch` | uncommitted diff (from the git panel) / branch vs its base — the PR view |
 | `` ctrl-` `` | terminal |
 | `cmd-\` / `cmd-k cmd-<arrow>` | split right / move between panes |
-| `cmd-w` / `ctrl--` | close tab / jump back |
+| `cmd-w` / `ctrl--` | close tab / jump back (`ctrl-_` forward) |
 | `cmd-?` | focus agent panel; again, back to the editor |
 | `shift-escape` / `ctrl-alt-w` | zoom the focused panel / close the focused dock |
 | `cmd-alt-j` / `cmd-alt-;` | toggle threads sidebar (show/hide) / jump focus to it and back |
@@ -328,9 +328,20 @@ the commit message.
 | `cmd-alt-o` | `projects::OpenRecent` | recent projects |
 | `cmd-ctrl-b` / `cmd-ctrl-w` | `branches::OpenRecent` / `git::Worktree` | branch and worktree pickers; worktree workflow in [`docs/zed-worktrees.md`](zed-worktrees.md) |
 | `ctrl-g` | `go_to_line::Toggle` | go to line |
-| `ctrl--` / `ctrl-_` | `pane::GoBack` / `pane::GoForward` | jump list (`ctrl-o`/`ctrl-i`) |
+| `ctrl--` / `ctrl-_` | `pane::GoBack` / `pane::GoForward` | navigation history, see below |
 | `cmd-k cmd-p` | `workspace::ReopenLastPicker` | reopen the last picker |
 | `cmd-shift-m` | `diagnostics::Deploy` | all project diagnostics as a multibuffer |
+
+**Back and forward after a jump.** Go to definition and similar jumps
+(references, symbol and outline picks, `go_to_line`) record the previous
+position in the navigation history. `ctrl--` goes back and
+`ctrl-_` (`ctrl-shift--`) goes forward, in any mode; the tab bar's arrows
+run the same actions. In vim normal mode `ctrl-o` / `ctrl-i` are the same
+two actions and cross files, so they follow `gd` into another file and
+back. In insert mode `ctrl-o` runs one normal-mode command instead, so
+press `escape` first. `ctrl-]` / `ctrl-t` (`GoToDefinition` /
+`GoToOlderTag`) are the tag-stack variant; see
+[`zed-vim.md`](zed-vim.md#files-tabs).
 
 Inside any picker (`menu` context): `enter` confirms, `cmd-enter` opens in
 a split, `escape`/`ctrl-c` cancels, `ctrl-n`/`ctrl-p` or arrows move. In
