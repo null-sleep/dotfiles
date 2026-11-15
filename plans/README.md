@@ -650,6 +650,10 @@ Grouped by state, not priority.
   pick. Chosen: accept the drift and commit it. Records what writes the block
   and the rejected options (delete the block, git clean filter,
   `--skip-worktree`, copy instead of symlink).
+- [zed-spell-check.md](zed-spell-check.md) — decision record (2026-11-15):
+  which Zed spell-check extension to use. Chosen: Codebook (code-aware
+  identifiers, comments, strings); Typos as noise fallback, Harper for prose,
+  LanguageTool skipped (niche Zed extension, needs Java). Nothing installed.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
