@@ -477,6 +477,24 @@ gw() {
   [[ -n "$target" ]] && cd "$target"
 }
 
+# Inside Zed, pin Claude's palette to Zed's theme mode (dark|light|system) for
+# this session only, instead of the global macOS-driven custom:active file.
+claude() {
+  if [[ $TERM_PROGRAM == zed ]]; then
+    local mode slug
+    mode=$(python3 -c '
+import re,sys
+t=re.sub(r"(?m)^\s*//.*$","",open(sys.argv[1]).read())
+m=re.search(r"\"theme\"\s*:\s*\{[^}]*?\"mode\"\s*:\s*\"(\w+)\"",t)
+print(m.group(1) if m else "system")' ~/.config/zed/settings.json 2>/dev/null)
+    [[ $mode == system || -z $mode ]] && mode=$(defaults read -g AppleInterfaceStyle >/dev/null 2>&1 && echo dark || echo light)
+    [[ $mode == dark ]] && slug=dracula || slug=catppuccin-latte
+    command claude --settings "{\"theme\":\"custom:$slug\"}" "$@"
+  else
+    command claude "$@"
+  fi
+}
+
 # Claude / Cursor Agent aliases
 alias c=claude
 alias a=agent
