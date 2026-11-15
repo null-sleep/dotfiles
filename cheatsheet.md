@@ -4,7 +4,8 @@
 source. `cmd-k cmd-v` toggles vim mode.
 
 Columns: **Zed** native key, **Vim** Zed's vim-mode key, **nvim** this repo's
-nvim config (GUIDE.md notation). A blank cell means the key to its left still
+nvim config. One notation throughout: `alt-]` is nvim's `<M-]>`, `ctrl-s` is
+`<C-s>`; `<leader>` is `space`. A blank cell means the key to its left still
 applies (Zed keys work in vim mode); a blank nvim cell can also mean nvim has
 no equivalent. `—` means no key; use the palette.
 Full reference: `docs/zed.md`, `docs/zed-vim.md`.
@@ -25,10 +26,10 @@ Full reference: `docs/zed.md`, `docs/zed-vim.md`.
 | back / forward (crosses files) | `ctrl--` / `ctrl-_` | `ctrl-o` / `ctrl-i` | |
 | alternate file | — | `ctrl-^` | `gb` |
 | open path / URL under cursor | — | `gf` / `gx` | |
-| all diagnostics / next, prev | `cmd-shift-m` / `f8`, `shift-f8` | `:cl` / `]d`, `[d` | `<leader>cd` (list) |
+| all diagnostics / next, prev | `cmd-shift-m` / `f8`, `shift-f8` | `:cl` / `]d`, `[d` | `<leader>cd` / `]d`, `[d` |
 | reopen last picker | `cmd-k cmd-p` | | `<leader>sr` |
 | recent projects | `alt-cmd-o` | | |
-| branch / worktree picker | `ctrl-cmd-b` / `ctrl-cmd-w` | | `<leader>Gb` / `<leader>Gw` |
+| branch / worktree picker | `ctrl-cmd-b` / `ctrl-cmd-w` | | `<leader>Gb` / `<leader>Gw` (popups) |
 
 In a picker: `enter` open, `cmd-enter` open in a split, `escape` cancel.
 File finder: `cmd-shift-i` includes ignored files.
@@ -46,12 +47,12 @@ File finder: `cmd-shift-i` includes ignored files.
 | format | `cmd-shift-i` | | `<leader>cf` |
 | toggle comment | `cmd-/` | `gcc`, `gc` + motion | |
 | add cursor at next match / all | `cmd-d` / `cmd-shift-l` | `gl` / `ga` | |
-| grow / shrink selection | `ctrl-cmd-right` / `ctrl-cmd-left` | `[x` / `]x` | `<M-o>` / `<M-i>` |
+| grow / shrink selection | `ctrl-cmd-right` / `ctrl-cmd-left` | `[x` / `]x` | `alt-o` / `alt-i` |
 | move line up / down | `alt-up` / `alt-down` | `[e` / `]e` | |
 | toggle fold | `cmd-k cmd-l` | `za` | |
-| LSP completions | `ctrl-space` | `ctrl-x ctrl-o` (insert) | `<C-space>` |
+| LSP completions | `ctrl-space` | `ctrl-x ctrl-o` (insert) | `ctrl-space` |
 | inline assist | `ctrl-enter` | `ctrl-x ctrl-a` (insert) | |
-| save / without formatting | `cmd-s` / `cmd-k s` | `:w` / `:w!` | |
+| save / without formatting | `cmd-s` / `cmd-k s` | `:w` / `:w!` | `:w` (format-on-save is off) |
 
 Autosave runs 1s after the last edit and never formats; `cmd-s` formats Go,
 Rust, Elixir, and other languages Zed formats by default.
@@ -64,18 +65,18 @@ Rust, Elixir, and other languages Zed formats by default.
 | branch vs base, the PR view | `git: diff branch` | | `<leader>vp` |
 | against another base | `git: compare with branch` | | |
 | next / prev hunk | `cmd-f8` / `cmd-shift-f8` | `]c` / `[c` | |
-| next / prev file (excerpt) | `cmd-down` / `cmd-up` | | `<Tab>` / `<S-Tab>` (diffview) |
+| next / prev file (excerpt) | `cmd-down` / `cmd-up` | | `tab` / `shift-tab` (diffview) |
 | show old text inline | `cmd-'` | `do` | `<leader>hp` |
 | stage / unstage hunk, then next | `cmd-y` / `cmd-shift-y` | `du` / `dU` | `<leader>hs` (toggle) |
 | revert hunk | `alt-cmd-z` | `dp` | `<leader>hr` |
-| stage everything | `ctrl-cmd-y` | | `<C-s>` (Neogit) |
-| commit | `cmd-enter` | | `<leader>Gc` |
+| stage everything | `ctrl-cmd-y` | | `ctrl-s` (Neogit) |
+| commit | `cmd-enter` | | `<leader>Gc`, then `c` |
 | open the real file | `alt-enter` | `g space` | `gf` (diffview) |
 | more context around excerpt | `shift-enter` | | |
 | blame this line | `cmd-k cmd-b` | `gB` | `<leader>hb` |
 | list the diff's files | `cmd-shift-b` (outline) | | |
 | split / unified view | `editor: toggle split diff` | | `<leader>vc` |
-| fetch (auto-fetch is off) | `ctrl-g ctrl-g` | | `f` (Neogit) |
+| fetch (auto-fetch is off) | `ctrl-g ctrl-g` (git panel) | | `f` (Neogit fetch popup) |
 
 Branch diffs compare with the last-fetched `origin/<base>`; fetch first.
 They have no hunk stage or revert. `alt-cmd-g r` sends an open branch diff to
@@ -85,20 +86,20 @@ an agent for review.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| focus agent panel; again, back | `cmd-?` | `:A` | `<C-.>`, `<leader>aa` |
+| focus agent panel; again, back | `cmd-?` | `:A` | `ctrl-.`, `<leader>ai` |
 | hide agent dock | `ctrl-alt-w`, `cmd-b` (agentic) / `cmd-r` (classic) | | `<leader>aa` |
 | full-screen thread; again, restore | `shift-escape` | | |
 | new thread / pick agent | `cmd-n` / `alt-cmd-shift-n` (panel) | | `<leader>an` |
 | send / send and follow | `enter` / `cmd-enter` | | |
 | interrupt and send now | `cmd-shift-enter` | | |
-| attach file, symbol, diagnostics | `@` | | `<leader>ap`, `<leader>ae` |
+| attach file, symbol, diagnostics | `@` | | `<leader>ap` / `<leader>af`, `<leader>ac` / `<leader>ae` |
 | quote selection into thread | `cmd->` | | `<leader>at`, `<leader>as` |
 | model picker / profile / mode | `alt-cmd-/` / `cmd-i` / `shift-tab` | | |
 | search thread | `cmd-f` | | |
 | prev / next message | `shift-pageup` / `shift-pagedown` | | |
 | thread switcher | `ctrl-tab` / `ctrl-shift-tab` | | `<leader>al` |
-| next / prev thread (custom) | `alt-]` / `alt-[` | | `<M-]>` / `<M-[>` (same keys) |
-| rename thread | `shift-r` (sidebar) | | `<leader>ar` |
+| next / prev thread (custom) | `alt-]` / `alt-[` | | |
+| rename thread | `shift-r` (sidebar) | | `<leader>ar` (label only) |
 | agent diff / project diff | `ctrl-shift-r` / `ctrl-shift-d` | | |
 | keep / reject hunk | `cmd-y` / `alt-cmd-z` | | |
 | keep all / reject all / undo reject | `alt-shift-y` / `alt-shift-z` / `alt-shift-u` | | |
@@ -125,11 +126,11 @@ edits with `git: diff`.
 | close inactive tabs and panes | `ctrl-alt-cmd-w` | `ctrl-w o` | |
 | close all tabs and panes / window | `cmd-k cmd-w` / `cmd-shift-w` | | |
 | split right / down | `cmd-\` / `cmd-k down` | `ctrl-w v` / `ctrl-w s` | |
-| focus pane in a direction | `cmd-k cmd-<arrow>` | `ctrl-w h/j/k/l` | `<C-h/j/k/l>` |
+| focus pane in a direction | `cmd-k cmd-<arrow>` | `ctrl-w h/j/k/l` | `ctrl-h/j/k/l` |
 | focus pane N | `cmd-1`…`cmd-9` | | |
 | next pane | — | `ctrl-w w` | |
-| move pane to an edge / swap | — | `ctrl-w H/J/K/L` / `ctrl-w x` | |
-| resize / maximize / equalize | — | `ctrl-w <>+-` / `ctrl-w _` / `ctrl-w =` | `<A-h/j/k/l>` (resize) |
+| move pane to an edge / swap | — / `cmd-k shift-<arrow>` | `ctrl-w H/J/K/L` / `ctrl-w x` | |
+| resize / maximize / equalize | — | `ctrl-w <>+-` / `ctrl-w _` / `ctrl-w =` | `alt-h/j/k/l` / `ctrl-w _` / `ctrl-w =` |
 | zoom pane or panel; again, restore | `shift-escape` | | |
 
 ## Panels and docks
@@ -155,14 +156,14 @@ nvim column: nvim-tree.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| open, focus; again, back | `cmd-shift-e` | `:E`; back: `escape` | `<leader>e` |
+| open, focus; again, back | `cmd-shift-e` | `:E`; back: `escape` | `<leader>e` (again: close) |
 | close | `ctrl-alt-w` | | `<leader>e`, `q` |
 | preview | `space` | `p` | |
-| open in a permanent tab | — | `enter`, `t` | `l`, `<CR>` |
-| open in a vertical / horizontal split | — | `v` / `o` | `<C-v>` / `<C-s>` |
+| open file (not preview) | — | `enter`, `t` | `l`, `enter` |
+| open in a vertical / horizontal split | — | `v` / `o` | `ctrl-v` / `ctrl-s` |
 | new file / folder | `cmd-n` / `alt-cmd-n` | `%` / `d` | `a` / `a` + `name/` |
 | rename | `enter`, `f2` | `R` | `r` |
-| move to trash | `backspace` | `D` | |
+| trash / delete permanently | `backspace` / `cmd-delete` | `backspace` / `D` | `D` / `d` |
 | duplicate / cut / copy / paste | `cmd-d` / `cmd-x` / `cmd-c` / `cmd-v` | | — / `x` / `c` / `p` |
 | undo / redo file operation | `cmd-z` / `cmd-shift-z` | | |
 | collapse / expand | `left` / `right` | `h` / `l` | |
@@ -170,7 +171,7 @@ nvim column: nvim-tree.
 | parent / next, prev directory | — | `-` / `}`, `{` | |
 | next / prev git change | — | `]c` / `[c` | |
 | filter / search in this directory | — | `/` | `f` |
-| reveal in Finder / copy path | `alt-cmd-r` / `alt-cmd-c` | `x` (reveal) | |
+| reveal in Finder / copy path | `alt-cmd-r` / `alt-cmd-c` | `x` (reveal) | — / `gy` |
 
 ### Outline panel
 
@@ -179,9 +180,9 @@ files. nvim column: aerial.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| open, focus; again, back | `cmd-shift-b` | | `<leader>o` |
+| open, focus; again, back | `cmd-shift-b` | | `<leader>o` (again: close) |
 | close | `ctrl-alt-w` | | `<leader>o`, `q` |
-| jump to entry | `space` | `enter` (focuses the editor) | `<CR>` |
+| jump to entry | `space` | `enter` (focuses the editor) | |
 | collapse / expand | `left` / `right` | `h` / `l` | |
 | parent entry | — | `-` | |
 | open the real file / in a split | `alt-enter` / `alt-cmd-enter` | | |
@@ -194,13 +195,13 @@ nvim column: the Neogit status buffer.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| open, focus; again, back | `ctrl-shift-g` | `:G` | `<leader>Gg` |
+| open, focus; again, back | `ctrl-shift-g` | `:G` | `<leader>Gg` (open only) |
 | close | `ctrl-alt-w` | | `q`, `<leader>Gq` |
 | Changes / History tab | `cmd-1` / `cmd-2` | | — / `l` (log popup) |
 | stage / unstage file | `space` | `x` | `s` / `u` |
 | stage a range | `shift-space` | `gx` | |
-| stage all / unstage all | `ctrl-cmd-y` / `ctrl-cmd-shift-y` | `X` / `U` | `S` / `U` |
-| open the file's diff | — | `gf` | `<CR>` opens the file |
+| stage all / unstage all | `ctrl-cmd-y` / `ctrl-cmd-shift-y` | `X` / `U` | `ctrl-s` / `U` |
+| open the file's diff | `enter` | `gf` | `enter` opens the file instead |
 | restore file (asks first) | `backspace` | | `x` |
 | list to commit box / back | `tab` / `tab` | `i` / `tab` | |
 | commit / amend | `cmd-enter` / `cmd-shift-enter` | | `c` (popup) |
@@ -218,7 +219,7 @@ nvim column: the `<leader>av` agent-view sidebar.
 | move | `up` / `down` | `k` / `j` | |
 | collapse / expand project | `left` / `right` | `h` / `l` | |
 | next / prev project | — | `]p` / `[p` | |
-| switch to thread | `enter` | | `<CR>`, `1`…`9` |
+| switch to thread | `enter` | | `enter`, `1`…`9` |
 | filter by title | `cmd-f` | `/` | |
 | new thread in this project | `cmd-n` | `o` | `n` |
 | rename | `shift-r` | | `r` |
@@ -229,14 +230,14 @@ nvim column: the `<leader>av` agent-view sidebar.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| terminal panel: open / close | `` ctrl-` `` | `:te` | `<C-/>` (float: `<C-\>`) |
+| terminal panel: open / close | `` ctrl-` `` | `:te` | `ctrl-/` (float: `ctrl-\`) |
 | debug panel: open, focus / close | `cmd-shift-d` / `ctrl-alt-w` | `:D` | `<leader>du` |
-| new terminal tab | `ctrl-~`, `cmd-n` (panel) | | `<M-n>` (float), `2<C-\>` |
+| new terminal | `ctrl-~`, `cmd-n` (panel) | | `alt-n` (float), `2 ctrl-\` |
 | split / search / clear | `cmd-d` / `cmd-f` / `cmd-k` | | |
-| select in scrollback (vi keys) | `ctrl-shift-space` | | `jj`, `<Esc>` (normal mode) |
+| select in scrollback (vi keys) | `ctrl-shift-space` | | `jj`, `escape` (normal mode) |
 | task picker / rerun last | `cmd-shift-r` / `alt-cmd-r` | | |
-| debug: start / continue / stop | `f4` / `f5` / `shift-f5` | | `<F5>` / `<F5>` / `<leader>dq` |
-| step over / into / out | `f10` / `f11` / `shift-f11` | | `<F12>` (out) |
+| debug: start / continue / stop | `f4` / `f5` / `shift-f5` | | `f5` / `f5` / `<leader>dq` |
+| step over / into / out | `f10` / `f11` / `shift-f11` | | `f10` / `f11` / `f12` |
 | toggle breakpoint / pause | `f9` / `f6` (running) | | `<leader>db` (breakpoint) |
 
 ## Vim-only extras
@@ -246,7 +247,7 @@ None of these exist in the nvim config.
 - Text objects: `iq`/`aq` any quotes, `if`/`af` function, `ic`/`ac` class,
   `ia`/`aa` argument, `ii`/`ai` indent, `ie` whole file
 - Surround: `ys` + motion + char, `cs"'`, `ds"`
-- Jump: `]m`/`[m` method, `]]`/`[[` section, `]r`/`[r` same symbol
+- Jump: `]r`/`[r` next / prev use of the symbol under the cursor
 - `gR` + motion replace with register; `cx` + motion twice to exchange
 - `:` commands take no file argument (no `:e file`); use `cmd-p` or `gf`
 
@@ -279,11 +280,12 @@ Same key, different meaning in nvim:
 |---|---|---|
 | `H` / `L` | top / bottom of screen | prev / next buffer |
 | `gb` | block comment | alternate buffer |
-| `<C-h/j/k/l>` | backspace, down, kill line, center | focus split |
+| `ctrl-h/j/k/l` | backspace, down, kill line, center | focus split |
 | `space` | move right (no leader yet) | leader |
 | `x`, git panel | stage | discard (Neogit) |
 | `x`, project panel | reveal in Finder | cut (nvim-tree) |
 | `d`, project panel | new folder | delete permanently (nvim-tree) |
+| `D`, project panel | delete permanently | move to Trash (nvim-tree) |
 | `f12` | go to definition (any mode) | debugger step out |
 | `ys`, `cs`, `ds` | surround | not mapped |
 
