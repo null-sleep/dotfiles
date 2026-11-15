@@ -2,7 +2,8 @@
 
 Status: decided (2026-11-14), nothing built. Accept the drift and commit it
 when it shows up. The git clean filter (option 3) is documented here in case
-the churn starts to hurt. Zed 1.28.1, omp 18.20.2.
+the churn starts to hurt. Zed 1.28.1 installed; the code below was read from
+Zed `main`.
 
 ## Problem
 
@@ -39,7 +40,9 @@ Read from Zed `main` (`crates/agent_servers/src/custom.rs`,
    open on omp's own default instead of the model Zed remembered. Pair it with
    `omp config set modelRoles.default ...` so that default is the one you want.
    Zed will write the block back on the next deliberate pick, and that diff
-   can then be discarded.
+   can then be discarded. That conflicts with the current rule (commit or
+   leave it, never discard), stated in the `settings.json` comments and
+   `docs/omp.md`; adopting option 2 means rewriting that rule first.
 3. **Git clean filter that pins the Zed-owned blocks.** Not chosen; see below.
 4. **`git update-index --skip-worktree`.** Rejected. It breaks `git pull` and
    `git stash` as soon as upstream touches the file, which already happened
@@ -78,6 +81,18 @@ Why it was not chosen:
   committed through git.
 - **Confusing to debug.** The disk file and the git copy differ with nothing
   in the diff to say why.
+
+## The private downstream fork
+
+A private fork cherry-picks this repo's commits and keeps its own model and
+mode picks, so it never takes upstream's. To keep that cheap:
+
+- **Commit picks on their own**, as `chore(zed): keep model picks …`, touching
+  only `agent.default_model` and `default_config_options`. The fork's sync
+  script recognises such commits and skips them automatically.
+- **Don't mix other edits into those blocks.** A commit that changes the pick
+  blocks plus anything else (comments inside them included) is picked by the
+  fork and conflicts there, as `80127b0` did.
 
 ## Revival trigger
 
