@@ -28,6 +28,17 @@ Code: `crates/agent_ui/src/agent_panel.rs` (`mark_terminal_notification`,
 
 ## Options, roughly by effort
 
+0. **Option to skip the Dock bounce.** Every agent pop-up (Terminal Thread
+   and ACP) calls `window.request_attention()` (`agent_panel.rs`
+   `show_terminal_notification`, `conversation_view.rs` `show_notification`),
+   which on macOS is one informational Dock bounce while Zed is unfocused
+   (`gpui_macos/src/window.rs` `request_attention`, from #58779). Stock Zed
+   can only drop it with `notify_when_agent_waiting: "never"`, which also kills
+   the pop-up. Add a setting (e.g. `agent.request_attention_when_agent_waiting:
+   false`) that keeps pop-up + sound but skips the bounce. Wanted: confirmed
+   2026-11-15 that Zed's own icon bounces on Claude Terminal Thread pop-ups.
+   (Ghostty's bounce is separate and intended: `terminal-bell.sh` rings BEL
+   there on purpose.)
 1. **Reset on dismiss.** Clear `has_notification` when the pop-up is
    dismissed, so the next bell notifies again. Small, self-contained, and
    plausibly upstreamable.

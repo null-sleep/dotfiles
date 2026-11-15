@@ -635,7 +635,8 @@ Grouped by state, not priority.
   if most Zed omp threads start on the same one or two non-default presets.
 - [zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md)
   — idea (2026-11-15): Zed fork changes for richer Terminal Thread pop-ups
-  (re-notify after dismiss, caption from OSC 9/777, OSC 7501 status).
+  (option to skip the Dock bounce, re-notify after dismiss, caption from
+  OSC 9/777, OSC 7501 status).
 - [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — implemented
   (2026-11-15): instant Claude bell hooks for Zed Terminal Threads (captioned
   pop-ups) and Ghostty (Dock bounce), how they compare with omp's ACP
