@@ -1813,10 +1813,14 @@ Stowed to `~/.config/zed/`:
   [`cheatsheet.md`](cheatsheet.md); the vim-mode bindings to adopt from nvim
   are proposed in [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
 - **`tasks.json`** — the `cheatsheet` task, which runs
-  `less $HOME/src/dotfiles/cheatsheet.md` in the center pane (the keybinding
-  passes `reveal_target: "center"`); `q` quits and the tab closes. Zed
-  extensions can't add UI or actions, so a task plus a keybinding is the way to
-  get a shortcut cheatsheet. Edit the shortcuts in `cheatsheet.md`.
+  `zed $HOME/src/dotfiles/cheatsheet.md`. Zed extensions can't add UI or
+  actions, so a task plus a keybinding is the way to get a shortcut cheatsheet.
+  `settings.json` sets `markdown_preview.open_markdown_files_in_preview`, so it
+  opens rendered, but so does every other `.md` (README included). A tab
+  already open as source isn't converted; close it first. To edit a rendered
+  file, press `cmd-shift-v` in the preview (`markdown::CloseAndReturnToEditor`,
+  or right-click the tab → Show Source); without the setting, `cmd-shift-v`
+  previews the open file. Edit the shortcuts in `cheatsheet.md`.
 
 `--no-folding` because `~/.config/zed/` also holds runtime state (`prompts/`,
 `themes/`) that must stay out of the repo. Zed rewrites `settings.json` when
