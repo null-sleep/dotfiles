@@ -1,299 +1,296 @@
-# Cheatsheet
+# Zed cheatsheet
 
-Opened by `cmd-k cmd-m` (Zed task `cheatsheet`) as a markdown preview.
-To edit it, press `cmd-shift-v` (show source).
+`cmd-k cmd-m` opens this (task `cheatsheet`); `cmd-shift-v` flips preview and
+source. `cmd-k cmd-v` toggles vim mode.
 
-Toggle vim mode: `cmd-k cmd-v`
+Columns: **Zed** native key, **Vim** Zed's vim-mode key, **nvim** this repo's
+nvim config (GUIDE.md notation). A blank cell means the key to its left still
+applies (Zed keys work in vim mode); a blank nvim cell can also mean nvim has
+no equivalent. `—` means no key; use the palette.
+Full reference: `docs/zed.md`, `docs/zed-vim.md`.
 
-Sections: Review changes, Agent threads, Pickers and navigation, Editing and LSP,
-Docks and panels, Tabs / closing / panes, Zed itself, Gotchas, Vim mode (last).
+## Find and navigate
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| command palette | `cmd-shift-p` | `:` | |
+| file finder | `cmd-p` | | `<leader>sf`, `<leader><leader>` |
+| live-grep picker | `alt-cmd-f` | | `<leader>sg` |
+| grep word / selection | `alt-cmd-f` (prefills) | | `<leader>sw` |
+| project search, editable results | `cmd-shift-f` | `g/` | |
+| project search and replace | `cmd-shift-h` | | `<leader>sR` |
+| search in file / next, prev match | `cmd-f` / `cmd-g`, `cmd-shift-g` | `/` / `n`, `N` | |
+| symbols in file / project | `cmd-shift-o` / `cmd-t` | `gO` / `gS` | `gO` / `<leader>ss` |
+| go to line | `ctrl-g` | `:<n>` | |
+| back / forward (crosses files) | `ctrl--` / `ctrl-_` | `ctrl-o` / `ctrl-i` | |
+| alternate file | — | `ctrl-^` | `gb` |
+| open path / URL under cursor | — | `gf` / `gx` | |
+| all diagnostics / next, prev | `cmd-shift-m` / `f8`, `shift-f8` | `:cl` / `]d`, `[d` | `<leader>cd` (list) |
+| reopen last picker | `cmd-k cmd-p` | | `<leader>sr` |
+| recent projects | `alt-cmd-o` | | |
+| branch / worktree picker | `ctrl-cmd-b` / `ctrl-cmd-w` | | `<leader>Gb` / `<leader>Gw` |
+
+In a picker: `enter` open, `cmd-enter` open in a split, `escape` cancel.
+File finder: `cmd-shift-i` includes ignored files.
+
+## Code
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| definition / in a split | `f12` / `alt-f12` | `gd` / `ctrl-w d` | `gd` / `<leader>pd` (peek) |
+| type definition / implementation | `cmd-f12` / `shift-f12` | `gy` / `gri` | |
+| references | `alt-shift-f12` | `grr` | |
+| rename | `f2` | `grn` | |
+| code actions | `cmd-.` | `gra`, `g.` | `gra`, `<leader>ca` |
+| hover | `cmd-k cmd-i` | `K` | |
+| format | `cmd-shift-i` | | `<leader>cf` |
+| toggle comment | `cmd-/` | `gcc`, `gc` + motion | |
+| add cursor at next match / all | `cmd-d` / `cmd-shift-l` | `gl` / `ga` | |
+| grow / shrink selection | `ctrl-cmd-right` / `ctrl-cmd-left` | `[x` / `]x` | `<M-o>` / `<M-i>` |
+| move line up / down | `alt-up` / `alt-down` | `[e` / `]e` | |
+| toggle fold | `cmd-k cmd-l` | `za` | |
+| LSP completions | `ctrl-space` | `ctrl-x ctrl-o` (insert) | `<C-space>` |
+| inline assist | `ctrl-enter` | `ctrl-x ctrl-a` (insert) | |
+| save / without formatting | `cmd-s` / `cmd-k s` | `:w` / `:w!` | |
+
+Autosave runs 1s after the last edit and never formats; `cmd-s` formats Go,
+Rust, Elixir, and other languages Zed formats by default.
 
 ## Review changes
-- `ctrl-g d` in the git panel — uncommitted changes
-- palette: `git: diff` — the same, from anywhere
-- palette: `git: diff branch` — whole branch vs its base, the PR view (no key)
-- palette: `git: compare with branch` — diff against another base
-- `cmd-y` / `cmd-shift-y` — stage / unstage hunk, jump to the next
-- `alt-cmd-z` — revert hunk
-- `ctrl-cmd-y` — stage everything
-- `cmd-enter` — commit (diff view or commit box)
-- `cmd-down` / `cmd-up` — next / previous excerpt
-- `alt-enter` — open the real file
-- `cmd-shift-b` — outline panel, lists the diff's files
-- `ctrl-shift-g` — git panel
-- `ctrl-g ctrl-g` — fetch (auto-fetch is off)
-- `cmd-'` — show old text inline for a hunk
-- `cmd-f8` / `cmd-shift-f8` — next / previous hunk
 
-## Agent threads
-- `cmd-?` — focus agent panel; again, back to the editor
-- `alt-cmd-j` — toggle threads sidebar
-- `alt-cmd-;` — jump to the sidebar and back
-- `ctrl-tab` / `ctrl-shift-tab` — thread switcher, most recent first (agent panel)
-- `alt-]` / `alt-[` — next / previous thread directly
-- `cmd-n` — new thread (panel focused)
-- `enter` / `cmd-enter` — send / send and follow
-- `ctrl-shift-r` — open the agent diff
-- `cmd-y` / `alt-cmd-z` — keep / reject one hunk
-- `alt-shift-y` / `alt-shift-z` — keep all / reject all
-- `alt-shift-u` — undo last reject
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| uncommitted diff | `git: diff` (`ctrl-g d` in git panel) | | `<leader>vv` |
+| branch vs base, the PR view | `git: diff branch` | | `<leader>vp` |
+| against another base | `git: compare with branch` | | |
+| next / prev hunk | `cmd-f8` / `cmd-shift-f8` | `]c` / `[c` | |
+| next / prev file (excerpt) | `cmd-down` / `cmd-up` | | `<Tab>` / `<S-Tab>` (diffview) |
+| show old text inline | `cmd-'` | `do` | `<leader>hp` |
+| stage / unstage hunk, then next | `cmd-y` / `cmd-shift-y` | `du` / `dU` | `<leader>hs` (toggle) |
+| revert hunk | `alt-cmd-z` | `dp` | `<leader>hr` |
+| stage everything | `ctrl-cmd-y` | | `<C-s>` (Neogit) |
+| commit | `cmd-enter` | | `<leader>Gc` |
+| open the real file | `alt-enter` | `g space` | `gf` (diffview) |
+| more context around excerpt | `shift-enter` | | |
+| blame this line | `cmd-k cmd-b` | `gB` | `<leader>hb` |
+| list the diff's files | `cmd-shift-b` (outline) | | |
+| split / unified view | `editor: toggle split diff` | | `<leader>vc` |
+| fetch (auto-fetch is off) | `ctrl-g ctrl-g` | | `f` (Neogit) |
 
-## Pickers and navigation
-- `cmd-p` — file finder
-- `cmd-shift-p` — command palette
-- `alt-cmd-f` — live grep picker
-- `cmd-shift-f` — project search
-- `cmd-t` — project symbols
-- `cmd-shift-o` — symbols in this file
-- `ctrl-g` — go to line
-- `cmd-shift-m` — all diagnostics
-- `ctrl--` / `ctrl-_` — back / forward through navigation history
-- `cmd-k cmd-p` — reopen the last picker
-- `alt-cmd-o` — recent projects
-- `ctrl-cmd-b` — branch picker
-- `ctrl-cmd-w` — worktree picker
-- In a picker: `enter` confirm, `cmd-enter` open in a split, `escape` cancel
+Branch diffs compare with the last-fetched `origin/<base>`; fetch first.
+They have no hunk stage or revert. `alt-cmd-g r` sends an open branch diff to
+an agent for review.
 
-## Editing and LSP
-- `f12` / `alt-shift-f12` — go to definition / find references
-- `f2` — rename
-- `cmd-.` — code actions
-- `cmd-shift-i` — format
-- `cmd-/` — toggle comment
-- `cmd-s` — save (formats in some languages)
-- `cmd-k s` — save without formatting
+## Agent
 
-## Docks and panels
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| focus agent panel; again, back | `cmd-?` | `:A` | `<C-.>`, `<leader>aa` |
+| hide agent dock | `ctrl-alt-w`, `cmd-b` (agentic) / `cmd-r` (classic) | | `<leader>aa` |
+| full-screen thread; again, restore | `shift-escape` | | |
+| new thread / pick agent | `cmd-n` / `alt-cmd-shift-n` (panel) | | `<leader>an` |
+| send / send and follow | `enter` / `cmd-enter` | | |
+| interrupt and send now | `cmd-shift-enter` | | |
+| attach file, symbol, diagnostics | `@` | | `<leader>ap`, `<leader>ae` |
+| quote selection into thread | `cmd->` | | `<leader>at`, `<leader>as` |
+| model picker / profile / mode | `alt-cmd-/` / `cmd-i` / `shift-tab` | | |
+| search thread | `cmd-f` | | |
+| prev / next message | `shift-pageup` / `shift-pagedown` | | |
+| thread switcher | `ctrl-tab` / `ctrl-shift-tab` | | `<leader>al` |
+| next / prev thread (custom) | `alt-]` / `alt-[` | | `<M-]>` / `<M-[>` (same keys) |
+| rename thread | `shift-r` (sidebar) | | `<leader>ar` |
+| agent diff / project diff | `ctrl-shift-r` / `ctrl-shift-d` | | |
+| keep / reject hunk | `cmd-y` / `alt-cmd-z` | | |
+| keep all / reject all / undo reject | `alt-shift-y` / `alt-shift-z` / `alt-shift-u` | | |
 
-### Open or focus a panel
-- `cmd-shift-e` — project panel
-- `cmd-shift-b` — outline panel
-- `ctrl-shift-g` — git panel
-- `cmd-shift-d` — debug panel
-- `cmd-?` — agent panel
-- `alt-cmd-j` — threads sidebar: show / hide (showing it also focuses it)
-- `alt-cmd-;` — threads sidebar: jump to it, press again to return to where you were
-- `cmd-shift-c` — collab panel
-- `` ctrl-` `` — terminal panel
-- Press a focus key again while focused to return to the editor (the panel stays open)
-- `` ctrl-` `` is the exception: it closes the focused terminal panel
+Vim: `enter` sends from the message box in normal mode too. The agent diff
+shows only Zed Agent and omp edits; review Claude Agent and Terminal Thread
+edits with `git: diff`.
 
-### Docks
-- `cmd-b` / `cmd-r` / `cmd-j` — toggle left / right / bottom dock
-- The agent dock is `cmd-b` in the agentic layout, `cmd-r` in classic
-- `alt-cmd-y` — hide / show every dock
-- `shift-escape` — zoom the focused pane or panel; again to restore
-- `ctrl-alt-w` — close the focused dock (`cmd-w` closes the tab, not the dock)
-- `f6` / `shift-f6` — cycle focus between docks and center
-- `ctrl-alt-=` / `ctrl-alt--` — grow / shrink the focused dock
-- `ctrl-alt-0` — reset the dock size
+## Tabs and panes
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| next / prev tab | `cmd-}` / `cmd-{` | `]b` / `[b`, `gt` / `gT` | `L` / `H` |
+| tab N / last tab | `ctrl-1`…`ctrl-9` / `ctrl-0` | `Ngt` / `]B` | |
+| tab switcher | `ctrl-tab` | | `<leader>bb`, `<leader>m` |
+| move tab right / left | `ctrl-shift-pagedown` / `ctrl-shift-pageup` | | |
+| pin / unpin | `cmd-k shift-enter` | | |
+| close tab | `cmd-w` | `:q`, `ctrl-w c` | `<leader>bx` |
+| close and save / discard | — | `ZZ` / `ZQ` | |
+| reopen closed tab | `cmd-shift-t` | | |
+| close other tabs | `alt-cmd-t` | | `<leader>bo` |
+| close tabs left / right / clean | `cmd-k e` / `cmd-k t` / `cmd-k u` | | |
+| close all tabs in pane | `cmd-k w` | `ctrl-w a` | |
+| close inactive tabs and panes | `ctrl-alt-cmd-w` | `ctrl-w o` | |
+| close all tabs and panes / window | `cmd-k cmd-w` / `cmd-shift-w` | | |
+| split right / down | `cmd-\` / `cmd-k down` | `ctrl-w v` / `ctrl-w s` | |
+| focus pane in a direction | `cmd-k cmd-<arrow>` | `ctrl-w h/j/k/l` | `<C-h/j/k/l>` |
+| focus pane N | `cmd-1`…`cmd-9` | | |
+| next pane | — | `ctrl-w w` | |
+| move pane to an edge / swap | — | `ctrl-w H/J/K/L` / `ctrl-w x` | |
+| resize / maximize / equalize | — | `ctrl-w <>+-` / `ctrl-w _` / `ctrl-w =` | `<A-h/j/k/l>` (resize) |
+| zoom pane or panel; again, restore | `shift-escape` | | |
+
+## Panels and docks
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| left / right / bottom dock | `cmd-b` / `cmd-r` / `cmd-j` | | |
+| all docks (not from an editor) | `alt-cmd-y` | | |
+| close focused dock | `ctrl-alt-w` | | |
+| zoom focused panel; again, restore | `shift-escape` (agent, terminal, debug) | | |
+| cycle focus: docks, center | `f6` / `shift-f6` | | |
+| grow / shrink / reset dock | `ctrl-alt-=` / `ctrl-alt--` / `ctrl-alt-0` | | |
+
+A panel's focus key, pressed inside it, returns to the editor and leaves the
+panel open; close it with `ctrl-alt-w`. The agent dock is `cmd-b` in the
+agentic layout, `cmd-r` in classic. Zoom does nothing in the project, git, and
+outline panels.
+Docks are not panes: `ctrl-w h/j/k/l` never reaches them.
 
 ### Project panel
-- `space` — preview the selected file
-- `enter` / `f2` — rename
-- `cmd-n` — new file
-- `alt-cmd-n` — new folder
-- `cmd-d` — duplicate
-- `cmd-x` / `cmd-c` / `cmd-v` — cut / copy / paste
-- `backspace` — move to trash
-- `left` / `right` — collapse / expand
-- `cmd-left` / `cmd-right` — collapse / expand all
-- `cmd-z` / `cmd-shift-z` — undo / redo file operations
-- `alt-cmd-r` — reveal in Finder
-- `alt-cmd-c` — copy path
+
+nvim column: nvim-tree.
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| open, focus; again, back | `cmd-shift-e` | `:E`; back: `escape` | `<leader>e` |
+| close | `ctrl-alt-w` | | `<leader>e`, `q` |
+| preview | `space` | `p` | |
+| open in a permanent tab | — | `enter`, `t` | `l`, `<CR>` |
+| open in a vertical / horizontal split | — | `v` / `o` | `<C-v>` / `<C-s>` |
+| new file / folder | `cmd-n` / `alt-cmd-n` | `%` / `d` | `a` / `a` + `name/` |
+| rename | `enter`, `f2` | `R` | `r` |
+| move to trash | `backspace` | `D` | |
+| duplicate / cut / copy / paste | `cmd-d` / `cmd-x` / `cmd-c` / `cmd-v` | | — / `x` / `c` / `p` |
+| undo / redo file operation | `cmd-z` / `cmd-shift-z` | | |
+| collapse / expand | `left` / `right` | `h` / `l` | |
+| collapse / expand all | `cmd-left` / `cmd-right` | | `W` (collapse) |
+| parent / next, prev directory | — | `-` / `}`, `{` | |
+| next / prev git change | — | `]c` / `[c` | |
+| filter / search in this directory | — | `/` | `f` |
+| reveal in Finder / copy path | `alt-cmd-r` / `alt-cmd-c` | `x` (reveal) | |
+
+### Outline panel
+
+Symbols of the current file; in a multibuffer (search, references, diffs), its
+files. nvim column: aerial.
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| open, focus; again, back | `cmd-shift-b` | | `<leader>o` |
+| close | `ctrl-alt-w` | | `<leader>o`, `q` |
+| jump to entry | `space` | `enter` (focuses the editor) | `<CR>` |
+| collapse / expand | `left` / `right` | `h` / `l` | |
+| parent entry | — | `-` | |
+| open the real file / in a split | `alt-enter` / `alt-cmd-enter` | | |
+| reveal in Finder / copy path | `alt-cmd-r` / `alt-cmd-c` | | |
+| symbol popup instead | `cmd-shift-o` | `gO` | `<leader>O` |
 
 ### Git panel
-- `cmd-1` / `cmd-2` — Changes / History tab
-- `space` — stage / unstage the selected file
-- `shift-space` — stage a range
-- `ctrl-cmd-y` / `ctrl-cmd-shift-y` — stage all / unstage all
-- `backspace` — restore the selected file (asks first)
-- `tab` in the Changes list — jump to the commit box
-- `tab` in the commit box — back to the list
-- `cmd-enter` — commit
-- `cmd-shift-enter` — amend
-- `alt-tab` in the commit box — generate a commit message
-- `ctrl-g up` / `ctrl-g down` — push / pull
-- Fetch and the project diff are under Review changes
+
+nvim column: the Neogit status buffer.
+
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| open, focus; again, back | `ctrl-shift-g` | `:G` | `<leader>Gg` |
+| close | `ctrl-alt-w` | | `q`, `<leader>Gq` |
+| Changes / History tab | `cmd-1` / `cmd-2` | | — / `l` (log popup) |
+| stage / unstage file | `space` | `x` | `s` / `u` |
+| stage a range | `shift-space` | `gx` | |
+| stage all / unstage all | `ctrl-cmd-y` / `ctrl-cmd-shift-y` | `X` / `U` | `S` / `U` |
+| open the file's diff | — | `gf` | `<CR>` opens the file |
+| restore file (asks first) | `backspace` | | `x` |
+| list to commit box / back | `tab` / `tab` | `i` / `tab` | |
+| commit / amend | `cmd-enter` / `cmd-shift-enter` | | `c` (popup) |
+| generate commit message | `alt-tab` (commit box) | | |
+| push / pull | `ctrl-g up` / `ctrl-g down` | | `P` / `p` (popups) |
 
 ### Threads sidebar
-- `alt-cmd-j` — show / hide the sidebar
-- `alt-cmd-;` — focus it from anywhere (e.g. the message box); again, back to the same spot
-- `up` / `down` — move through threads (`ctrl-p` / `ctrl-n` also work)
-- `left` / `right` — collapse / expand a project group
-- `enter` — switch to the selected thread
-- `cmd-f` — filter threads by title
-- `cmd-n` — new thread in the selected project
-- `shift-r` — rename
-- `shift-backspace` — archive; `cmd-shift-backspace` — delete
-- `cmd-g` — all threads, all projects, in time order
-- `ctrl-tab` / `ctrl-shift-tab` — thread switcher
-- `alt-]` / `alt-[` — next / previous thread
 
-### Terminal panel
-- `` ctrl-` `` — open / close the terminal panel
-- `ctrl-~` — new terminal tab
-- `cmd-n` — new terminal tab (panel focused)
-- `cmd-d` — split
-- `cmd-f` — search
-- `cmd-k` — clear (so `cmd-k` chords don't fire in a terminal)
-- `ctrl-shift-space` — vi-style scrollback selection
-- `cmd-shift-r` — task picker
-- `alt-cmd-r` — rerun the last task
+nvim column: the `<leader>av` agent-view sidebar.
 
-### Debugger
-- `f4` — start a session (from anywhere)
-- `f5` — continue (while stopped)
-- `f10` / `f11` / `shift-f11` — step over / into / out (while stopped)
-- `f9` in an editor — toggle breakpoint
-- `f6` — pause a running session (otherwise it cycles dock focus)
-- `shift-f5` — stop the session
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| show / hide | `alt-cmd-j` | | `<leader>av` / `q` |
+| focus; again, back to the same spot | `alt-cmd-;` | | |
+| move | `up` / `down` | `k` / `j` | |
+| collapse / expand project | `left` / `right` | `h` / `l` | |
+| next / prev project | — | `]p` / `[p` | |
+| switch to thread | `enter` | | `<CR>`, `1`…`9` |
+| filter by title | `cmd-f` | `/` | |
+| new thread in this project | `cmd-n` | `o` | `n` |
+| rename | `shift-r` | | `r` |
+| archive / delete | `shift-backspace` / `cmd-shift-backspace` | `dd` (delete) | `x` (kill) |
+| all threads, by time | `cmd-g` | | |
 
-## Tabs, closing, panes
+### Terminal, tasks, debugger
 
-### Tabs
-- `ctrl-tab` / `ctrl-shift-tab` — tab switcher (editors)
-- `ctrl-backspace` — close the selected tab in the switcher
-- `cmd-}` / `cmd-{` — next / previous tab
-- `alt-cmd-right` / `alt-cmd-left` — the same
-- `ctrl-1` … `ctrl-9` — jump to tab N
-- `ctrl-0` — last tab
-- `ctrl-shift-pagedown` / `ctrl-shift-pageup` — move tab right / left
-- `cmd-k shift-enter` — pin / unpin tab
-- `cmd-n` — new file
+| Action | Zed | Vim | nvim |
+|---|---|---|---|
+| terminal panel: open / close | `` ctrl-` `` | `:te` | `<C-/>` (float: `<C-\>`) |
+| debug panel: open, focus / close | `cmd-shift-d` / `ctrl-alt-w` | `:D` | `<leader>du` |
+| new terminal tab | `ctrl-~`, `cmd-n` (panel) | | `<M-n>` (float), `2<C-\>` |
+| split / search / clear | `cmd-d` / `cmd-f` / `cmd-k` | | |
+| select in scrollback (vi keys) | `ctrl-shift-space` | | `jj`, `<Esc>` (normal mode) |
+| task picker / rerun last | `cmd-shift-r` / `alt-cmd-r` | | |
+| debug: start / continue / stop | `f4` / `f5` / `shift-f5` | | `<F5>` / `<F5>` / `<leader>dq` |
+| step over / into / out | `f10` / `f11` / `shift-f11` | | `<F12>` (out) |
+| toggle breakpoint / pause | `f9` / `f6` (running) | | `<leader>db` (breakpoint) |
 
-### Closing
-- `cmd-w` — close tab
-- `cmd-shift-t` — reopen closed tab
-- `alt-cmd-t` — close other tabs
-- `cmd-k e` / `cmd-k t` — close tabs to the left / right
-- `cmd-k u` — close clean (unmodified) tabs
-- `cmd-k w` — close all tabs
-- `cmd-k cmd-w` — close all tabs and panes
-- `ctrl-alt-cmd-w` — close inactive tabs and panes
-- `cmd-shift-w` — close window
+## Vim-only extras
 
-### Panes and splits
-- `cmd-\` — split right
-- `cmd-k up/down/left/right` — split in that direction
-- `cmd-k cmd-up/down/left/right` — focus the pane in that direction
-- `cmd-1` … `cmd-9` — focus pane N
+None of these exist in the nvim config.
+
+- Text objects: `iq`/`aq` any quotes, `if`/`af` function, `ic`/`ac` class,
+  `ia`/`aa` argument, `ii`/`ai` indent, `ie` whole file
+- Surround: `ys` + motion + char, `cs"'`, `ds"`
+- Jump: `]m`/`[m` method, `]]`/`[[` section, `]r`/`[r` same symbol
+- `gR` + motion replace with register; `cx` + motion twice to exchange
+- `:` commands take no file argument (no `:e file`); use `cmd-p` or `gf`
 
 ## Zed itself
-- `cmd-k cmd-s` — keymap editor (search any action and its binding)
-- `cmd-k cmd-m` — open this cheatsheet
-- `cmd-shift-v` in a markdown preview — show source (edit the file)
-- `cmd-shift-v` in markdown source — open the preview
-- Every `.md` opens as a preview (`markdown_preview.open_markdown_files_in_preview`)
-- `cmd-k v` — open the preview to the side
+
+| Action | Zed | nvim |
+|---|---|---|
+| keymap editor, searches every action | `cmd-k cmd-s` | `<leader>sk` |
+| settings | `cmd-,` | |
+| markdown: preview to the side | `cmd-k v` | |
+
+Every `.md` opens as a preview (`markdown_preview.open_markdown_files_in_preview`).
 
 ## Gotchas
-Keys that mean different things by context:
-- `cmd-y`: editor = stage and next; agent review = keep; permission prompt = allow once
-- `alt-cmd-y`: toggle all docks; editor hunk = toggle staged; in a thread = allow always
-- `alt-cmd-z`: editor = revert hunk; agent diff = reject hunk
-- `shift-escape`: zoom; in the git commit box = expand the commit editor
-- `alt-tab`: editor = accept prediction; thread = cycle models; git panel = commit message
 
-Other:
-- A `●` on a tab you didn't edit means the file changed on disk (stale tab).
-  Don't `cmd-s` it; run palette `editor: reload file`, or close it with Don't Save.
-- `alt-cmd-g r` only works inside a branch diff; open one first with `git: diff branch`.
-- Branch diffs use the last-fetched `origin/<base>`; fetch first (`ctrl-g ctrl-g`).
-- Not yet tried in a running Zed: the Review changes keys (from Zed's default keymap).
+| Key | Editor | Elsewhere |
+|---|---|---|
+| `cmd-y` | stage hunk, next | agent diff: keep; permission prompt: allow once |
+| `alt-cmd-y` | toggle hunk staged | dock: all docks; permission prompt: allow always |
+| `alt-cmd-z` | revert hunk | agent diff: reject; permission prompt: reject once |
+| `alt-tab` | accept edit prediction | thread: cycle models; commit box: message |
+| `shift-escape` | zoom | commit box: expand the editor |
+| `enter` | — | project panel: rename; vim project panel: open |
+| `ctrl-g` | go to line | vim normal mode: show location (use `:<n>`) |
+| `cmd-k` | chord prefix | terminal: clear, so `cmd-k` chords never fire |
 
-## Vim mode
-Defaults only; nothing from the nvim config is mapped yet.
-Toggle: `cmd-k cmd-v`. Zoom, docks, and the other non-vim keys above still apply.
+Same key, different meaning in nvim:
 
-### Tabs and files
-- `]b` / `[b` — next / previous tab
-- `gt` / `gT` — the same; `3gt` jumps to tab 3
-- `]B` / `[B` — last / first tab
-- `ctrl-^` — alternate file
-- `ctrl-o` / `ctrl-i` — jump list back / forward (follows `gd` across files)
-- `ZZ` / `ZQ` — close tab, saving / discarding
-- `ctrl-w c` — close tab
-- `ctrl-w o` — close other tabs
-- `ctrl-w a` — close all tabs in the pane
-- `:w` `:q` `:wq` `:bd` — save / close tab
-- `:tabn` `:tabp` `:tabnew` `:tabc` `:ls` — tab strip
-- `:` — command palette; any Zed action works as `:<action name>`
+| Key | Zed vim | nvim |
+|---|---|---|
+| `H` / `L` | top / bottom of screen | prev / next buffer |
+| `gb` | block comment | alternate buffer |
+| `<C-h/j/k/l>` | backspace, down, kill line, center | focus split |
+| `space` | move right (no leader yet) | leader |
+| `x`, git panel | stage | discard (Neogit) |
+| `x`, project panel | reveal in Finder | cut (nvim-tree) |
+| `d`, project panel | new folder | delete permanently (nvim-tree) |
+| `f12` | go to definition (any mode) | debugger step out |
+| `ys`, `cs`, `ds` | surround | not mapped |
 
-### Panes (`ctrl-w`)
-- `ctrl-w h/j/k/l` — focus pane
-- `ctrl-w w` / `ctrl-w p` — cycle panes
-- `ctrl-w v` / `ctrl-w s` — split vertical / horizontal (`:vsp` / `:sp`)
-- `ctrl-w H/J/K/L` — move pane to an edge
-- `ctrl-w x` — swap with next pane
-- `ctrl-w >` `<` `+` `-` — resize
-- `ctrl-w _` — maximize
-- `ctrl-w =` — equalize
-- Docks are not panes; use the dock keys above (`f6` / `shift-f6`)
-
-### Code navigation
-- `gd` / `gD` — definition / declaration
-- `gy` / `gI` — type / implementation
-- `gA` — references
-- `K` / `gh` — hover
-- `grn` — rename
-- `gra` / `g.` — code actions
-- `gs` / `gS` — symbols in file / project
-- `g/` — project search
-- `g space` — open the real file from a multibuffer
-- `]d` / `[d` — next / previous diagnostic
-- `]c` / `[c` — next / previous git hunk
-- `]m` / `[m` — next / previous method
-- `]]` / `[[` — next / previous section
-- `ctrl-w d` — definition in a split
-
-### Editing
-- `gcc` — toggle line comment
-- `gc` + motion — comment a range
-- `ysiw)` / `cs"'` / `ds"` — surround add / change / delete
-- `gl` — add cursor at next match
-- `ga` — cursor at every match
-- `iq` / `aq` — inside / around any quotes
-- `if` / `af` — inside / around function
-- `ic` / `ac` — inside / around class
-- `do` — show hunk diff
-- `dp` — revert hunk
-- `du` — stage hunk and go to next
-
-### Panels
-Project, outline, and git lists: `j` / `k` move. Project, outline, and the git
-Changes list also take `h` / `l` (collapse / expand) and `gg` / `G` (first / last).
-`:` opens the palette in panels (not in editors or the terminal).
-
-#### Project panel
-- `enter` / `t` — open (permanent tab)
-- `p` — preview open
-- `v` / `o` — open in a vertical / horizontal split
-- `%` — new file
-- `d` — new directory
-- `R` — rename
-- `D` — delete
-- `x` — reveal in Finder
-- `-` — select parent
-- `}` / `{` — next / previous directory
-- `]c` / `[c` — next / previous git change
-- `/` — search in this directory
-
-#### Git panel
-- `x` — stage / unstage
-- `X` / `U` — stage all / unstage all
-- `gf` — open the diff
-- `gx` — stage a range
-- `i` — into the commit box
-- `tab` — back to the list
-
-#### Outline panel
-- `enter` — focus the editor at the entry
-- `-` — parent entry
-
-#### Threads sidebar
-- `h` / `l` — collapse / expand a project group
-- `/` — filter (`escape` cancels)
-- `o` — new thread in this project
-- `dd` — delete thread
-- `]p` / `[p` — next / previous project
+- A `●` on a tab you didn't edit means the file changed on disk. Don't `cmd-s`;
+  run `editor: reload file` or close with Don't Save.
+- `cmd-w` closes the tab, never the dock; `ctrl-alt-w` closes the dock.
+- `cmd-t` / `gS` see only running language servers; a server starts when you
+  open a file in its language.
+- Vim: `ctrl-c` is escape, not copy. Regex is Rust's: `(a|b)`, `$1`.
+- Adopting nvim keys in Zed: `docs/zed-vim-keymap.md` has a ready block.
