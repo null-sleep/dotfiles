@@ -1,0 +1,10 @@
+#!/bin/sh
+# Launch the local dev build of Zed (cargo build -p zed in $ZED_SRC), detached
+# from the terminal. Named zed-dev so it never shadows the brew `zed` CLI.
+src="${ZED_SRC:-$HOME/src/zed}"
+bin="$src/target/debug/zed"
+if [ ! -x "$bin" ]; then
+    echo "zed-dev: $bin not found; run 'cargo build -p zed' in $src" >&2
+    exit 1
+fi
+nohup "$bin" "$@" >/dev/null 2>&1 &

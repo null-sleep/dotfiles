@@ -1863,6 +1863,19 @@ diff. Extensions themselves live in
 launch, which makes stow refuse. Move it aside first:
 `mv ~/.config/zed/settings.json ~/.config/zed/settings.json.bak`.
 
+**Local dev build:** with Zed checked out at `~/src/zed` (override with
+`ZED_SRC`) and built via `cargo build -p zed` (macOS needs Xcode's Metal
+Toolchain, `xcodebuild -downloadComponent MetalToolchain`, plus `brew install
+cmake`), two scripts from the [zsh](#zsh) package cover it:
+
+- `zed-dev [args]` runs `target/debug/zed` detached from the terminal
+  (`zed-dev .`). The name avoids shadowing the brew `zed` CLI.
+- `zed-dev-app` generates `~/Applications/Zed Dev.app` for the Dock, with
+  Zed's own `app-icon-dev` icon and bundle id `dev.zed.Zed-Dev`. The bundle
+  only symlinks to the debug binary, so each rebuild is picked up without
+  rerunning it; rerun after moving the checkout. Debug builds read the same
+  `~/.config/zed`, so the stowed settings apply.
+
 Zed docs, all checked against Zed 1.28.1 (each says so at the top; after an
 upgrade, re-verify against the new tag and bump that line):
 
