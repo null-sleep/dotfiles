@@ -151,6 +151,7 @@
             // is expected, commit or leave it, never discard (see
             // agent.default_model).
             "default_config_options": {
+                "mode": "default",
                 "model": "openrouter/anthropic/claude-sonnet-5.5"
             },
             "type": "custom",
