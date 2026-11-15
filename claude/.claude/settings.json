@@ -1,6 +1,6 @@
 {
   "includeCoAuthoredBy": false,
-  "model": "opus",
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -91,6 +91,7 @@
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "custom:active",
+  "preferredNotifChannel": "terminal_bell",
   "editorMode": "normal",
   "autoMode": {
     "environment": [

@@ -344,8 +344,10 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 | `~/.agents/skills/keymap-audit/SKILL.md` | Symlinked via the `agents` stow package (`--no-folding`) |
 | `~/.claude/skills/*` | Compatibility symlinks created by `setup-skill-adapters.sh` for every canonical global skill except the separately selected `review-pr` |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
-| `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |
+| `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, notification channel, hooks) |
 | `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
+
+`settings.json` sets `preferredNotifChannel` to `terminal_bell` so Claude Code rings the terminal bell, which Zed Terminal Threads turn into the same pop-up and sound as an ACP thread finishing (needs `agent.notify_when_agent_waiting` / `agent.play_sound_when_agent_done` in Zed). Claude sends the bell about 6 seconds after a permission prompt and about 60 seconds after finishing (only if you haven't typed since), not instantly. It replaces the default `auto` desktop notification in Ghostty with a bell (Dock bounce + 🔔 tab title; no sound by default). Under tmux, Zed only sees the bell with `set -g allow-passthrough on`. See [plans/zed-claude-stop-bell.md](plans/zed-claude-stop-bell.md) for the instant, Zed-only alternative.
 
 `~/.claude/hooks/sidekick-notify.sh` depends on `jq` and coreutils' `timeout` — both no-op-guard-checked at the top of the script, so a machine missing either just gets no agent-view attention glyphs rather than a broken hook; `jq` and `coreutils` are both in the Brewfile.
 
