@@ -819,6 +819,20 @@ is the point; Terminal Threads for a harness you have customised (Claude,
 pi). Zed profiles, Skills, and `AGENTS.md` apply to neither — external
 agents read their own instruction files.
 
+<a id="terminal-thread-notifications"></a>
+### Terminal Thread notifications
+
+A bell (BEL) from an unfocused Terminal Thread gives the same pop-up as an
+ACP thread (`agent.notify_when_agent_waiting`; the sound follows
+`agent.play_sound_when_agent_done`, default `never`). It has no caption line
+and only one pop-up fires per thread until you focus it. For Claude, the
+stowed `terminal-bell.sh` hook rings the bell the moment a turn ends or a
+prompt appears and puts the reason in the terminal title (`✓ Finished`,
+`⚠ Needs permission: Bash`). A thread renamed in Zed keeps only that leading
+glyph. Details and gaps against omp's ACP pop-ups:
+[plans/zed-claude-stop-bell.md](../plans/zed-claude-stop-bell.md); README →
+Claude Code.
+
 <a id="threads-sidebar"></a>
 ## Threads sidebar
 

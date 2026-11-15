@@ -81,7 +81,8 @@ sudo spctl developer-mode enable-terminal   # adds Terminal.app, reveals the pan
 
 1. System Settings → Privacy & Security → **Developer Tools** → add every app
    you build from: **Ghostty**, **Terminal**, **Neovide**, **Zed** (its built-in
-   terminal spawns from Zed, not your shell), plus any IDE (e.g. RustRover).
+   terminal spawns from Zed, not your shell; also `Zed Dev.app` if you build it,
+   see [Zed](#zed)), plus any IDE (e.g. RustRover).
 2. Fully quit and restart each app; run `cargo clean` once.
 
 Trade-off: the exemption skips checks for *every* binary the app launches, so
@@ -348,7 +349,13 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 | `~/.claude/hooks/terminal-bell.sh` | Symlinked via stow (`--no-folding`) — instant bell when Claude finishes or needs you, in Zed and Ghostty (registered in `settings.json`; no-ops in other terminals) |
 | `~/.claude/hooks/sidekick-notify.sh` | Symlinked via stow (`--no-folding`) — Claude-hook → nvim RPC bridge for the agent view's attention glyphs (registered in `settings.json`; no-ops outside a sidekick-managed nvim, see the nvim GUIDE's AI section) |
 
-`~/.claude/hooks/terminal-bell.sh` runs on `Stop`, `StopFailure`, `PermissionRequest` and `Elicitation`. When `TERM_PROGRAM=zed` it returns a title change plus a BEL as the hook's `terminalSequence` output, which Claude writes to its terminal. Zed Terminal Threads turn that bell into the same pop-up (and sound, if enabled) as an ACP thread (the pop-up follows `agent.notify_when_agent_waiting`, default on; the sound follows `agent.play_sound_when_agent_done`, default `never` and not set in this repo). It fires the moment a turn ends or a prompt appears, unlike Claude's `terminal_bell` channel (about 60 s after finishing, 6 s after a prompt). Zed's pop-up has no caption line, so the hook puts the reason in the title (e.g. `⚠ Needs permission: Bash · <session title>`). A thread you've renamed in Zed shows its own name, keeping only the leading glyph (e.g. `✓ <your name>`). The thread's sidebar title shows it until Claude rewrites its own. After one pop-up the thread stays silent until you focus it. The hook uses `jq` (Brewfile) and falls back to a bare bell without it. In Ghostty (`TERM_PROGRAM=ghostty`) the hook sends a bare BEL, which Ghostty's default `bell-features` turn into a Dock bounce and 🔔 tab title. `preferredNotifChannel` is left at its default `auto`, so Ghostty also gets Claude's desktop banner on its usual delay. Other machines: after pulling, re-run `stow --no-folding claude`; the old `zed-bell.sh` link (renamed to `terminal-bell.sh`) is left dangling and can be deleted. Comparison with omp's ACP notifications: [plans/zed-claude-stop-bell.md](plans/zed-claude-stop-bell.md).
+`~/.claude/hooks/terminal-bell.sh` runs on `Stop`, `StopFailure`, `PermissionRequest` and `Elicitation` and rings an instant bell. Claude's own `terminal_bell` channel waits about 60 s after a finish and 6 s after a prompt. What it does depends on `$TERM_PROGRAM`:
+
+- **Zed** — sends a title change plus BEL as the hook's `terminalSequence`, which Claude writes to its terminal. Zed Terminal Threads turn the bell into the same pop-up as an ACP thread (see [`docs/zed.md`](docs/zed.md#terminal-thread-notifications) for the sound setting). The pop-up has no caption line, so the hook puts the reason in the title (e.g. `⚠ Needs permission: Bash · <session title>`). A thread renamed in Zed keeps only the leading glyph (`✓ <your name>`), and the sidebar title shows the caption until Claude rewrites it. After one pop-up the thread stays silent until you focus it. Needs `jq` (Brewfile); without it the hook sends a bare bell.
+- **Ghostty** — sends a bare BEL, which Ghostty's default `bell-features` turn into a Dock bounce and 🔔 tab title. `preferredNotifChannel` stays at its default `auto`, so Claude's desktop banner follows on its usual delay.
+- **Anything else** (including tmux, which overwrites `TERM_PROGRAM`) — does nothing.
+
+Other machines: after pulling, re-run `stow --no-folding claude`; the old `zed-bell.sh` link (renamed to `terminal-bell.sh`) is left dangling and can be deleted. Comparison with omp's ACP notifications: [plans/zed-claude-stop-bell.md](plans/zed-claude-stop-bell.md).
 
 `~/.claude/hooks/sidekick-notify.sh` depends on `jq` and coreutils' `timeout` — both no-op-guard-checked at the top of the script, so a machine missing either just gets no agent-view attention glyphs rather than a broken hook; `jq` and `coreutils` are both in the Brewfile.
 
