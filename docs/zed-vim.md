@@ -68,7 +68,8 @@ Used many times a day; each is covered in full below.
 | `ZZ` / `ZQ`, `ctrl-w o` | close tab (save / discard), close others | `:x`, `<leader>bo` |
 | `cmd-shift-e`, `:E` | project panel (then `h`/`j`/`k`/`l`) | `<leader>e` |
 | `do` / `dp` / `du` | show hunk / revert hunk / stage hunk and next | `<leader>hp` / `hr` / `hs` |
-| `gcc`, `ysiw)`, `cs"'`, `ds"` | comment, surround | same |
+| `gcc`, `gc` + motion | comment | same |
+| `ysiw)`, `cs"'`, `ds"` | surround | — (no surround plugin in the nvim config) |
 | `gl` / `ga` | add cursor at next match / all matches | — |
 | `cmd-?`, `:A` | agent panel | `<leader>aa` |
 | `cmd-k cmd-v` | toggle vim mode on / off (works with it off, too) | — |

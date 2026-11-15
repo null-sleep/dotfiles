@@ -363,8 +363,9 @@ the docs don't show — add it via the keymap editor (`space s k` →
   block for panels. It doesn't collide with vim.json's own `space f`,
   `space /`, `space shift-s`, `space w …` there.
 - **Leader chords wait 1 s** before `space` falls through to
-  `vim::WrappingRight`; turn on the which-key popup while learning
-  ([how](zed.md#custom-bindings)).
+  `vim::WrappingRight`; the which-key popup (`which_key.enabled`, on in
+  this repo's `settings.json`) lists what can complete a pending chord
+  ([details](zed.md#custom-bindings)).
 
 <a id="to-check"></a>
 ## To check

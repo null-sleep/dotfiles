@@ -1091,8 +1091,9 @@ companion [`docs/zed-vim.md`](zed-vim.md).
 - **Key notation.** Modifiers `cmd-`, `ctrl-`, `alt-`, `shift-`, `fn-`,
   joined with `-`; `shift-` only with letters (`shift-g`, never `shift-(`).
   Chords are space-separated (`"space a a"`, `"cmd-k cmd-s"`) and wait 1 s;
-  `alt-/` lists what can complete one, and
-  `"which_key": { "enabled": true }` shows a which-key.nvim-style popup.
+  `alt-/` lists what can complete one, and the which-key.nvim-style popup
+  (`"which_key": { "enabled": true }`, on in this repo) shows the same
+  while you wait.
 - **Contexts.** `Editor`, `Workspace`, `Pane`, `Dock`, `Terminal`,
   `ProjectPanel`, `GitPanel`, `AgentPanel`, `AcpThread`, `ThreadsSidebar`,
   `OutlinePanel`, `BufferSearchBar`, `menu`, plus attributes like
