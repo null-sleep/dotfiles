@@ -13,5 +13,15 @@
             "alt-]": "multi_workspace::NextThread",
             "alt-[": "multi_workspace::PreviousThread"
         }
+    },
+    // Toggle vim mode. Zed has no default key (palette: "workspace: toggle vim
+    // mode"). Workspace context so it works with vim on or off. Rewrites
+    // settings.json's vim_mode; Terminal has its own cmd-k (terminal::Clear),
+    // so the chord does not fire there.
+    {
+        "context": "Workspace",
+        "bindings": {
+            "cmd-k cmd-v": "workspace::ToggleVimMode"
+        }
     }
 ]

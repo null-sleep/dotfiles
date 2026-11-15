@@ -94,6 +94,7 @@ Used many times a day; each is covered in full below.
 | `enter` / `cmd-enter` | send / send and follow (in a thread) |
 | `ctrl-shift-r` | open agent diff (review changes) |
 | `alt-shift-y` / `alt-shift-z` | keep all / reject all agent edits |
+| `cmd-k cmd-v` | toggle vim mode (`workspace::ToggleVimMode`; writes `vim_mode` to `settings.json`) |
 
 <a id="mental-model"></a>
 ## The mental model
@@ -322,7 +323,7 @@ the commit message.
 | `cmd-shift-p` | `command_palette::Toggle` | every action, with its binding; sorted by recency |
 | `cmd-p` | `file_finder::Toggle` | fuzzy file finder with preview; pre-fills from the selection (`file_finder.prefill_query_from_selection`) |
 | `alt-cmd-f` | `text_finder::Toggle` | live-grep picker with preview (Telescope `live_grep`); pre-fills from the selection or an open search; from the project-search view it carries the query over |
-| `cmd-t` / `cmd-shift-o` | `project_symbols::Toggle` / `outline::Toggle` | workspace symbols (with preview) / current-file symbols (modal) |
+| `cmd-t` / `cmd-shift-o` | `project_symbols::Toggle` / `outline::Toggle` | workspace symbols (with preview; only from [running language servers](#language-servers)) / current-file symbols (modal) |
 | `cmd-shift-b` | `outline_panel::ToggleFocus` | outline as a panel; in a multibuffer, a tree of its files |
 | `ctrl-tab` / `ctrl-shift-tab` | `tab_switcher::Toggle` | MRU tab switcher with file preview |
 | `cmd-alt-o` | `projects::OpenRecent` | recent projects |
@@ -340,8 +341,8 @@ run the same actions. In vim normal mode `ctrl-o` / `ctrl-i` are the same
 two actions and cross files, so they follow `gd` into another file and
 back. In insert mode `ctrl-o` runs one normal-mode command instead, so
 press `escape` first. `ctrl-]` / `ctrl-t` (`GoToDefinition` /
-`GoToOlderTag`) are the tag-stack variant; see
-[`zed-vim.md`](zed-vim.md#files-tabs).
+`GoToOlderTag`) are the tag-stack variant. Full vim-mode and nvim
+comparison: [`zed-vim.md`](zed-vim.md#nvim-nav-compare).
 
 Inside any picker (`menu` context): `enter` confirms, `cmd-enter` opens in
 a split, `escape`/`ctrl-c` cancels, `ctrl-n`/`ctrl-p` or arrows move. In
@@ -452,6 +453,26 @@ The vim column includes Neovim 0.11's `g r*` set.
 | `ctrl-:` / `cmd-k z` | `editor::ToggleInlayHints` / `ToggleSoftWrap` | — / `:set wrap` |
 | `cmd-k cmd-h` | `call_hierarchy::ShowIncomingCalls` | — |
 | `ctrl-space` | `editor::ShowCompletions` (see [Gotchas](#gotchas)) | `ctrl-x ctrl-o` (insert) |
+
+<a id="language-servers"></a>
+**Language servers in a multi-language repo.** A server starts when you
+open a file of its language, not when you open the project: a Go + Rust
+repo with only `.go` files open runs only gopls. Workspace symbol search
+(`cmd-t`, `project_symbols::Toggle`) queries every *running* server and
+merges the results, so a language you have not opened yet contributes
+nothing — open one file per language after launching Zed. Servers also run
+per worktree ([`zed-worktrees.md`](zed-worktrees.md)), and servers that
+only index open files return less than ones that scan the project. Check
+what is running with `dev: open language server logs`. Read from the
+v1.28.1 source (`LspStore::symbols`), not tested in the app.
+
+**The `cmd-t` prompt is one name query.** Unlike nvim's `<leader>ss`
+(first word to the LSP, the rest fuzzy-filters by file path), Zed sends the
+whole prompt to each server and fuzzy-matches the symbol name locally; a
+space is an ordinary character, not a path filter. Only `::` is special:
+the part after the last `::` is used for the local match, for
+rust-analyzer's `module::item` queries. To narrow by file, use `cmd-p` or
+`alt-cmd-f` instead (source: `project_symbols.rs`, v1.28.1).
 
 <a id="search-multibuffers"></a>
 ## Search and multibuffers
@@ -948,7 +969,8 @@ agents' edits reach this buffer at all, and how to review the rest:
 <a id="vim-mode"></a>
 ## Vim mode
 
-`"vim_mode": true` (or `workspace: toggle vim mode`); this repo ships it
+`"vim_mode": true` (or `cmd-k cmd-v`, `workspace::ToggleVimMode`, bound in
+`keymap.json`; palette: `workspace: toggle vim mode`); this repo ships it
 off with the `vim` block ready (`use_system_clipboard: "on_yank"` matches
 nvim). Motions, operators, text objects, registers, marks, macros, `.`, and
 `:` ranges work; `%` and `w` are Tree-sitter-tuned. LSP, search, hunk, and

@@ -1806,9 +1806,10 @@ Stowed to `~/.config/zed/`:
   hiding nested git worktrees from the main checkout's project panel,
   search, and Zed Agent's file tools
   ([`docs/zed-worktrees.md`](docs/zed-worktrees.md#exclusions)).
-- **`keymap.json`** — holds only `alt-]` / `alt-[` for cycling agent threads
+- **`keymap.json`** — two blocks: `alt-]` / `alt-[` for cycling agent threads
   (`multi_workspace::NextThread` / `PreviousThread`, agent panel and sidebar
-  only); the vim-mode bindings to adopt from nvim are proposed in
+  only), and `cmd-k cmd-v` (`workspace::ToggleVimMode`) to toggle vim mode;
+  the vim-mode bindings to adopt from nvim are proposed in
   [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
 
 `--no-folding` because `~/.config/zed/` also holds runtime state (`prompts/`,

@@ -36,6 +36,7 @@ is `"] shift-b"`.
 - [Moving inside a file](#in-file)
 - [Moving between files and tabs](#files-tabs)
 - [Code navigation (LSP, diagnostics)](#code-nav)
+  - [Go to and back: nvim vs Zed vim](#nvim-nav-compare)
 - [Panes and docks (`ctrl-w`)](#panes)
 - [Panels with vim keys](#panels)
 - [Git hunks and agent review](#git-review)
@@ -70,6 +71,7 @@ Used many times a day; each is covered in full below.
 | `gcc`, `ysiw)`, `cs"'`, `ds"` | comment, surround | same |
 | `gl` / `ga` | add cursor at next match / all matches | — |
 | `cmd-?`, `:A` | agent panel | `<leader>aa` |
+| `cmd-k cmd-v` | toggle vim mode on / off (works with it off, too) | — |
 
 <a id="mental-model"></a>
 ## The mental model
@@ -108,8 +110,12 @@ Used many times a day; each is covered in full below.
 ```
 
 The repo's `settings.json` ships `vim_mode: false` with the `vim` block in
-place; flip the flag (or `workspace: toggle vim mode`) and uncomment the
-editing block. Other `vim` keys: `default_mode`, `use_regex_search`,
+place; flip the flag and uncomment the editing block. **`cmd-k cmd-v`**
+(`workspace::ToggleVimMode`, bound in `keymap.json`; palette:
+`workspace: toggle vim mode`) toggles it live and writes `vim_mode` back to
+`settings.json` — check `git diff zed/` afterwards. It does not fire in the
+terminal, where `cmd-k` is `terminal::Clear`.
+Other `vim` keys: `default_mode`, `use_regex_search`,
 `gdefault`, `highlight_on_yank_duration` (ms, `0` off), `custom_digraphs`.
 `command_aliases` (top level) adds palette aliases: `{ "W": "w", "Q": "q" }`.
 
@@ -190,6 +196,57 @@ the finder only from non-editor panes (project panel, empty pane).
 | `ctrl-w d`, `ctrl-w gd`, `ctrl-w ]` | `editor::GoToDefinitionSplit` | definition in a new split |
 | `ctrl-w D`, `ctrl-w gD` | `editor::GoToTypeDefinitionSplit` | type definition in a split |
 | `ctrl-w space` | `editor::OpenExcerptsSplit` | multibuffer excerpt in a split |
+
+<a id="nvim-nav-compare"></a>
+### Go to and back: nvim vs Zed vim
+
+Side by side with this repo's nvim config (`lua/lsp.lua`, `keymaps.lua`,
+`neovide.lua`). The core keys are identical; the gaps are the peek floats
+and call hierarchy.
+
+**Go to**
+
+| Zed vim | nvim | does |
+|---|---|---|
+| `gd`, `ctrl-]` | `gd` | definition |
+| `gD` | `gD` | declaration (nvim: only where the LSP supports it) |
+| `gy` | `gy`, `grt` | type definition |
+| `gI`, `gri` | `gri` | implementation |
+| `gA`, `grr` | `grr` | all references |
+| `]r` / `[r` | — | next / prev occurrence of the symbol under the cursor |
+| `ctrl-w d`, `ctrl-w gd`, `ctrl-w ]` | — (`<leader>pd` peeks in a float) | definition in a new split |
+| `ctrl-w D`, `ctrl-w gD` | — (`<leader>pt` peeks) | type definition in a split |
+| — | `<leader>pi` / `<leader>pr` | peek implementation / references |
+| — | `gai` / `gao` | incoming / outgoing calls (Zed equivalent not checked) |
+
+**Back and forward**
+
+| Zed vim | nvim | does |
+|---|---|---|
+| `ctrl-o` | `ctrl-o` | back in the jump list; crosses files |
+| `ctrl-i` | `ctrl-i` | forward in the jump list |
+| `ctrl--` / `ctrl-_` | — | same as `ctrl-o` / `ctrl-i`, in any mode ([`zed.md`](zed.md#pickers)) |
+| `ctrl-t` | `ctrl-t` | back through the tag stack, paired with `ctrl-]` |
+| `ctrl-^` | `gb` | alternate file |
+| — | mouse back / forward buttons | `ctrl-o` / `ctrl-i` |
+| — | `cmd-alt-left` / `cmd-alt-right` (Neovide only) | `ctrl-o` / `ctrl-i` |
+
+**Related**
+
+| Zed vim | nvim | does |
+|---|---|---|
+| `K`, `gh` | `K` | hover |
+| `grn`, `cd` | `grn` | rename |
+| `gra`, `g.` | `gra`, `<leader>ca` | code actions |
+| `gs`, `gO` | `gO` | symbols in this file |
+| `gS` | — (`<leader>ss` picker) | symbols across the workspace |
+| `]d` / `[d` | `]d` / `[d` | diagnostics |
+
+**Differences.** nvim sends `gd`, `gy`, `gri`, `grr` through snacks
+pickers (a single result jumps straight there); Zed opens a multibuffer
+unless `"lsp_results_location": "picker"` is set. `grt` is the only nvim
+binding with no Zed twin — `gy` covers it. nvim's `ctrl-click` jumps to
+the definition; the Zed equivalent was not checked.
 
 Multiple definitions or references open a multibuffer: `cmd-down`/`cmd-up`
 step through excerpts ([multibuffer keys](zed.md#search-multibuffers)),
@@ -388,6 +445,10 @@ in `keymap.json` (how-to in [`docs/zed.md`](zed.md#custom-bindings)):
 - **`K` is hover, not man.** `gh` is the same thing.
 - **`ctrl-n`/`ctrl-p` in insert mode are word completions**, not LSP;
   `ctrl-x ctrl-o` or `ctrl-space` for the LSP menu.
+- **`gS` / `cmd-t` only see running language servers**, and a server
+  starts when you open a file of its language — in a multi-language repo,
+  open one file per language first
+  ([`zed.md`](zed.md#language-servers)).
 - **`ctrl-c` is escape** in insert/visual mode — it does not copy.
 - **Regex is Rust's** in `/`, `:s`, and project search: `(a|b)`, not
   `\(a\|b\)`; `$1`, `(?i)`; `\<` `\>` are `\b`.

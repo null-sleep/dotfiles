@@ -257,8 +257,9 @@ tool. It does **not** run on switch, or for worktrees made with
   switched-to workspace opens at that worktree's root, with its
   environment.
 - **Language servers run per checkout.** Two open worktrees of a large repo
-  means two of each server (gopls, tsserver, …); close workspaces you
-  aren't using if memory is tight.
+  means two of each server (gopls, tsserver, …), each started when you open
+  a file of its language there ([`zed.md`](zed.md#language-servers)); close
+  workspaces you aren't using if memory is tight.
 
 <a id="repo-managed"></a>
 ## Repos that already manage their own worktrees

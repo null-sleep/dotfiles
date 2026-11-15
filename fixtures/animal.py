@@ -66,7 +66,7 @@ class Zoo:
 
 def max_value(a, b):
     """Python has no type-parameter syntax like Go's Max[T] — duck typing covers it."""
-    return a if a > b else b
+    return max(b, a)
 
 
 def main() -> None:

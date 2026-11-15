@@ -1,9 +1,10 @@
 # Zed vim mode — recommended keymap
 
-**Status:** proposal, with `<M-]>` / `<M-[>` (cycle threads) adopted and
-tested (2026-11-14). `zed/.config/zed/keymap.json` holds only that row (the
-earlier draft, which mirrored nvim keys that don't exist, was removed); adopt
-further rows from the block below.
+**Status:** proposal, with `<M-]>` / `<M-[>` (cycle threads) and
+`cmd-k cmd-v` (`workspace::ToggleVimMode`, not an nvim carry-over) adopted
+and tested (2026-11-14). `zed/.config/zed/keymap.json` holds those two
+rows. The earlier draft, which mirrored nvim keys that don't exist, was
+removed; adopt further rows from the block below.
 
 **Basis: Zed 1.28.1** (`zed --version`) — every action and default named
 here was checked against the `v1.28.1` tag
@@ -93,7 +94,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<leader>sf` files | `cmd-p` | borrow | keeps the `s*` family intact |
 | `<leader>sg` live grep | `alt-cmd-f` picker, `g/` multibuffer | borrow | `text_finder::Toggle` is Telescope `live_grep` (preview, 1.9+); `g/` stays for editing results |
 | `<leader>sw` grep word/selection | `alt-cmd-f` | borrow | the text finder pre-fills from the selection (1.9 notes): `viw` then `space s w` |
-| `<leader>ss` workspace symbols | `gS` | borrow | alias; `gS` stays |
+| `<leader>ss` workspace symbols | `gS` | borrow | alias; `gS` stays. Same as nvim: only already-started servers answer ([Zed's rule](zed.md#language-servers)). Different prompt: no `name path` split, the whole text is the name query ([details](zed.md#language-servers)) |
 | `<leader>sd` document symbols | `gs` | borrow | alias; `gs` stays |
 | `<leader>s/`, `<leader>sb` in-buffer fuzzy | `/`, `cmd-f` | default | `/` is the same thing |
 | `<leader>sr` resume picker | `cmd-k cmd-p` | borrow | `workspace::ReopenLastPicker` |
@@ -120,6 +121,14 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<leader>ti` inlay hints | `ctrl-:` | borrow | `ctrl-:` is a stretch |
 | `<leader>th` auto-hover, `grx` codelens | — | skip | no equivalent |
 | `<M-o>` / `<M-i>` structural select | `[x` / `]x` | default | already two keys |
+
+Key-by-key nvim vs Zed vim comparison for go-to and back/forward:
+[`zed-vim.md` → Go to and back](zed-vim.md#nvim-nav-compare).
+
+**Multi-language repos:** a Zed language server starts when you open a file
+of its language, so `gS` / `cmd-t` and the LSP keys above only cover
+languages you have opened a file in this session; see
+[`zed.md` → Language servers](zed.md#language-servers).
 
 <a id="panels"></a>
 ### Panels
