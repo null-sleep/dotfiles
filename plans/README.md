@@ -632,6 +632,12 @@ Grouped by state, not priority.
   decision record (2026-11-14): why a Zed tab went stale, how Zed reloads
   buffers and saves omp's writes, the nvim comparison, the autosave and
   format-on-save choices, and the pending checks. Prune once verified.
+- [zed-settings-churn.md](zed-settings-churn.md) — decision record
+  (2026-11-14): Zed rewrites `settings.json` (`agent.default_model`, omp's
+  `default_config_options`) through the stow symlink on every model or mode
+  pick. Chosen: accept the drift and commit it. Records what writes the block
+  and the rejected options (delete the block, git clean filter,
+  `--skip-worktree`, copy instead of symlink).
 
 ## As-needed toolkit — known-good options, not scheduled work
 
