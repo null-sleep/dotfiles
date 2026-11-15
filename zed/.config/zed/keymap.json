@@ -24,11 +24,12 @@
             "cmd-k cmd-v": "workspace::ToggleVimMode"
         }
     },
-    // Open cheatsheet.md via the "cheatsheet" task in tasks.json.
+    // Show cheatsheet.md via the "cheatsheet" task in tasks.json, in the center
+    // pane (a pager; `q` closes it).
     {
         "context": "Workspace",
         "bindings": {
-            "cmd-k cmd-m": ["task::Spawn", { "task_name": "cheatsheet" }]
+            "cmd-k cmd-m": ["task::Spawn", { "task_name": "cheatsheet", "reveal_target": "center" }]
         }
     }
 ]
