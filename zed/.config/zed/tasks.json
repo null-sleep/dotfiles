@@ -1,0 +1,13 @@
+// Zed global tasks — stowed to ~/.config/zed/tasks.json (see README → "Zed").
+[
+    // Open the dotfiles cheatsheet in Zed; bound to cmd-k cmd-m in keymap.json.
+    {
+        "label": "cheatsheet",
+        "command": "zed",
+        "args": ["$HOME/src/dotfiles/cheatsheet.md"],
+        "reveal": "never",
+        "hide": "always",
+        "show_summary": false,
+        "show_command": false
+    }
+]

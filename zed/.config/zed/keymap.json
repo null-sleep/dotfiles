@@ -23,5 +23,12 @@
         "bindings": {
             "cmd-k cmd-v": "workspace::ToggleVimMode"
         }
+    },
+    // Open cheatsheet.md via the "cheatsheet" task in tasks.json.
+    {
+        "context": "Workspace",
+        "bindings": {
+            "cmd-k cmd-m": ["task::Spawn", { "task_name": "cheatsheet" }]
+        }
     }
 ]

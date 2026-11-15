@@ -14,6 +14,12 @@
     "buffer_font_family": "Hack Nerd Font Mono",
     "buffer_font_size": 15,
 
+    // Open every .md as the rendered preview (replaces the editor tab), so
+    // the cheatsheet task in tasks.json lands in preview.
+    "markdown_preview": {
+        "open_markdown_files_in_preview": true,
+    },
+
     // Pinned dark; "system" follows macOS, which is in light mode.
     "theme": {
         "mode": "dark",
