@@ -47,10 +47,11 @@ brew "coreutils"       # provides gtimeout, used by claude-nvim and
 brew "jq"              # used by claude/setup-*.sh (macOS 15+ ships one too)
 
 #-----------------------------------------------------------------------------
-# Editor — Neovim + build tooling
+# Editor and build tooling
 #-----------------------------------------------------------------------------
 brew "neovim"
 brew "tree-sitter-cli" # builds treesitter parsers
+brew "cmake"           # cross-platform build system generator
 # LSP servers, formatters, and linters are installed by Mason inside nvim.
 
 #-----------------------------------------------------------------------------

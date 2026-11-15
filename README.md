@@ -44,7 +44,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Git](#git) — [SSH for GitHub](#ssh-for-github)
 
 *Optional / utilities*
-- [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [Tabularis](#tabularis) — [MCP integration](#mcp-integration) · [viu](#viu) · [Vorssaint](#vorssaint) · [yknotify](#yknotify)
+- [CMake](#cmake) · [Colima](#colima) · [macos](#macos) · [rcmd](#rcmd) · [ripgrep](#ripgrep) · [Tabularis](#tabularis) — [MCP integration](#mcp-integration) · [viu](#viu) · [Vorssaint](#vorssaint) · [yknotify](#yknotify)
 
 
 # Part 1: Essentials
@@ -61,7 +61,7 @@ section below; the rest of this README is reference material for individual tool
    ```bash
    mkdir -p ~/src && git clone https://github.com/null-sleep/dotfiles.git ~/src/dotfiles
    ```
-4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
+4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, build tool (including [CMake](#cmake)), font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr zed` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
@@ -2321,6 +2321,11 @@ Host github.com
 ```
 
 Verify with `ssh -T git@github.com` — a successful run prints `Hi <username>!`. `~/.gitconfig` and `~/.ssh/config` are per-machine and **not** managed by stow.
+
+## CMake
+
+Cross-platform build system generator, included in the [`Brewfile`](Brewfile).
+Install separately with `brew install cmake`.
 
 ## Colima
 
