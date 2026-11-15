@@ -154,6 +154,8 @@
     "file_scan_exclusions": ["...", "**/.worktrees", "**/.claude/worktrees"],
 
     "agent": {
+        "terminal_init_command": "claude",
+        "enable_feedback": false,
         "auto_compact": {
             "threshold": "70%"
         },
@@ -211,7 +213,6 @@
     },
     "agent_servers": {
         // Start Claude threads in bypass mode (omp-like); shift-tab cycles.
-        "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },
         "codex-acp": { "type": "registry" },
         // `--approval-mode yolo`: omp's ACP mode asks before every bash call
         // unless yolo is set explicitly; the built-in default doesn't count.
