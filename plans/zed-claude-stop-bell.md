@@ -75,7 +75,8 @@ Facts checked against the 2.1.325 binary and the hooks docs:
 | Second event before you look | new pop-up | silent until focused |
 | After closing the pop-up | still notifies | silent until focused |
 
-Closing the gaps needs Zed changes. Watch Zed adopting OSC 7501 (Program
+Closing the gaps needs Zed changes; fork work is scoped in
+[zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md). Watch Zed adopting OSC 7501 (Program
 Status Protocol, [discussion #65412](https://github.com/zed-industries/zed/discussions/65412)),
 which Claude Code emits since 2.1.295 and which would make this hook
 unnecessary. Also watch [#63482](https://github.com/zed-industries/zed/issues/63482) and

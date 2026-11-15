@@ -76,6 +76,10 @@ off or delete them as they land; add new ones freely.
   replaces the slow global `terminal_bell` channel. Check pop-up timing in
   Zed stable with the thread unfocused, and Ghostty's desktop notifications,
   then prune [zed-claude-stop-bell.md](zed-claude-stop-bell.md).
+- [ ] **Richer Terminal Thread notifications in the Zed fork** (found
+  2026-11-15) — the remaining gaps against omp's ACP pop-ups need Zed changes.
+  Scoped in
+  [zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md).
 - [ ] **Look into quieting omp's "Run Command" cards in Zed** (found
   2026-11-14) — every `bash` call in an omp ACP thread draws a card with the
   full command; output is already collapsed (`expand_terminal_card: false`)
@@ -628,6 +632,9 @@ Grouped by state, not priority.
   @<role>` so Zed's new-thread menu doubles as an omp preset picker with the
   role's thinking level. The scoped model dropdown shipped instead; revisit
   if most Zed omp threads start on the same one or two non-default presets.
+- [zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md)
+  — idea (2026-11-15): Zed fork changes for richer Terminal Thread pop-ups
+  (re-notify after dismiss, caption from OSC 9/777, OSC 7501 status).
 - [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — implemented
   (2026-11-15): instant, Zed-only bell hooks for Claude Terminal Threads, how
   they compare with omp's ACP notifications, and what's left to verify.
