@@ -1,7 +1,11 @@
 #!/bin/bash
-# Claude Code hook -> instant bell in Zed Terminal Threads, which Zed turns
-# into the same pop-up and sound as an ACP thread (plans/zed-claude-stop-bell.md).
-# Registered on Stop, StopFailure, PermissionRequest and Elicitation.
+# Claude Code hook -> instant terminal bell when a turn ends or Claude needs
+# you (plans/zed-claude-stop-bell.md). Registered on Stop, StopFailure,
+# PermissionRequest and Elicitation. Per terminal ($TERM_PROGRAM):
+#   ghostty  bare BEL -> Dock bounce + 🔔 tab title (Claude's own `auto`
+#            desktop banner still follows on its usual delay).
+#   zed      caption title + BEL -> Terminal Thread pop-up (below).
+#   other    nothing.
 #
 # Zed's terminal pop-up has no caption line; it shows the terminal title read
 # at bell time. So set the title to "<glyph> <why> · <session title>", then
@@ -15,10 +19,14 @@
 #
 # Always exit 0: exit 2 would decline an Elicitation or block a Stop.
 # Shells nested in Zed (herdr, nvim's terminal) inherit TERM_PROGRAM; that's fine.
-
-[ "${TERM_PROGRAM:-}" = zed ] || exit 0
+# tmux overwrites TERM_PROGRAM, so the hook stays silent inside it.
 
 bell='{"terminalSequence":"\u0007"}'
+case ${TERM_PROGRAM:-} in
+  ghostty) printf '%s\n' "$bell"; exit 0 ;;
+  zed) ;;
+  *) exit 0 ;;
+esac
 command -v jq >/dev/null 2>&1 || { printf '%s\n' "$bell"; exit 0; }
 
 input=$(timeout 2 cat 2>/dev/null)
@@ -43,9 +51,12 @@ caption=$(jq -r '
 transcript=$(jq -r '.transcript_path // empty' <<<"$input" 2>/dev/null)
 topic=
 if [ -f "$transcript" ]; then
-  topic=$(grep -o '"customTitle":"[^"]*"' "$transcript" 2>/dev/null | tail -1 | cut -d'"' -f4)
+  # Last record of each type, decoded by jq so escaped quotes/unicode survive.
+  topic=$(grep -F '"type":"custom-title"' "$transcript" 2>/dev/null | tail -1 |
+    jq -r '.customTitle // empty' 2>/dev/null)
   [ -n "$topic" ] ||
-    topic=$(grep -o '"aiTitle":"[^"]*"' "$transcript" 2>/dev/null | tail -1 | cut -d'"' -f4)
+    topic=$(grep -F '"type":"ai-title"' "$transcript" 2>/dev/null | tail -1 |
+      jq -r '.aiTitle // empty' 2>/dev/null)
 fi
 
 # OSC 2 (set title) terminated by BEL, then the bell itself.

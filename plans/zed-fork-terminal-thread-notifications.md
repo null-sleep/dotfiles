@@ -55,6 +55,6 @@ notify).
 - Which option to start with. 1 is quick; 2 or 3 removes the title hack.
 - Keep the changes as a small rebasable patch set on the fork, or aim for
   upstream PRs?
-- If 2 or 3 lands, update `zed-bell.sh` to send OSC 9 / rely on OSC 7501
+- If 2 or 3 lands, update `terminal-bell.sh` to send OSC 9 / rely on OSC 7501
   inside `zed-dev` only. That needs a way to tell the fork from stable,
   e.g. `TERM_PROGRAM_VERSION` or an env var the fork sets.

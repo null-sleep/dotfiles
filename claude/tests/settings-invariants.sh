@@ -30,10 +30,10 @@ jq -e '
   and ([.hooks[]?[]?.hooks[]?.command
     | select(contains("sidekick-notify.sh"))] | length) == 5
   and ([.hooks.Stop, .hooks.StopFailure, .hooks.PermissionRequest, .hooks.Elicitation
-    | [.[]?.hooks[]? | select(.command == "bash $HOME/.claude/hooks/zed-bell.sh"
+    | [.[]?.hooks[]? | select(.command == "bash $HOME/.claude/hooks/terminal-bell.sh"
       and (has("async") | not))] | length == 1] | all)
   and ([.hooks[]?[]?.hooks[]?.command
-    | select(contains("zed-bell.sh"))] | length) == 4
+    | select(contains("terminal-bell.sh"))] | length) == 4
   and (has("preferredNotifChannel") | not)
   and ([.hooks[]?[]?.hooks[]?.command, .statusLine.command]
     | all(contains("/Users/") | not))

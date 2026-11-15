@@ -1,4 +1,4 @@
-# Zed-only instant Claude bell
+# Instant Claude terminal bell (Zed + Ghostty)
 
 Status: implemented 2026-11-15. `Stop` and `PermissionRequest` (via an
 AskUserQuestion prompt) verified live in Zed stable 1.28.1
@@ -37,8 +37,11 @@ their timing, sound and pop-up as closely as a bell allows.
 
 ## Design
 
-`claude/.claude/hooks/zed-bell.sh` returns a `terminalSequence` (title change +
-BEL, see below) when `TERM_PROGRAM=zed`. Claude writes the sequence to its own terminal (hooks
+`claude/.claude/hooks/terminal-bell.sh` returns a `terminalSequence` (title change +
+BEL, see below) when `TERM_PROGRAM=zed`. In Ghostty it returns a bare BEL:
+the Dock bounce + 🔔 the global `terminal_bell` channel gave, now instant, with
+Claude's `auto` banner still following later. (Renamed from `zed-bell.sh` for
+this.) Claude writes the sequence to its own terminal (hooks
 have no controlling tty, so `/dev/tty` fails). Registered synchronously on:
 
 - `Stop`: turn finished.
@@ -108,4 +111,5 @@ the glyphs were added; with them it shows `✓ Claude Notifications` (verified).
 
 ## Left to verify
 
-Check that Ghostty shows desktop notifications again, then prune this file.
+In Ghostty, check the instant Dock bounce + 🔔 and the delayed desktop banner,
+then prune this file.

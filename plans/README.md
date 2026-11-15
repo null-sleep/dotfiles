@@ -71,11 +71,12 @@ off or delete them as they land; add new ones freely.
   - Revisit when stock Zed gets it: watch
     [zed#57428](https://github.com/zed-industries/zed/discussions/57428) and
     the release notes; drop the workaround then.
-- [ ] **Verify the Zed-only instant Claude bell** (implemented 2026-11-15) —
-  `zed-bell.sh` on `Stop`/`StopFailure`/`PermissionRequest`/`Elicitation`
-  replaces the slow global `terminal_bell` channel. Check pop-up timing in
-  Zed stable with the thread unfocused, and Ghostty's desktop notifications,
-  then prune [zed-claude-stop-bell.md](zed-claude-stop-bell.md).
+- [ ] **Verify the instant Claude terminal bell in Ghostty** (implemented
+  2026-11-15; Zed verified) — `terminal-bell.sh` on
+  `Stop`/`StopFailure`/`PermissionRequest`/`Elicitation` replaces the slow
+  global `terminal_bell` channel. Check Ghostty's instant Dock bounce and the
+  delayed desktop banner, then prune
+  [zed-claude-stop-bell.md](zed-claude-stop-bell.md).
 - [ ] **Richer Terminal Thread notifications in the Zed fork** (found
   2026-11-15) — the remaining gaps against omp's ACP pop-ups need Zed changes.
   Scoped in
@@ -636,8 +637,9 @@ Grouped by state, not priority.
   — idea (2026-11-15): Zed fork changes for richer Terminal Thread pop-ups
   (re-notify after dismiss, caption from OSC 9/777, OSC 7501 status).
 - [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — implemented
-  (2026-11-15): instant, Zed-only bell hooks for Claude Terminal Threads, how
-  they compare with omp's ACP notifications, and what's left to verify.
+  (2026-11-15): instant Claude bell hooks for Zed Terminal Threads (captioned
+  pop-ups) and Ghostty (Dock bounce), how they compare with omp's ACP
+  notifications, and what's left to verify.
 - [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md) — open idea
   (2026-11-14): omp's `bash` calls render as full-command "Run Command" cards
   in Zed; no Zed or omp setting hides the header. Documents what each side
