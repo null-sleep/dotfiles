@@ -1,58 +1,106 @@
-# Zed-only Claude `Stop` bell
+# Zed-only instant Claude bell
 
-Status: not started (2026-11-15). Follow-up to the global
-`preferredNotifChannel: "terminal_bell"` setting in
-`claude/.claude/settings.json`.
+Status: implemented 2026-11-15. `Stop` and `PermissionRequest` (via an
+AskUserQuestion prompt) verified live in Zed stable 1.28.1
+(pop-up: terminal icon, Claude's session title, project name, no caption).
+Replaces the global `preferredNotifChannel: "terminal_bell"` setting.
 
 ## Target
 
-The omp ACP integration's notifications are the ideal: instant, and Zed
-knows when the agent finished or is waiting. I like how they work. A Claude
-Terminal Thread should feel as close to that as a bell allows; a bell can't
-distinguish "finished" from "needs permission", but timing should match.
+The omp ACP integration's notifications are the ideal: instant, and Zed knows
+when the agent finished or is waiting. A Claude Terminal Thread should match
+their timing, sound and pop-up as closely as a bell allows.
 
-## Why
+## How Zed notifies (from `~/src/zed` source)
 
-Zed Terminal Threads turn a terminal bell into the same pop-up and sound as an
-ACP thread finishing ([docs](https://zed.dev/docs/ai/terminal-threads)). The
-global `terminal_bell` setting is the cheap way to get that, but it has costs:
+- **ACP threads** (`crates/agent_ui/src/conversation_view.rs`): a pop-up plus
+  sound right as each thread event happens, captioned "Finished running tools"
+  / "New message", "Waiting for tool confirmation", "Waiting for input", or an
+  error, refusal or token-limit warning.
+- **Terminal Threads** (`crates/agent_ui/src/agent_panel.rs`,
+  `mark_terminal_notification`): a bell (BEL) from an unfocused thread
+  produces the same sound and pop-up. The pop-up shows the thread title with
+  a terminal icon and has no caption line. Bells are ignored while the thread is
+  visible. After one pop-up, further bells are silent until the thread is
+  focused. Closing the pop-up does not reset that.
+- Zed's terminal has no OSC 9/99/777 desktop-notification support, so BEL is
+  the only lever.
 
-- **Slow.** Claude sends the finish bell about 60 seconds after it stops, and
-  only if you haven't typed since. The permission bell comes after about 6
-  seconds. The ACP pop-up is instant.
-- **Global.** It replaces Claude's default `auto` channel, which sends a real
-  desktop notification in Ghostty, with a bell (Ghostty default
-  `bell-features`: Dock bounce + 🔔 tab title, no sound, no border).
+## Why not `preferredNotifChannel`
 
-## Idea
+- `terminal_bell` waits `messageIdleNotifThresholdMs` (60 s) after a turn and
+  then rings only if you haven't typed. Permission and question bells wait 6 s
+  and are cancelled if you answer first. The `Notification` hook has the same
+  delays.
+- `auto` sends nothing in Zed (its detection covers only Apple Terminal, iTerm,
+  kitty and Ghostty), but it gives Ghostty real desktop notifications.
 
-Replace the global setting with hooks that ring the bell only inside Zed and
-immediately:
+## Design
 
-- `Stop` hook (turn finished) and `Notification` hook (permission / input
-  needed), each doing roughly
-  `[ "$TERM_PROGRAM" = zed ] && printf '\a' > /dev/tty`.
-- Remove `preferredNotifChannel` (back to `auto`) so Ghostty keeps its desktop
-  notifications.
-- Existing `sidekick-notify.sh` hooks are separate and exit early outside a
-  sidekick-managed nvim, so they don't conflict. Add the new commands as
-  separate registrations next to them.
+`claude/.claude/hooks/zed-bell.sh` returns a `terminalSequence` (title change +
+BEL, see below) when `TERM_PROGRAM=zed`. Claude writes the sequence to its own terminal (hooks
+have no controlling tty, so `/dev/tty` fails). Registered synchronously on:
 
-## Unverified — check first
+- `Stop`: turn finished.
+- `StopFailure`: turn ended on an API error (fires instead of `Stop`).
+- `PermissionRequest`: a permission prompt is shown. It fires only on the "ask"
+  path, so not for allowed calls, in bypass mode, or in auto mode unless
+  escalated. AskUserQuestion prompts also come through it. Without `permissionRequestResult`, the hook doesn't touch the
+  decision.
+- `Elicitation`: an MCP server asks for input. The script always exits 0,
+  because exit 2 would decline it.
 
-- Zed sets `TERM_PROGRAM=zed` in Terminal Threads (believed, not checked).
-  Print `$TERM_PROGRAM` in a thread.
-- Hook subprocesses can open `/dev/tty`. If not, find another way to reach the
-  terminal (for example walking up to the parent's tty).
-- A bell written from a hook reaches Zed as a bell while the thread is
-  unfocused.
-- Whether herdr or tmux between Zed and Claude swallows the bell (tmux needs
-  `set -g allow-passthrough on`; herdr unknown).
+`preferredNotifChannel` is removed, so other terminals use `auto` again.
 
-## If it works
+Facts checked against the 2.1.325 binary and the hooks docs:
 
-- Edit `claude/.claude/settings.json`: add the hooks, drop
-  `preferredNotifChannel`.
-- Extend `claude/tests/settings-invariants.sh` (hook counts) and update the
-  README → Claude Code → What's managed note about the bell.
-- Prune this file.
+- `terminalSequence` is honoured on every event, but not for async hooks or
+  under `-p`/SDK. That excludes nested `claude -p` and Claude Code over ACP, so
+  no guard is needed for them. The "personal hooks" filter applies only under
+  `CLAUDE_CODE_RESTRICT_PERSONAL_CONFIG`.
+- `TERM_PROGRAM=zed` is set in every Zed terminal. In the ordinary terminal
+  panel Zed's `terminal.bell` defaults to off, so the bell is harmless there.
+  Shells nested inside Zed (herdr, nvim's terminal) inherit the variable; that's
+  fine.
+
+## Compared with omp over ACP
+
+| | omp over ACP | Claude Terminal Thread |
+|---|---|---|
+| Timing | instant | instant |
+| Sound + pop-up, click to focus | yes | yes |
+| Suppressed while visible | yes | yes |
+| Caption (why it fired) | yes, own line | in the title |
+| Icon | agent | terminal |
+| Second event before you look | new pop-up | silent until focused |
+| After closing the pop-up | still notifies | silent until focused |
+
+Closing the gaps needs Zed changes. Watch Zed adopting OSC 7501 (Program
+Status Protocol, [discussion #65412](https://github.com/zed-industries/zed/discussions/65412)),
+which Claude Code emits since 2.1.295 and which would make this hook
+unnecessary. Also watch [#63482](https://github.com/zed-industries/zed/issues/63482) and
+[#66287](https://github.com/zed-industries/zed/issues/66287) (system
+notifications).
+
+## Caption via the title
+
+Zed's pop-up has no caption line but shows the terminal title read at bell
+time. So the hook sends OSC 2 `<why> · <session title>` followed by the BEL in
+one `terminalSequence`. Claude's parser accepts several sequences in one string.
+
+- Why: `Finished`, `Error: <error>`, `Needs permission: <tool>`,
+  `Question for you` (AskUserQuestion), `Plan ready for review`
+  (ExitPlanMode), `Input requested: <mcp server>`. Built from the hook's
+  stdin.
+- Session title: the last `customTitle` (from /rename), otherwise the last
+  `aiTitle`, read from `transcript_path`.
+- Without `jq` or with unparseable input, it falls back to a bare BEL.
+- Costs: the thread's sidebar title shows the caption until Claude rewrites
+  its own title. A thread renamed in Zed shows that name instead of the
+  caption.
+
+Verified live: `Question for you · MCP server setup` and `Finished · MCP server setup`.
+
+## Left to verify
+
+Check that Ghostty shows desktop notifications again, then prune this file.

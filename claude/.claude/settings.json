@@ -21,6 +21,14 @@
             "command": "bash $HOME/.claude/hooks/sidekick-notify.sh turn-complete"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/zed-bell.sh"
+          }
+        ]
       }
     ],
     "Notification": [
@@ -74,6 +82,36 @@
           }
         ]
       }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/zed-bell.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/zed-bell.sh"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/zed-bell.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -91,7 +129,6 @@
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "custom:active",
-  "preferredNotifChannel": "terminal_bell",
   "editorMode": "normal",
   "autoMode": {
     "environment": [

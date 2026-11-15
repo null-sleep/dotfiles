@@ -71,13 +71,11 @@ off or delete them as they land; add new ones freely.
   - Revisit when stock Zed gets it: watch
     [zed#57428](https://github.com/zed-industries/zed/discussions/57428) and
     the release notes; drop the workaround then.
-- [ ] **Try a Zed-only Claude `Stop` bell** (found 2026-11-15) — Claude now
-  has `preferredNotifChannel: "terminal_bell"` globally so Zed Terminal
-  Threads notify, but the finish bell lags ~60 s and displaces Ghostty's
-  default desktop notification. Replace it with `Stop`/`Notification` hooks
-  gated on `TERM_PROGRAM=zed`; verify `TERM_PROGRAM` and `/dev/tty` access in a
-  thread first. Target: match how the omp ACP notifications feel (instant;
-  liked as-is). Spec in [zed-claude-stop-bell.md](zed-claude-stop-bell.md).
+- [ ] **Verify the Zed-only instant Claude bell** (implemented 2026-11-15) —
+  `zed-bell.sh` on `Stop`/`StopFailure`/`PermissionRequest`/`Elicitation`
+  replaces the slow global `terminal_bell` channel. Check pop-up timing in
+  Zed stable with the thread unfocused, and Ghostty's desktop notifications,
+  then prune [zed-claude-stop-bell.md](zed-claude-stop-bell.md).
 - [ ] **Look into quieting omp's "Run Command" cards in Zed** (found
   2026-11-14) — every `bash` call in an omp ACP thread draws a card with the
   full command; output is already collapsed (`expand_terminal_card: false`)
@@ -630,10 +628,9 @@ Grouped by state, not priority.
   @<role>` so Zed's new-thread menu doubles as an omp preset picker with the
   role's thinking level. The scoped model dropdown shipped instead; revisit
   if most Zed omp threads start on the same one or two non-default presets.
-- [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — follow-up
-  (2026-11-15): replace the global `terminal_bell` setting with instant,
-  Zed-only `Stop`/`Notification` hooks that ring the bell when
-  `TERM_PROGRAM=zed`. Lists what to verify first.
+- [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — implemented
+  (2026-11-15): instant, Zed-only bell hooks for Claude Terminal Threads, how
+  they compare with omp's ACP notifications, and what's left to verify.
 - [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md) — open idea
   (2026-11-14): omp's `bash` calls render as full-command "Run Command" cards
   in Zed; no Zed or omp setting hides the header. Documents what each side
