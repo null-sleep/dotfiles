@@ -197,6 +197,12 @@
         "favorite_models": [],
         "model_parameters": [],
     },
+    // MCP servers for Zed Agent; Zed also forwards these to ACP agents (omp,
+    // claude-acp). Tabularis: read-only DB schema/query tools via the
+    // ~/.local/bin/tabularis shim (see README → Tabularis → MCP integration).
+    "context_servers": {
+        "tabularis": { "command": "tabularis", "args": ["--mcp"] },
+    },
     "agent_servers": {
         // Start Claude threads in bypass mode (omp-like); shift-tab cycles.
         "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },

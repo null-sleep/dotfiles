@@ -2499,6 +2499,13 @@ shim, or use Settings → MCP → Install Config to auto-patch them:
 Clients that don't inherit a login shell's `PATH` (GUI apps launched from
 Finder) need the full bundle path there instead.
 
+Zed is tracked, unlike Claude Code: `zed/.config/zed/settings.json` has a
+`context_servers.tabularis` entry using the same shim. It serves Zed Agent,
+and Zed forwards it to ACP agents (omp, `claude-acp`) too. Zed's
+`agent.tool_permissions.default` is `allow`, so Zed Agent calls its tools
+without prompting; rely on Tabularis's read-only mode and approval gates if
+that matters.
+
 Exposes read-only connection/schema resources plus `list_tables`,
 `describe_table`, and `run_query` (capped at 100 rows) tools, with an audit
 log, read-only mode, and approval gates as safety knobs. See
