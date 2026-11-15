@@ -89,18 +89,22 @@ Zed's pop-up has no caption line but shows the terminal title read at bell
 time. So the hook sends OSC 2 `<why> · <session title>` followed by the BEL in
 one `terminalSequence`. Claude's parser accepts several sequences in one string.
 
-- Why: `Finished`, `Error: <error>`, `Needs permission: <tool>`,
-  `Question for you` (AskUserQuestion), `Plan ready for review`
-  (ExitPlanMode), `Input requested: <mcp server>`. Built from the hook's
+- Why: `✓ Finished`, `✗ Error: <error>`, `⚠ Needs permission: <tool>`,
+  `? Question for you` (AskUserQuestion), `☰ Plan ready for review`
+  (ExitPlanMode), `? Input requested: <mcp server>`. Built from the hook's
   stdin.
+- The glyph matters for threads renamed in Zed: the custom name replaces the
+  terminal title, but Zed keeps a leading symbol + space from it
+  (`terminal_title_prefix`), so the pop-up reads e.g. `✓ Claude Notifications`.
 - Session title: the last `customTitle` (from /rename), otherwise the last
   `aiTitle`, read from `transcript_path`.
 - Without `jq` or with unparseable input, it falls back to a bare BEL.
-- Costs: the thread's sidebar title shows the caption until Claude rewrites
-  its own title. A thread renamed in Zed shows that name instead of the
-  caption.
+- Cost: the thread's sidebar title shows the caption until Claude rewrites
+  its own title.
 
-Verified live: `Question for you · MCP server setup` and `Finished · MCP server setup`.
+Verified live: `Question for you · MCP server setup` and `Finished · MCP server
+setup` (before glyphs). A renamed thread showed only its name, which is why
+the glyphs were added; with them it shows `✓ Claude Notifications` (verified).
 
 ## Left to verify
 

@@ -4,7 +4,9 @@
 # Registered on Stop, StopFailure, PermissionRequest and Elicitation.
 #
 # Zed's terminal pop-up has no caption line; it shows the terminal title read
-# at bell time. So set the title to "<why> · <session title>", then ring.
+# at bell time. So set the title to "<glyph> <why> · <session title>", then
+# ring. A thread renamed in Zed shows its own name instead, but Zed keeps a
+# leading symbol + space from the terminal title, so the glyph still shows.
 # Claude rewrites its own title soon after.
 #
 # Hooks have no controlling tty, so both go out via `terminalSequence`:
@@ -23,16 +25,16 @@ input=$(timeout 2 cat 2>/dev/null)
 
 caption=$(jq -r '
   def short: tostring | if length > 40 then .[:39] + "…" else . end;
-  if .hook_event_name == "Stop" then "Finished"
+  if .hook_event_name == "Stop" then "✓ Finished"
   elif .hook_event_name == "StopFailure" then
-    "Error" + (if (.error // "") != "" then ": " + (.error | short) else "" end)
+    "✗ Error" + (if (.error // "") != "" then ": " + (.error | short) else "" end)
   elif .hook_event_name == "PermissionRequest" then
-    if .tool_name == "AskUserQuestion" then "Question for you"
-    elif .tool_name == "ExitPlanMode" then "Plan ready for review"
-    else "Needs permission: " + ((.tool_name // "tool") | sub("^mcp__"; "") | short)
+    if .tool_name == "AskUserQuestion" then "? Question for you"
+    elif .tool_name == "ExitPlanMode" then "☰ Plan ready for review"
+    else "⚠ Needs permission: " + ((.tool_name // "tool") | sub("^mcp__"; "") | short)
     end
   elif .hook_event_name == "Elicitation" then
-    "Input requested" + (if (.mcp_server_name // "") != "" then ": " + (.mcp_server_name | short) else "" end)
+    "? Input requested" + (if (.mcp_server_name // "") != "" then ": " + (.mcp_server_name | short) else "" end)
   else empty end
 ' <<<"$input" 2>/dev/null)
 [ -n "$caption" ] || { printf '%s\n' "$bell"; exit 0; }
