@@ -1785,8 +1785,10 @@ Stowed to `~/.config/zed/`:
   `autosave` is on, 1s after the last edit, like nvim's auto-save.nvim:
   Zed never reloads a buffer with unsaved edits when the file changes on
   disk (git, an agent, `omp`), so keeping buffers clean avoids stale tabs;
-  it also makes Zed ignore `format_on_save`, so formatting stays manual as
-  in nvim (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). nvim's other
+  autosaves also skip `format_on_save`, but `cmd-s` still formats in
+  languages where Zed turns it on by default (Go, Rust, Elixir, Kotlin, …);
+  `cmd-k s` saves without formatting, and omp's writes are formatted too
+  (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). nvim's other
   editing defaults (tab size 4, scrolloff 10) are present but commented out.
   `auto_install_extensions` pulls the
   `dracula` theme extension (source of Dracula Solid, which isn't built in) and the

@@ -42,11 +42,11 @@
 
     // Autosave 1s after the last edit, like nvim's auto-save.nvim (1s
     // debounce). Keeps buffers clean so Zed reloads them when git or an agent
-    // changes the file on disk; Zed never reloads a dirty buffer. Zed's
-    // default.json says `format_on_save` is ignored while autosave is
-    // `after_delay` (it is on by default for Go, Rust, Elixir, Kotlin, ...),
-    // so editor saves stay unformatted, as in nvim (<leader>cf). Agent writes
-    // are checked separately; see docs/zed.md → Gotchas.
+    // changes the file on disk; Zed never reloads a dirty buffer. Autosaves
+    // under `after_delay` skip `format_on_save` (on by default for Go, Rust,
+    // Elixir, Kotlin, ...). `cmd-s` still formats in those languages;
+    // `cmd-k s` saves without formatting. omp's writes are formatted too;
+    // see docs/zed.md → Gotchas.
     "autosave": { "after_delay": { "milliseconds": 1000 } },
 
     // Editing — mirrors nvim's configs.lua (tabstop 4, scrolloff 10,

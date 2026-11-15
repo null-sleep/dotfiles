@@ -47,11 +47,15 @@ debounced autosave plus format-on-save reformats mid-edit.
   nvim's debounce. `on_focus_change` was considered and rejected: nvim also
   saves after edits, and the longer a buffer is dirty the longer it can go
   stale.
-- Your saves stay unformatted; format with `editor: format` / `cmd-shift-i`.
-  Zed's `default.json` says `format_on_save` is ignored under `after_delay`.
-- Agent writes keep Zed's defaults. omp's docs say formatting may change the
-  text it writes, and the project formatter (gofmt, rustfmt, pre-commit, CI)
-  is the source of truth.
+- Autosaves stay unformatted (`after_delay` skips `format_on_save`); `cmd-s`
+  still formats where the language has it on, `cmd-k s` saves without
+  formatting, and `editor: format` / `cmd-shift-i` formats on demand.
+  Corrected 2026-11-14: the first version said all your saves stay
+  unformatted.
+- Agent writes keep Zed's defaults and are formatted: ACP `write_text_file`
+  formats whenever `format_on_save` is not `off`, with no autosave check.
+  omp's docs say formatting may change the text it writes, and the project
+  formatter (gofmt, rustfmt, pre-commit, CI) is the source of truth.
 - No per-language `format_on_save: "off"`. `settings.json` is global, so it
   would switch off formatting in every Rust or Go project. The only affected
   repo file is `fixtures/animal.rs` (not rustfmt-clean, so an agent write could
@@ -72,8 +76,6 @@ debounced autosave plus format-on-save reformats mid-edit.
   not enforced, add `languages.<Lang>.format_on_save: "off"` for that
   language. For this repo's fixtures only, consider a project-local
   `.zed/settings.json` (not checked that Zed supports it).
-- Unverified: whether `format_on_save` is skipped for agent writes under
-  `after_delay`. The default.json comment only covers editor saves.
 - Consider a key for `editor::ReloadFile` if the palette becomes tedious; no
   key conflict check done.
 - Re-check against upstream after a Zed upgrade; #49162 is the one that

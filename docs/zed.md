@@ -1051,19 +1051,25 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   disk before you review them with or without autosave. Reject restores the
   old text and saves again. Autosave adds nothing for those writes.
   Separately, that path formats the buffer first whenever the language's
-  `format_on_save` is not `off`, and Zed defaults it on for Go, Rust,
-  Elixir, Kotlin and a few others. Zed's `default.json` note that
-  `format_on_save` is ignored under `after_delay` is about editor saves;
-  whether it also covers agent writes is unverified.
+  `format_on_save` is not `off`, with no autosave check, so omp's writes are
+  formatted whether or not autosave is on. Zed defaults `format_on_save` on
+  for Astro, Dart, EEx, Elixir, Elm, Go, GraphQL, HEEx, Kotlin, Rust,
+  Starlark and Zig.
 
-  **Policy here:** your own saves stay unformatted (format on demand with
-  `editor: format`, `cmd-shift-i`, like nvim's `<leader>cf`); agent writes
-  keep Zed's defaults, since omp's docs say formatting may change the text it
-  writes, and the project's own formatter (gofmt, rustfmt, pre-commit, CI) is
-  the source of truth. No per-language `format_on_save: "off"`: settings.json
-  is global, so it would also switch off formatting in every other Rust or Go
-  project. The only repo file this touches is `fixtures/animal.rs`, which
-  isn't rustfmt-clean, so an agent write could reformat it.
+  **Your saves** (read from the v1.28.1 source, not tested): autosaves under
+  `after_delay` skip `format_on_save`. `cmd-s` (`workspace::Save`) does not:
+  it formats in those languages, even when the file is unchanged. Use
+  `cmd-k s` (`workspace::SaveWithoutFormat`) to save without formatting, and
+  `editor: format` (`cmd-shift-i`, like nvim's `<leader>cf`) to format on
+  demand.
+
+  **Policy here:** agent writes keep Zed's defaults, since omp's docs say
+  formatting may change the text it writes, and the project's own formatter
+  (gofmt, rustfmt, pre-commit, CI) is the source of truth. No per-language
+  `format_on_save: "off"`: settings.json is global, so it would also switch
+  off formatting in every other Rust or Go project. The only repo file this
+  touches is `fixtures/animal.rs`, which isn't rustfmt-clean, so an agent
+  write or a `cmd-s` could reformat it.
 - **Terminal Threads restart as empty shells.** The sidebar entry returns,
   the agent session does not: resume with `omp -c` / `omp -r` (or the CLI's
   equivalent) from the right directory. Zed has planned per-thread resume
