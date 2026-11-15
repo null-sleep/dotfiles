@@ -118,8 +118,8 @@ unset _nofile
 zstyle ':completion:*' completer _expand_alias _complete _ignored
 
 # Path Updates — last prepend wins, so ~/.local/bin stays at the END of this
-# block: user-local scripts (theme, claude-nvim, nvim-editor) must shadow any
-# same-named homebrew/cargo binary, not the other way around.
+# block: user-local scripts (theme, claude-nvim, nvim-editor, zed-editor) must
+# shadow any same-named homebrew/cargo binary, not the other way around.
 # Homebrew: Apple Silicon uses /opt/homebrew, Intel uses /usr/local (already in PATH by default)
 [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
 # Prefer Homebrew's python@3.12 (unversioned python3/pip3) over macOS's outdated
@@ -193,6 +193,18 @@ if [[ "$TERM_PROGRAM" == "vscode" ]]; then
         export GIT_EDITOR="code -w"
         export KUBE_EDITOR="code -w"
     fi
+elif [[ "$TERM_PROGRAM" == "zed" || "$__CFBundleIdentifier" == dev.zed.Zed* ]]; then
+    # Zed: git commit / rebase -i / kubectl edit open a Zed tab and block until
+    # it closes, instead of nvim inside the terminal pane. TERM_PROGRAM=zed
+    # covers the integrated terminal. The bundle id covers the login shell Zed
+    # runs once per project to capture the environment it hands to agents
+    # (ACP, Zed Agent's terminal tool) and tasks: that shell has no
+    # TERM_PROGRAM, but macOS sets __CFBundleIdentifier for everything the Zed
+    # app launches (dev.zed.Zed, or dev.zed.Zed-Preview). Zed's own
+    # terminal.env can't do this — this file runs after it.
+    export EDITOR="zed-editor"
+    export GIT_EDITOR="zed-editor"
+    export KUBE_EDITOR="zed-editor"
 else
     # Default to nvim for all other terminals (GoLand, Ghostty, etc.).
     # nvim-editor is a plain `exec nvim "$@"` shim — the reuse-the-parent

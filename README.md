@@ -2133,7 +2133,7 @@ So the only per-machine step is `brew install zoxide` (included in the deps abov
 
 ### nvim-editor
 
-`nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR`. The script itself is just `exec nvim "$@"` — the routing lives in **flatten.nvim** inside the host editor:
+`nvim-editor` is a small script (stowed to `~/.local/bin/nvim-editor`) set as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR` in every terminal except VS Code, Cursor, and Zed (those get their own editor; see [zed-editor](#zed-editor)). The script itself is just `exec nvim "$@"` — the routing lives in **flatten.nvim** inside the host editor:
 
 - **Inside a toggleterm or nvim-spawned terminal** (`$NVIM` is set): flatten.nvim intercepts the child nvim and opens the buffer in the parent instance, blocking for `gitcommit`/`gitrebase` buffers so git waits for the edit (see GUIDE.md → Design Decisions → "Nested nvim routes into the parent").
 - **Standalone terminal** (Ghostty, etc.): just a fresh `nvim` process.
@@ -2141,6 +2141,10 @@ So the only per-machine step is `brew install zoxide` (included in the deps abov
 This means `git commit`, `git rebase -i`, `kubectl edit`, and any other `$EDITOR` caller automatically use your existing nvim session when you're working inside one.
 
 The script is included in the `zsh` stow package. On a new machine, `stow zsh` symlinks it into `~/.local/bin/` (already on `$PATH`).
+
+### zed-editor
+
+`zed-editor` (stowed to `~/.local/bin/zed-editor`) is `exec zed --wait "$@"`. `.zshrc_config.zsh` sets it as `$EDITOR`, `$GIT_EDITOR`, and `$KUBE_EDITOR` when `TERM_PROGRAM=zed` (Zed's integrated terminal) or `__CFBundleIdentifier` starts with `dev.zed.Zed`. The second check covers the login shell Zed runs once per project to capture the environment it hands to agents and tasks: that shell has no `TERM_PROGRAM`, but macOS sets the bundle id for everything the Zed app launches. So `git commit` without `-m`, `git rebase -i`, and `kubectl edit` open the file as a tab in the running Zed and block until you save and close it (`cmd-w`); without this they opened nvim inside the terminal pane. Terminals opened before a change keep their old environment (open a new one), and Zed caches the captured environment until the project is reopened or Zed restarts. Zed's `terminal.env` setting can't do this: zsh starts afterwards and overwrites `EDITOR`/`GIT_EDITOR`. It's a script rather than `"zed --wait"` in the variable because some tools run `$EDITOR` as one word. Commits from Zed's git panel never use an editor (see [`docs/zed.md`](docs/zed.md#git)).
 
 ### claude-nvim
 
@@ -2202,7 +2206,8 @@ git config --global rerere.enabled true
 git config --global diff.colorMoved dimmed-zebra
 
 # Editor — fallback when $GIT_EDITOR/$EDITOR are unset (the shell sets
-# GIT_EDITOR=nvim-editor, which takes precedence; see the ZSH section)
+# GIT_EDITOR=nvim-editor, or zed-editor in Zed's terminal, which takes
+# precedence; see the ZSH section)
 git config --global core.editor nvim
 
 # Always talk to GitHub over SSH, even for https:// remotes (see SSH note below)

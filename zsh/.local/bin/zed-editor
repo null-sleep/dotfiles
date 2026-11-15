@@ -1,0 +1,7 @@
+#!/bin/sh
+# $EDITOR/$GIT_EDITOR inside Zed's integrated terminal (set in
+# .zshrc_config.zsh when TERM_PROGRAM=zed). Opens the file as a tab in the
+# running Zed and blocks until that tab closes, so git waits for the message.
+# A script rather than "zed --wait" in the variable: some tools exec $EDITOR
+# as one word and never split off the flag.
+exec zed --wait "$@"

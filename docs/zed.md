@@ -552,6 +552,21 @@ Split vs unified and the other display settings are under
 `git::Switch` (branch picker, also deletes branches),
 `git::StashAll`/`StashPop`, `editor::ToggleGitBlameInline`.
 
+**Where commit and rebase messages open.** The commit box runs
+`git commit --quiet -m <message> --cleanup=strip` (`--amend` for amend;
+`crates/git/src/repository.rs` at v1.28.1), so no editor is involved and
+hooks still run. Pull is non-interactive too; README's git setup sets
+`pull.rebase true`, so plain `ctrl-g down` rebases as well. Zed has no
+interactive-rebase UI and no highlighting for `git-rebase-todo`; conflicts
+get native "Use ours / Use theirs / Use Both / Resolve with Agent" buttons
+(`conflict_view.rs`). Git commands that need an editor (`git commit` without
+`-m`, `git rebase -i`) go to `$GIT_EDITOR`: in Zed's terminal and in the
+environment Zed captures for agents and tasks, zsh sets it to `zed-editor`
+(`zed --wait`), so the file opens as a Zed tab (`COMMIT_EDITMSG` gets the
+built-in Git Commit highlighting) and git continues once you save and close
+it with `cmd-w`. Open a new terminal after changing this; agents pick it up
+after Zed restarts or the project reopens. See README → zed-editor.
+
 <a id="terminal-tasks-debugger"></a>
 ## Terminal, tasks, debugger
 

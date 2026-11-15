@@ -292,6 +292,8 @@ Same key, different meaning in nvim:
 - A `●` on a tab you didn't edit means the file changed on disk. Don't `cmd-s`;
   run `editor: reload file` or close with Don't Save.
 - `cmd-w` closes the tab, never the dock; `ctrl-alt-w` closes the dock.
+- `git commit` (no `-m`) / `git rebase -i` in the terminal open a Zed tab; git
+  waits until you save and `cmd-w` it. The git panel's commit box needs no editor.
 - `cmd-t` / `gS` see only running language servers; a server starts when you
   open a file in its language.
 - Vim: `ctrl-c` is escape, not copy. Regex is Rust's: `(a|b)`, `$1`.
