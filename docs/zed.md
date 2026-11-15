@@ -95,6 +95,7 @@ Used many times a day; each is covered in full below.
 | `ctrl-shift-r` | open agent diff (review changes) |
 | `alt-shift-y` / `alt-shift-z` | keep all / reject all agent edits |
 | `cmd-k cmd-v` | toggle vim mode (`workspace::ToggleVimMode`; writes `vim_mode` to `settings.json`) |
+| `cmd-k cmd-m` | open `cheatsheet.md` (the `cheatsheet` task in `tasks.json`; opens as a markdown preview, `cmd-shift-v` shows the source) |
 
 <a id="mental-model"></a>
 ## The mental model

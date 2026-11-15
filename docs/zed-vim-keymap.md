@@ -3,7 +3,8 @@
 **Status:** proposal, with `<M-]>` / `<M-[>` (cycle threads) and
 `cmd-k cmd-v` (`workspace::ToggleVimMode`, not an nvim carry-over) adopted
 and tested (2026-11-14). `zed/.config/zed/keymap.json` holds those two
-rows. The earlier draft, which mirrored nvim keys that don't exist, was
+rows (plus an unrelated `cmd-k cmd-m` block that opens `cheatsheet.md`). The
+earlier draft, which mirrored nvim keys that don't exist, was
 removed; adopt further rows from the block below.
 
 **Basis: Zed 1.28.1** (`zed --version`) — every action and default named
