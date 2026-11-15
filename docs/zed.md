@@ -622,8 +622,8 @@ If `cmd-b` hits the wrong dock, you are in the other layout: check with
 `workspace: use agentic layout` / `use classic layout` from the palette.
 Layouts are described under [Panes, tabs, and docks](#panes-docks).
 
-**External agents** (Claude, Codex, Cursor, pi, Gemini, Copilot CLI — the
-`agent_servers` entries in `settings.json`) install from `zed: acp registry`;
+**External agents** (Claude, Codex — the `agent_servers` registry entries in
+`settings.json`) install from `zed: acp registry`;
 omp isn't in the registry, so it's a `custom` entry running `omp acp
 --approval-mode yolo --config ~/.omp/agent/zed-models.yml`. All of them
 appear in the `+` menu and sidebar like any thread. They bring
