@@ -57,7 +57,12 @@
     },
 
     // Fonts — same family as Ghostty/Neovide.
-    "ui_font_size": 16,
+    // Was 16 (before the thinner-tab-bar experiment).
+    "ui_font_size": 15,
+    // UNDER REVIEW: thinner tab bar / status bar. Previously unset, i.e.
+    // "default". Options: compact (tightest spacing/chrome heights) |
+    // default | comfortable (loosest). Spacing only; fonts unaffected.
+    "ui_density": "compact",
     "buffer_font_family": "Hack Nerd Font Mono",
     "buffer_font_size": 15.0,
 
