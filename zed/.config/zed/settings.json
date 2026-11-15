@@ -2,6 +2,9 @@
 // Zed rewrites this file when you change settings in its UI, so review
 // `git diff zed/` after UI tweaks. Defaults: `zed: open default settings`.
 {
+    "edit_predictions": {
+        "allow_data_collection": "yes"
+    },
     "base_keymap": "Zed",
     "vim_mode": false,
     "vim": {
