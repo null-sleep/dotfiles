@@ -455,6 +455,38 @@ The vim column includes Neovim 0.11's `g r*` set.
 | `cmd-k cmd-h` | `call_hierarchy::ShowIncomingCalls` | — |
 | `ctrl-space` | `editor::ShowCompletions` (see [Gotchas](#gotchas)) | `ctrl-x ctrl-o` (insert) |
 
+<a id="folding"></a>
+**Folding.** Fold ranges are indent-based by default, not a tree-sitter
+`foldexpr` like this repo's nvim. A fold starts on a line whose next
+non-blank line is indented deeper and runs to the next line at the same or
+shallower indent; a closing bracket stays on the placeholder line
+(`fn f() {⋯}`). Tree-sitter only keeps unindented lines inside a string or
+block comment from ending the fold. Badly indented code folds badly.
+- `"document_folding_ranges": "on"` (global, or per language under
+  `languages`) uses the server's `foldingRange` ranges, falling back to
+  indent folding when the server returns none.
+- `"gutter": { "folds": false }` hides the fold chevrons.
+- Folds are saved per file path in Zed's database and restored on reopen or
+  restart — except with `restore_on_startup: "empty_tab"`.
+- In a multibuffer (project diff, search results), fold actions collapse
+  whole excerpts (one per file).
+
+Native keys beyond the table:
+- `alt-cmd-[` / `alt-cmd-]` — fold / unfold at the cursor.
+- `cmd-k cmd-[` / `cmd-k cmd-]` — fold / unfold recursively.
+- `cmd-k cmd-1`…`9` — fold at that indent level.
+- `cmd-shift-enter` — toggle all folds.
+- `editor: fold function bodies` (no key) — folds every `@function.inside`
+  range from the language's `textobjects.scm`.
+
+Source: `fold.rs`, `display_map.rs` (`crease_for_buffer_row`), v1.28.1. Vim
+keys: [`zed-vim.md` → Tree-sitter objects and folds](zed-vim.md#treesitter).
+
+**Syntax-node selection.** Besides `cmd-ctrl-right` / `cmd-ctrl-left`
+(table above), `ctrl-shift-right` / `ctrl-shift-left` also grow / shrink the
+selection to the enclosing syntax node; shrinking retraces the grow history.
+`cmd-ctrl-down` / `cmd-ctrl-up` select the next / previous sibling node.
+
 <a id="language-servers"></a>
 **Language servers in a multi-language repo.** A server starts when you
 open a file of its language, not when you open the project: a Go + Rust

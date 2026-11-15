@@ -41,6 +41,7 @@ is `"] shift-b"`.
 - [Panels with vim keys](#panels)
 - [Git hunks and agent review](#git-review)
 - [Editing extras](#editing)
+- [Tree-sitter objects and folds](#treesitter)
 - [`:` commands](#ex)
 - [Opt-in bindings](#opt-in)
 - [Gotchas cheat-sheet](#gotchas)
@@ -125,8 +126,8 @@ Other `vim` keys: `default_mode`, `use_regex_search`,
 
 Standard motions, counts, `f`/`t`/`;`/`,`, `%`, `*`/`#`, `/`/`?` with
 `n`/`N`, marks (`m`, `'`, `` ` ``), `H`/`M`/`L`, `ctrl-d`/`u`/`f`/`b`/`e`/`y`,
-`zt`/`zz`/`zb`, and folds (`za`, `zc`, `zo`, `zM`, `zR`, `zf`) all work. On
-top of those:
+`zt`/`zz`/`zb`, and folds (`za`, `zc`, `zo`, `zM`, `zR`, `zf`; see
+[Tree-sitter objects and folds](#treesitter)) all work. On top of those:
 
 | keys | does |
 |---|---|
@@ -348,14 +349,14 @@ quotes a visual selection into the thread.
 ## Editing extras
 
 Beyond stock operators, registers, macros (`q`, `@`, `Q` replays the last),
-`.`, counts, and text objects (`r` is `[]`, `B` is `{}`):
+`.`, counts, and text objects (`r` is `[]`, `B` is `{}`; function, class,
+argument, tag and indent objects are in
+[Tree-sitter objects and folds](#treesitter)):
 
 | keys | does |
 |---|---|
 | `iq` / `aq` | nearest quotes of any kind (`vim::MiniQuotes`, mini.ai style) |
-| `ia` / `aa`, `ie` / `ae` | function argument, entire file |
-| `ii` / `ai` / `aI` | indent block (`aI` includes the line below) |
-| `if` / `af`, `ic` / `ac` | function, class (Tree-sitter) |
+| `ie` / `ae` | entire file |
 | `gc` + motion, `gcc`, `gb` | toggle line / block comments; `dgc` deletes a comment |
 | `ys` + motion + char, `yss`, `cs` + old + new, `ds` + char | surround add / line / change / delete |
 | `gR` + motion, `gRR` | replace with register |
@@ -384,6 +385,67 @@ Insert mode:
 Visual block (`ctrl-v`) is multiple cursors, so `I`/`A` edits show live on
 every line; `o`/`O` swap ends. Visual `*`/`#` search the selection; visual
 `s` is substitute, not sneak.
+
+<a id="treesitter"></a>
+## Tree-sitter objects and folds
+
+More than this repo's nvim has: it loads nvim-treesitter-textobjects only
+so sidekick can resolve `{function}` / `{class}`, and maps no `af`/`if`.
+Its one structural piece, `<M-o>`/`<M-i>` select, maps to `[x`/`]x`.
+
+**Text objects.** Function, class and comment objects come from each
+language's `textobjects.scm`; the rest are language-independent.
+
+| keys | object | source |
+|---|---|---|
+| `af` / `if` | function, method (around is linewise) | `@function.*` query |
+| `ac` / `ic` | class, struct, impl, … (around is linewise) | `@class.*` query |
+| `gc` (after an operator) | comment block: `dgc`, `ygc` | `@comment.around` query |
+| `aa` / `ia` | argument or list item; `aa` takes the comma | bracket pairs + commas |
+| `at` / `it` | HTML/JSX-like tag | parse tree |
+| `ii` / `ai` / `aI` | indent block; `ai` + line above, `aI` + lines above and below | indentation |
+
+On a signature line (outside any body), `if`/`ic` select the inside of the
+smallest enclosing `af`/`ac`, so `dif` works from the `func` line.
+
+Built-in query coverage (v1.28.1, `crates/grammars/src/<lang>/`):
+- **Go** — function: `func` and method bodies, not func literals (`if` in a
+  closure takes the enclosing func). Class: `struct`, `interface`, any
+  other `type` declaration.
+- **Rust** — function: `fn` items. Class: `struct`, `enum`, `union`,
+  `trait`, `impl`, inline `mod`.
+- **Python** — `def` and `class`.
+- **Also built in** — TS/JS/TSX, C/C++, Bash, CSS, JSON, YAML, Markdown.
+- **Extension languages** (Elixir, Lua, TOML, …) — only if the extension
+  ships a `textobjects.scm`; otherwise `af`/`ac`/`gc`/`]m` do nothing.
+
+Custom queries need an extension (no user query directory like nvim's
+`after/queries/`). No swap, no `]a`-style argument motion.
+
+**Motions.** On the same queries: `]m`/`[m` (`]M`/`[M` ends) jump between
+`af` ranges, `]]`/`[[` (`][`/`[]` ends) between top-level `ac` or `af`
+ranges, `]/`/`[/` between comments.
+
+**Structural select.** `[x` / `]x` grow / shrink the selection to the
+enclosing syntax node, entering visual mode from normal. They take a count
+(`3[x`); shrinking retraces the grow history, like nvim's `<M-o>`/`<M-i>`
+stack. Sibling moves (`vim::SelectNextSyntaxNode` / `…Previous…`) are bound
+only in Helix mode (`alt-n`/`alt-p`); see [Opt-in bindings](#opt-in).
+
+**Folds.** Range computation, persistence, settings:
+[`zed.md` → Folding](zed.md#folding).
+
+| keys | does |
+|---|---|
+| `za` / `zA` | toggle fold / recursively |
+| `zc` / `zC` | fold / recursively |
+| `zo` / `zO` | unfold / recursively |
+| `zM` / `zR` | fold all / unfold all |
+| `zf` (visual) | fold the selection (a manual fold) |
+
+Not bound: `zr`/`zm` (fold one level), `zj`/`zk`, `zv`, `zx`, `zd`/`zE`.
+Per-level folding is native only (`cmd-k cmd-1`…`9`). Files open unfolded
+unless a saved fold is restored, matching nvim's `foldlevel = 99`.
 
 <a id="ex"></a>
 ## `:` commands
@@ -428,6 +490,13 @@ in `keymap.json` (how-to in [`docs/zed.md`](zed.md#custom-bindings)):
   `vim_operator == a || vim_operator == i || vim_operator == cs`. These
   *replace* the defaults (`q` = `vim::MiniQuotes`, `b` = parentheses) with
   targets.vim-style "any pair containing the cursor" objects.
+- **nvim's `<M-o>`/`<M-i>` structural select, plus siblings** —
+  `"alt-o": "vim::SelectLargerSyntaxNode"`,
+  `"alt-i": "vim::SelectSmallerSyntaxNode"`,
+  `"alt-n": "vim::SelectNextSyntaxNode"`,
+  `"alt-p": "vim::SelectPreviousSyntaxNode"` in
+  `vim_mode == normal || vim_mode == visual` (all four are unbound in
+  Zed's macOS keymap).
 - **Jump labels** — `"g w": "vim::HelixJumpToWord"` (flash/leap-style;
   loses `gw` rewrap, `gq` remains).
 - **Wrapping `h`/`l`** — `"h": "vim::WrappingLeft"`, `"l": "vim::WrappingRight"`.

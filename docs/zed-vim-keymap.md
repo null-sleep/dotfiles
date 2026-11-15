@@ -121,7 +121,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 | `<C-s>` signature help | `ctrl-s` (insert), `cmd-i` | default | insert-mode default matches |
 | `<leader>ti` inlay hints | `ctrl-:` | borrow | `ctrl-:` is a stretch |
 | `<leader>th` auto-hover, `grx` codelens | — | skip | no equivalent |
-| `<M-o>` / `<M-i>` structural select | `[x` / `]x` | default | already two keys |
+| `<M-o>` / `<M-i>` structural select | `[x` / `]x` | default | already two keys; `alt-o`/`alt-i` + siblings [opt-in](zed-vim.md#opt-in) |
 
 Key-by-key nvim vs Zed vim comparison for go-to and back/forward:
 [`zed-vim.md` → Go to and back](zed-vim.md#nvim-nav-compare).

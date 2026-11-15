@@ -246,6 +246,9 @@ None of these exist in the nvim config.
 
 - Text objects: `iq`/`aq` any quotes, `if`/`af` function, `ic`/`ac` class,
   `ia`/`aa` argument, `ii`/`ai` indent, `ie` whole file
+- Tree-sitter jumps: `]m`/`[m` function, `]]`/`[[` top-level item, `]/`/`[/`
+  comment (vim's own `]m`/`]]` look for braces). These and the function/class
+  objects need the language's queries; extension languages often lack them.
 - Surround: `ys` + motion + char, `cs"'`, `ds"`
 - Jump: `]r`/`[r` next / prev use of the symbol under the cursor
 - `gR` + motion replace with register; `cx` + motion twice to exchange
@@ -296,5 +299,7 @@ Same key, different meaning in nvim:
   waits until you save and `cmd-w` it. The git panel's commit box needs no editor.
 - `cmd-t` / `gS` see only running language servers; a server starts when you
   open a file in its language.
+- Folds follow indentation (nvim: tree-sitter) and persist per file. `zc`/`zo`,
+  `zM`/`zR`, uppercase `zC`/`zO` recurse; `cmd-k cmd-1`…`9` fold to a level.
 - Vim: `ctrl-c` is escape, not copy. Regex is Rust's: `(a|b)`, `$1`.
 - Adopting nvim keys in Zed: `docs/zed-vim-keymap.md` has a ready block.
