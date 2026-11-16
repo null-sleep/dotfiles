@@ -135,19 +135,62 @@
     // "horizontal_scroll_margin": 8,
     // "show_whitespaces": "selection",
 
-    // Language servers/grammars outside Zed's built-ins (Go, Rust, TS, Python
-    // are built in), plus the theme extension that provides "Dracula Solid"
-    // and the Codebook spell checker (it fetches its own codebook-lsp binary;
-    // no language_servers override needed while none are set below).
-    // Installed automatically on first launch.
+    // Every extension installed on the main machine, so a fresh machine gets
+    // the same set on first launch (Zed has no extension sync; this map is the
+    // mechanism). Language servers/grammars outside Zed's built-ins (Go, Rust,
+    // TS, Python are built in), theme/icon packs ("Dracula Solid" is the daily
+    // theme), and the Codebook spell checker (it fetches its own codebook-lsp
+    // binary; no language_servers override needed while none are set below).
+    // Add new extensions here, not only via the Extensions UI. IDs are the dir
+    // names in ~/Library/Application Support/Zed/extensions/installed.
     "auto_install_extensions": {
-        "dracula": true,
+        "catppuccin": true,
+        "catppuccin-blur": true,
+        "catppuccin-icons": true,
         "codebook": true,
-        "elixir": true,
-        "lua": true,
-        "toml": true,
+        "colored-zed-icons-theme": true,
+        "csv": true,
+        "docker-compose": true,
         "dockerfile": true,
+        "dracula": true,
+        "elixir": true,
+        "env": true,
+        "git-firefly": true,
+        "github-theme": true,
+        "gosum": true,
+        "graphql": true,
+        "helm": true,
+        "html": true,
+        "ini": true,
+        "jetbrains-themes": true,
+        "jsonnet": true,
+        "just": true,
+        "kotlin": true,
+        "latex": true,
+        "log": true,
+        "lua": true,
+        "macos-classic": true,
         "make": true,
+        "monospace-icon-theme": true,
+        "nix": true,
+        "nord": true,
+        "nvim-nightfox": true,
+        "one-dark-pro": true,
+        "postgres-language-server": true,
+        "proto": true,
+        "python-requirements": true,
+        "racket": true,
+        "rose-pine-theme": true,
+        "ruby": true,
+        "scheme": true,
+        "solarized": true,
+        "sql": true,
+        "swift": true,
+        "terraform": true,
+        "tmux": true,
+        "tokyo-night": true,
+        "toml": true,
+        "xml": true,
     },
 
     // Per-language overrides. Go and Rust spell out Zed's defaults (v1.28.1

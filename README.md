@@ -1831,9 +1831,15 @@ Stowed to `~/.config/zed/`:
   `cmd-k s` saves without formatting, and omp's writes are formatted too
   (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). nvim's other
   editing defaults (tab size 4, scrolloff 10) are present but commented out.
-  `auto_install_extensions` pulls the
-  `dracula` theme extension (source of Dracula Solid, which isn't built in) and the
-  Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch, plus
+  `auto_install_extensions` is how extensions sync — Zed has no extension
+  sync of its own, so the map lists every extension installed on the main
+  machine (language grammars, theme and icon packs) and Zed installs them on
+  first launch. Installing from the Extensions UI is machine-local until you
+  add the ID there; IDs are the directory names in
+  `~/Library/Application Support/Zed/extensions/installed`. Setting an entry
+  to `false` stops auto-installing it; remove an already-installed one from
+  the Extensions UI. The list includes the
+  `dracula` theme extension (source of Dracula Solid, which isn't built in) and
   [Codebook](https://github.com/blopker/codebook), the code-aware spell
   checker (it downloads its own `codebook-lsp`; config is optional, in
   `~/.config/codebook/codebook.toml` or a project `codebook.toml`; see
