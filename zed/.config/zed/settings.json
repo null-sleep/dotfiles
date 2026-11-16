@@ -143,6 +143,11 @@
     // binary; no language_servers override needed while none are set below).
     // Add new extensions here, not only via the Extensions UI. IDs are the dir
     // names in ~/Library/Application Support/Zed/extensions/installed.
+    //
+    // Updates: Zed auto-updates every installed extension on startup, and all
+    // of these are deliberately left unpinned. To pin one to its current
+    // version, add `"auto_update_extensions": { "<id>": false }` (the
+    // Extensions page's "Install Another Version…" does this too).
     "auto_install_extensions": {
         "catppuccin": true,
         "catppuccin-blur": true,
