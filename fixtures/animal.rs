@@ -92,22 +92,47 @@ fn main() {
     let cat = Cat { name: "Whiskers".to_string() };
     let bird = Bird { name: "Tweety".to_string() };
 
-    dog.sound();
-    cat.sound();
-    bird.fly();
+    println!("{}", dog.sound());
+    println!("{}", cat.sound());
+    println!("{}", bird.fly());
 
-    describe(&dog);
-    describe(&cat);
-    describe(&bird);
+    println!("{}", describe(&dog));
+    println!("{}", describe(&cat));
+    println!("{}", describe(&bird));
 
     // Closure assigned to a local binding — like Go's anonymous func in main.
     let greet = |animal: &dyn Animal| format!("Hello, {}!", animal.name());
-    greet(&dog);
+    println!("{}", greet(&dog));
 
     let zoo = Zoo {
         animals: vec![Box::new(dog), Box::new(cat), Box::new(bird)],
     };
-    zoo.describe();
+    print!("{}", zoo.describe());
 
-    max_value(3, 7);
+    println!("max_value(3, 7) = {}", max_value(3, 7));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_describe() {
+        let dog = Dog { name: "Rex".to_string() };
+        println!("describing: {}", dog.name()); // shows with --nocapture
+        assert_eq!(describe(&dog), "Rex says woof");
+    }
+
+    #[test]
+    fn test_max_value() {
+        assert_eq!(max_value(3, 7), 7);
+    }
+
+    // Deliberately failing — confirms a red result and failure output render,
+    // not just green ones. Delete once you've seen it fail.
+    #[test]
+    fn test_sound_is_wrong() {
+        let cat = Cat { name: "Whiskers".to_string() };
+        assert_eq!(cat.sound(), "moo");
+    }
 }

@@ -74,25 +74,25 @@ def main() -> None:
     cat = Cat("Whiskers")
     bird = Bird("Tweety")
 
-    dog.sound()
-    cat.sound()
-    bird.fly()
+    print(dog.sound())
+    print(cat.sound())
+    print(bird.fly())
 
-    describe(dog)
-    describe(cat)
-    describe(bird)
+    print(describe(dog))
+    print(describe(cat))
+    print(describe(bird))
 
     def greet(animal: Animal) -> str:
         """Nested function — unlike Go's anonymous closure, this IS a named
         `def` inside another `def`; worth checking whether aerial nests it."""
         return f"Hello, {animal.get_name()}!"
 
-    greet(dog)
+    print(greet(dog))
 
     zoo = Zoo([dog, cat, bird])
-    zoo.describe()
+    print(zoo.describe(), end="")
 
-    max_value(3, 7)
+    print("max_value(3, 7) =", max_value(3, 7))
 
 
 if __name__ == "__main__":

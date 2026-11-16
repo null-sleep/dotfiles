@@ -134,6 +134,14 @@
         "make": true,
     },
 
+    // Python test runnables default to pytest, which isn't installed; stdlib
+    // unittest needs nothing (fixtures/test_animal.py uses it).
+    "languages": {
+        "Python": {
+            "tasks": { "variables": { "TEST_RUNNER": "unittest" } },
+        },
+    },
+
     "git": {
         "auto_fetch": { "enabled": false, "interval_secs": 60 },
     },
