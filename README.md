@@ -31,6 +31,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Neovim](#neovim)
 - [Neovide](#neovide)
 - [Zed](#zed)
+- [Codebook](#codebook)
 - [Typora](#typora)
 - [RustRover](#rustrover) — [Claude Code plugin](#claude-code-plugin)
 
@@ -63,7 +64,7 @@ section below; the rest of this README is reference material for individual tool
    ```
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, build tool (including [CMake](#cmake)), font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
-6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr zed` (add `zellij` only if you enabled that optional formula) ([Setup](#setup)).
+6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr zed` (add `zellij` only if you enabled that optional formula), then `stow --no-folding codebook` on its own, because it aborts if `~/.config/codebook/codebook.toml` already exists as a regular file ([Setup](#setup), [Codebook](#codebook)).
 7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
@@ -143,6 +144,7 @@ stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
 stow --no-folding zed        # needs the zed cask — see the Zed section
+stow --no-folding codebook   # spell-check dictionary — run on its own, see the Codebook section
 # Optional — only if you uncommented its formula in the Brewfile:
 stow zellij                  # needs the zellij formula
 ```
@@ -1855,8 +1857,9 @@ Stowed to `~/.config/zed/`:
   the Extensions UI. The list includes the
   `dracula` theme extension (source of Dracula Solid, which isn't built in) and
   [Codebook](https://github.com/blopker/codebook), the code-aware spell
-  checker (it downloads its own `codebook-lsp`; config is optional, in
-  `~/.config/codebook/codebook.toml` or a project `codebook.toml`; see
+  checker (it downloads its own `codebook-lsp`; its global dictionary is the
+  stowed `~/.config/codebook/codebook.toml`, see [Codebook](#codebook), and a
+  project `codebook.toml` is optional; see
   [`plans/zed-spell-check.md`](plans/zed-spell-check.md)). If you ever set
   `language_servers` for a language in `languages`, end the list with `"..."`
   or Codebook stops there (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). Go,
@@ -1936,6 +1939,24 @@ upgrade, re-verify against the new tag and bump that line):
   creating, switching, and deleting from the picker, `create_worktree`
   setup hooks, and repos whose own script manages worktrees (per-worktree
   ports, Docker stacks).
+
+## Codebook
+
+The [Codebook](https://github.com/blopker/codebook) spell checker (installed by Zed's `auto_install_extensions`, see [Zed](#zed)) reads its global dictionary from `~/.config/codebook/codebook.toml`. The `codebook` stow package tracks that one file so the dictionary travels between machines.
+
+```bash
+cd ~/src/dotfiles
+stow --no-folding codebook
+```
+
+- **Adding a word** — in Zed, open code actions on a flagged word (`cmd-.`) and pick **Add '…' to global dictionary**, or run `codebook-lsp add --global <word>` (the binary must be on `$PATH`; Zed's copy is not). Codebook writes the file in place, so the write goes through the stow symlink and lands in this repo as a `git diff`. Commit it. The plain **Add '…' to dictionary** action writes a `codebook.toml` in the workspace root instead, which is project-scoped and not part of this package.
+- **File format** — one word per line, sorted bytewise (uppercase first), duplicates detected case-insensitively. Codebook preserves that layout when it adds words, so adds from different branches usually merge cleanly. Keep the array multi-line.
+- **Why `--no-folding`** — links only the file, so anything else that ever appears in `~/.config/codebook/` stays out of the repo. Codebook's own cache is in `~/.local/share/codebook/cache`, not there.
+- **Fresh machine** — if Codebook already created `~/.config/codebook/codebook.toml` as a regular file, stow refuses to replace it and aborts **every** package in that command, hence the separate command. Merge any words you want to keep into the tracked file, `rm` the local one, then stow. Never `--adopt`: it copies the machine's file over the repo's.
+- **After a `git pull` that changes the file** — a running language server holds its own copy of the word list and re-reads the file only during a spell check, at most every few seconds. From reading the source (untested end to end), an add before that re-read can drop the pulled words. Edit any buffer or restart the server first, and check `git diff` before committing.
+- **New or renamed config files** — Codebook picks its config at startup; restart Zed or the language server after creating or renaming one.
+
+Verified against `codebook-lsp` v0.4.0: `codebook-lsp add --global` run against a symlinked `codebook.toml` left the symlink intact and updated the target.
 
 ## Typora
 
