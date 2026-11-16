@@ -946,21 +946,25 @@ plus commit/push/PR buttons.
 
 ```bash
 brew install --cask t3-code   # in the Brewfile; self-updates
-open -a "T3 Code (Beta)"
+open "/Applications/T3 Code (Beta).app"
 ```
 
-Then accept the **t3 command → Install** prompt (Welcome page, or
-**Settings → About**). It links `~/.local/bin/t3`, already on `PATH`. That is
-the app-owned CLI: do **not** also run `curl https://t3.codes/install.sh | sh`
-or `t3 update` — the app updates both itself and the link. `t3 app [path]`
-opens a directory as a project in the running app.
+Launch by path: `open -a "T3 Code (Beta)"` fails to resolve the name. On
+first launch the app links `~/.local/bin/t3` → `~/.t3/bin/t3`, a wrapper that
+runs the bundled CLI (already on `PATH`; **Settings → About → t3 command**
+reinstalls it). That is the app-owned CLI: do **not** also run
+`curl https://t3.codes/install.sh | sh` or `t3 update` — the app updates both
+itself and the wrapper. `t3 app [path]` opens a directory as a project in the
+running app; `t3 status` shows remote access (all off here).
 
 **Telemetry** — the stowed [`zsh`](#zsh) config exports
 `T3CODE_TELEMETRY_ENABLED=false`, which turns off product events and relay
-tracing. The app reads it from the shell profile at launch, so quit and
-relaunch it after first stowing. It does not cover a browser tab on the web
-app (no toggle there) or **Publish agent activity** (Settings → Sharing &
-access; leave it off).
+tracing. The app picks it up by probing your login shell (`zsh -ilc`) at
+launch, so quit and relaunch it after first stowing; check with
+`env -i HOME=$HOME /bin/zsh -ilc 'printenv T3CODE_TELEMETRY_ENABLED'`
+(prints `false`). It does not cover a browser tab on the web app (no toggle
+there) or **Publish agent activity** (Settings → Sharing & access; leave it
+off).
 
 **Providers** — in **Settings → Providers** on the local environment, enable
 only these:
@@ -989,9 +993,11 @@ pieces are the Brewfile cask, the zsh telemetry export, and a `.gitignore`
 guard for `zsh/.local/bin/t3`. No remote access is set up: no `t3 up`, no
 `t3 service install`, no T3 Connect.
 
-**Remove** — `brew uninstall --zap --cask t3-code` (the zap deletes
-`~/.t3/userdata` and the app-support directories), then `rm ~/.local/bin/t3`
-if the link dangles.
+**Remove** — `brew uninstall --zap --cask t3-code` deletes the app,
+`~/.t3/userdata`, and the app-support directories. The macOS zap leaves
+`~/.t3/bin`, `~/.t3/caches`, and `~/.t3/worktrees` (per-thread git
+worktrees — check for unpushed work first), so finish with
+`rm -rf ~/.t3 ~/.local/bin/t3`.
 
 <a id="cursor-cli-cursor-agent"></a>
 ## Cursor CLI (cursor-agent)
