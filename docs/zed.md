@@ -1094,8 +1094,8 @@ maps:
 | `shift-z shift-z` / `shift-z shift-q` | save and close tab / close without saving |
 | `:E`, `:G`, `:A`, `:te`, `:cl`, `:D` | project panel, git, agent, terminal, diagnostics, debug |
 
-**Differences from nvim:** `:` commands take no file arguments (`:e foo`
-does not exist — use `cmd-p`); `s`/`shift-s` are substitute unless you bind
+**Differences from nvim:** `:e foo`, `:sp foo`, `:w foo` take paths from the
+project root, not the current file's directory; `s`/`shift-s` are substitute unless you bind
 sneak; visual-block edits are multi-cursor; the regex dialect is Rust's.
 
 The full vim-mode story — in-file and cross-file navigation, tabs, the

@@ -83,7 +83,7 @@ Used many times a day; each is covered in full below.
    keymap and its `cmd-…` keys keep working.
 2. **`:` is the command palette.** Ex commands are palette entries (`:w`,
    `:sp`, `:%s/a/b/`, `:12`), and any Zed action is typeable there.
-   Arguments are the catch: `:e file` and `:w name` don't exist.
+   File arguments are relative to the project root: `:e file`, `:w name`.
 3. **Vim contexts live on `Editor`.** Panels get their own small vim-ish
    layers ([Panels](#panels)) rather than the full mode machine.
 4. **The leader is unclaimed.** `space` is `vim::WrappingRight` in editors
@@ -450,14 +450,16 @@ unless a saved fold is restored, matching nvim's `foldlevel = 99`.
 <a id="ex"></a>
 ## `:` commands
 
-Optional letters in brackets. No command takes a file argument.
+Optional letters in brackets. `:e`, `:w`, `:r`, `:sp`, `:vs`, `:tabe`, and
+`:tabnew` take a file path relative to the project root; `tab` completes it.
 
 | command | does |
 |---|---|
-| `:w[rite]`, `:wa`, `:up[date]`, `:w!` | save (current / all / if changed / skip format) |
+| `:w[rite]`, `:wa`, `:up[date]`, `:w!` | save (current / all / if changed / over changes on disk); all format |
+| `:e[dit] file`, `:e`, `:r[ead] file` | open file / reload from disk / insert file below cursor |
 | `:q[uit]`, `:q!`, `:wq`, `:x`, `:qa`, `:wqa`, `:bd` | close tab(s) — `:cq` quits Zed |
 | `:sp[lit]`, `:vs[plit]`, `:new`, `:vne[w]` | splits |
-| `:tabedit`, `:tabnew`, `:tabn`, `:tabp`, `:tabc`, `:ls` | tab strip (new empty tab, cycle, close, list) |
+| `:tabedit`, `:tabnew`, `:tabn`, `:tabp`, `:tabc`, `:ls` | tab strip (new tab or file, cycle, close, list) |
 | `:E[xplore]`, `:G[it]`, `:A[I]`, `:D[ebug]`, `:te[rm]`, `:C[ollab]`, `:Ch[at]`, `:No[tif]`, `:Ext[ensions]` | panels |
 | `:cl[ist]`, `:cn`/`:ln`, `:cp`/`:lp`, `:cc`/`:ll` | diagnostics as a quickfix list |
 | `:dif[fupdate]`, `:rev[ert]` | `do` / `dp` |
@@ -506,8 +508,10 @@ in `keymap.json` (how-to in [`docs/zed.md`](zed.md#custom-bindings)):
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet
 
-- **`:e file` does not exist** — nothing in `:` takes a file argument.
-  `cmd-p`, `gf`, or the project panel.
+- **`:e file` starts at the project root**, not the current file's
+  directory. `cmd-p` is usually faster.
+- **`:w!` still formats** — it only overwrites changes made on disk. Save
+  without formatting is `cmd-k s`; vim mode has no command for it.
 - **`s`/`S` alone are substitute** unless you bind sneak; surround is only
   the two-key `ys`/`cs`/`ds`.
 - **`space` moves right** in editors — a leader you add shadows it, as

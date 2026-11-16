@@ -1,14 +1,19 @@
 # Zed cheatsheet
 
-`cmd-k cmd-m` opens this (task `cheatsheet`); `cmd-shift-v` flips preview and
-source. `cmd-k cmd-v` toggles vim mode.
+`cmd-k cmd-m` opens this (task `cheatsheet`). Every `.md` opens as a preview;
+`cmd-shift-v` flips preview and source, `cmd-k v` previews to the side.
+`cmd-k cmd-v` toggles vim mode.
+
+Not listed here? `cmd-shift-p` palette or `cmd-k cmd-s` keymap editor (nvim:
+`<leader>sk`) searches every action; `cmd-,` settings.
 
 Columns: **Zed** native key, **Vim** Zed's vim-mode key, **nvim** this repo's
 nvim config. One notation throughout: `alt-]` is nvim's `<M-]>`, `ctrl-s` is
 `<C-s>`; `<leader>` is `space`. A blank cell means the key to its left still
 applies (Zed keys work in vim mode); a blank nvim cell can also mean nvim has
 no equivalent. `—` means no key; use the palette.
-Full reference: `docs/zed.md`, `docs/zed-vim.md`.
+Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
+`docs/zed-vim-keymap.md`.
 
 ## Find and navigate
 
@@ -32,7 +37,8 @@ Full reference: `docs/zed.md`, `docs/zed-vim.md`.
 | branch / worktree picker | `ctrl-cmd-b` / `ctrl-cmd-w` | | `<leader>Gb` / `<leader>Gw` (popups) |
 
 In a picker: `enter` open, `cmd-enter` open in a split, `escape` cancel.
-File finder: `cmd-shift-i` includes ignored files.
+File finder: `cmd-shift-i` includes ignored files. `cmd-t` / `gS` see only
+running language servers; a server starts when you open a file in its language.
 
 ## Code
 
@@ -52,10 +58,14 @@ File finder: `cmd-shift-i` includes ignored files.
 | toggle fold | `cmd-k cmd-l` | `za` | |
 | LSP completions | `ctrl-space` | `ctrl-x ctrl-o` (insert) | `ctrl-space` |
 | inline assist | `ctrl-enter` | `ctrl-x ctrl-a` (insert) | |
-| save / without formatting | `cmd-s` / `cmd-k s` | `:w` / `:w!` | `:w` (format-on-save is off) |
+| save / without formatting | `cmd-s` / `cmd-k s` | `:w` / — | `:w` (format-on-save is off) |
 
 Autosave runs 1s after the last edit and never formats; `cmd-s` formats Go,
-Rust, Elixir, and other languages Zed formats by default.
+Rust, Elixir, and other languages Zed formats by default. Vim `:w!` still
+formats; it only overwrites changes made on disk.
+
+Folds follow indentation (nvim: tree-sitter) and persist per file. `zc`/`zo`,
+`zM`/`zR`, uppercase `zC`/`zO` recurse; `cmd-k cmd-1`…`9` fold to a level.
 
 ## Review changes
 
@@ -67,7 +77,8 @@ Rust, Elixir, and other languages Zed formats by default.
 | next / prev hunk | `cmd-f8` / `cmd-shift-f8` | `]c` / `[c` | |
 | next / prev file (excerpt) | `cmd-down` / `cmd-up` | | `tab` / `shift-tab` (diffview) |
 | show old text inline | `cmd-'` | `do` | `<leader>hp` |
-| stage / unstage hunk, then next | `cmd-y` / `cmd-shift-y` | `du` / `dU` | `<leader>hs` (toggle) |
+| stage / unstage hunk, then next | `cmd-y` / `cmd-shift-y` | `du` / `dU` | |
+| toggle hunk staged | `alt-cmd-y` | `dO` | `<leader>hs` |
 | revert hunk | `alt-cmd-z` | `dp` | `<leader>hr` |
 | stage everything | `ctrl-cmd-y` | | `ctrl-s` (Neogit) |
 | commit | `cmd-enter` | | `<leader>Gc`, then `c` |
@@ -81,6 +92,9 @@ Rust, Elixir, and other languages Zed formats by default.
 Branch diffs compare with the last-fetched `origin/<base>`; fetch first.
 They have no hunk stage or revert. `alt-cmd-g r` sends an open branch diff to
 an agent for review.
+
+`git commit` (no `-m`) / `git rebase -i` in the terminal open a Zed tab; git
+waits until you save and `cmd-w` it. The git panel's commit box needs no editor.
 
 ## Agent
 
@@ -145,9 +159,8 @@ edits with `git: diff`.
 | grow / shrink / reset dock | `ctrl-alt-=` / `ctrl-alt--` / `ctrl-alt-0` | | |
 
 A panel's focus key, pressed inside it, returns to the editor and leaves the
-panel open; close it with `ctrl-alt-w`. The agent dock is `cmd-b` in the
-agentic layout, `cmd-r` in classic. Zoom does nothing in the project, git, and
-outline panels.
+panel open; close it with `ctrl-alt-w` (`cmd-w` closes the tab, never the
+dock). Zoom does nothing in the project, git, and outline panels.
 Docks are not panes: `ctrl-w h/j/k/l` never reaches them.
 
 ### Project panel
@@ -156,7 +169,7 @@ nvim column: nvim-tree.
 
 | Action | Zed | Vim | nvim |
 |---|---|---|---|
-| open, focus; again, back | `cmd-shift-e` | `:E`; back: `escape` | `<leader>e` (again: close) |
+| open, focus on current file; again, back | `cmd-shift-e` | `:E`; back: `escape` | `<leader>e` (again: close) |
 | close | `ctrl-alt-w` | | `<leader>e`, `q` |
 | preview | `space` | `p` | |
 | open file (not preview) | — | `enter`, `t` | `l`, `enter` |
@@ -252,19 +265,14 @@ None of these exist in the nvim config.
 - Surround: `ys` + motion + char, `cs"'`, `ds"`
 - Jump: `]r`/`[r` next / prev use of the symbol under the cursor
 - `gR` + motion replace with register; `cx` + motion twice to exchange
-- `:` commands take no file argument (no `:e file`); use `cmd-p` or `gf`
-
-## Zed itself
-
-| Action | Zed | nvim |
-|---|---|---|
-| keymap editor, searches every action | `cmd-k cmd-s` | `<leader>sk` |
-| settings | `cmd-,` | |
-| markdown: preview to the side | `cmd-k v` | |
-
-Every `.md` opens as a preview (`markdown_preview.open_markdown_files_in_preview`).
 
 ## Gotchas
+
+- A `●` on a tab you didn't edit means the file changed on disk. Don't `cmd-s`;
+  run `editor: reload file` (vim `:e`) or close with Don't Save.
+- Vim: `ctrl-c` is escape, not copy. Regex is Rust's: `(a|b)`, `$1`.
+  `:e`, `:sp`, `:vs`, `:tabe` take a path from the project root (`tab`
+  completes).
 
 | Key | Editor | Elsewhere |
 |---|---|---|
@@ -272,6 +280,7 @@ Every `.md` opens as a preview (`markdown_preview.open_markdown_files_in_preview
 | `alt-cmd-y` | toggle hunk staged | dock: all docks; permission prompt: allow always |
 | `alt-cmd-z` | revert hunk | agent diff: reject; permission prompt: reject once |
 | `alt-tab` | accept edit prediction | thread: cycle models; commit box: message |
+| `ctrl-cmd-right` | grow selection | prediction showing: accept its next word |
 | `shift-escape` | zoom | commit box: expand the editor |
 | `enter` | — | project panel: rename; vim project panel: open |
 | `ctrl-g` | go to line | vim normal mode: show location (use `:<n>`) |
@@ -291,15 +300,3 @@ Same key, different meaning in nvim:
 | `D`, project panel | delete permanently | move to Trash (nvim-tree) |
 | `f12` | go to definition (any mode) | debugger step out |
 | `ys`, `cs`, `ds` | surround | not mapped |
-
-- A `●` on a tab you didn't edit means the file changed on disk. Don't `cmd-s`;
-  run `editor: reload file` or close with Don't Save.
-- `cmd-w` closes the tab, never the dock; `ctrl-alt-w` closes the dock.
-- `git commit` (no `-m`) / `git rebase -i` in the terminal open a Zed tab; git
-  waits until you save and `cmd-w` it. The git panel's commit box needs no editor.
-- `cmd-t` / `gS` see only running language servers; a server starts when you
-  open a file in its language.
-- Folds follow indentation (nvim: tree-sitter) and persist per file. `zc`/`zo`,
-  `zM`/`zR`, uppercase `zC`/`zO` recurse; `cmd-k cmd-1`…`9` fold to a level.
-- Vim: `ctrl-c` is escape, not copy. Regex is Rust's: `(a|b)`, `$1`.
-- Adopting nvim keys in Zed: `docs/zed-vim-keymap.md` has a ready block.
