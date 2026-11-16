@@ -97,6 +97,15 @@ off or delete them as they land; add new ones freely.
   `kind: "execute"` tool-call updates (execute-only variant keeps edit cards
   and Review Changes). Findings, options, and costs in
   [zed-omp-tool-call-noise.md](zed-omp-tool-call-noise.md); nothing built.
+- [ ] **Get omp to show the full plan in Zed's approval card** (found
+  2026-11-16) — omp's ACP plan approval sends only the first 12 lines, as
+  plain text in a form, and never posts the plan to the chat. Codex and
+  Claude send the full plan and approve through
+  `session/request_permission`. Next: patch omp in a new session and send a
+  PR (post the plan to the chat, then ask), or file the drafted issue
+  instead, but not both. Patch map, tests, Zed test setup, the draft issue,
+  and the open-the-file workaround are in
+  [zed-omp-plan-approval-preview.md](zed-omp-plan-approval-preview.md).
 - [ ] **Verify Zed autosave and the stale-buffer fix** (shipped 2026-11-14) —
   `autosave` is now `after_delay` 1000 ms to stop `settings.json` tabs going
   stale. Still to check in Zed: the `●` clears after 1s, an outside change
@@ -660,6 +669,12 @@ Grouped by state, not priority.
   in Zed; no Zed or omp setting hides the header. Documents what each side
   sends, and the options (fewer bash calls, an ACP filter wrapper, Terminal
   Threads, upstream requests); recommends trying an execute-only filter.
+- [zed-omp-plan-approval-preview.md](zed-omp-plan-approval-preview.md) —
+  research, patch plan and draft issue (2026-11-16): why omp's plan approval
+  in Zed shows a 12-line plain-text preview, how codex-acp and
+  claude-agent-acp show the full plan and approve through
+  `session/request_permission`, where to patch omp and how to test it in
+  Zed, the draft issue, and the workaround (open the session's plan file).
 - [zed-buffer-sync-and-formatting.md](zed-buffer-sync-and-formatting.md) —
   decision record (2026-11-14): why a Zed tab went stale, how Zed reloads
   buffers and saves omp's writes, the nvim comparison, the autosave and
