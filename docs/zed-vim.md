@@ -72,7 +72,7 @@ Used many times a day; each is covered in full below.
 | `gcc`, `gc` + motion | comment | same |
 | `ysiw)`, `cs"'`, `ds"` | surround | — (no surround plugin in the nvim config) |
 | `gl` / `ga` | add cursor at next match / all matches | — |
-| `cmd-?`, `:A` | agent panel | `<leader>aa` |
+| `cmd-?`, `:A` | agent panel | `<C-.>`, `<leader>ai` |
 | `cmd-k cmd-v` | toggle vim mode on / off (works with it off, too) | — |
 
 <a id="mental-model"></a>
@@ -184,7 +184,7 @@ the finder only from non-editor panes (project panel, empty pane).
 | keys | action | does |
 |---|---|---|
 | `gd`, `ctrl-]` / `gD` | `editor::GoToDefinition` / `GoToDeclaration` | definition / declaration |
-| `gy` | `editor::GoToTypeDefinition` | type definition (no `grt` in Zed) |
+| `gy` | `editor::GoToTypeDefinition` | type definition (no `grt` in 1.28.1; Zed master adds it) |
 | `gI`, `gri` | `editor::GoToImplementation` | implementation |
 | `gA`, `grr` | `editor::FindAllReferences` | references, as a multibuffer |
 | `grn`, `cd` | `editor::Rename` | rename symbol |
@@ -247,7 +247,8 @@ and call hierarchy.
 **Differences.** nvim sends `gd`, `gy`, `gri`, `grr` through snacks
 pickers (a single result jumps straight there); Zed opens a multibuffer
 unless `"lsp_results_location": "picker"` is set. `grt` is the only nvim
-binding with no Zed twin — `gy` covers it. nvim's `ctrl-click` jumps to
+binding with no Zed 1.28.1 twin — `gy` covers it, and Zed master binds
+`grt` too. nvim's `ctrl-click` jumps to
 the definition; the Zed equivalent was not checked.
 
 Multiple definitions or references open a multibuffer: `cmd-down`/`cmd-up`
@@ -430,7 +431,8 @@ ranges, `]/`/`[/` between comments.
 enclosing syntax node, entering visual mode from normal. They take a count
 (`3[x`); shrinking retraces the grow history, like nvim's `<M-o>`/`<M-i>`
 stack. Sibling moves (`vim::SelectNextSyntaxNode` / `…Previous…`) are bound
-only in Helix mode (`alt-n`/`alt-p`); see [Opt-in bindings](#opt-in).
+only in Helix mode (`alt-n`/`alt-p`) in 1.28.1; Zed master adds `]n`/`[n` in
+visual mode. See [Opt-in bindings](#opt-in).
 
 **Folds.** Range computation, persistence, settings:
 [`zed.md` → Folding](zed.md#folding).

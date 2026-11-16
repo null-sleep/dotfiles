@@ -175,7 +175,7 @@ languages you have opened a file in this session; see
 | `<leader>at` / `as` send ref / text | `cmd->` | borrow | visual only: `agent::AddSelectionToThread` |
 | `<leader>ad` (new) review diff | `ctrl-shift-r` (agent diff, thread) | borrow | `agent::OpenAgentDiff`; no nvim equivalent |
 | `<leader>ae`/`aE`/`ab`/`aq`/`af`/`ac` send context | `@` picker | default | `@diagnostics`, `@file`, `@symbol` in the message box |
-| `<leader>ar` label session | sidebar `R` | default | rename the thread |
+| `<leader>ar` label session | sidebar `shift-r` | default | rename the thread |
 | `<leader>aj` jump to unread | — | skip | no equivalent action |
 | `<C-.>` focus CLI | `cmd-?` | default | |
 
@@ -344,9 +344,11 @@ Every *borrow* and *try*, grouped by context, ready to paste into
 ]
 ```
 
-Not in the block: a one-key "new Claude thread".
+Not in the block: a one-key "new Claude thread". Claude runs in Terminal
+Threads here (`agent.terminal_init_command: "claude"`), so that is
+`agent::NewTerminalThread`; for an ACP agent (Codex, omp),
 `agent::NewExternalAgentThread` takes the agent as an argument whose shape
-the docs don't show — add it via the keymap editor (`space s k` →
+the docs don't show. Add either via the keymap editor (`space s k` →
 `Add Keybinding`), which fills in the accepted form.
 
 <a id="caveats"></a>

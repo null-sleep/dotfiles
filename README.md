@@ -1813,8 +1813,10 @@ Stowed to `~/.config/zed/`:
   (`"mode": "dark"`, so it ignores the macOS appearance), the agent-panel sidebar width, and
   agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
   auto-approved (`.env`/key-file edits silently denied), its terminal sandbox
-  off, Claude threads starting in `bypassPermissions`, and omp run with
-  `--approval-mode yolo` (details: [`docs/zed.md`](docs/zed.md#inside-thread)).
+  off, and omp run with `--approval-mode yolo` (details:
+  [`docs/zed.md`](docs/zed.md#inside-thread)). Claude runs in Terminal
+  Threads, not over ACP: `agent.terminal_init_command` starts `claude` in
+  each one, and `agent.enable_feedback` is off.
   `terminal.option_as_meta` makes Option act as Alt in Zed's terminal, so
   omp's `Alt+O` picker works there (otherwise it types `ø`). Thinking blocks,
   command cards, and edit cards start collapsed (`thinking_display`,
@@ -2511,7 +2513,7 @@ Finder) need the full bundle path there instead.
 
 Zed is tracked, unlike Claude Code: `zed/.config/zed/settings.json` has a
 `context_servers.tabularis` entry using the same shim. It serves Zed Agent,
-and Zed forwards it to ACP agents (omp, `claude-acp`) too. Zed's
+and Zed forwards it to ACP agents (omp, Codex) too. Zed's
 `agent.tool_permissions.default` is `allow`, so Zed Agent calls its tools
 without prompting; rely on Tabularis's read-only mode and approval gates if
 that matters.

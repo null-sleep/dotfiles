@@ -352,8 +352,8 @@ ignored files on. This repo's stowed `settings.json` hides it everywhere:
 - **Zed Agent** is bound too: its `read_file`, `list_directory`, and `grep`
   tools refuse or skip excluded paths, so a thread in the main checkout
   can't read a nested worktree — open that worktree to work in it. External
-  ACP agents (Claude, Codex, omp) use their own tools; not verified whether
-  any honor the exclusion.
+  agents (Codex and omp over ACP, Claude in a Terminal Thread) use their own
+  tools; not verified whether any honor the exclusion.
 
 <a id="teardown"></a>
 ### Teardown order
@@ -419,8 +419,9 @@ worktree script" means one shaped like
 - [ ] **Zed Agent is blocked** — from a main-checkout thread, ask it to
   read `.worktrees/<x>/README.md`: expect a `file_scan_exclusions` refusal.
   - Result:
-- [ ] **External agents** (not verified) — same request from a Claude,
-  Codex, and omp thread; note which read the file anyway.
+- [ ] **External agents** (not verified) — same request from a Claude
+  Terminal Thread and a Codex and omp thread; note which read the file
+  anyway.
   - Result:
 
 ### Picker and switching

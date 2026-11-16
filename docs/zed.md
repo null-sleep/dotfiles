@@ -65,6 +65,8 @@ equivalents appear in parentheses or a third column next to each binding.
 - [Vim mode](#vim-mode)
 - [Adding your own bindings](#custom-bindings)
 - [Gotchas cheat-sheet](#gotchas)
+- [Background notes](#background) — open checks, Terminal Thread restore,
+  Zed Pro vs OpenRouter cost
 
 ---
 
@@ -122,7 +124,7 @@ Used many times a day; each is covered in full below.
 
 **Coming from the nvim config:** `cmd-p` is `<leader>sf`, `cmd-shift-f` is
 `<leader>sg`, `cmd-shift-e` is `<leader>e`, `cmd-.` is `<leader>ca`, and
-`cmd-?` is roughly `<leader>aa` (sidekick). Which leader keys to carry into
+`cmd-?` is roughly `<C-.>` / `<leader>ai` (focus the sidekick CLI). Which leader keys to carry into
 vim mode is decided in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md); the
 mechanics are under [Adding your own bindings](#custom-bindings).
 
@@ -255,66 +257,6 @@ use `git: diff branch` or the History tab.
   [Git](#git); `editor: toggle all diff hunks` flips them all.
 - `"git": { "show_stage_restore_buttons": false }` hides the per-hunk
   buttons; word-level highlighting is on unless `word_diff_enabled: false`.
-
-<a id="diff-review-untested"></a>
-### Untested in the app
-
-Claims above still to check in a running Zed. Per item: fix the text above
-if reality differs, then delete the item; note the date and Zed version in
-the commit message.
-
-**Uncommitted**
-
-- [ ] **Project diff keys:** `cmd-y` stages and moves on, `cmd-alt-z`
-  reverts, `cmd-enter` commits from the diff.
-- [ ] **Staged / unstaged views:** `git: view staged changes` shows only
-  staged hunks; right-clicking a file in the git panel offers both views.
-
-**Branch diff**
-
-- [ ] **Contents:** on a feature branch with an uncommitted edit, the tab
-  reads `Changes since origin/main` and shows the commits plus the edit.
-- [ ] **Matches GitHub:** on a pushed PR with a clean tree, the same files
-  as "Files changed".
-- [ ] **Changing the base:** `Base:` re-bases the view;
-  `git: compare with branch` opens the same picker.
-- [ ] **No stage/restore:** no hunk buttons, `cmd-y` / `cmd-alt-z` do
-  nothing, typing edits the real file.
-- [ ] **File list:** `cmd-shift-b` lists the branch diff's files.
-- [ ] **Review Diff:** the button and `cmd-alt-g r` open a thread with the
-  diff attached and the prompt sent; note which agent it picks.
-- [ ] **Last N commits:** `git branch -f review-base HEAD~3`, compare with
-  `review-base` → exactly those 3 commits plus uncommitted edits.
-- [ ] **No default branch:** without `origin/HEAD`, `main`, or `master`,
-  `git: diff branch` opens the uncommitted diff.
-- [ ] **`git: toggle diff base`:** `git: diff` becomes the branch diff and
-  the gutter follows; `git diff zed/` shows `diff_base`. Toggle back and
-  discard.
-
-**PRs**
-
-- [ ] **Walkthrough:** a PR into a non-default branch, fetched and compared
-  with `origin/<base>`, matches the PR's file list.
-- [ ] **Stale base:** skipping the fetch after a rebase onto newer base
-  commits shows those commits in the diff.
-- [ ] **`@` branch diff:** a thread's `@` menu lists it; record the label.
-- [ ] **No review comments:** hovering a hunk shows no add-comment button.
-
-**Agent edits**
-
-- [ ] **Zed Agent:** an edit appears under `ctrl-shift-r` and `cmd-alt-z`
-  rejects it; with `agent.single_file_review` on, the controls appear in
-  the file.
-- [ ] **omp ACP thread:** an edit appears under `ctrl-shift-r`; reject
-  restores the file.
-- [ ] **Claude Agent:** the edit lands on disk and the review buffer stays
-  empty.
-
-**Display**
-
-- [ ] **Split toggle coverage:** `editor: toggle split diff` works in
-  branch, staged, and commit diffs; `diff_view_style: "unified"` sets each
-  one's default.
 
 <a id="pickers"></a>
 ## Pickers and navigation
@@ -654,17 +596,18 @@ If `cmd-b` hits the wrong dock, you are in the other layout: check with
 `workspace: use agentic layout` / `use classic layout` from the palette.
 Layouts are described under [Panes, tabs, and docks](#panes-docks).
 
-**External agents** (Claude, Codex — the `agent_servers` registry entries in
-`settings.json`) install from `zed: acp registry`;
-omp isn't in the registry, so it's a `custom` entry running `omp acp
---approval-mode yolo --config ~/.omp/agent/zed-models.yml`. All of them
-appear in the `+` menu and sidebar like any thread. They bring
-their own auth (`/login` in a Claude thread) and instructions (`CLAUDE.md`,
-not Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+`
-menu > Terminal) are a plain terminal tracked as a thread — run `claude`/
-`pi`/`codex` there for the CLI itself (sidekick-in-nvim). They do not resume
-after a Zed restart ([details](#terminal-thread-restore)). One-key launches:
-see [Adding your own bindings](#custom-bindings).
+**External agents** (ACP) install from `zed: acp registry`; `settings.json`
+has Codex (`codex-acp`, a registry entry) and omp, which isn't in the
+registry, so it's a `custom` entry running `omp acp --approval-mode yolo
+--config ~/.omp/agent/zed-models.yml`. Both appear in the `+` menu and
+sidebar like any thread. They bring their own auth and instructions (not
+Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+` menu >
+Terminal) are a plain terminal tracked as a thread, for the CLI itself
+(sidekick-in-nvim). Claude runs this way here, not over ACP:
+`agent.terminal_init_command: "claude"` types `claude` into every new
+Terminal Thread (Ctrl-C it for a plain shell, or to run `pi`/`codex`). They
+do not resume after a Zed restart ([details](#terminal-thread-restore)).
+One-key launches: see [Adding your own bindings](#custom-bindings).
 
 **omp's model dropdown** is omp's own ACP `model` select, not Zed's model
 selector: `agent.favorite_models` and `alt-tab` don't reach it, and omp's
@@ -706,145 +649,14 @@ What each side gives you:
   terminal: scrollback instead of a transcript, no review loop (review with
   git: [Agent edits](#diff-review-agents)), no waiting/done signals in the
   sidebar.
-- **Both** sit in the Threads Sidebar, can be renamed, cycled, and are
-  bound by the same `agent_servers` registry entries.
+- **Both** sit in the Threads Sidebar and can be renamed and cycled.
 - **Restore after a Zed restart differs.** ACP threads go to Thread History
   and can be reopened, subject to the adapter's session support (open bugs
   zed#54750, #58887: external ACP threads loading empty or losing their
   `session_id`; not checked against `omp acp`). A Terminal Thread comes back
-  as an empty shell, not as the agent session. See
+  as a fresh shell (here running a new `claude`), not as the agent session.
+  See
   [Terminal Threads after a restart](#terminal-thread-restore).
-
-<a id="terminal-thread-restore"></a>
-### Terminal Threads after a restart
-
-**What happens.** When the project reopens, Zed recreates each open Terminal
-Thread's sidebar entry with a fresh shell. The agent process, scrollback,
-and any half-typed prompt are gone. Zed 1.28.1 stores only a title, custom
-title, creation time, working directory, and project/worktree paths per
-thread (`sidebar_terminal_threads` in
-`~/Library/Application Support/Zed/db/0-stable/db.sqlite`), so it has no
-command or session id to resume from. The agent's conversation itself is
-safe: each CLI keeps its sessions on disk, and you resume from the shell.
-
-**Known quirks:**
-
-- A thread closed with its **×** is deleted, not archived. Nothing in Thread
-  History brings it back; open a new Terminal Thread and resume from there.
-- Some users report the recreated shell starting in `/` instead of the
-  project directory. A thread with no stored working directory would explain
-  that [INFERENCE]; not seen here.
-- The sidebar title is the shell's, not the session's. Rename threads
-  (`shift-r` in the sidebar) before a restart if you want to tell them apart
-  afterwards.
-
-#### Resume by hand
-
-Per thread, in this order:
-
-1. Select the restored entry in the Threads Sidebar, or open a new Terminal
-   Thread (`+` menu > Terminal) if you closed it.
-2. Run `pwd`. If it is not the project root, `cd` there; sessions are looked
-   up by directory, so the wrong directory finds nothing.
-3. Run the resume command for the CLI you were using:
-
-   | CLI | latest session here | pick from a list | exact session |
-   |---|---|---|---|
-   | omp | `omp -c` | `omp -r` | `omp -r <id-prefix>` |
-   | claude | `claude -c` | `claude -r` | `claude -r <session-id>` |
-   | pi | `pi -c` | `pi -r` | `pi --session <path\|id>` |
-
-   Flags are from each CLI's `--help`. `claude -c` is documented as the most
-   recent conversation *in the current directory*; omp stores sessions in
-   per-directory folders under `~/.omp/agent/sessions/`; pi's scoping is
-   unchecked.
-4. omp after a crash or an update that interrupted a running turn:
-   `omp --restore` resumes like `-r`, then continues the unfinished turn and
-   its subagents.
-
-**Several threads in one project:** `-c` gives every thread the *same*
-latest session. Use the picker (`-r`) instead and choose a different session
-in each thread. Zed does not record which thread had which session, so the
-picker's titles and timestamps are the only clue. That missing mapping is
-what `ZED_TERMINAL_THREAD_ID` (below) would supply.
-
-#### Automating it
-
-Nothing here is adopted; `settings.json` sets none of these, and none was
-tried in a running Zed. Options, easiest first:
-
-- **`agent.terminal_init_command`** (shipped). Zed types the command into
-  every new *and* recreated Terminal Thread, e.g. `"omp -c"`. Fine with one
-  thread per project; with several, they all resume the same session. It also
-  fires for threads you wanted as plain shells.
-- **`ZED_TERMINAL_THREAD_ID` plus a hook and wrapper** (unmerged
-  [PR #65484](https://github.com/zed-industries/zed/pull/65484); needs a
-  custom Zed build). The CLI records its session id keyed by that variable,
-  and a wrapper resumes it. One user's Claude version: a `SessionStart` hook
-  writes `.session_id` from the hook's stdin JSON to
-  `$XDG_STATE_HOME/claude-zed-threads/$ZED_TERMINAL_THREAD_ID`, and a
-  `claude-zed` wrapper runs `claude --resume <id>` when that file exists. The
-  PR description has a Codex wrapper. This is the only per-thread approach
-  reported working.
-- **A persistent shell underneath** (tmux, zellij, or
-  [zmx](../plans/zmx-session-persistence.md)): the CLI keeps running when
-  Zed quits and a restored thread reattaches
-  ([zed#25227](https://github.com/zed-industries/zed/discussions/25227)).
-  With no thread id the session name could only come from the cwd, so
-  threads in one project would share a session [INFERENCE: via
-  `terminal_init_command`]. A reboot still ends it. tmux is installed here;
-  zmx is not.
-- **Not available:** a setting that maps thread to session.
-  [PR #58693](https://github.com/zed-industries/zed/pull/58693) proposed
-  `terminal_command: "claude --session-id {session_id}"` plus a matching
-  `terminal_resume_command`. Zed closed it (Jun 15) because they want to
-  design it themselves across shells and OSes. It would not fit omp anyway:
-  `omp --help` has no flag to choose a session id, unlike
-  `claude --session-id <uuid>`.
-
-#### Patches and Zed's plans
-
-**Is Zed working on it?** Acknowledged and planned, with no design, date or
-assignee. Evidence:
-
-- A Zed maintainer (macraig) on
-  [zed#57428](https://github.com/zed-industries/zed/discussions/57428), May
-  25: "This is already on our ToDo list. We just need a bit of time to figure
-  out the best way to implement it in terminals."
-- A Zed maintainer (anantdgoel) closing PR #58693, Jun 15: "we'll make sure
-  this capability lands", pointing at issue #58697. That issue is closed and
-  is only the *default command* request, which shipped as
-  `agent.terminal_init_command`; it is not a resume tracker.
-- A Zed reviewer (smitbarmase) on PR #65484, Oct 12: restoring is "on our
-  list (#57428), but we haven't settled on how yet, so it might be a while";
-  he asked users to try the PR and report back.
-- Still open as of the last comments I read (Oct 2026). No linked Zed issue,
-  milestone, or release note for resume exists that I found.
-
-**Patch options**, none merged into Zed 1.28.1:
-
-- **[PR #65484](https://github.com/zed-industries/zed/pull/65484)** (open,
-  Oct 2026) adds `ZED_TERMINAL_THREAD_ID` to the Terminal Thread shell
-  environment; you supply the hook and wrapper. Cost: you build Zed from the
-  PR branch (the author used Zed's `script/bundle-*` scripts; not checked
-  here) and give up the stable release and its auto-updates. Several users
-  report it working on macOS and Linux; one reported a startup crash that
-  turned out to be a security agent killing the debug build.
-- **No patch, just a request:**
-  [discussion #60306](https://github.com/zed-industries/zed/discussions/60306)
-  asks for the same per-terminal id as an env var or as `{terminal_id}` in
-  `terminal_init_command`. Nothing to install; add a +1 there if you want it.
-- **Writing rows into `sidebar_terminal_threads` yourself.** One user's tmux
-  bridge ([#57428](https://github.com/zed-industries/zed/discussions/57428),
-  Jul 15) registers sessions as threads so a restored thread reattaches. It
-  writes Zed's private SQLite, Zed sees new rows only after a reload, and its
-  author says it should not become the contract. Not recommended.
-
-**Practical choice today:** resume by hand, or `terminal_init_command` if you
-keep one thread per project. If per-thread resume matters enough, the PR
-#65484 build plus a wrapper is the only per-thread route reported working.
-Its examples cover Claude and Codex, so an omp hook and wrapper would be
-yours to write. Watch #57428 and PR #65484 to learn when stock Zed gets it.
 
 Rule of thumb: ACP for Zed Agent and Codex when the in-editor review loop
 is the point; Terminal Threads for a harness you have customised (Claude,
@@ -975,9 +787,9 @@ its header. Stop is the button next to send.
 - **External agents** keep their own permission model; Zed's settings above
   don't reach them. omp's `acp` mode asks before every bash call unless yolo
   is set explicitly (the built-in default doesn't count), hence
-  `"args": ["acp", "--approval-mode", "yolo"]`. Claude starts in
-  `default_mode: "bypassPermissions"`; `shift-tab`
-  (`agent::CycleModeSelector`) cycles modes per thread.
+  `"args": ["acp", "--approval-mode", "yolo"]`. `shift-tab`
+  (`agent::CycleModeSelector`) cycles an ACP agent's modes per thread.
+  Claude in a Terminal Thread follows its own `~/.claude/settings.json`.
 
 ```jsonc
 "agent": {
@@ -990,7 +802,6 @@ its header. Stop is the button next to send.
   }
 },
 "agent_servers": {
-  "claude-acp": { "type": "registry", "default_mode": "bypassPermissions" },
   "omp": { "type": "custom", "command": "/opt/homebrew/bin/omp", "args": ["acp", "--approval-mode", "yolo", "--config", "~/.omp/agent/zed-models.yml"] }
 }
 ```
@@ -1037,42 +848,7 @@ agents' edits reach this buffer at all, and how to review the rest:
   hides them until you hold `alt`. Rebinding context:
   `Editor && edit_prediction`.
 
-<a id="hosted-model-cost"></a>
-### Zed Pro vs OpenRouter tokens
-
-This setup runs models through OpenRouter (prepaid credits). Zed's hosted
-models bill list price **+10%** and need Zed Pro ($10/month, includes $5 of
-token credit); OpenRouter bills list price with a **5.5%** fee on credit
-purchases ($0.80 minimum). Pro is also what unlocks unlimited Zed edit
-predictions (the `zed` provider above), so the comparison depends on whether
-you'd pay for Pro anyway. Per month, with `S` = list-price token spend:
-
-| route | cost |
-|---|---|
-| OpenRouter | `1.055 × S` |
-| Zed Pro, tokens only | `5 + 1.1 × S` (above the $5 credit) |
-| Zed Pro, already paying for edit predictions | `1.1 × S − 5` extra |
-
-- **Tokens alone:** OpenRouter is cheaper at every spend level.
-- **Pro for edit predictions anyway:** Zed's tokens are cheaper than
-  OpenRouter while `S` is under about **$111/month** (`0.045 × S < 5`). Above
-  that, OpenRouter wins again.
-- **Best with Pro already paid: hybrid.** Zed costs 4.5% more per token at
-  every spend level; the $5 credit is a fixed monthly rebate, not a
-  per-token discount. Spend the first ~$4.55 of list-price usage on Zed's
-  hosted models (set the spend limit to $0 so overage never bills), then
-  switch to the OpenRouter key. That saves a flat ~$4.80/month at any spend,
-  where Zed-only shrinks to zero at $111 and goes negative after. The credit
-  only covers models Zed hosts, used in Zed's own agent, inline assist, and
-  commit messages (not omp threads).
-- **Small top-ups:** the $0.80 minimum makes a $5 OpenRouter top-up a 16%
-  fee, worse than Zed's 10%; $10 is 8%.
-- Zed's spend limit (default $10 of overage, settable to $0) is postpaid and
-  billed in arrears; an OpenRouter balance is already a hard cap.
-
-Prices from zed.dev's [Plans & Pricing](https://zed.dev/docs/account/plans-and-pricing)
-and OpenRouter's [FAQ](https://openrouter.ai/docs/faq.md#pricing-and-fees),
-checked 2026-11-15; re-check before relying on the break-even.
+Zed Pro vs OpenRouter token cost: [Background](#hosted-model-cost).
 
 <a id="vim-mode"></a>
 ## Vim mode
@@ -1212,9 +988,10 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   off formatting in every other Rust or Go project. The only repo file this
   touches is `fixtures/animal.rs`, which isn't rustfmt-clean, so an agent
   write or a `cmd-s` could reformat it.
-- **Terminal Threads restart as empty shells.** The sidebar entry returns,
-  the agent session does not: resume with `omp -c` / `omp -r` (or the CLI's
-  equivalent) from the right directory. Zed has planned per-thread resume
+- **Terminal Threads restart as fresh shells.** The sidebar entry returns,
+  the agent session does not; here `terminal_init_command` starts a new
+  `claude`, so `/resume` inside it (or `omp -r` etc. from a plain shell in
+  the right directory). Zed has planned per-thread resume
   but has no design or date
   ([details and patch options](#terminal-thread-restore)).
 - **Closing a Terminal Thread with its `×` deletes it**; unlike an ACP
@@ -1232,7 +1009,9 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   favorite models (thread), generates a commit message (git panel). `cmd-y`
   is stage-and-next (editor), keep-hunk (agent review), allow-once
   (permission prompt). `cmd-alt-y` is toggle-all-docks, but toggle-staged
-  on an editor hunk and allow-always in a thread.
+  on an editor hunk and allow-always in a thread. `cmd-ctrl-right` /
+  `cmd-ctrl-down` select syntax nodes, but accept the next word / line of
+  an edit prediction while one is showing.
 - **`ctrl-space` needs the macOS input-source shortcut disabled** (System
   Settings > Keyboard > Shortcuts > Input Sources) or completions never open.
 - **`cmd-ctrl-d` opens the macOS dictionary** instead of
@@ -1242,3 +1021,243 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   `Workspace && vim_mode == normal` is silently dead.
 - **Text threads and the Rules Library are gone** (replaced by Skills and
   `~/.config/zed/AGENTS.md`); old docs and blog posts still mention them.
+
+<a id="background"></a>
+## Background notes
+
+Research and open checks behind the sections above; each is linked from
+where it applies.
+
+<a id="diff-review-untested"></a>
+### Untested in the app: reviewing changes
+
+Claims in [Reviewing changes](#diff-review) still to check in a running
+Zed. Per item: fix that text if reality differs, then delete the item; note
+the date and Zed version in the commit message.
+
+**Uncommitted**
+
+- [ ] **Project diff keys:** `cmd-y` stages and moves on, `cmd-alt-z`
+  reverts, `cmd-enter` commits from the diff.
+- [ ] **Staged / unstaged views:** `git: view staged changes` shows only
+  staged hunks; right-clicking a file in the git panel offers both views.
+
+**Branch diff**
+
+- [ ] **Contents:** on a feature branch with an uncommitted edit, the tab
+  reads `Changes since origin/main` and shows the commits plus the edit.
+- [ ] **Matches GitHub:** on a pushed PR with a clean tree, the same files
+  as "Files changed".
+- [ ] **Changing the base:** `Base:` re-bases the view;
+  `git: compare with branch` opens the same picker.
+- [ ] **No stage/restore:** no hunk buttons, `cmd-y` / `cmd-alt-z` do
+  nothing, typing edits the real file.
+- [ ] **File list:** `cmd-shift-b` lists the branch diff's files.
+- [ ] **Review Diff:** the button and `cmd-alt-g r` open a thread with the
+  diff attached and the prompt sent; note which agent it picks.
+- [ ] **Last N commits:** `git branch -f review-base HEAD~3`, compare with
+  `review-base` → exactly those 3 commits plus uncommitted edits.
+- [ ] **No default branch:** without `origin/HEAD`, `main`, or `master`,
+  `git: diff branch` opens the uncommitted diff.
+- [ ] **`git: toggle diff base`:** `git: diff` becomes the branch diff and
+  the gutter follows; `git diff zed/` shows `diff_base`. Toggle back and
+  discard.
+
+**PRs**
+
+- [ ] **Walkthrough:** a PR into a non-default branch, fetched and compared
+  with `origin/<base>`, matches the PR's file list.
+- [ ] **Stale base:** skipping the fetch after a rebase onto newer base
+  commits shows those commits in the diff.
+- [ ] **`@` branch diff:** a thread's `@` menu lists it; record the label.
+- [ ] **No review comments:** hovering a hunk shows no add-comment button.
+
+**Agent edits**
+
+- [ ] **Zed Agent:** an edit appears under `ctrl-shift-r` and `cmd-alt-z`
+  rejects it; with `agent.single_file_review` on, the controls appear in
+  the file.
+- [ ] **omp ACP thread:** an edit appears under `ctrl-shift-r`; reject
+  restores the file.
+- [ ] **Claude Agent:** the edit lands on disk and the review buffer stays
+  empty.
+
+**Display**
+
+- [ ] **Split toggle coverage:** `editor: toggle split diff` works in
+  branch, staged, and commit diffs; `diff_view_style: "unified"` sets each
+  one's default.
+
+<a id="terminal-thread-restore"></a>
+### Terminal Threads after a restart
+
+**What happens.** When the project reopens, Zed recreates each open Terminal
+Thread's sidebar entry with a fresh shell. The agent process, scrollback,
+and any half-typed prompt are gone. Zed 1.28.1 stores only a title, custom
+title, creation time, working directory, and project/worktree paths per
+thread (`sidebar_terminal_threads` in
+`~/Library/Application Support/Zed/db/0-stable/db.sqlite`), so it has no
+command or session id to resume from. The agent's conversation itself is
+safe: each CLI keeps its sessions on disk, and you resume from the shell.
+
+**Known quirks:**
+
+- A thread closed with its **×** is deleted, not archived. Nothing in Thread
+  History brings it back; open a new Terminal Thread and resume from there.
+- Some users report the recreated shell starting in `/` instead of the
+  project directory. A thread with no stored working directory would explain
+  that [INFERENCE]; not seen here.
+- The sidebar title is the shell's, not the session's. Rename threads
+  (`shift-r` in the sidebar) before a restart if you want to tell them apart
+  afterwards.
+
+#### Resume by hand
+
+Per thread, in this order:
+
+1. Select the restored entry in the Threads Sidebar, or open a new Terminal
+   Thread (`+` menu > Terminal) if you closed it.
+2. Run `pwd`. If it is not the project root, `cd` there; sessions are looked
+   up by directory, so the wrong directory finds nothing.
+3. Run the resume command for the CLI you were using. Here the restored
+   thread has already started a fresh `claude` (`terminal_init_command`):
+   use `/resume` in it, or Ctrl-C it first for another CLI.
+
+   | CLI | latest session here | pick from a list | exact session |
+   |---|---|---|---|
+   | omp | `omp -c` | `omp -r` | `omp -r <id-prefix>` |
+   | claude | `claude -c` | `claude -r` | `claude -r <session-id>` |
+   | pi | `pi -c` | `pi -r` | `pi --session <path\|id>` |
+
+   Flags are from each CLI's `--help`. `claude -c` is documented as the most
+   recent conversation *in the current directory*; omp stores sessions in
+   per-directory folders under `~/.omp/agent/sessions/`; pi's scoping is
+   unchecked.
+4. omp after a crash or an update that interrupted a running turn:
+   `omp --restore` resumes like `-r`, then continues the unfinished turn and
+   its subagents.
+
+**Several threads in one project:** `-c` gives every thread the *same*
+latest session. Use the picker (`-r`) instead and choose a different session
+in each thread. Zed does not record which thread had which session, so the
+picker's titles and timestamps are the only clue. That missing mapping is
+what `ZED_TERMINAL_THREAD_ID` (below) would supply.
+
+#### Automating it
+
+Only `terminal_init_command` is set here, and as a launcher, not for
+resume; none of the resume options was tried in a running Zed. Options,
+easiest first:
+
+- **`agent.terminal_init_command`** (shipped; `"claude"` here). Zed types
+  the command into every new *and* recreated Terminal Thread. As set, a
+  recreated thread starts a fresh `claude` session; `/resume` inside it
+  picks the old one. A resume command (`"claude -c"`, `"omp -c"`) is fine
+  with one thread per project; with several, they all resume the same
+  session. It also fires for threads you wanted as plain shells.
+- **`ZED_TERMINAL_THREAD_ID` plus a hook and wrapper** (unmerged
+  [PR #65484](https://github.com/zed-industries/zed/pull/65484); needs a
+  custom Zed build). The CLI records its session id keyed by that variable,
+  and a wrapper resumes it. One user's Claude version: a `SessionStart` hook
+  writes `.session_id` from the hook's stdin JSON to
+  `$XDG_STATE_HOME/claude-zed-threads/$ZED_TERMINAL_THREAD_ID`, and a
+  `claude-zed` wrapper runs `claude --resume <id>` when that file exists. The
+  PR description has a Codex wrapper. This is the only per-thread approach
+  reported working.
+- **A persistent shell underneath** (tmux, zellij, or
+  [zmx](../plans/zmx-session-persistence.md)): the CLI keeps running when
+  Zed quits and a restored thread reattaches
+  ([zed#25227](https://github.com/zed-industries/zed/discussions/25227)).
+  With no thread id the session name could only come from the cwd, so
+  threads in one project would share a session [INFERENCE: via
+  `terminal_init_command`]. A reboot still ends it. tmux is installed here;
+  zmx is not.
+- **Not available:** a setting that maps thread to session.
+  [PR #58693](https://github.com/zed-industries/zed/pull/58693) proposed
+  `terminal_command: "claude --session-id {session_id}"` plus a matching
+  `terminal_resume_command`. Zed closed it (Jun 15) because they want to
+  design it themselves across shells and OSes. It would not fit omp anyway:
+  `omp --help` has no flag to choose a session id, unlike
+  `claude --session-id <uuid>`.
+
+#### Patches and Zed's plans
+
+**Is Zed working on it?** Acknowledged and planned, with no design, date or
+assignee. Evidence:
+
+- A Zed maintainer (macraig) on
+  [zed#57428](https://github.com/zed-industries/zed/discussions/57428), May
+  25: "This is already on our ToDo list. We just need a bit of time to figure
+  out the best way to implement it in terminals."
+- A Zed maintainer (anantdgoel) closing PR #58693, Jun 15: "we'll make sure
+  this capability lands", pointing at issue #58697. That issue is closed and
+  is only the *default command* request, which shipped as
+  `agent.terminal_init_command`; it is not a resume tracker.
+- A Zed reviewer (smitbarmase) on PR #65484, Oct 12: restoring is "on our
+  list (#57428), but we haven't settled on how yet, so it might be a while";
+  he asked users to try the PR and report back.
+- Still open as of the last comments I read (Oct 2026). No linked Zed issue,
+  milestone, or release note for resume exists that I found.
+
+**Patch options**, none merged into Zed 1.28.1:
+
+- **[PR #65484](https://github.com/zed-industries/zed/pull/65484)** (open,
+  Oct 2026) adds `ZED_TERMINAL_THREAD_ID` to the Terminal Thread shell
+  environment; you supply the hook and wrapper. Cost: you build Zed from the
+  PR branch (the author used Zed's `script/bundle-*` scripts; not checked
+  here) and give up the stable release and its auto-updates. Several users
+  report it working on macOS and Linux; one reported a startup crash that
+  turned out to be a security agent killing the debug build.
+- **No patch, just a request:**
+  [discussion #60306](https://github.com/zed-industries/zed/discussions/60306)
+  asks for the same per-terminal id as an env var or as `{terminal_id}` in
+  `terminal_init_command`. Nothing to install; add a +1 there if you want it.
+- **Writing rows into `sidebar_terminal_threads` yourself.** One user's tmux
+  bridge ([#57428](https://github.com/zed-industries/zed/discussions/57428),
+  Jul 15) registers sessions as threads so a restored thread reattaches. It
+  writes Zed's private SQLite, Zed sees new rows only after a reload, and its
+  author says it should not become the contract. Not recommended.
+
+**Practical choice today:** resume by hand, or `terminal_init_command` if you
+keep one thread per project. If per-thread resume matters enough, the PR
+#65484 build plus a wrapper is the only per-thread route reported working.
+Its examples cover Claude and Codex, so an omp hook and wrapper would be
+yours to write. Watch #57428 and PR #65484 to learn when stock Zed gets it.
+
+<a id="hosted-model-cost"></a>
+### Zed Pro vs OpenRouter tokens
+
+Zed Agent can run models through Zed (`zed.dev`, the provider
+`agent.default_model` uses here) or an OpenRouter key (prepaid credits). Zed's
+hosted models bill list price **+10%** and need Zed Pro ($10/month, includes $5 of
+token credit); OpenRouter bills list price with a **5.5%** fee on credit
+purchases ($0.80 minimum). Pro is also what unlocks unlimited Zed edit
+predictions (the `zed` provider above), so the comparison depends on whether
+you'd pay for Pro anyway. Per month, with `S` = list-price token spend:
+
+| route | cost |
+|---|---|
+| OpenRouter | `1.055 × S` |
+| Zed Pro, tokens only | `5 + 1.1 × S` (above the $5 credit) |
+| Zed Pro, already paying for edit predictions | `1.1 × S − 5` extra |
+
+- **Tokens alone:** OpenRouter is cheaper at every spend level.
+- **Pro for edit predictions anyway:** Zed's tokens are cheaper than
+  OpenRouter while `S` is under about **$111/month** (`0.045 × S < 5`). Above
+  that, OpenRouter wins again.
+- **Best with Pro already paid: hybrid.** Zed costs 4.5% more per token at
+  every spend level; the $5 credit is a fixed monthly rebate, not a
+  per-token discount. Spend the first ~$4.55 of list-price usage on Zed's
+  hosted models (set the spend limit to $0 so overage never bills), then
+  switch to the OpenRouter key. That saves a flat ~$4.80/month at any spend,
+  where Zed-only shrinks to zero at $111 and goes negative after. The credit
+  only covers models Zed hosts, used in Zed's own agent, inline assist, and
+  commit messages (not omp threads).
+- **Small top-ups:** the $0.80 minimum makes a $5 OpenRouter top-up a 16%
+  fee, worse than Zed's 10%; $10 is 8%.
+- Zed's spend limit (default $10 of overage, settable to $0) is postpaid and
+  billed in arrears; an OpenRouter balance is already a hard cap.
+
+Prices from zed.dev's [Plans & Pricing](https://zed.dev/docs/account/plans-and-pricing)
+and OpenRouter's [FAQ](https://openrouter.ai/docs/faq.md#pricing-and-fees),
+checked 2026-11-15; re-check before relying on the break-even.
