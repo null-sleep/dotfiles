@@ -632,6 +632,12 @@ Grouped by state, not priority.
   @<role>` so Zed's new-thread menu doubles as an omp preset picker with the
   role's thinking level. The scoped model dropdown shipped instead; revisit
   if most Zed omp threads start on the same one or two non-default presets.
+- [zed-terminal-thread-agent-picker.md](zed-terminal-thread-agent-picker.md)
+  — proposed (2026-11-15): `+ > Terminal` is one entry with one
+  `terminal_init_command`, so it can't offer separate claude and omp
+  terminals. Preferred: point the init command at a stowed `zagent` zsh
+  function that asks claude / omp / shell. Also records the by-hand status
+  quo and an unverified keymap launcher. Nothing built.
 - [zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md)
   — idea (2026-11-15): Zed fork changes for richer Terminal Thread pop-ups
   (option to skip the Dock bounce, re-notify after dismiss, caption from
