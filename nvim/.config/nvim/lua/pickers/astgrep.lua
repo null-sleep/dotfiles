@@ -24,7 +24,6 @@ local FT_TO_LANG = {
   javascript = 'javascript', javascriptreact = 'javascript',
   bash = 'bash', sh = 'bash', markdown = 'markdown', yaml = 'yaml',
   json = 'json', c = 'c', cpp = 'cpp', html = 'html', css = 'css',
-  ruby = 'ruby',
 }
 
 -- Choices for the <M-l> switcher: unique langs + auto (no --lang).
