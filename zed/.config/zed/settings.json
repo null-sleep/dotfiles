@@ -71,6 +71,12 @@
     // "unstable.ui_density": "compact",
     "buffer_font_family": "Hack Nerd Font Mono",
     "buffer_font_size": 15.0,
+    // Agent panel (chat threads only; π terminal threads use terminal.*).
+    // ui = reply text, buffer = code blocks + message box. Mono font for
+    // replies: the sans UI font looks cramped and there's no line-height knob.
+    "agent_ui_font_family": "Hack Nerd Font Mono",
+    "agent_ui_font_size": 17,
+    "agent_buffer_font_size": 16,
 
     // Open every .md as the rendered preview (replaces the editor tab), so
     // the cheatsheet task in tasks.json lands in preview.
