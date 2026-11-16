@@ -988,6 +988,19 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   off formatting in every other Rust or Go project. The only repo file this
   touches is `fixtures/animal.rs`, which isn't rustfmt-clean, so an agent
   write or a `cmd-s` could reformat it.
+- **Codebook disappears from a language if you set `language_servers` for
+  it without `"..."`.** The Codebook extension (installed by
+  `auto_install_extensions`) attaches to every language it supports, but a
+  per-language `language_servers` list replaces Zed's default server set, so
+  any server you leave out stops running there. Today `settings.json` sets
+  no `language_servers`, so Codebook works everywhere. When you add one,
+  end the list with `"..."` (keeps defaults, Codebook included) or name
+  `"codebook"` explicitly, e.g. `["pyright", "ruff", "..."]`. Symptom of a
+  miss: no spelling squiggles or quickfixes in that language; check
+  `dev: open language server logs`. Codebook's own config, ignore patterns
+  and the `lsp.codebook.initialization_options` knobs are in its
+  [README](https://github.com/blopker/codebook#configuration); the choice
+  is recorded in [`plans/zed-spell-check.md`](../plans/zed-spell-check.md).
 - **Terminal Threads restart as fresh shells.** The sidebar entry returns,
   the agent session does not; here `terminal_init_command` starts a new
   `claude`, so `/resume` inside it (or `omp -r` etc. from a plain shell in

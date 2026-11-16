@@ -1833,8 +1833,14 @@ Stowed to `~/.config/zed/`:
   editing defaults (tab size 4, scrolloff 10) are present but commented out.
   `auto_install_extensions` pulls the
   `dracula` theme extension (source of Dracula Solid, which isn't built in) and the
-  Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch (Go,
-  Rust, TypeScript, Python are built in). The ACP agent entries
+  Elixir, Lua, TOML, Dockerfile, and Make extensions on first launch, plus
+  [Codebook](https://github.com/blopker/codebook), the code-aware spell
+  checker (it downloads its own `codebook-lsp`; config is optional, in
+  `~/.config/codebook/codebook.toml` or a project `codebook.toml`; see
+  [`plans/zed-spell-check.md`](plans/zed-spell-check.md)). If you ever set
+  `language_servers` for a language in `languages`, end the list with `"..."`
+  or Codebook stops there (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). Go,
+  Rust, TypeScript, Python are built in. The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except
   `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp --approval-mode yolo --config ~/.omp/agent/zed-models.yml` (needs omp
   installed; see [omp](#omp)). The absolute path is deliberate: an older

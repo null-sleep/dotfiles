@@ -136,10 +136,13 @@
     // "show_whitespaces": "selection",
 
     // Language servers/grammars outside Zed's built-ins (Go, Rust, TS, Python
-    // are built in), plus the theme extension that provides "Dracula Solid".
+    // are built in), plus the theme extension that provides "Dracula Solid"
+    // and the Codebook spell checker (it fetches its own codebook-lsp binary;
+    // no language_servers override needed while none are set below).
     // Installed automatically on first launch.
     "auto_install_extensions": {
         "dracula": true,
+        "codebook": true,
         "elixir": true,
         "lua": true,
         "toml": true,
@@ -152,6 +155,12 @@
     // here beats the same key set globally.
     // Defaults drift; re-check before editing via `zed: open default settings`
     // (top-level keys + its "languages" block).
+    // CODEBOOK: no language below sets `language_servers`, which is why the
+    // Codebook spell checker (see auto_install_extensions) runs everywhere.
+    // If you add `language_servers` to a language, end the list with "..."
+    // (or add "codebook"), e.g. ["pyright", "ruff", "..."]; otherwise
+    // Codebook silently stops for that language. See docs/zed.md → Gotchas.
+    //
     // Other keys accepted per language:
     //   formatting   formatter, format_on_save, code_actions_on_format
     //   layout       tab_size, hard_tabs, soft_wrap, preferred_line_length,

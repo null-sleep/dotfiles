@@ -1,8 +1,9 @@
 # Zed: spell-check extension choice
 
-Status: decided (2026-11-15), nothing installed. Pick **Codebook**. Findings
-come from web searches of the Zed extension pages and project READMEs, not
-from running any of them.
+Status: decided and installed (2026-11-15). **Codebook** is in
+`auto_install_extensions` in `zed/.config/zed/settings.json`. Findings come
+from web searches of the Zed extension pages and project READMEs, not from
+running the alternatives.
 
 ## Options
 

@@ -658,7 +658,8 @@ Grouped by state, not priority.
 - [zed-spell-check.md](zed-spell-check.md) — decision record (2026-11-15):
   which Zed spell-check extension to use. Chosen: Codebook (code-aware
   identifiers, comments, strings); Typos as noise fallback, Harper for prose,
-  LanguageTool skipped (niche Zed extension, needs Java). Nothing installed.
+  LanguageTool skipped (niche Zed extension, needs Java). Codebook installed
+  via `auto_install_extensions`.
 - [zed-agent-panel-fonts.md](zed-agent-panel-fonts.md) — decision record
   (2026-11-15): which settings size the agent panel (chat vs π terminal
   threads), why replies went monospace at 17 with the message box and code at
