@@ -139,10 +139,52 @@
         "make": true,
     },
 
-    // Python test runnables default to pytest, which isn't installed; stdlib
-    // unittest needs nothing (fixtures/test_animal.py uses it).
+    // Per-language overrides. Go and Rust spell out Zed's defaults (v1.28.1
+    // assets/settings/default.json) as knobs to flip — note an explicit value
+    // here beats the same key set globally.
+    // Defaults drift; re-check before editing via `zed: open default settings`
+    // (top-level keys + its "languages" block).
+    // Other keys accepted per language:
+    //   formatting   formatter, format_on_save, code_actions_on_format
+    //   layout       tab_size, hard_tabs, soft_wrap, preferred_line_length,
+    //                wrap_guides
+    //   LSP          language_servers (["x", "!y", "..."]), enable_language_server,
+    //                semantic_tokens ("off"), colorize_brackets (false)
+    //   save         remove_trailing_whitespace_on_save, ensure_final_newline_on_save
     "languages": {
+        "Go": {
+            // Built-in Go defaults: format_on_save on, hard_tabs, organizeImports
+            // on format.
+            "inlay_hints": {
+                "enabled": false,
+                "show_type_hints": true,
+                "show_parameter_hints": true,
+                "show_other_hints": true,
+            },
+            "completions": { "words": "fallback", "lsp": true },
+            "show_edit_predictions": true,
+            // Task variables: none — go test/run need no config.
+            "tasks": { "enabled": true, "prefer_lsp": true },
+            "debuggers": ["Delve"],
+        },
+        "Rust": {
+            // Built-in Rust default: format_on_save on (rustfmt).
+            "inlay_hints": {
+                "enabled": false,
+                "show_type_hints": true,
+                "show_parameter_hints": true,
+                "show_other_hints": true,
+            },
+            "completions": { "words": "fallback", "lsp": true },
+            "show_edit_predictions": true,
+            // Task variables: RUST_DEFAULT_PACKAGE_RUN (cargo run -p <pkg>),
+            // RUST_TARGET_DIR.
+            "tasks": { "enabled": true, "prefer_lsp": true },
+            "debuggers": ["CodeLLDB"],
+        },
         "Python": {
+            // Default runner is pytest, which isn't installed; stdlib unittest
+            // needs nothing (fixtures/test_animal.py uses it).
             "tasks": { "variables": { "TEST_RUNNER": "unittest" } },
         },
     },
