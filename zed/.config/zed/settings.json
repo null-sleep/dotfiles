@@ -64,8 +64,9 @@
     // chrome heights) | default | comfortable (loosest). Spacing only; fonts
     // are unaffected. Off: still unstable in v1.28.1 (Zed warns elements may
     // break), and only the `unstable.` key works — bare "ui_density" is
-    // silently ignored. Stabilized once `ui_density` loses its
-    // `#[serde(rename = "unstable.ui_density")]` in
+    // silently ignored. Status: tracking issue
+    // https://github.com/zed-industries/zed/issues/18078 — stable once
+    // `ui_density` loses its `#[serde(rename = "unstable.ui_density")]` in
     // https://github.com/zed-industries/zed/blob/main/crates/settings_content/src/theme.rs
     // "unstable.ui_density": "compact",
     "buffer_font_family": "Hack Nerd Font Mono",
