@@ -277,6 +277,7 @@
         "terminal_init_command": "claude",
         "enable_feedback": false,
         "auto_compact": {
+            "enabled": false,
             "threshold": "70%"
         },
         "show_turn_stats": true,
