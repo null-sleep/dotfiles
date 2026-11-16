@@ -72,11 +72,13 @@
     "buffer_font_family": "Hack Nerd Font Mono",
     "buffer_font_size": 15.0,
     // Agent panel (chat threads only; π terminal threads use terminal.*).
-    // ui = reply text, buffer = code blocks + message box. Mono font for
-    // replies: the sans UI font looks cramped and there's no line-height knob.
+    // ui = reply text; buffer = message box, your messages, code blocks, and
+    // reply line height (buffer × 1.75). Mono replies: sans looked cramped.
+    // Zed defaults: ui 16 (.ZedSans), buffer 12 (.ZedMono). Docs example:
+    // ui 15 Inter, buffer 12 Berkeley Mono. See plans/zed-agent-panel-fonts.md.
     "agent_ui_font_family": "Hack Nerd Font Mono",
     "agent_ui_font_size": 17,
-    "agent_buffer_font_size": 16,
+    "agent_buffer_font_size": 15,
 
     // Open every .md as the rendered preview (replaces the editor tab), so
     // the cheatsheet task in tasks.json lands in preview.

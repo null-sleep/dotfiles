@@ -654,6 +654,10 @@ Grouped by state, not priority.
   which Zed spell-check extension to use. Chosen: Codebook (code-aware
   identifiers, comments, strings); Typos as noise fallback, Harper for prose,
   LanguageTool skipped (niche Zed extension, needs Java). Nothing installed.
+- [zed-agent-panel-fonts.md](zed-agent-panel-fonts.md) — decision record
+  (2026-11-15): which settings size the agent panel (chat vs π terminal
+  threads), why replies went monospace at 17 with the message box and code at
+  15, Zed defaults and docs example, what other users run.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
