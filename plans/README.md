@@ -11,6 +11,15 @@ A running checklist of what I actually want to do next across these plans
 (distinct from the index below, which just catalogs everything). Check items
 off or delete them as they land; add new ones freely.
 
+- [ ] **Per-model plan commands for omp** (wanted 2026-11-16) — `/planopus`,
+  `/planopussub`, `/plansol`, ...: a small stowed extension that starts plan
+  mode on a named model without editing the `plan` role (bare name =
+  OpenRouter, `sub` = direct Anthropic subscription). Design sketch, the
+  extension APIs it would use, and the open questions to settle first are in
+  [omp-plan-mode-models.md](omp-plan-mode-models.md) → Wanted: plan commands.
+  Nothing built; TUI-only (`sessionModes` is unavailable in print, RPC, ACP
+  and subagents).
+
 - [x] **Reconsider `skipDangerousModePermissionPrompt` and
   `skipAutoPermissionPrompt`** — settled 2026-08-12 in favour of the
   least-disruptive shape, in both repos. Neither key is a behaviour switch:
@@ -661,6 +670,21 @@ Grouped by state, not priority.
   pick. Chosen: accept the drift and commit it. Records what writes the block
   and the rejected options (delete the block, git clean filter,
   `--skip-worktree`, copy instead of symlink).
+- [omp-plan-mode-models.md](omp-plan-mode-models.md) — decision record
+  (2026-11-16): how omp picks the plan-mode model. In the terminal it is
+  `modelRoles.plan` (`--plan`/`PI_PLAN_MODEL` per launch); in Zed (ACP) plan
+  mode ignores that role and the model dropdown decides. Chosen: keep the
+  `plan` role on the most-used planning model and override per launch. Records
+  the tested behavior, including headless `--plan-yolo` ignoring the plan
+  model, a live Zed run that planned on the wrong "Terra", and the wanted
+  `/planopus`-style commands.
+- [omp-model-setup-2026-11.md](omp-model-setup-2026-11.md) — decision record
+  (2026-11-16), a compressed digest of the whole omp model-setup session: what
+  exists now and who owns it, every decision with what was rejected (per-call
+  allowlist, `*-sub` naming, Fable on the subscription because of ZDR, the
+  substitute-and-report rule, Zed picker without `oa-*`), the evidence, traps
+  hit, review history and open items. Start here for the why; the
+  `omp-models-sync` skill is the how-to.
 - [zed-spell-check.md](zed-spell-check.md) — decision record (2026-11-15):
   which Zed spell-check extension to use. Chosen: Codebook (code-aware
   identifiers, comments, strings); Typos as noise fallback, Harper for prose,

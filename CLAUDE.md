@@ -7,7 +7,8 @@ zed
 its theme palettes and the minimal `claude-footer.ts` extension — pi writes to
 its own settings.json, so that stays machine-local; `omp` stows only its
 `nvim-notify.ts`, `turn-count.ts`, `cycle-model-picker.ts`,
-`openrouter-session-cost.ts`, and `cwd-name.ts` extensions —
+`openrouter-session-cost.ts`, and `cwd-name.ts` extensions plus the user-level
+`AGENTS.md` and `RULES.md` (global subagent-model preferences) —
 config.yml is seeded via `omp config` and stays machine-local, and
 `~/.omp/agent/` also holds runtime state, so it's stowed `--no-folding`; `herdr` stows only
 `config.toml` — `~/.config/herdr/` also holds runtime state, so it's stowed
@@ -144,6 +145,26 @@ be rare now that README no longer carries its own keymap tables.
 - The `## Contents` TOC, when adding/removing/renaming a top-level section.
 - `## Quick start`'s numbered steps and inline links, if a Part 1 section's
   flow changes.
+
+## Keeping omp models in sync
+
+The omp model setup (`omp/setup-settings.sh` roles, cycle, `*-sub` roles,
+derived `task.perCallModelAllow`; Auto Code pool; Zed list; docs repeating
+model ids) must stay coherent, and the live `~/.omp/agent/config.yml` must
+match the script's `DEFAULT_ROLES` (seeding is fill-in-only, so editing the
+script alone does not change a configured machine). Always use the newest
+model generation the catalog offers.
+
+**Whenever you touch any omp model setting, or the user says new models
+shipped / "update the models", read and follow the `omp-models-sync` skill**
+(`agents/.agents/skills/omp-models-sync/SKILL.md`). It has the file map,
+gotchas, procedure, and the list of things to flag to the user. Report
+drift, deprecations, newer versions, and expired subscription logins rather
+than deciding silently.
+
+The standing rule for an unavailable subagent model (substitute and report,
+never ask, unless the user required that exact model) is global: it lives in
+the stowed `omp/.omp/agent/AGENTS.md` and `RULES.md`, not here.
 
 ## Commit identity: `dhruvjhr@gmail.com`, unsigned
 

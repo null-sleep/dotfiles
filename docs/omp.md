@@ -112,8 +112,25 @@ preference questions via the `ask` tool (2–4 options plus a recommended
 default), and submits by writing the slug to the internal `xd://propose`
 device — approval happens only through the review UI that opens then
 (`/plan-review` reopens it). Approving offers execution options and restores
-write access. If `modelRoles.plan` is set, entering plan mode switches to
-that model and switching back happens on exit.
+write access.
+
+**Which model plans** depends on where omp runs (probed on 18.20.2; evidence
+in [`plans/omp-plan-mode-models.md`](../plans/omp-plan-mode-models.md)):
+
+- **Terminal:** entering plan mode switches to `modelRoles.plan` (here
+  OpenRouter Opus 5.5 at high) and exiting switches back. Override it for
+  one launch with `omp --plan <id>` (or `PI_PLAN_MODEL`). An agent can't pick
+  the planning model per call the way it picks a subagent model.
+- **Zed (ACP):** plan mode ignores `modelRoles.plan` and keeps the thread's
+  model and thinking. Switch to Plan, then pick the planning model and
+  thinking in Zed's selectors, per thread, from the scoped list. Leaving Plan
+  keeps that model (switch back by hand to implement on another). A model
+  change can reset thinking: `high` dropped to `medium` on OpenRouter GPT-6.1
+  Sol, GPT-6.1 Terra and GPT-6 Luna, and held on Claude (OpenRouter and
+  subscription) and Codex GPT-5.6 Terra (probed 2026-11-16), so check thinking
+  after picking the model.
+- **Headless:** in testing, `--plan-yolo` planned on the default model, not
+  the `plan` role, and `-p "/plan …"` never entered plan mode.
 
 `--plan-yolo` runs the whole ceremony headless: forced plan mode at start,
 auto-approve on the first proposal, then implement on `--plan-yolo-into`
@@ -146,6 +163,24 @@ Custom ones are markdown + frontmatter in `.omp/agents/` (project) or
 `~/.omp/agent/agents/` (user). Note `.claude/agents` is deliberately *not*
 read here (its frontmatter schema differs), even though Claude skills and
 commands are discovered.
+
+**Per-call model**: the setup forces `task.perCallModel: on`, which adds an
+optional `model` to each task item, so "spawn a scout on opus" works like
+Claude Code's subagent model choice. The selector must be an exact
+`provider/model-id[:level]` the config already routes to — not a `@role`
+alias — and an unmatched one fails rather than substituting. It conflicts
+with an agent's `task.agentModelOverrides` entry or a `^model:level` prompt
+tag. `task.perCallModelAllow` is derived from `cycleOrder` plus the
+`*-sub` roles: each role's model as a canonical `provider/model-id` with no
+`:level`, so those models are selectable per call at any thinking level (for
+example `openrouter/anthropic/claude-opus-5.5:low` or `:xhigh`). The `*-sub`
+roles (`sonnet-sub`, `opus-sub`, `haiku-sub`, `fable-sub`) are the direct
+Anthropic subscription models, kept out of `cycleOrder`; plain "sonnet" or
+"opus" means the OpenRouter one, so say "the sonnet sub model" for the
+subscription one. Anthropic's catalog ids use dashes
+(`anthropic/claude-sonnet-5-5`). Models reachable only through other roles
+(`oa-*`, `glm-*`, `cheap-l`) still route normally; they just can't be picked
+per call.
 
 **Worktree-style isolation** is built in but off by default. Enable
 `task.isolation.enabled` to allow an `isolated` flag per task; choose the
@@ -427,7 +462,7 @@ modelRoles:
   opus: openrouter/anthropic/claude-opus-5.5:high
   cheap-l: openrouter/z-ai/glm-5.3:max
   astra: openrouter/openai/gpt-6-astra:xhigh
-  fable: openrouter/anthropic/claude-fable-5.2:high
+  fable: anthropic/claude-fable-5-2:high  # subscription; OpenRouter Fable is ZDR-blocked
 ```
 
 Existing role assignments survive setup re-runs; only missing role and tag keys
@@ -438,6 +473,20 @@ model. `setup-settings.sh` pins `cycleOrder` to the sequence above.
 `Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
 effective configuration and applies the selected role's model and thinking
 suffix.
+
+Beyond the cycle, `DEFAULT_ROLES` also seeds `*-sub` roles (`sonnet-sub`,
+`opus-sub`, `haiku-sub`, `fable-sub`) for the direct Anthropic subscription
+models. They are not in `cycleOrder`; they exist so a per-call subagent can
+use "the sonnet sub model" (see [Subagents](#subagents)). `fable` and
+`fable-sub` are the same model: OpenRouter's Fable is excluded by the
+account's Zero Data Retention setting (kept on), so the cycle role uses the
+subscription and `fable-sub` keeps the "X sub" name predictable. Fable on the
+subscription draws on its own weekly cap; in the main session it falls back to
+OpenRouter Opus 5.5 (see the fallback chains below), but per-call spawns have
+no automatic fallback. The live config
+can drift from the seeded defaults because seeding is fill-in-only; the
+procedure for a model-update round is the `omp-models-sync` skill
+(`agents/.agents/skills/omp-models-sync/SKILL.md`).
 
 The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
 with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.1 Sol,
@@ -458,28 +507,35 @@ supports. Carbon is geared toward difficult, long-running tasks and can spend
 more tokens per task than cheaper presets. Check current OpenRouter pricing
 before long runs.
 
-Both GLM selectors also get model-specific automatic fallback chains, seeded
-fill-in-only so later hand edits survive setup re-runs:
+The GLM selectors also get model-specific automatic fallback chains, and the
+subscription Fable model falls back to OpenRouter Opus 5.5 when its weekly cap
+is hit or the login fails. All are seeded fill-in-only so later hand edits
+survive setup re-runs:
 
 ```yaml
 retry:
   fallbackChains:
+    anthropic/claude-fable-5-2:
+      - openrouter/anthropic/claude-opus-5.5:high
     openrouter/z-ai/glm-5.3:
       - openrouter/deepseek/deepseek-v4-pro-0813:max
-      - openrouter/qwen/qwen3.8-max:xhigh
+      - openrouter/qwen/qwen3.8-2.4t-a95b:xhigh
       - openai-codex/gpt-5.6-terra:high
     openrouter/z-ai/glm-5.3-flash:
-      - openrouter/deepseek/deepseek-v4-flash-0731:max
-      - openrouter/qwen/qwen3.8-flash:high
-      - openai-codex/gpt-5.6-luna:high
+      - openrouter/deepseek/deepseek-v4.1-flash-1017:max
+      - openrouter/qwen/qwen3.8-27b:medium
+      - openai-codex/gpt-6-luna:high
 ```
 
 `retry.modelFallback` is on by default. Model-selector keys apply whenever
-that exact GLM model is active, regardless of which role selected it. The
-first two alternatives preserve the OpenRouter path while moving off Z.AI;
-the final OpenAI Codex entry also escapes an OpenRouter-wide limit. The default
-`cooldown-expiry` revert policy returns to GLM after its suppression window
-ends. Unavailable providers or models are skipped.
+that exact model is the active model of the main session or a role-routed
+subagent, regardless of which role selected it (so the Fable key covers
+`fable` and `fable-sub` there; per-call spawns get no automatic fallback). The first two GLM alternatives
+preserve the OpenRouter path while moving off Z.AI; the final OpenAI Codex
+entry also escapes an OpenRouter-wide limit, but Codex is a low-priority,
+occasionally unavailable subscription, so that step may be skipped. The default
+`cooldown-expiry` revert policy returns to the primary after its suppression
+window ends. Unavailable providers or models are skipped.
 
 **Reading OpenRouter GPT-5.6 names.** The picker exposes OpenRouter's full
 catalog, so one base tier may appear four times. The axes are independent:
@@ -666,6 +722,9 @@ What the adapter forwards (probed on 18.4.12):
   model and thinking selectors. `default_config_options.model` is what Zed
   writes when you pick a model; it's expected drift — commit it or leave it
   uncommitted, but never discard it (that silently resets your pick).
+  Plan mode here keeps the thread's model instead of switching to
+  `modelRoles.plan`, so the selectors choose the planning model and thinking
+  per thread (see [Plan mode](#plan-mode)).
 - ~70 slash commands, skills as `skill:*`; images, embedded context, HTTP/SSE
   MCP servers; session list/load/fork/resume.
 - No version lag: the adapter ships in the same binary as the CLI.
@@ -675,6 +734,31 @@ What the adapter forwards (probed on 18.4.12):
   models vanish (the refresh token expires). `omp/setup-model-labels.sh`
   suffixes them ` (sub)` so they differ from the identically named
   `openrouter/anthropic/…` entries.
+- The same instructions and subagent setup as the terminal (probed on
+  18.20.2 with a fresh `omp acp` using the Zed entry's flags): the global
+  `~/.omp/agent/AGENTS.md`, the `RULES.md` sticky rule, the task tool's
+  per-call `model` field, and the approved-model listing with role names
+  (including the `*-sub` roles) all reach the thread. See
+  [Subagents](#subagents).
+
+ACP-specific catches:
+
+- **After changing `AGENTS.md`, `RULES.md` or global `config.yml`, reload the
+  agent in Zed (or restart Zed), not just open a new thread.** Zed keeps one
+  `omp acp` process across threads. A thread started after a reload had the
+  new global files (2026-11); whether a new thread in an older process picks
+  them up was not confirmed, so reload to be sure.
+- The Zed model scope (`~/.omp/agent/zed-models.yml`) skips the `oa-*` Codex
+  roles on purpose: their ids also matched an OpenRouter and a Codex
+  "GPT-5.6 Terra" that sat next to the intended GPT-6.1 Terra, and a plan ran
+  on the wrong one. The roles still work in the terminal and for subagents. To
+  get them back in Zed (for example with a Codex subscription), remove the
+  `oa-` filter in `omp/setup-zed-models.sh` and re-run
+  `omp/setup-settings.sh`.
+- Unverified: whether fallback chains honour the `zed-models.yml`
+  `enabledModels` scope. Several GLM chain entries (DeepSeek `v4-pro`, the
+  Qwen models) match no pattern there; if chains respect the scope, a GLM
+  fallback in Zed would skip to the Codex step.
 
 What you lose in an ACP thread:
 
