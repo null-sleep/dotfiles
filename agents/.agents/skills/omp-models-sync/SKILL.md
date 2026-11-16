@@ -1,6 +1,6 @@
 ---
 name: omp-models-sync
-description: Update or audit this dotfiles repo's omp (Oh My Pi) model setup — modelRoles, the Ctrl+P/Alt+O cycle, the *-sub Anthropic subscription roles, the per-call subagent allowlist, Auto Code pool, fallback chains, Zed model list, and the docs that repeat model ids. Use when new models ship, when the user says "update/refresh/sync the models" or asks whether the omp config is stale or drifted, and whenever you edit omp/setup-settings.sh model data.
+description: Update or audit this dotfiles repo's omp (Oh My Pi) model setup — modelRoles, the Ctrl+P/Alt+O cycle, the *-sub Anthropic subscription roles, the per-call subagent allowlist, Auto Code pool, fallback chains, Zed model list (omp's ACP picker and the native Zed Agent's favorite_models), and the docs that repeat model ids. Use when new models ship, when the user says "update/refresh/sync the models" or asks whether the omp config is stale or drifted, and whenever you edit omp/setup-settings.sh model data.
 ---
 
 # omp models sync
@@ -54,6 +54,14 @@ project with its own `.omp/` config: prefix omp commands with
   (Codex) roles are deliberately excluded** from the scope; see the 2026-11
   decision "Codex roles are left out of the Zed picker" below. Extras are
   expected; a missing model is not.
+- `zed/.config/zed/settings.json` `agent.favorite_models` — **not omp**: the
+  native Zed Agent's model selector (zed.dev-hosted models, billed through
+  Zed Pro). Hand-maintained list of the newest zed.dev model per line, pinned
+  at the top of the selector and cycled with `alt-tab`. It pins, it doesn't
+  filter (Zed has no hide/allowlist setting). Repeated in prose in
+  `docs/zed.md` → "Zed Agent's model list" (with Zed prices and the
+  Zed-vs-OpenRouter generation gaps). See the 2026-11 decision "Native Zed
+  Agent favorites track zed.dev's newest models".
 - `omp/.omp/agent/extensions/cycle-model-picker.ts` — `Alt+O` picker over
   `cycleOrder`.
 - Docs repeating ids: `docs/omp.md` (the `modelRoles` block under "Providers
@@ -123,6 +131,23 @@ project with its own `.omp/` config: prefix omp commands with
   flag it or add fallback chains for it. Unverified and not worth chasing
   (the user rarely uses GLM): whether fallback chains honour the
   `zed-models.yml` `enabledModels` scope.
+- **Zed has two model pickers; don't mix them up.** omp's dropdown in an omp
+  thread is scoped by `zed-models.yml` (OpenRouter + subscriptions, newest
+  generations). The native Zed Agent's selector lists Zed's hosted models,
+  and `agent.favorite_models` only pins entries there. Neither affects the
+  other (`alt-tab` and favorites never reach omp's dropdown). Zed's
+  `agent.default_model` is rewritten on every pick, so it's out of scope like
+  omp's `default_config_options.model`.
+- **zed.dev lags OpenRouter.** As of 2026-11 Zed hosts Fable 5.1 (OpenRouter
+  5.2), Haiku 4.5 (5.5), GPT-5.6 Terra (6.1 Terra), and no Gemini 4 Carbon
+  or Hydrogen. Only pin what https://zed.dev/docs/ai/models lists; never
+  copy omp's newest ids into `favorite_models`. Zed ids follow neither omp
+  form exactly: Claude is dashed (`claude-opus-5-5`), GPT and Gemini are
+  dotted (`gpt-6.1-sol`, `gemini-3.5-flash`), provider `zed.dev`. Verify an
+  id with `strings /Applications/Zed.app/Contents/MacOS/zed | grep -o
+  '<id>'`. Models served only from Zed's cloud list (`gemini-4-argon` in
+  2026-11) aren't in the binary; have the user star the model in the picker
+  so Zed writes the real id, or flag it as unverified.
 
 ## Procedure
 
@@ -168,11 +193,17 @@ project with its own `.omp/` config: prefix omp commands with
    missing or the pattern did not match: re-run `setup-settings.sh`. Tell the
    user to reload the Zed omp agent; the picker is read when the agent
    process starts.
-6. **Docs and tests.** Update every doc listed above in the same change; run
+6. **Native Zed Agent favorites.** Fetch https://zed.dev/docs/ai/models and
+   check whether any line has a newer hosted model than
+   `agent.favorite_models` (and whether Gemini 4 Carbon is hosted yet; it's a
+   standing TODO in that file). Update the list and the `docs/zed.md`
+   paragraph (models, prices, generation gaps) together. Not driven by
+   `setup-settings.sh`; nothing to re-run, and Zed reloads settings live.
+7. **Docs and tests.** Update every doc listed above in the same change; run
    `for t in omp/tests/*.sh; do bash "$t"; done`.
-7. **Do not commit unless asked**; other uncommitted changes in the tree
+8. **Do not commit unless asked**; other uncommitted changes in the tree
    (e.g. `claude/.claude/settings.json`) are the user's.
-8. **Record the decision.** If you changed a role or a rule for a non-obvious
+9. **Record the decision.** If you changed a role or a rule for a non-obvious
    reason, add it to "Decisions and rationale" below with the date, so the
    next round can tell a deliberate choice from drift.
 
@@ -243,6 +274,10 @@ Always surface these in your final report, even if you resolved them:
   from or newly surprising in the Zed picker (see "ACP picker probe"), and
   anything else that would behave differently in a Zed ACP thread (other than
   the Zed dropdown model the user picked, which is out of scope).
+- A newer zed.dev-hosted model than one in `agent.favorite_models`, a
+  favorite Zed no longer hosts, Gemini 4 Carbon becoming available on Zed,
+  a favorite id you couldn't verify, and an introductory price ending (Gemini
+  4 Argon: $2.20/$11 until 2026-11-30, then $4/$20).
 - omp release notes affecting roles, `task.perCallModel*`, `cycleOrder`,
   selector syntax, or how plan mode picks its model (terminal or ACP).
 - Anything you could not verify (no catalog entry, no credentials).
@@ -468,3 +503,29 @@ and say what was actually done.
 - **Revisit if:** an omp release makes ACP plan mode apply the `plan` role
   (the user would lose per-thread choice; flag it), or Zed's model picker
   stops being available while in Plan.
+
+### 2026-11: Native Zed Agent favorites track zed.dev's newest models
+
+- **Request (user):** limit the native Zed Agent's model list to the newest
+  model in each line Zed hosts, and add Gemini 4 Carbon once Zed hosts it.
+  This covers Zed only, not omp.
+- **Finding (Zed 1.28.1):** Zed has no way to hide models.
+  `hidden_models` (zed-industries/zed#52347) was closed unmerged, and
+  `language_models.*.available_models` only adds or overrides (Discussion
+  #50303).
+- **Decision:** `agent.favorite_models` pins Claude Fable 5.1, Opus 5.5,
+  Sonnet 5.5, Haiku 4.5; GPT-6 Astra, GPT-6.1 Sol, GPT-5.6 Terra, GPT-6 Luna;
+  Gemini 4 Argon, Gemini 3.5 Flash. GPT-5.3-Codex, GPT-5 mini and GPT-5 nano
+  are left out as superseded (my call; the user can add them back). All ids
+  except `gemini-4-argon` were found in the Zed binary.
+- **Why a list in the settings file rather than starring in the UI:** it's
+  stowed and reviewable. Starring still works, but it rewrites the list, so
+  commit those diffs rather than discarding them.
+- **Seen alongside (not omp):** Zed 1.28.1's native Agent can fail on
+  Claude with `unknown variant 'between_tools', expected one of 'enabled',
+  'adaptive', 'disabled'`, mostly during compaction. Retrying fails the same
+  way; reloading the agent clears it. It's a Zed client/server mismatch, so
+  don't touch any model setting to fix it.
+- **Revisit if:** Zed ships a real hide/allowlist setting (switch to it),
+  Zed hosts Carbon or a newer generation of any pinned line, or the user
+  wants the GPT-5.x Codex/mini/nano lines back.

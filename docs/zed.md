@@ -609,6 +609,32 @@ Terminal Thread (Ctrl-C it for a plain shell, or to run `pi`/`codex`). They
 do not resume after a Zed restart ([details](#terminal-thread-restore)).
 One-key launches: see [Adding your own bindings](#custom-bindings).
 
+**Zed Agent's model list** can't be trimmed: Zed has no hide/allowlist
+setting (`hidden_models`, zed#52347, was closed unmerged, and
+`language_models.*.available_models` only adds or overrides). Instead
+`agent.favorite_models` pins the newest zed.dev model in each line at the
+top of the selector (`alt-tab` cycles them); the full list stays below.
+Pinned as of 2026-11 (Zed price per 1M in/out): Claude Fable 5.1 ($11/$55),
+Opus 5.5 ($4.40/$22), Sonnet 5.5 ($2.20/$11), Haiku 4.5 ($1.10/$5.50);
+GPT-6 Astra ($11/$55), GPT-6.1 Sol ($2.20/$11), GPT-5.6 Terra
+($2.20/$13.20), GPT-6 Luna ($0.11/$0.55); Gemini 4 Argon ($2.20/$11,
+intro price until Nov 30, then $4/$20) and Gemini 3.5 Flash ($1.65/$9.90).
+GPT-5.3-Codex, GPT-5 mini, and GPT-5 nano are left out as superseded.
+Zed lags OpenRouter here: Fable 5.1 vs 5.2, Haiku 4.5 vs 5.5, GPT-5.6
+Terra vs 6.1 Terra, and no Gemini 4 Carbon or Hydrogen. **TODO:** add
+Gemini 4 Carbon (`google/gemini-4-carbon` on OpenRouter) to
+`favorite_models` once Zed hosts it. It beats Argon at the same price.
+
+**Auto-compaction is off** (`agent.auto_compact.enabled: false`) as a
+workaround for a Zed 1.28.1 bug: compacting a Claude thread fails with
+"unknown variant `between_tools`, expected one of `enabled`, `adaptive`,
+`disabled`". Retry repeats the error and reloading the agent clears it. In
+the log, every hit came from auto-compaction (Sonnet 5.5 at ~612k tokens);
+normal turns were fine. Manual compaction likely fails the same way. With
+it off, a long thread fails at the context limit instead, so start a new
+thread before then. **TODO:** re-enable after a Zed update fixes it (test
+by compacting a long Claude thread by hand).
+
 **omp's model dropdown** is omp's own ACP `model` select, not Zed's model
 selector: `agent.favorite_models` and `alt-tab` don't reach it, and omp's
 `Ctrl+P` cycle and `Alt+O` preset picker are TUI-only. Unscoped it lists the

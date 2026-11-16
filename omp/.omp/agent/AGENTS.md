@@ -46,3 +46,7 @@ entry to pick, including the version and any `(sub)` suffix (for example
 "Claude Opus 5.5 (sub)" versus "Claude Opus 5.5"), and do not offer a model
 choice through `ask`: the answer would change nothing. Picking some models
 resets the thinking level, so tell them to check it after switching.
+
+That dropdown is omp's own. Zed's `agent.favorite_models` setting and
+`alt-tab` apply only to the native Zed Agent's selector, which lists Zed's
+hosted models. Never point the user at those for an omp thread.

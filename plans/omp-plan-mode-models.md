@@ -83,6 +83,10 @@ Observed behaviour (probe under "Evidence"):
   set it again if needed.
 - Only models in the Zed scope (`~/.omp/agent/zed-models.yml`, generated from
   `modelRoles`) are selectable; anything else errors `Unknown ACP model`.
+- This is omp's dropdown, not the native Zed Agent's selector. Zed's
+  `agent.favorite_models` (pinned zed.dev models) and `alt-tab` don't reach
+  it, so the native Agent's favorites play no part in choosing omp's planning
+  model.
 
 Workflow: switch to Plan, pick the model, set thinking, prompt; after
 approving the plan, pick the implementation model.

@@ -40,6 +40,7 @@ plan-mode details are in [omp-plan-mode-models.md](omp-plan-mode-models.md).
 | Plan-mode findings, wanted `/planopus` | `plans/omp-plan-mode-models.md` |
 | User-facing description | `docs/omp.md`, `README.md` (omp) |
 | Short pointer to the skill | `AGENTS.md`/`CLAUDE.md` "Keeping omp models in sync" |
+| Native Zed Agent favorites (not omp) | `zed/.config/zed/settings.json` `agent.favorite_models`, `docs/zed.md` |
 
 ## Decisions
 
@@ -95,6 +96,13 @@ plan-mode details are in [omp-plan-mode-models.md](omp-plan-mode-models.md).
   19 rows. Claude twins are fine: same model on two billing routes, each with
   its own role and a `(sub)` label. The Codex GPT-5.6 rows were unwanted older
   generations. Revisit with a Codex subscription.
+- **Native Zed Agent favorites (follow-up, Zed only).** The user wanted the
+  native Zed Agent's model list limited to zed.dev's newest model per line.
+  Zed 1.28.1 can't hide models (`hidden_models`, zed#52347, closed
+  unmerged), so `agent.favorite_models` pins 10 models instead. zed.dev lags
+  OpenRouter: Fable 5.1, Haiku 4.5, GPT-5.6 Terra, no Carbon. TODO: add
+  Carbon when Zed hosts it. The skill now checks this list every round
+  (Procedure step 6). Kept separate from omp's dropdown on purpose.
 - **User preferences recorded in the skill:** latest models always, ZDR stays
   on, Codex and GLM fallbacks low priority, Zed dropdown model out of scope,
   ACP must keep working, do not commit unless asked.
@@ -163,9 +171,14 @@ plan-mode details are in [omp-plan-mode-models.md](omp-plan-mode-models.md).
 - Provider-scoped Zed patterns (would drop duplicate Carbon): idea, untested.
 - `kimi-k3.1-pro`, `gemini-4-hydrogen`: flagged, not adopted.
 - Zed itself was never driven; ACP checked only over JSON-RPC.
+- Native Zed Agent: `gemini-4-argon` favorite id unverified (only in
+  Zed's cloud list); Gemini 4 Carbon not hosted by Zed yet; Argon's intro
+  price ends 2026-11-30.
 - Not part of this work: `claude/.claude/settings.json`,
   `zed/.config/zed/settings.json` and `docs/zed.md` had unrelated uncommitted
   changes (Zed and Claude model picks) and were left out of the commits.
+  The later favorites follow-up does edit `zed/.config/zed/settings.json`
+  (`agent.favorite_models`) and `docs/zed.md`; commit those hunks with it.
 
 ## Links
 
