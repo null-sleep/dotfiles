@@ -89,6 +89,39 @@ No survey exists. These are the data points found:
 This setup (mono replies at 17, box and code at 15) is on the larger side,
 and monospace replies are a choice others make too.
 
+## Next: separate reading and code fonts (planned, not done)
+
+Idea: some fonts suit code, others suit reading long text like agent
+replies. So use a reading font for prose and keep a code font for code,
+instead of Hack Nerd Font Mono for everything. Zed 1.28.1 supports this
+(keys checked in `assets/settings/default.json` at `v1.28.1`):
+
+- **Agent panel:** `agent_ui_font_family` sets reply text (Hack Nerd Font
+  Mono now). `agent_buffer_font_family` sets the message box, your
+  messages and code blocks (unset, so it uses `buffer_font_family`).
+- **Markdown preview:** inside the existing `"markdown_preview": { ... }`
+  block, `font_family` sets body text (unset, so it uses the UI font, Zed's
+  `.ZedSans` = IBM Plex Sans) and `code_font_family` sets code (unset, so it
+  uses `buffer_font_family`). `font_size` is there too; unset means the UI
+  size. These moved into the block in Zed #63462; Zed's all-settings docs
+  page doesn't list them yet.
+
+Candidates, all installed or bundled with Zed (checked with `fc-list`):
+
+- **Monospace:** `.ZedMono` (Lilex, bundled), Menlo, PT Mono.
+- **Proportional, close to Hack:** Hack Nerd Font Propo.
+- **Sans:** `.ZedSans` (IBM Plex Sans, bundled), Avenir Next, Helvetica
+  Neue, PT Sans. A sans looked cramped at 15–17 before; a wider one like
+  Avenir Next may not.
+- **Serif (made for long reading):** Charter, Iowan Old Style, Georgia,
+  PT Serif.
+- **Not installed:** Inter, used in Zed's docs example.
+
+When picking: set the reading font in both `agent_ui_font_family` and
+`markdown_preview.font_family`, and leave both code fonts on Hack. Reply
+line spacing stays `agent_buffer_font_size × 1.75` whatever the font. A
+proportional or serif font may also need a size other than 17.
+
 ## If revisiting
 
 - Code blocks too small: set `agent_buffer_font_size` back to 16. The message

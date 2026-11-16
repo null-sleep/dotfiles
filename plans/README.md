@@ -55,6 +55,11 @@ off or delete them as they land; add new ones freely.
   - `command_aliases`: short palette names, like `gd` → `git::Diff`, `gbd` →
     `git::BranchDiff`, `tsd` → `editor::ToggleSplitDiff`. A light
     alternative to filling `keymap.json` while still learning.
+- [ ] **Pick a reading font for Zed agent replies and markdown preview**
+  (found 2026-11-15) — keep Hack for code, use a font made for long text
+  for prose. Keys and installed candidates are in
+  [zed-agent-panel-fonts.md](zed-agent-panel-fonts.md) → "Next: separate
+  reading and code fonts".
 - [ ] **Try resuming Zed Terminal Threads after a restart** (found
   2026-11-14) — Zed 1.28.1 recreates each thread as an empty shell, so the
   omp session has to be resumed by hand. Steps and the full background are in
@@ -657,7 +662,8 @@ Grouped by state, not priority.
 - [zed-agent-panel-fonts.md](zed-agent-panel-fonts.md) — decision record
   (2026-11-15): which settings size the agent panel (chat vs π terminal
   threads), why replies went monospace at 17 with the message box and code at
-  15, Zed defaults and docs example, what other users run.
+  15, Zed defaults and docs example, what other users run. Next: separate
+  reading and code fonts.
 
 ## As-needed toolkit — known-good options, not scheduled work
 
