@@ -27,6 +27,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Avoid project-level config when reading global settings.
 cd "$(mktemp -d)"
 
+# `fable` is the direct Anthropic subscription model on purpose: OpenRouter's
+# Fable is excluded by this account's Zero Data Retention setting (kept on).
+# `fable-sub` duplicates it so the "X sub" name stays predictable for per-call
+# model selection. See agents/.agents/skills/omp-models-sync/SKILL.md.
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-6.1-terra:high",
   "luna": "openrouter/openai/gpt-6-luna:xhigh",
@@ -40,7 +44,7 @@ DEFAULT_ROLES='{
   "opus": "openrouter/anthropic/claude-opus-5.5:high",
   "carbon": "openrouter/google/gemini-4-carbon:high",
   "astra": "openrouter/openai/gpt-6-astra:xhigh",
-  "fable": "openrouter/anthropic/claude-fable-5.2:high",
+  "fable": "anthropic/claude-fable-5-2:high",
   "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-6.1-terra:high",
   "plan": "openrouter/anthropic/claude-opus-5.5:high",
@@ -48,9 +52,13 @@ DEFAULT_ROLES='{
   "task": "openrouter/openai/gpt-6.1-terra:medium",
   "advisor": "openrouter/openai/gpt-6-luna:medium",
   "med-vision": "openrouter/openai/gpt-6.1-terra:high",
-  "oa-s": "openai-codex/gpt-5.6-luna:high",
+  "oa-s": "openai-codex/gpt-6-luna:high",
   "oa-m": "openai-codex/gpt-5.6-terra:high",
   "oa-l": "openai-codex/gpt-5.6-sol:xhigh",
+  "sonnet-sub": "anthropic/claude-sonnet-5-5:high",
+  "opus-sub": "anthropic/claude-opus-5-5:high",
+  "haiku-sub": "anthropic/claude-haiku-5-5:medium",
+  "fable-sub": "anthropic/claude-fable-5-2:high",
   "glm-l": "openrouter/z-ai/glm-5.3:max",
   "glm-fast": "openrouter/z-ai/glm-5.3-flash:max",
   "cheap-l": "openrouter/z-ai/glm-5.3:max",
@@ -73,15 +81,18 @@ DEFAULT_MODEL_TAGS='{
 }'
 DEFAULT_FALLBACK_CHAINS='{
   "openrouter/openrouter/auto-code": [],
+  "anthropic/claude-fable-5-2": [
+    "openrouter/anthropic/claude-opus-5.5:high"
+  ],
   "openrouter/z-ai/glm-5.3": [
     "openrouter/deepseek/deepseek-v4-pro-0813:max",
-    "openrouter/qwen/qwen3.8-max:xhigh",
+    "openrouter/qwen/qwen3.8-2.4t-a95b:xhigh",
     "openai-codex/gpt-5.6-terra:high"
   ],
   "openrouter/z-ai/glm-5.3-flash": [
-    "openrouter/deepseek/deepseek-v4-flash-0731:max",
-    "openrouter/qwen/qwen3.8-flash:high",
-    "openai-codex/gpt-5.6-luna:high"
+    "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
+    "openrouter/qwen/qwen3.8-27b:medium",
+    "openai-codex/gpt-6-luna:high"
   ]
 }'
 
@@ -141,6 +152,8 @@ roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 # selectors to luna/sol and copy the old default to terra (default itself is
 # left alone), and alias the built-in smol/tiny/slow roles to the new names so
 # background features keep a cheap or strong model.
+# OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
+# dead OpenRouter `fable` id is moved onto the subscription model below.
 migrated_roles="$(jq -c '
   if (has("dseek") | not) and has("default-cheap") then .dseek = .["default-cheap"] else . end
   | if (has("kimi") | not) and has("cheap-alt") then .kimi = .["cheap-alt"] else . end
@@ -152,6 +165,7 @@ migrated_roles="$(jq -c '
       | .smol = "@haiku" | .tiny = "@haiku" | .slow = "@sol"
     end
   | del(.argon)
+  | if .fable == "openrouter/anthropic/claude-fable-5.2:high" then .fable = "anthropic/claude-fable-5-2:high" else . end
 ' <<<"$roles")"
 # Search preferences moved from providers.webSearch* to the web model role.
 # Keep these two entries repo-owned while preserving other roles and chains.
@@ -180,7 +194,22 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-omp config set cycleOrder '["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","dseek","kimi","astra","fable"]'
+CYCLE_ORDER='["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","dseek","kimi","astra","fable"]'
+# Direct Anthropic subscription twins of cycle models: selectable per call
+# ("use the sonnet sub model"), kept out of the Ctrl+P/Alt+O cycle.
+SUB_ROLES='["sonnet-sub","opus-sub","haiku-sub","fable-sub"]'
+omp config set cycleOrder "$CYCLE_ORDER"
+# Per-call subagent models: the cycle's models plus their subscription twins,
+# at any thinking level. Entries are canonical provider/id (no :level, no
+# globs), derived from the roles so the lists cannot drift.
+per_call_allow="$(jq -c --argjson cycle "$CYCLE_ORDER" --argjson sub "$SUB_ROLES" '
+  # A role value is a string, comma list, or array; `@alias` entries are skipped.
+  def entries: (if type == "array" then .[] else . end) | tostring | split(",")[] | gsub("^\\s+|\\s+$"; "");
+  [ ($cycle + $sub)[] as $r | .[$r] // empty | entries
+    | select(length > 0 and (startswith("@") | not))
+    | sub(":(off|minimal|low|medium|high|xhigh|max|auto|inherit)$"; "") ] | unique
+' <<<"$merged_roles")"
+omp config set task.perCallModelAllow "$per_call_allow"
 bash "$SCRIPT_DIR/setup-auto-code.sh"
 
 bash "$SCRIPT_DIR/setup-zed-models.sh"
@@ -201,6 +230,8 @@ fi
 omp config set theme.dark dark-dracula
 # Keep reasoning summaries available to Ctrl+T, but hidden until requested.
 omp config set hideThinkingBlock true
+# Let a task call pick its subagent's model ("spawn a scout on opus").
+omp config set task.perCallModel on
 
 omp config set theme.light light-catppuccin
 omp config set statusLine.preset custom
@@ -253,6 +284,7 @@ fi
 echo
 echo "Resulting omp config:"
 for key in modelRoles modelTags retry.fallbackChains cycleOrder \
+  task.perCallModel task.perCallModelAllow \
   defaultThinkingLevel startup.quiet memory.backend \
   hideThinkingBlock \
   theme.dark theme.light statusLine.preset statusLine.separator \

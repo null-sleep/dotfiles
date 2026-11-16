@@ -1,5 +1,5 @@
 #!/bin/bash
-# Verify the Zed omp scope covers every role selector shape and stays valid YAML.
+# Verify the Zed omp scope covers every role selector shape, skips `oa-*` roles, and stays valid YAML.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,6 +23,7 @@ case "$*" in
       "array": ["openrouter/moonshotai/kimi-k3.1-pro", "@opus:low"],
       "fuzzy": "gpt-6-astra-pr:high",
       "odd": "custom/model\"q\\s",
+      "oa-m": "openai-codex/gpt-5.6-terra:high",
       "web": "web/perplexity"}}' ;;
   *) exit 1 ;;
 esac

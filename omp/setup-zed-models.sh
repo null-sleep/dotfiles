@@ -16,6 +16,13 @@
 #   `5-5` and openrouter's `5.5`.
 # - Bedrock (~8 regional copies per Claude model, unconfigured) is disabled;
 #   this replaces any global `disabledProviders`.
+# - The `oa-*` roles (Codex subscription, low priority) are left out of the
+#   scope on purpose: their ids match on every provider, so `oa-m`'s
+#   gpt-5.6-terra added a Codex "GPT-5.6 Terra (sub)" and an OpenRouter "GPT-5.6
+#   Terra" next to the default GPT-6.1 Terra, and a live Zed plan ran on the
+#   wrong one. They still route in the terminal and for subagents. To bring
+#   them back (for example with a Codex subscription), delete the `oa-` test in
+#   the jq filter below and re-run omp/setup-settings.sh.
 # - `omp acp --config <missing file>` crashes, so the file is written
 #   atomically and must exist before the first Zed omp thread.
 set -euo pipefail
@@ -35,7 +42,7 @@ omp config get modelRoles --json | jq -r '
       else entries($v)[]
         | if startswith("@") then resolve($r[.[1:] | sub(":[a-z]+$"; "")]; $n + 1) else . end
       end;
-  [ $r | to_entries[] | select(.key != "web") | resolve(.value; 0)
+  [ $r | to_entries[] | select(.key != "web" and (.key | startswith("oa-") | not)) | resolve(.value; 0)
     | select(startswith("web/") | not)
     | sub(":(off|minimal|low|medium|high|xhigh|max|auto)$"; "")
     # Pins start at the first `@` and may contain `/`.
