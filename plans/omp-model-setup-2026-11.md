@@ -1,7 +1,8 @@
 # omp: model setup overhaul (2026-11)
 
-Status: shipped to live config and committed (2026-11-16, omp 18.20.2; see
-`git log` for the two commits that name this file). Intent: let the user pick any cycle model, or its Anthropic
+Status: shipped to live config and committed (2026-11-16, omp 18.20.2; the
+scripts, the docs and a Zed favorites follow-up landed as three commits, see
+`git log -- plans/omp-model-setup-2026-11.md`). Intent: let the user pick any cycle model, or its Anthropic
 subscription twin, per subagent call at any thinking level, and keep the whole
 model setup (roles, chains, Zed picker, docs) coherent across rounds. This file
 is a compressed record of one long session: the why and the history. The how-to
@@ -174,16 +175,15 @@ plan-mode details are in [omp-plan-mode-models.md](omp-plan-mode-models.md).
 - Native Zed Agent: `gemini-4-argon` favorite id unverified (only in
   Zed's cloud list); Gemini 4 Carbon not hosted by Zed yet; Argon's intro
   price ends 2026-11-30.
-- Not part of this work: `claude/.claude/settings.json`,
-  `zed/.config/zed/settings.json` and `docs/zed.md` had unrelated uncommitted
-  changes (Zed and Claude model picks) and were left out of the commits.
-  The later favorites follow-up does edit `zed/.config/zed/settings.json`
-  (`agent.favorite_models`) and `docs/zed.md`; commit those hunks with it.
+- Left out of these commits on purpose: `claude/.claude/settings.json`
+  (a Claude Code model pick, not part of this work).
 
 ## Links
 
 - [docs/omp.md](../docs/omp.md): Plan mode; Subagents; Providers and model
   roles; Zed — ACP thread or terminal.
+- [docs/zed.md](../docs/zed.md): Agent panel (native Zed Agent favorites and
+  the auto-compaction workaround).
 - [setup-settings.sh](../omp/setup-settings.sh),
   [setup-zed-models.sh](../omp/setup-zed-models.sh),
   [global AGENTS.md](../omp/.omp/agent/AGENTS.md),
