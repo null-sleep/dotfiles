@@ -132,6 +132,15 @@ brew "rtk"
 brew "herdr"
 
 #-----------------------------------------------------------------------------
+# Agent control plane — T3 Code (under testing). Electron GUI + local server
+# that drives the agent CLIs already installed and signed in above (Claude
+# Code, Codex, omp over ACP). Self-updates (cask has auto_updates), so no
+# `brew upgrade` step. The app installs the `t3` CLI link into ~/.local/bin
+# itself — README → "T3 Code".
+#-----------------------------------------------------------------------------
+cask "t3-code"
+
+#-----------------------------------------------------------------------------
 # Fonts
 #-----------------------------------------------------------------------------
 cask "font-hack-nerd-font"
