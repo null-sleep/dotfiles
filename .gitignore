@@ -45,11 +45,6 @@ iterm2/com.googlecode.iterm2.plist
 /zsh/.local/bin/cursor
 /zsh/.local/bin/cursor-agent
 
-# T3 Code's desktop app creates ~/.local/bin/t3 (Settings → About → t3 command)
-# and repoints it on app updates. App-owned, so never stow or commit it — see
-# README → "T3 Code".
-/zsh/.local/bin/t3
-
 # Belt-and-braces guard for the herdr package: ~/.config/herdr/ holds runtime
 # state (sockets, logs, session.json) alongside the one file we stow
 # (config.toml). Only a mis-ordered first stow (herdr launched once before

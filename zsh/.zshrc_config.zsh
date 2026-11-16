@@ -156,11 +156,6 @@ alias vi=nvim
 alias oc=opencode
 alias ompf='omp --model @luna --service-tier priority'
 
-# T3 Code: opt out of product events + relay tracing (ingest.t3.codes /
-# PostHog / Axiom). The desktop app reads this from the shell profile at
-# launch, so restart the app after changing it. README → "T3 Code".
-export T3CODE_TELEMETRY_ENABLED=false
-
 # Exec the bundle's real executable, not the Homebrew shim that symlinks into it —
 # a symlinked exec never registers with LaunchServices, so rcmd can't see the window.
 # (whence -p = PATH-only lookup, skipping this function; :A resolves the symlink.)

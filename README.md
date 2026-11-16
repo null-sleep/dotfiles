@@ -19,7 +19,6 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
-- [T3 Code](#t3-code)
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [Codex CLI](#codex-cli) · [desktop app](#codex-desktop-app)
 - [Linear CLI & agent skill](#linear-cli-agent-skill)
@@ -66,7 +65,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, build tool (including [CMake](#cmake)), font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor opencode pi omp herdr zed` (add `zellij` only if you enabled that optional formula), then `stow --no-folding codebook` on its own, because it aborts if `~/.config/codebook/codebook.toml` already exists as a regular file ([Setup](#setup), [Codebook](#codebook)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); T3 Code `t3` CLI link + providers ([T3 Code](#t3-code)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); pi npm install + `setup-settings.sh` + `setup-extensions.sh` ([pi](#pi)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -212,7 +211,6 @@ After working through [Quick start](#quick-start-fresh-machine), smoke-test each
 | `omp -p "say ok"` | answers via OpenRouter ([omp](#omp)) |
 | `command -v herdr` | resolves ([Herdr](#herdr)) |
 | `herdr integration status --outdated-only` | empty output |
-| `command -v t3` | resolves to `~/.local/bin/t3` ([T3 Code](#t3-code)) |
 
 If the prompt shows the macOS default instead of the Starship line, either `starship` isn't installed (`brew install starship`) or antigen didn't load — see [Prompt (Starship)](#prompt-starship) and [Troubleshooting antigen](#troubleshooting-antigen). If `:Mason` shows failures, a language runtime is missing — see the callout in [Languages](#languages).
 
@@ -933,71 +931,6 @@ hook installed.
 - `herdr integration uninstall <agent>` removes the generated hook file, but
   the portable tracked registration remains until deliberately removed from
   the repository.
-
-## T3 Code
-
-**Under testing.** [T3 Code](https://t3.codes)
-([source](https://github.com/pingdotgg/t3code), MIT) is an open-source control
-plane for coding agents: a desktop/web UI over a local server that drives the
-agent CLIs you are already signed in to — it resells no tokens. Unlike
-[Herdr](#herdr) and [Claude Squad](#claude-squad), which manage terminal panes,
-it is a GUI: chat threads, a worktree per thread, and built-in diff review
-plus commit/push/PR buttons.
-
-```bash
-brew install --cask t3-code   # in the Brewfile; self-updates
-open "/Applications/T3 Code (Beta).app"
-```
-
-Launch by path: `open -a "T3 Code (Beta)"` fails to resolve the name. On
-first launch the app links `~/.local/bin/t3` → `~/.t3/bin/t3`, a wrapper that
-runs the bundled CLI (already on `PATH`; **Settings → About → t3 command**
-reinstalls it). That is the app-owned CLI: do **not** also run
-`curl https://t3.codes/install.sh | sh` or `t3 update` — the app updates both
-itself and the wrapper. `t3 app [path]` opens a directory as a project in the
-running app; `t3 status` shows remote access (all off here).
-
-**Telemetry** — the stowed [`zsh`](#zsh) config exports
-`T3CODE_TELEMETRY_ENABLED=false`, which turns off product events and relay
-tracing. The app picks it up by probing your login shell (`zsh -ilc`) at
-launch, so quit and relaunch it after first stowing; check with
-`env -i HOME=$HOME /bin/zsh -ilc 'printenv T3CODE_TELEMETRY_ENABLED'`
-(prints `false`). It does not cover a browser tab on the web app (no toggle
-there) or **Publish agent activity** (Settings → Sharing & access; leave it
-off).
-
-**Providers** — in **Settings → Providers** on the local environment, enable
-only these:
-
-- **Claude** — `/opt/homebrew/bin/claude` from the `claude-code@latest` cask,
-  using the existing `claude auth login` ([Claude Code](#claude-code)).
-- **Codex** — the brewed `codex` CLI with its existing `codex login`. Choose
-  the CLI, not "Connect with ChatGPT", so `~/.codex/config.toml` permissions
-  apply ([Codex CLI](#codex-cli)).
-- **omp** — **Add provider → Show more → Local ACP command**: executable
-  `/opt/homebrew/bin/omp`; arguments, one per row, `acp`, `--config`,
-  `/Users/<you>/.omp/agent/zed-models.yml`; display name `omp`. The path is
-  absolute because T3 passes arguments literally (no `~` expansion). Unlike
-  the [Zed](#zed) entry, leave out `--approval-mode yolo`, so T3's per-thread
-  permission mode answers omp's approval requests. The `--config` file is
-  written by `omp/setup-settings.sh`; `omp acp` crashes if it is missing
-  ([omp](#omp)).
-- Leave opencode, Cursor, and Pi disabled (Pi would also need ≥ 0.84.3).
-- A provider showing "not found" when the app was launched from Finder: set
-  its **Binary path** to the `/opt/homebrew/bin/…` executable.
-
-**What's managed** — nothing is stowed. `~/.t3/userdata/` mixes the SQLite
-thread database with `keybindings.json` (the app appends new defaults to it
-on every startup, which would churn a stowed copy) and `themes/`. The tracked
-pieces are the Brewfile cask, the zsh telemetry export, and a `.gitignore`
-guard for `zsh/.local/bin/t3`. No remote access is set up: no `t3 up`, no
-`t3 service install`, no T3 Connect.
-
-**Remove** — `brew uninstall --zap --cask t3-code` deletes the app,
-`~/.t3/userdata`, and the app-support directories. The macOS zap leaves
-`~/.t3/bin`, `~/.t3/caches`, and `~/.t3/worktrees` (per-thread git
-worktrees — check for unpushed work first), so finish with
-`rm -rf ~/.t3 ~/.local/bin/t3`.
 
 <a id="cursor-cli-cursor-agent"></a>
 ## Cursor CLI (cursor-agent)
