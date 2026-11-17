@@ -11,6 +11,7 @@
 #   theme            # toggle dark/light (pins, like `dark`/`light`)
 #   theme dark       # PIN dark everywhere (turns macOS Auto OFF)
 #   theme light      # PIN light everywhere (turns macOS Auto OFF)
+#   theme dark --tool claude  # switch only Claude (also: nvim, pi)
 #   theme auto       # hand control back to macOS Auto (sunset/sunrise); follow it
 #   theme follow     # match Claude+nvim+pi to current macOS appearance (don't set macOS)
 #   theme seed       # create only MISSING per-tool theme files (first-run setup)
@@ -85,7 +86,7 @@ done
 LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false"     "catppuccin-latte" )
 DARK=(    "dracula"          "dracula"          "true"      "dracula"          )
 
-usage() { echo "usage: theme [dark|light|auto|toggle|follow|seed|watch|status]" >&2; exit "${1:-2}"; }
+usage() { echo "usage: theme [dark|light|auto|toggle|follow|seed|watch|status] [--tool claude|nvim|pi]" >&2; exit "${1:-2}"; }
 
 help() {
   cat <<'EOF'
@@ -93,7 +94,7 @@ theme — switch Claude Code, Neovim, and pi between a dark and light theme in
 one shot (macOS/Ghostty/opencode follow natively).
 
 USAGE
-  theme [command]
+  theme [command] [--tool claude|nvim|pi]
 
 COMMANDS
   toggle    Flip dark↔light and PIN it, turning macOS Auto OFF (this is the
@@ -107,6 +108,12 @@ COMMANDS
   watch     Daemon: follow macOS appearance changes forever (LaunchAgent).
   status    Show current appearance, mode, and per-tool state.
   -h, --help   Show this help.
+
+OPTIONS
+  --tool TOOL  Switch only claude, nvim, or pi; requires dark or light. It
+               leaves macOS and the other tools unchanged. Claude sessions
+               launched inside Zed follow Zed, not this switcher. The watch
+               agent resyncs all tools on an appearance change or restart.
 
 THE PAIR (edit the LIGHT/DARK arrays in this script to change it)
   light → catppuccin-latte (Claude · nvim · pi) · macOS light
@@ -193,8 +200,9 @@ pi_active_name() {
 # write macOS back, or it would fight Auto mode and risk a flip loop with watch.
 # seed=1 (the `seed` command) only creates what's missing — nothing existing is
 # overwritten. It's what the per-tool setup scripts call on a fresh machine.
+# target selects one tool or all; a targeted switch never pins macOS.
 apply_mode() {
-  local mode="$1" pin="$2" seed="${3:-0}" claude_slug nvim_variant macos_dark pi_theme tmp report=""
+  local mode="$1" pin="$2" seed="${3:-0}" target="${4:-all}" claude_slug nvim_variant macos_dark pi_theme tmp report=""
   if [ "$mode" = dark ]; then
     claude_slug="${DARK[0]}";  nvim_variant="${DARK[1]}";  macos_dark="${DARK[2]}";  pi_theme="${DARK[3]}"
   else
@@ -215,26 +223,33 @@ apply_mode() {
   # temp file in the same dir then atomically mv into place: Claude watches the
   # dir, so a plain cp's truncate-then-stream window could be read as empty/partial
   # JSON; mv also *replaces* a symlink rather than writing through it into the repo.
-  if [ "$seed" = 1 ] && [ -e "$CLAUDE_THEMES/active.json" ]; then
-    report="$report claude:kept"
-  elif [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
-    tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
-      && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
-      && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
-      && report="$report claude:$claude_slug" \
-      || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; report="$report claude:failed"; }
-  else
-    echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
-    report="$report claude:missing"
+  if [ "$target" = all ] || [ "$target" = claude ]; then
+    if [ "$target" = claude ] && [ "${TERM_PROGRAM:-}" = zed ]; then
+      echo "theme: warning — Claude sessions launched in Zed follow Zed's theme, not this switcher" >&2
+    fi
+    if [ "$seed" = 1 ] && [ -e "$CLAUDE_THEMES/active.json" ]; then
+      report="$report claude:kept"
+    elif [ -e "$CLAUDE_THEMES/$claude_slug.json" ]; then
+      tmp="$(mktemp "$CLAUDE_THEMES/.active.XXXXXX")" \
+        && cp -fL "$CLAUDE_THEMES/$claude_slug.json" "$tmp" \
+        && mv -f "$tmp" "$CLAUDE_THEMES/active.json" \
+        && report="$report claude:$claude_slug" \
+        || { rm -f "${tmp:-}"; echo "theme: warning — failed to update Claude active.json" >&2; report="$report claude:failed"; }
+    else
+      echo "theme: warning — $CLAUDE_THEMES/$claude_slug.json not found; Claude not switched" >&2
+      report="$report claude:missing"
+    fi
   fi
 
   # 3) Neovim — write the state file; running instances live-apply via themes.watch().
-  if [ "$seed" = 1 ] && [ -s "$NVIM_STATE" ]; then
-    report="$report nvim:kept"
-  else
-    mkdir -p "$(dirname "$NVIM_STATE")"
-    printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
-    report="$report nvim:$nvim_variant"
+  if [ "$target" = all ] || [ "$target" = nvim ]; then
+    if [ "$seed" = 1 ] && [ -s "$NVIM_STATE" ]; then
+      report="$report nvim:kept"
+    else
+      mkdir -p "$(dirname "$NVIM_STATE")"
+      printf '%s\n' "$nvim_variant" >"$NVIM_STATE"
+      report="$report nvim:$nvim_variant"
+    fi
   fi
 
   # 4) pi — same active-slot trick as Claude: settings.json pins the fixed theme
@@ -243,22 +258,24 @@ apply_mode() {
   # live. The `name` field is rewritten to "active" on the way in — the source
   # files keep their honest names so they stay individually selectable in pi's
   # theme picker, and pi requires theme names to be unique.
-  if [ "$seed" = 1 ] && [ -e "$PI_THEMES/active.json" ]; then
-    report="$report pi:kept"
-  elif [ ! -d "$PI_THEMES" ]; then
-    report="$report pi:not-set-up"
-  elif [ ! -e "$PI_THEMES/$pi_theme.json" ]; then
-    echo "theme: warning — $PI_THEMES/$pi_theme.json not found (stow pi?); pi not switched" >&2
-    report="$report pi:missing"
-  elif [ ! -x "$JQ" ]; then
-    echo "theme: warning — jq not found; pi not switched" >&2
-    report="$report pi:no-jq"
-  else
-    tmp="$(mktemp "$PI_THEMES/.active.XXXXXX")" \
-      && "$JQ" '.name = "active"' "$PI_THEMES/$pi_theme.json" >"$tmp" \
-      && mv -f "$tmp" "$PI_THEMES/active.json" \
-      && report="$report pi:$pi_theme" \
-      || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi active.json" >&2; report="$report pi:failed"; }
+  if [ "$target" = all ] || [ "$target" = pi ]; then
+    if [ "$seed" = 1 ] && [ -e "$PI_THEMES/active.json" ]; then
+      report="$report pi:kept"
+    elif [ ! -d "$PI_THEMES" ]; then
+      report="$report pi:not-set-up"
+    elif [ ! -e "$PI_THEMES/$pi_theme.json" ]; then
+      echo "theme: warning — $PI_THEMES/$pi_theme.json not found (stow pi?); pi not switched" >&2
+      report="$report pi:missing"
+    elif [ ! -x "$JQ" ]; then
+      echo "theme: warning — jq not found; pi not switched" >&2
+      report="$report pi:no-jq"
+    else
+      tmp="$(mktemp "$PI_THEMES/.active.XXXXXX")" \
+        && "$JQ" '.name = "active"' "$PI_THEMES/$pi_theme.json" >"$tmp" \
+        && mv -f "$tmp" "$PI_THEMES/active.json" \
+        && report="$report pi:$pi_theme" \
+        || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi active.json" >&2; report="$report pi:failed"; }
+    fi
   fi
 
   # opencode is NOT touched: its `system` theme rides the terminal's own palette
@@ -276,7 +293,26 @@ apply_mode() {
   fi
 }
 
-mode="${1:-toggle}"
+mode=""; target=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --tool)
+      [ -z "$target" ] && [ "$#" -ge 2 ] || usage
+      target="$2"; [ -n "$target" ] || usage; shift 2 ;;
+    --tool=*)
+      [ -z "$target" ] || usage
+      target="${1#--tool=}"; [ -n "$target" ] || usage
+      shift ;;
+    *)
+      [ -z "$mode" ] || usage
+      mode="$1"; shift ;;
+  esac
+done
+mode="${mode:-toggle}"
+if [ -n "$target" ]; then
+  case "$target" in claude|nvim|pi) ;; *) usage ;; esac
+  case "$mode" in dark|light) ;; *) usage ;; esac
+fi
 case "$mode" in
   -h|--help|help) help ;;
   toggle)
@@ -289,7 +325,12 @@ case "$mode" in
       light) apply_mode dark 1 ;;
       *) echo "theme: cannot read macOS appearance" >&2; exit 1 ;;
     esac ;;
-  dark|light) apply_mode "$mode" 1 ;;
+  dark|light)
+    if [ -n "$target" ]; then
+      apply_mode "$mode" 0 0 "$target"
+    else
+      apply_mode "$mode" 1
+    fi ;;
   auto)
     # Hand the wheel back to macOS Auto (sunset/sunrise) — but switch to the right
     # theme FIRST, then re-arm Auto. The Auto flag governs only *future* schedule

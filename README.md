@@ -576,11 +576,19 @@ tool switches live](#how-each-tool-switches-live)).
 theme            # toggle dark/light (pins, like dark/light below)
 theme dark       # PIN dark everywhere (turns macOS Auto OFF)
 theme light      # PIN light everywhere (turns macOS Auto OFF)
+theme dark --tool claude  # switch only Claude (also: nvim, pi)
+theme light --tool nvim   # switch only Neovim
 theme auto       # hand control back to macOS Auto (sunset/sunrise); everything follows
 theme follow     # match Claude+nvim+pi to current macOS appearance (don't set macOS)
 theme watch      # daemon loop used by the auto-follow LaunchAgent (see below)
 theme status     # show appearance, macOS mode (auto/pinned), and follower state
 ```
+
+`--tool claude|nvim|pi` works with `dark` or `light`, before or after the mode.
+It leaves macOS and the other tools unchanged; Ghostty, omp, and opencode still
+follow the system or terminal appearance. Claude sessions launched inside Zed
+follow Zed's theme instead of this switcher. A macOS appearance change or watch
+agent restart resyncs all three tools; `theme follow` also resyncs them.
 
 **Three modes — `dark` · `light` · `auto`:**
 
