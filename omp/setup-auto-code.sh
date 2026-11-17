@@ -23,7 +23,7 @@ ruby -ryaml -e '
   pool = %w[
     openai/gpt-6-luna
     openai/gpt-6.1-terra
-    openai/gpt-6.1-sol
+    openai/gpt-6.2-sol
     anthropic/claude-sonnet-5.5
     anthropic/claude-opus-5.5
     google/gemini-4-carbon

@@ -1512,7 +1512,7 @@ provider so an OpenRouter-wide limit still has an independent exit. The script
 `astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
 fuzzy picker. `smol` and `tiny` alias `@haiku`; `slow` aliases `@sol`. `auto-code` is an optional OpenRouter coding router with a
 repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
-`carbon` selects Gemini 4; `astra` selects GPT-6 Astra on OpenRouter. `fable`
+`carbon` selects Gemini 4; `astra` selects GPT-6.2 Astra on OpenRouter. `fable`
 selects Claude Fable 5.2 on the direct Anthropic subscription, because
 OpenRouter's Fable is excluded by the account's Zero Data Retention setting.
 The script also forces local

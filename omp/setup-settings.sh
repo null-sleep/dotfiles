@@ -33,28 +33,28 @@ cd "$(mktemp -d)"
 # model selection. See agents/.agents/skills/omp-models-sync/SKILL.md.
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-6.1-terra:high",
-  "luna": "openrouter/openai/gpt-6-luna:xhigh",
+  "luna": "openrouter/openai/gpt-6-luna@azure:xhigh",
   "haiku": "openrouter/anthropic/claude-haiku-5.5:medium",
   "terra": "openrouter/openai/gpt-6.1-terra:high",
-  "sol": "openrouter/openai/gpt-6.1-sol:xhigh",
+  "sol": "openrouter/openai/gpt-6.2-sol@azure:xhigh",
   "smol": "@haiku",
   "tiny": "@haiku",
   "slow": "@sol",
   "sonnet": "openrouter/anthropic/claude-sonnet-5.5:high",
   "opus": "openrouter/anthropic/claude-opus-5.5:high",
   "carbon": "openrouter/google/gemini-4-carbon:high",
-  "astra": "openrouter/openai/gpt-6-astra:xhigh",
+  "astra": "openrouter/openai/gpt-6.2-astra:xhigh",
   "fable": "anthropic/claude-fable-5-2:high",
   "auto-code": "openrouter/openrouter/auto-code",
-  "vision": "openrouter/openai/gpt-6.1-terra:high",
+  "vision": "openrouter/openai/gpt-6.1-terra@azure:high",
   "plan": "openrouter/anthropic/claude-opus-5.5:high",
-  "commit": "openrouter/openai/gpt-6-luna:medium",
-  "task": "openrouter/openai/gpt-6.1-terra:medium",
-  "advisor": "openrouter/openai/gpt-6-luna:medium",
-  "med-vision": "openrouter/openai/gpt-6.1-terra:high",
-  "oa-s": "openai-codex/gpt-6-luna:high",
-  "oa-m": "openai-codex/gpt-5.6-terra:high",
-  "oa-l": "openai-codex/gpt-5.6-sol:xhigh",
+  "commit": "openrouter/openai/gpt-6-luna@azure:medium",
+  "task": "openrouter/openai/gpt-6.1-terra:high",
+  "advisor": "openrouter/deepseek/deepseek-v4.1-flash-1017:high",
+  "med-vision": "openrouter/openai/gpt-6.1-terra@azure:high",
+  "oa-s": "openai-codex/gpt-6-luna:xhigh",
+  "oa-m": "openai-codex/gpt-6.1-terra:high",
+  "oa-l": "openai-codex/gpt-6.1-sol:xhigh",
   "sonnet-sub": "anthropic/claude-sonnet-5-5:high",
   "opus-sub": "anthropic/claude-opus-5-5:high",
   "haiku-sub": "anthropic/claude-haiku-5-5:medium",
@@ -62,8 +62,9 @@ DEFAULT_ROLES='{
   "glm-l": "openrouter/z-ai/glm-5.3:max",
   "glm-fast": "openrouter/z-ai/glm-5.3-flash:max",
   "cheap-l": "openrouter/z-ai/glm-5.3:max",
-  "dseek": "openrouter/deepseek/deepseek-v4.1-flash:max",
-  "kimi": "openrouter/moonshotai/kimi-k3:max"
+  "dseek": "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
+  "kimi": "openrouter/moonshotai/kimi-k3.1-pro:high",
+  "oa-xl": "openai-codex/gpt-6-astra:xhigh"
 }'
 DEFAULT_MODEL_TAGS='{
   "med-vision": {"name": "med-vision"},
@@ -85,14 +86,42 @@ DEFAULT_FALLBACK_CHAINS='{
     "openrouter/anthropic/claude-opus-5.5:high"
   ],
   "openrouter/z-ai/glm-5.3": [
-    "openrouter/deepseek/deepseek-v4-pro-0813:max",
-    "openrouter/qwen/qwen3.8-2.4t-a95b:xhigh",
-    "openai-codex/gpt-5.6-terra:high"
+    "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
+    "openrouter/moonshotai/kimi-k3.1-pro:high",
+    "openai-codex/gpt-6.1-terra:high"
   ],
   "openrouter/z-ai/glm-5.3-flash": [
     "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
-    "openrouter/qwen/qwen3.8-27b:medium",
+    "openrouter/moonshotai/kimi-k3.1-pro:high",
     "openai-codex/gpt-6-luna:high"
+  ],
+  "openrouter/openai/gpt-6-luna": [
+    "openai-codex/gpt-6-luna:xhigh",
+    "openai-codex/gpt-6.1-terra:high",
+    "openai-codex/gpt-6.1-sol:xhigh",
+    "openai-codex/gpt-6-astra:xhigh"
+  ],
+  "openrouter/openai/gpt-6.1-terra": [
+    "openai-codex/gpt-6.1-terra:high",
+    "openai-codex/gpt-6.1-sol:xhigh",
+    "openai-codex/gpt-6-astra:xhigh"
+  ],
+  "openrouter/openai/gpt-6.2-sol": [
+    "openai-codex/gpt-6.1-sol:xhigh",
+    "openai-codex/gpt-6-astra:xhigh",
+    "openai-codex/gpt-6.1-terra:high"
+  ],
+  "openrouter/openai/gpt-6.2-astra": [
+    "openai-codex/gpt-6-astra:xhigh",
+    "openai-codex/gpt-6.1-sol:xhigh",
+    "openai-codex/gpt-6.1-terra:high"
+  ],
+  "openrouter/deepseek/deepseek-v4.1-flash-1017": [
+    "openrouter/moonshotai/kimi-k3.1-pro:high",
+    "openai-codex/gpt-6.1-terra:high"
+  ],
+  "openrouter/moonshotai/kimi-k3.1-pro": [
+    "openai-codex/gpt-6.1-terra:high"
   ]
 }'
 

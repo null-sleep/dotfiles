@@ -197,7 +197,7 @@ Finished agents idle, then park after a TTL — messaging them (Hub or the
 model's `write agent://<id>`) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
-**Advisor**: this setup assigns `openrouter/openai/gpt-6-luna:medium` to
+**Advisor**: this setup assigns `openrouter/deepseek/deepseek-v4.1-flash-1017:high` to
 `modelRoles.advisor` but leaves `advisor.enabled` false. Opt in with
 `/advisor on` (or `--advisor`) when a second model passively reviewing each
 completed turn is worth the added usage. It injects notes, interrupts only
@@ -450,18 +450,18 @@ modelRoles:
   luna: openrouter/openai/gpt-6-luna:xhigh
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
   terra: openrouter/openai/gpt-6.1-terra:high
-  sol: openrouter/openai/gpt-6.1-sol:xhigh
+  sol: openrouter/openai/gpt-6.2-sol@azure:xhigh
   smol: "@haiku"
   tiny: "@haiku"
   slow: "@sol"
   auto-code: openrouter/openrouter/auto-code
-  dseek: openrouter/deepseek/deepseek-v4.1-flash:max
-  kimi: openrouter/moonshotai/kimi-k3:max
+  dseek: openrouter/deepseek/deepseek-v4.1-flash-1017:max
+  kimi: openrouter/moonshotai/kimi-k3.1-pro:high
   carbon: openrouter/google/gemini-4-carbon:high
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
   cheap-l: openrouter/z-ai/glm-5.3:max
-  astra: openrouter/openai/gpt-6-astra:xhigh
+  astra: openrouter/openai/gpt-6.2-astra:xhigh
   fable: anthropic/claude-fable-5-2:high  # subscription; OpenRouter Fable is ZDR-blocked
 ```
 
@@ -489,7 +489,7 @@ procedure for a model-update round is the `omp-models-sync` skill
 (`agents/.agents/skills/omp-models-sync/SKILL.md`).
 
 The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
-with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.1 Sol,
+with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.2 Sol,
 Claude Sonnet 5.5, Claude Opus 5.5, and Gemini 4 Carbon. `setup-auto-code.sh`
 merges the model override into machine-local `models.yml`, including a 1,000,000
 token context window and a 32,768 token output limit. It uses Chat Completions:
@@ -518,12 +518,12 @@ retry:
     anthropic/claude-fable-5-2:
       - openrouter/anthropic/claude-opus-5.5:high
     openrouter/z-ai/glm-5.3:
-      - openrouter/deepseek/deepseek-v4-pro-0813:max
-      - openrouter/qwen/qwen3.8-2.4t-a95b:xhigh
-      - openai-codex/gpt-5.6-terra:high
+      - openrouter/deepseek/deepseek-v4.1-flash-1017:max
+      - openrouter/moonshotai/kimi-k3.1-pro:high
+      - openai-codex/gpt-6.1-terra:high
     openrouter/z-ai/glm-5.3-flash:
       - openrouter/deepseek/deepseek-v4.1-flash-1017:max
-      - openrouter/qwen/qwen3.8-27b:medium
+      - openrouter/moonshotai/kimi-k3.1-pro:high
       - openai-codex/gpt-6-luna:high
 ```
 

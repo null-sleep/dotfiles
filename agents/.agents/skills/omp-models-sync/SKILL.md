@@ -391,8 +391,8 @@ and say what was actually done.
 - The DeepSeek/Qwen fallback steps are low-stakes (the user rarely uses the
   GLM roles); do not spend effort optimizing them each round beyond keeping
   ids valid.
-- **Not adopted, flag each round:** `kimi-k3.1-pro`, `gemini-4-hydrogen`
-  (supports `xhigh`; `carbon` stops at `high`).
+- **Not adopted, flag each round:** `gemini-4-hydrogen` (supports `xhigh`;
+  `carbon` stops at `high`). `kimi-k3.1-pro` was adopted 2026-11-17.
 
 ### 2026-11: Unavailable subagent model -> use judgement
 
@@ -529,3 +529,24 @@ and say what was actually done.
 - **Revisit if:** Zed ships a real hide/allowlist setting (switch to it),
   Zed hosts Carbon or a newer generation of any pinned line, or the user
   wants the GPT-5.x Codex/mini/nano lines back.
+
+### 2026-11-17: GPT-6.2, Kimi K3.1 Pro, DeepSeek 1017 round
+
+- **Applied:** `sol` -> `openrouter/openai/gpt-6.2-sol@azure:xhigh`, `astra` ->
+  `openrouter/openai/gpt-6.2-astra:xhigh` (same price as the 6.1 Sol / 6
+  Astra generation they replace except Astra, now $8/$40 instead of $10/$50);
+  Auto Code pool Sol -> `gpt-6.2-sol`; fallback chains re-keyed to the 6.2 ids.
+  Also brought `DEFAULT_ROLES` in line with what was already live (seeded
+  script had lagged): `kimi` -> `kimi-k3.1-pro:high`, `dseek` ->
+  `deepseek-v4.1-flash-1017:max`, `advisor` -> `deepseek-v4.1-flash-1017:high`,
+  `luna`/`commit`/`med-vision`/`vision` keep their `@azure` pins, `task` ->
+  `gpt-6.1-terra:high`, Codex `oa-*` -> `gpt-6-luna:xhigh`, `gpt-6.1-terra`,
+  `gpt-6.1-sol`, plus `oa-xl` = `gpt-6-astra:xhigh`; GLM chains use
+  `deepseek-v4.1-flash-1017` then `kimi-k3.1-pro`.
+- **Live drift found:** `glm-fast` pointed at `glm-5.3` instead of
+  `glm-5.3-flash` (fixed).
+- **No newer version exists** (OpenRouter public and per-key catalogs agree,
+  so no ZDR hiding) for Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.2, Gemini 4
+  Carbon, GLM 5.3, GPT-6.1 Terra, GPT-6 Luna (no 6.2 Terra or Luna yet).
+- **Zed favorites unchanged:** zed.dev still hosts GPT-6 Astra / 6.1 Sol /
+  5.6 Terra / 6 Luna, Fable 5.1, Haiku 4.5, Gemini 4 Argon; no 6.2.
