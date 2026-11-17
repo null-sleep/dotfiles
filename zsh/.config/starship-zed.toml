@@ -1,0 +1,28 @@
+# Starship prompt for Zed's integrated terminal — stowed to
+# ~/.config/starship-zed.toml. Selected via STARSHIP_CONFIG in
+# .zshrc_config.zsh when TERM_PROGRAM=zed.
+#
+# Same as starship.toml minus the git branch/dirty marker: Zed already shows the
+# branch in its title bar and the dirty state in the editor, so repeating it in
+# the prompt is noise. Starship has no config includes, so the shared module
+# settings below are duplicated — keep them in sync with starship.toml.
+#
+# Renders:  [duration] ❯ <folder> [gap]   e.g.  12s ❯ dotfiles |
+
+add_newline = false
+
+format = "$cmd_duration$character$directory "
+
+[cmd_duration]
+format = "[$duration](yellow) "
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol   = "[❯](red)"
+
+[directory]
+style = "cyan"
+truncation_length = 1
+truncate_to_repo = false
+truncation_symbol = ""
+format = "[$path]($style)"

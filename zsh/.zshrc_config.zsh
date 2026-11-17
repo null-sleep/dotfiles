@@ -62,6 +62,11 @@ fi
 # it recolours automatically when the `theme` script flips light/dark, same as
 # the old hand-rolled prompt did.
 #------------------------------------------------------------------------------
+# Zed's integrated terminal: drop the branch/dirty segment (Zed's title bar and
+# editor already show it). Needs `stow zsh` to link starship-zed.toml.
+if [[ "$TERM_PROGRAM" == "zed" && -f "${XDG_CONFIG_HOME:-$HOME/.config}/starship-zed.toml" ]]; then
+  export STARSHIP_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/starship-zed.toml"
+fi
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 else

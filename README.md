@@ -2238,6 +2238,8 @@ Scope is deliberately lean — **directory + git only**, rendering `❯ <folder>
 
 No language/tool version modules — the top-level `format` lists only these, so nothing else renders. Colors are ANSI palette **names**, not hex, so the prompt recolors when Ghostty flips light/dark (see [Unified theme switching](#unified-theme-switching)). Tweak it in `zsh/.config/starship.toml`.
 
+**In Zed's integrated terminal** (`TERM_PROGRAM=zed`) the branch and dirty marker are dropped — Zed's title bar and editor already show them. `.zshrc_config.zsh` points `STARSHIP_CONFIG` at `~/.config/starship-zed.toml` (stowed from `zsh/.config/starship-zed.toml`) there, which is `starship.toml` minus the git modules; Starship has no config includes, so keep the shared `cmd_duration`/`character`/`directory` settings in sync between the two files. Re-run `stow zsh` once to link the new file.
+
 <a id="directory-jumping-zoxide"></a>
 ### Directory jumping (zoxide)
 
