@@ -724,7 +724,13 @@ What the adapter forwards (probed on 18.4.12):
   uncommitted, but never discard it (that silently resets your pick).
   Plan mode here keeps the thread's model instead of switching to
   `modelRoles.plan`, so the selectors choose the planning model and thinking
-  per thread (see [Plan mode](#plan-mode)).
+  per thread (see [Plan mode](#plan-mode)). Stock omp's plan-approval card
+  shows only the first 12 plan lines as plain text; the stowed
+  `zed-plan-in-chat.ts` extension, enabled by the Zed entry's
+  `OMP_ZED_PLAN_IN_CHAT=1`, posts the whole plan to the chat as markdown
+  first and shortens the card to the question (verified with a scripted ACP
+  client on 18.20.2; see
+  [`plans/zed-omp-plan-approval-preview.md`](../plans/zed-omp-plan-approval-preview.md)).
 - ~70 slash commands, skills as `skill:*`; images, embedded context, HTTP/SSE
   MCP servers; session list/load/fork/resume.
 - No version lag: the adapter ships in the same binary as the CLI.
@@ -763,7 +769,8 @@ ACP-specific catches:
 What you lose in an ACP thread:
 
 - The extensions: `nvim-notify` needs `$NVIM`, and `turn-count` and
-  `cycle-model-picker` (`Alt+O`) only act when `ctx.hasUI`.
+  `cycle-model-picker` (`Alt+O`) only act when `ctx.hasUI`. The exception
+  is `zed-plan-in-chat`, which only acts in ACP threads.
 - omp's TUI: status line, theme, keybindings (Ctrl+P cycling), and launch
   flags such as `--goal` and `--profile`.
 

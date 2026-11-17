@@ -139,7 +139,7 @@ stow --no-folding agents     # generic global Agent Skills
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
-stow --no-folding omp        # five extensions + global AGENTS.md/RULES.md; config.yml stays machine-local — see the omp section
+stow --no-folding omp        # six extensions + global AGENTS.md/RULES.md; config.yml stays machine-local — see the omp section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
@@ -1464,7 +1464,7 @@ designated-owner convention as brew for [opencode](#opencode) and npm for pi.
 ### What's managed
 
 Much less than pi: no theme ports (omp built-ins are used — see
-[Theme](#omp-theme)), five focused extensions, and two user-level instruction
+[Theme](#omp-theme)), six focused extensions, and two user-level instruction
 files.
 
 | File | Method |
@@ -1474,6 +1474,7 @@ files.
 | `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
 | `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
 | `~/.omp/agent/extensions/openrouter-session-cost.ts` | Symlinked via stow (`--no-folding`); exact cumulative OpenRouter generation cost through the native `cost` segment |
+| `~/.omp/agent/extensions/zed-plan-in-chat.ts` | Symlinked via stow (`--no-folding`); Zed only (gated by `OMP_ZED_PLAN_IN_CHAT=1` in the Zed `agent_servers.omp.env`): posts the full plan to the chat before the plan-approval card — see [`plans/zed-omp-plan-approval-preview.md`](plans/zed-omp-plan-approval-preview.md); tested by `omp/tests/zed-plan-in-chat-smoke.ts` (rerun after `brew upgrade omp`) |
 | `~/.omp/agent/AGENTS.md` | Symlinked via stow (`--no-folding`); global preferences for main sessions and advisors in every project (subagent model selection: naming, no-fallback judgement rule). Task subagents do not receive `AGENTS.md` |
 | `~/.omp/agent/RULES.md` | Symlinked via stow (`--no-folding`); one-line sticky rule carried on every request and inherited by task subagents (substitute an unavailable subagent model, never ask) |
 | `~/.omp/agent/config.yml` | Seeded by `setup-settings.sh` via `omp config`; machine-local |
@@ -1874,7 +1875,12 @@ Stowed to `~/.config/zed/`:
   the file is missing) and again after changing roles; then reload the omp
   agent in Zed, since one `omp acp` process serves every thread (also after
   editing the stowed `~/.omp/agent/AGENTS.md` or `RULES.md`; see
-  [`docs/omp.md`](docs/omp.md#zed-acp)).
+  [`docs/omp.md`](docs/omp.md#zed-acp)). The entry's
+  `"env": { "OMP_ZED_PLAN_IN_CHAT": "1" }` turns on the stowed
+  `zed-plan-in-chat.ts` extension, which posts the whole plan to the chat
+  before omp's plan-approval card (stock omp shows only 12 plain-text
+  lines); see
+  [`plans/zed-omp-plan-approval-preview.md`](plans/zed-omp-plan-approval-preview.md).
   `file_scan_exclusions` adds `**/.worktrees` and `**/.claude/worktrees`,
   hiding nested git worktrees from the main checkout's project panel,
   search, and Zed Agent's file tools

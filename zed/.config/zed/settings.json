@@ -372,7 +372,11 @@
             },
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",
-            "args": ["acp", "--approval-mode", "yolo", "--config", "~/.omp/agent/zed-models.yml"]
+            "args": ["acp", "--approval-mode", "yolo", "--config", "~/.omp/agent/zed-models.yml"],
+            // Enables the stowed zed-plan-in-chat.ts extension: the full plan
+            // is posted to the chat before the plan-approval card. See
+            // plans/zed-omp-plan-approval-preview.md.
+            "env": { "OMP_ZED_PLAN_IN_CHAT": "1" }
         },
     },
 }
