@@ -85,6 +85,12 @@ off or delete them as they land; add new ones freely.
   - Revisit when stock Zed gets it: watch
     [zed#57428](https://github.com/zed-industries/zed/discussions/57428) and
     the release notes; drop the workaround then.
+- [ ] **Resume terminal-created omp sessions as Zed ACP chats** (found
+  2026-11-17) — omp ACP lists and loads terminal-owned sessions, but Zed does
+  not expose them in Thread History. A generic ACP session picker/load flow is
+  a good private-fork candidate; scope, verified protocol evidence, patch map,
+  and acceptance test are in
+  [zed-omp-external-session-resume.md](zed-omp-external-session-resume.md).
 - [ ] **Richer Terminal Thread notifications in the Zed fork** (found
   2026-11-15) — the remaining gaps against omp's ACP pop-ups need Zed changes.
   Scoped in
