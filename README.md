@@ -1500,17 +1500,18 @@ runtime state lives in the same directory tree as the stowed files.
 
 `setup-settings.sh` is **fill-in-only** for the built-in and custom
 `modelRoles`/`modelTags` presets (except the repo-owned `web` role), including
-OpenRouter Terra at high thinking as the default model; the model-specific GLM
-and Fable fallback chains and empty Auto Code fallback; and
+OpenRouter Terra at high thinking as the default model; the model-specific
+OpenAI and Fable fallback chains and empty Auto Code fallback; and
 `defaultThinkingLevel` (`medium`) plus `startup.quiet` (`true`). Assignments,
 chains, or values changed later survive a re-run. The script also fills in an
 absolute `gopls` command in `lsp.json` when absent, so OMP's LSP worker does not
-depend on the PATH of the terminal or GUI process that launched it. The GLM
-chains try a comparable DeepSeek model, then Qwen, then the direct OpenAI Codex
-provider so an OpenRouter-wide limit still has an independent exit. The script
-**forces** the repo-owned twelve-preset model cycle — `default`, `sonnet`,
-`carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `dseek`, `kimi`,
-`astra`, `fable` — used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
+depend on the PATH of the terminal or GUI process that launched it. The OpenAI
+chains fall back to the direct OpenAI Codex provider, which gives an
+OpenRouter-wide limit an independent exit when a Codex step resolves and the
+subscription is signed in. The script
+**forces** the repo-owned ten-preset model cycle — `default`, `sonnet`,
+`carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `astra`, `fable` —
+used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
 fuzzy picker. `smol` and `tiny` alias `@haiku`; `slow` aliases `@sol`. `auto-code` is an optional OpenRouter coding router with a
 repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
 `carbon` selects Gemini 4; `astra` selects GPT-6.2 Astra on OpenRouter. `fable`
@@ -1530,9 +1531,8 @@ HN-only queries.
 The role selectors, fallback chains, and cycle are **current personal defaults**,
 not a compatibility promise. Update them as provider availability, quality,
 pricing, and preferred reasoning levels change; keep `DEFAULT_ROLES`,
-`DEFAULT_FALLBACK_CHAINS`, and `cycleOrder` coherent. `dseek` labels DeepSeek,
-`kimi` labels Moonshot Kimi, and `sonnet`/`opus` label OpenRouter Claude Sonnet
-5.5/Opus 5.5.
+`DEFAULT_FALLBACK_CHAINS`, and `cycleOrder` coherent. `sonnet`/`opus` label
+OpenRouter Claude Sonnet 5.5/Opus 5.5.
 
 Anthropic subscription models get their own `*-sub` roles (`sonnet-sub`,
 `opus-sub`, `haiku-sub`, `fable-sub`) outside the cycle, for per-call subagent

@@ -179,7 +179,7 @@ Anthropic subscription models, kept out of `cycleOrder`; plain "sonnet" or
 "opus" means the OpenRouter one, so say "the sonnet sub model" for the
 subscription one. Anthropic's catalog ids use dashes
 (`anthropic/claude-sonnet-5-5`). Models reachable only through other roles
-(`oa-*`, `glm-*`, `cheap-l`) still route normally; they just can't be picked
+(`oa-*`) still route normally; they just can't be picked
 per call.
 
 **Worktree-style isolation** is built in but off by default. Enable
@@ -460,7 +460,6 @@ modelRoles:
   carbon: openrouter/google/gemini-4-carbon:high
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
-  cheap-l: openrouter/z-ai/glm-5.3:max
   astra: openrouter/openai/gpt-6.2-astra:xhigh
   fable: anthropic/claude-fable-5-2:high  # subscription; OpenRouter Fable is ZDR-blocked
 ```
@@ -508,33 +507,25 @@ supports. Carbon is geared toward difficult, long-running tasks and can spend
 more tokens per task than cheaper presets. Check current OpenRouter pricing
 before long runs.
 
-The GLM selectors also get model-specific automatic fallback chains, and the
-subscription Fable model falls back to OpenRouter Opus 5.5 when its weekly cap
-is hit or the login fails. All are seeded fill-in-only so later hand edits
-survive setup re-runs:
+The subscription Fable model gets a model-specific automatic fallback chain to
+OpenRouter Opus 5.5 when its weekly cap is hit or the login fails. It is seeded
+fill-in-only so later hand edits survive setup re-runs:
 
 ```yaml
 retry:
   fallbackChains:
     anthropic/claude-fable-5-2:
       - openrouter/anthropic/claude-opus-5.5:high
-    openrouter/z-ai/glm-5.3:
       - openrouter/deepseek/deepseek-v4.1-flash-1017:max
       - openrouter/moonshotai/kimi-k3.1-pro:high
-      - openai-codex/gpt-6.1-terra:high
-    openrouter/z-ai/glm-5.3-flash:
       - openrouter/deepseek/deepseek-v4.1-flash-1017:max
       - openrouter/moonshotai/kimi-k3.1-pro:high
-      - openai-codex/gpt-6-luna:high
 ```
 
 `retry.modelFallback` is on by default. Model-selector keys apply whenever
 that exact model is the active model of the main session or a role-routed
 subagent, regardless of which role selected it (so the Fable key covers
-`fable` and `fable-sub` there; per-call spawns get no automatic fallback). The first two GLM alternatives
-preserve the OpenRouter path while moving off Z.AI; the final OpenAI Codex
-entry also escapes an OpenRouter-wide limit, but Codex is a low-priority,
-occasionally unavailable subscription, so that step may be skipped. The default
+`fable` and `fable-sub` there; per-call spawns get no automatic fallback). The default
 `cooldown-expiry` revert policy returns to the primary after its suppression
 window ends. Unavailable providers or models are skipped.
 
@@ -763,9 +754,8 @@ ACP-specific catches:
   `oa-` filter in `omp/setup-zed-models.sh` and re-run
   `omp/setup-settings.sh`.
 - Unverified: whether fallback chains honour the `zed-models.yml`
-  `enabledModels` scope. Several GLM chain entries (DeepSeek `v4-pro`, the
-  Qwen models) match no pattern there; if chains respect the scope, a GLM
-  fallback in Zed would skip to the Codex step.
+  `enabledModels` scope. The Fable chain's OpenRouter Opus step is inside it;
+  the Codex steps of the OpenAI chains may not be.
 
 What you lose in an ACP thread:
 

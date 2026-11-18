@@ -38,8 +38,9 @@ project with its own `.omp/` config: prefix omp commands with
 
 - `omp/setup-settings.sh`
   - `DEFAULT_ROLES` — role → `provider/id:level`.
-  - `DEFAULT_MODEL_TAGS`, `DEFAULT_FALLBACK_CHAINS` (GLM chains name DeepSeek,
-    Kimi and Codex models; they go stale too).
+  - `DEFAULT_MODEL_TAGS`, `DEFAULT_FALLBACK_CHAINS` (the OpenAI chains name
+    Codex models, and the Fable chain names OpenRouter Opus; both go stale
+    each round, see Procedure step 3).
   - `CYCLE_ORDER` (forced) and `SUB_ROLES` (`*-sub`: the direct Anthropic
     subscription twins, kept out of the cycle).
   - `task.perCallModelAllow` is **derived** from `CYCLE_ORDER` + `SUB_ROLES`
@@ -78,6 +79,49 @@ project with its own `.omp/` config: prefix omp commands with
   historical decision records; do not rewrite their model ids.
 - Tests `omp/tests/*.sh` use fixture ids; touch them only when behavior
   changes, not on every model bump.
+- Other repo docs/files that name omp models: `docs/zed.md` (Zed favorites
+  paragraph with prices, and the Zed picker-scope paragraph quoting a
+  pattern), root `AGENTS.md`/`CLAUDE.md` (the "Keeping omp models in sync"
+  pointer to this skill; update both if its wording changes), and
+  `omp/.omp/agent/RULES.md` (the unavailable-model rule, no ids).
+  `docs/omp.md` also keeps illustrative, non-setup-owned model examples (the
+  GPT-5.6 Sol/Pro/batch naming table and its OpenRouter links, and an
+  `anthropic/claude-sonnet-4-5` credential example): refresh them only when
+  they mislead, not every round.
+
+### Live state outside the repo (machine-local)
+
+- `~/.omp/agent/config.yml` — `modelRoles`, `modelTags` and
+  `retry.fallbackChains` are seeded fill-in-only, so they must be updated by
+  hand (Policy above), except the migrations in `setup-settings.sh` (retired
+  provider cleanup, the `fable` id, the `web` entries). `cycleOrder` and
+  `task.perCallModelAllow` are forced/derived on every run. `advisor.*` is
+  not seeded (the `advisor` role is in `modelRoles`).
+- `~/.omp/agent/models.yml` — written by `setup-auto-code.sh` (router pool
+  override) and `setup-model-labels.sh` (`(sub)` `modelOverrides`).
+- `~/.omp/agent/zed-models.yml` — generated Zed picker scope; never hand-edit.
+- `~/.omp/agent/models.db` — omp's own catalog cache (read-only evidence;
+  `omp models find` is the supported way to query it).
+
+### Other tools with their own model pins (not driven by this skill)
+
+Not omp, not covered by `setup-settings.sh`; they do not follow role edits.
+Check them during a round and **flag** newer generations to the user rather
+than editing silently, since each tool has its own catalog and price list.
+
+- `pi/setup-settings.sh` `defaultModel` (pi's default; also `docs/pi.md`
+  mentions `pi-btw` taking an `openrouter/<model-id>` and the footer example
+  in `pi/.pi/agent/extensions/claude-footer.ts`).
+- `opencode/.config/opencode/opencode.json` `model` and `small_model`
+  (OpenRouter ids).
+- `claude/.claude/settings.json` `model` (a Claude Code alias such as
+  `sonnet`, not an id; the alias tracks Anthropic's newest of that tier).
+- `zed/.config/zed/settings.json`: `agent.default_model` and
+  `agent_servers.omp.default_config_options.model` are the user's dropdown
+  picks and churn (out of scope); `agent.favorite_models` is covered above.
+- Nothing in `nvim/`, `cursor/`, `herdr/`, `zellij/`, `ghostty/` or `macos/`
+  pins a model id (2026-11 audit); `nvim/` and `claude/statusline-command.sh`
+  only display or match agent/model names from other tools.
 
 ## Gotchas
 
@@ -133,9 +177,8 @@ project with its own `.omp/` config: prefix omp commands with
   enough); say so in the report. **Out of scope:** the model picked in the
   Zed dropdown (`default_config_options.model` in
   `zed/.config/zed/settings.json`) is the user's choice and churns; do not
-  flag it or add fallback chains for it. Unverified and not worth chasing
-  (the user rarely uses GLM): whether fallback chains honour the
-  `zed-models.yml` `enabledModels` scope.
+  flag it or add fallback chains for it. Unverified and not worth chasing:
+  whether fallback chains honour the `zed-models.yml` `enabledModels` scope.
 - **Zed has two model pickers; don't mix them up.** omp's dropdown in an omp
   thread is scoped by `zed-models.yml` (OpenRouter + subscriptions, newest
   generations). The native Zed Agent's selector lists Zed's hosted models,
@@ -156,9 +199,21 @@ project with its own `.omp/` config: prefix omp commands with
 
 ## Procedure
 
+**Sweep first (once per round).** Compare this hit list from the repo root
+against "Where model identity lives" and add any new file to this skill:
+
+```bash
+grep -rnEil 'gpt-[0-9]|claude-(opus|sonnet|haiku|fable)|gemini-[0-9]|openrouter/|anthropic/|modelRoles|enabledModels|favorite_models|perCallModel|cycleOrder' \
+  --exclude-dir=.git --exclude-dir=plans . | sort
+```
+
+Also run `omp config get` on keys that can hold model ids but are unset here
+(`task.agentModelOverrides`, a global `enabledModels`; `modelProviderOrder`
+holds provider names) before assuming they are empty.
+
 1. **Discover.** For each provider (`openrouter`, `anthropic`; `openai-codex`
    only as a quick check, see Gotchas) run `omp models find <family> --json`
-   for every family in the cycle, `*-sub`, `dseek`, `kimi`, `astra`, `fable`,
+   for every family in the cycle, `*-sub`, `astra`, `fable`,
    `carbon`, the fallback chains, and the Auto Code pool. Find the newest
    version and note anything deprecated, renamed, repriced or missing. Check
    thinking levels the model supports before keeping a `:level` suffix. If an
@@ -170,10 +225,21 @@ project with its own `.omp/` config: prefix omp commands with
    against `CYCLE_ORDER`.
 3. **Apply.** Update `DEFAULT_ROLES`/`SUB_ROLES`/`CYCLE_ORDER`/chains, apply
    the same role **and chain** changes live (merge into the existing object;
-   see Policy; chains: `omp config set retry.fallbackChains "$(omp config get
-   retry.fallbackChains --json | jq -c '.value + {...}')"`, since
-   `$defaults + .` never updates an existing key), and update
-   `setup-auto-code.sh` if the router pool should change.
+   see Policy; chains: `$defaults + .` never updates an existing key, so
+   delete the old key and add the new one together, e.g. `omp config set
+   retry.fallbackChains "$(omp config get retry.fallbackChains --json | jq -c
+   '.value | del(.["<old primary id>"]) + {"<new primary id>": [...]}')"`),
+   and update `setup-auto-code.sh` if the router pool should change.
+   **Fallback chains are part of every round**, not an afterthought: re-key
+   each OpenAI chain to its primary role's current OpenRouter id (the key is
+   the exact model id, so a role bump to a new generation leaves its chain
+   dead; the Fable chain's key stays `anthropic/claude-fable-5-2` and the
+   Auto Code chain is intentionally empty), and point every step at the newest
+   generation of that tier (`openai-codex/*`, and
+   `openrouter/anthropic/claude-opus-*` for Fable), the same rule as the
+   roles. The Codex `oa-*` roles follow the same generations. Compare the
+   live chains against `DEFAULT_FALLBACK_CHAINS` with `diff <(omp config get
+   retry.fallbackChains --json | jq -S '.value|del(.web)') <(...)`.
 4. **Re-run** `bash omp/setup-settings.sh` (regenerates the allowlist and the
    Zed picker scope), then `bash omp/setup-model-labels.sh`. `setup-settings.sh`
    does not call the labels script, and the `(sub)` suffix it keeps on
@@ -249,7 +315,9 @@ EOF
 
 Expect the `(sub)` rows (`anthropic/*` and `openai-codex/*`) and the OpenRouter
 rows, sorted by provider, so an unlabelled `google/gemini-4-carbon` lands
-between the Anthropic and Codex rows. Currently 19 rows. The only Codex row is
+between the Anthropic and Codex rows. Check by content, not row count (it
+shifts as roles change): every cycle and `*-sub` model is present and no
+retired model (DeepSeek, Kimi, GLM) is listed. The only Codex row is
 `openai-codex/gpt-6-luna` (matched by the `luna` role's id, not by `oa-s`,
 which is excluded). Codex `gpt-5.6-terra` and OpenRouter `gpt-5.6-sol`/
 `gpt-5.6-terra` should NOT appear; if they do, the `oa-` exclusion in
@@ -271,6 +339,9 @@ Always surface these in your final report, even if you resolved them:
   preset (and which role you would put it in).
 - A model in a role, the cycle, the Auto Code pool or a fallback chain that is
   deprecated, renamed, repriced or gone from the catalog.
+- Pins in other tools that are behind the newest generation (`pi`,
+  `opencode`; see "Other tools with their own model pins"), and any new file
+  the Procedure's sweep turned up that this skill did not list.
 - Live config that had drifted from `DEFAULT_ROLES`, and what you changed.
 - A `anthropic` subscription login that is expired or missing: the cycle
   `fable` role fails over to OpenRouter Opus (main session and role-routed

@@ -61,8 +61,7 @@ applied as PROPOSED.
   Procedure step 5.
 - Out of scope (user): the model picked in Zed's dropdown
   (`default_config_options.model`) and fallback chains for it, including
-  `*-sub` -> OpenRouter twin chains; whether chains honour `enabledModels`
-  (only GLM chains, rarely used).
+  `*-sub` -> OpenRouter twin chains; whether chains honour `enabledModels`.
 - Revisit if omp ACP starts reloading context per thread, or the user relies
   on a fixed subscription model as the Zed default.
 

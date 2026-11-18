@@ -50,21 +50,16 @@ DEFAULT_ROLES='{
   "plan": "openrouter/anthropic/claude-opus-5.5:high",
   "commit": "openrouter/openai/gpt-6-luna:medium",
   "task": "openrouter/openai/gpt-6.1-terra:high",
-  "advisor": "openrouter/deepseek/deepseek-v4.1-flash-1017:high",
+  "advisor": "openrouter/openai/gpt-6-luna:high",
   "med-vision": "openrouter/openai/gpt-6.1-terra:high",
   "oa-s": "openai-codex/gpt-6-luna:xhigh",
   "oa-m": "openai-codex/gpt-6.1-terra:high",
-  "oa-l": "openai-codex/gpt-6.1-sol:xhigh",
+  "oa-l": "openai-codex/gpt-6.2-sol:xhigh",
   "sonnet-sub": "anthropic/claude-sonnet-5-5:high",
   "opus-sub": "anthropic/claude-opus-5-5:high",
   "haiku-sub": "anthropic/claude-haiku-5-5:medium",
   "fable-sub": "anthropic/claude-fable-5-2:high",
-  "glm-l": "openrouter/z-ai/glm-5.3:max",
-  "glm-fast": "openrouter/z-ai/glm-5.3-flash:max",
-  "cheap-l": "openrouter/z-ai/glm-5.3:max",
-  "dseek": "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
-  "kimi": "openrouter/moonshotai/kimi-k3.1-pro:high",
-  "oa-xl": "openai-codex/gpt-6-astra:xhigh"
+  "oa-xl": "openai-codex/gpt-6.2-astra:xhigh"
 }'
 DEFAULT_MODEL_TAGS='{
   "med-vision": {"name": "med-vision"},
@@ -76,51 +71,32 @@ DEFAULT_MODEL_TAGS='{
   "carbon": {"name": "carbon"},
   "astra": {"name": "astra"},
   "fable": {"name": "fable"},
-  "auto-code": {"name": "auto-code"},
-  "glm-l": {"name": "glm-l"},
-  "glm-fast": {"name": "glm-fast"}
+  "auto-code": {"name": "auto-code"}
 }'
 DEFAULT_FALLBACK_CHAINS='{
   "openrouter/openrouter/auto-code": [],
   "anthropic/claude-fable-5-2": [
     "openrouter/anthropic/claude-opus-5.5:high"
   ],
-  "openrouter/z-ai/glm-5.3": [
-    "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
-    "openrouter/moonshotai/kimi-k3.1-pro:high",
-    "openai-codex/gpt-6.1-terra:high"
-  ],
-  "openrouter/z-ai/glm-5.3-flash": [
-    "openrouter/deepseek/deepseek-v4.1-flash-1017:max",
-    "openrouter/moonshotai/kimi-k3.1-pro:high",
-    "openai-codex/gpt-6-luna:high"
-  ],
   "openrouter/openai/gpt-6-luna": [
     "openai-codex/gpt-6-luna:xhigh",
     "openai-codex/gpt-6.1-terra:high",
-    "openai-codex/gpt-6.1-sol:xhigh",
-    "openai-codex/gpt-6-astra:xhigh"
+    "openai-codex/gpt-6.2-sol:xhigh",
+    "openai-codex/gpt-6.2-astra:xhigh"
   ],
   "openrouter/openai/gpt-6.1-terra": [
     "openai-codex/gpt-6.1-terra:high",
-    "openai-codex/gpt-6.1-sol:xhigh",
-    "openai-codex/gpt-6-astra:xhigh"
+    "openai-codex/gpt-6.2-sol:xhigh",
+    "openai-codex/gpt-6.2-astra:xhigh"
   ],
   "openrouter/openai/gpt-6.2-sol": [
-    "openai-codex/gpt-6.1-sol:xhigh",
-    "openai-codex/gpt-6-astra:xhigh",
+    "openai-codex/gpt-6.2-sol:xhigh",
+    "openai-codex/gpt-6.2-astra:xhigh",
     "openai-codex/gpt-6.1-terra:high"
   ],
   "openrouter/openai/gpt-6.2-astra": [
-    "openai-codex/gpt-6-astra:xhigh",
-    "openai-codex/gpt-6.1-sol:xhigh",
-    "openai-codex/gpt-6.1-terra:high"
-  ],
-  "openrouter/deepseek/deepseek-v4.1-flash-1017": [
-    "openrouter/moonshotai/kimi-k3.1-pro:high",
-    "openai-codex/gpt-6.1-terra:high"
-  ],
-  "openrouter/moonshotai/kimi-k3.1-pro": [
+    "openai-codex/gpt-6.2-astra:xhigh",
+    "openai-codex/gpt-6.2-sol:xhigh",
     "openai-codex/gpt-6.1-terra:high"
   ]
 }'
@@ -181,12 +157,13 @@ roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 # selectors to luna/sol and copy the old default to terra (default itself is
 # left alone), and alias the built-in smol/tiny/slow roles to the new names so
 # background features keep a cheap or strong model.
+# Selectors naming a retired provider (DeepSeek, Moonshot/Kimi, Z.AI/GLM),
+# matched in role values, chain keys and chain steps.
+RETIRED_RE='deepseek|moonshotai|z-ai/'
 # OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
 # dead OpenRouter `fable` id is moved onto the subscription model below.
-migrated_roles="$(jq -c '
-  if (has("dseek") | not) and has("default-cheap") then .dseek = .["default-cheap"] else . end
-  | if (has("kimi") | not) and has("cheap-alt") then .kimi = .["cheap-alt"] else . end
-  | del(."default-cheap", ."cheap-alt")
+migrated_roles="$(jq -c --arg re "$RETIRED_RE" '
+  del(."default-cheap", ."cheap-alt", .dseek, .kimi, ."glm-l", ."glm-fast", ."cheap-l")
   | if has("luna") then . else
       (if has("smol") then .luna = .smol else . end)
       | (if has("slow") then .sol = .slow else . end)
@@ -195,6 +172,7 @@ migrated_roles="$(jq -c '
     end
   | del(.argon)
   | if .fable == "openrouter/anthropic/claude-fable-5.2:high" then .fable = "anthropic/claude-fable-5-2:high" else . end
+  | if ((.advisor // "") | tostring | test($re)) then .advisor = "openrouter/openai/gpt-6-luna:high" else . end
 ' <<<"$roles")"
 # Search preferences moved from providers.webSearch* to the web model role.
 # Keep these two entries repo-owned while preserving other roles and chains.
@@ -206,7 +184,7 @@ else
 fi
 
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
-merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon)' <<<"$tags")"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast")' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
   omp config set modelTags "$merged_tags"
 else
@@ -216,14 +194,21 @@ fi
 fallback_chains="$(omp config get retry.fallbackChains --json | jq -c '.value // {}')"
 # Retain the remaining non-hosted default engines after Public Web. Hosted
 # search is omitted because it can use the active Anthropic model.
-merged_fallback_chains="$(jq -c --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '$defaults + . + {web: ["web/public", "web/parallel", "web/exa", "web/firecrawl", "web/searxng", "web/startpage", "web/duckduckgo", "web/ecosia", "web/google", "web/mojeek"]}' <<<"$fallback_chains")"
+# DeepSeek, Kimi and GLM were retired: drop every chain key and string step
+# naming them (any version or thinking suffix); non-string entries are kept.
+merged_fallback_chains="$(jq -c --arg re "$RETIRED_RE" --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '
+  def retired: type == "string" and test($re);
+  $defaults + . + {web: ["web/public", "web/parallel", "web/exa", "web/firecrawl", "web/searxng", "web/startpage", "web/duckduckgo", "web/ecosia", "web/google", "web/mojeek"]}
+  | with_entries(select(.key | retired | not))
+  | map_values(if type == "array" then map(select(retired | not)) else . end)
+' <<<"$fallback_chains")"
 if [ "$merged_fallback_chains" != "$fallback_chains" ]; then
   omp config set retry.fallbackChains "$merged_fallback_chains"
 else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-CYCLE_ORDER='["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","dseek","kimi","astra","fable"]'
+CYCLE_ORDER='["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","astra","fable"]'
 # Direct Anthropic subscription twins of cycle models: selectable per call
 # ("use the sonnet sub model"), kept out of the Ctrl+P/Alt+O cycle.
 SUB_ROLES='["sonnet-sub","opus-sub","haiku-sub","fable-sub"]'
