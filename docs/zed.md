@@ -754,19 +754,19 @@ One-key launches: see [Adding your own bindings](#custom-bindings).
 **Zed Agent's model list** can't be trimmed: Zed has no hide/allowlist
 setting (`hidden_models`, zed#52347, was closed unmerged, and
 `language_models.*.available_models` only adds or overrides). Instead
-`agent.favorite_models` pins the newest zed.dev model in each line at the
-top of the selector (`alt-tab` cycles them); the full list stays below.
-Pinned as of 2026-11 (Zed price per 1M in/out): Claude Fable 5.2 ($8.80/$44,
-hosted since Zed 1.29), Opus 5.5 ($4.40/$22), Sonnet 5.5 ($2.20/$11), Haiku
-4.5 ($1.10/$5.50); GPT-6 Astra ($11/$55), GPT-6.1 Sol ($2.20/$11), GPT-5.6
-Terra ($2.20/$13.20); Gemini 4 Argon ($2.20/$11, intro price until Nov 30,
-then $4/$20) and Gemini 3.5 Flash ($1.65/$9.90). GPT-5.3-Codex, GPT-5 mini,
-GPT-5 nano and GPT-6 Luna are left out (superseded, or Luna dropped to match
-the omp cycle).
-Zed lags OpenRouter here: Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, and
-no Gemini 4 Carbon or Hydrogen. **TODO:** add Gemini 4 Carbon
-(`google/gemini-4-carbon` on OpenRouter) to `favorite_models` once Zed hosts
-it. It beats Argon at the same price.
+`agent.favorite_models` pins one zed.dev model per omp cycle model, so this
+picker matches the [omp ladder](../plans/omp-model-ladder.md), at the top of
+the selector (`alt-tab` cycles them, in Zed's order, not the settings order);
+the full list stays below. Pinned as of 2026-11 (Zed price per 1M in/out):
+Claude Haiku 4.5 ($1.10/$5.50), GPT-5.6 Terra ($2.20/$13.20), GPT-6.1 Sol
+($2.20/$11), Claude Sonnet 5.5 ($2.20/$11), GPT-6 Astra ($11/$55), Gemini 4
+Argon ($2.20/$11, intro price until Nov 30, then $4/$20; the stand-in for
+Carbon), Claude Opus 5.5 ($4.40/$22) and Claude Fable 5.2 ($8.80/$44, hosted
+since Zed 1.29). Models outside the omp cycle (Gemini 3.5 Flash, GPT-6 Luna,
+GPT-5.3-Codex, GPT-5 mini and nano) are left out. Zed lags OpenRouter here:
+Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, GPT-6.1 Sol vs 6.2, GPT-6 Astra
+vs 6.2, and no Gemini 4 Carbon or Hydrogen. **TODO:** replace Argon with
+Gemini 4 Carbon (`google/gemini-4-carbon` on OpenRouter) once Zed hosts it.
 
 **Auto-compaction is off** (`agent.auto_compact.enabled: false`) as a
 workaround for a Zed 1.28.1 bug: compacting a Claude thread fails with

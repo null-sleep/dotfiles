@@ -96,16 +96,18 @@ applied as PROPOSED.
   per-thread choice would be lost).
 
 <a id="native-zed-agent-favorites"></a>
-## Native Zed Agent favorites track zed.dev's newest models
+## Native Zed Agent favorites mirror the omp cycle
 
-- User: pin the newest model in each line Zed hosts, and add Gemini 4 Carbon
-  once Zed hosts it. Zed only, not omp.
+- User (2026-11): one zed.dev favorite per omp cycle model, so the native
+  picker matches the ladder: Haiku 4.5, GPT-5.6 Terra, GPT-6.1 Sol, Sonnet
+  5.5, GPT-6 Astra, Gemini 4 Argon (stand-in for Carbon), Opus 5.5, Fable 5.2.
+  Use the newest generation Zed hosts for each; replace Argon with Gemini 4
+  Carbon once Zed hosts it. Models outside the cycle stay out (Gemini 3.5
+  Flash, GPT-6 Luna, GPT-5.3-Codex, GPT-5 mini and nano). Zed only, not omp.
 - Zed can't hide models (`hidden_models`, zed-industries/zed#52347, closed
   unmerged; `available_models` only adds), so `agent.favorite_models` pins
-  instead. Superseded lines (GPT-5.3-Codex, GPT-5 mini and nano) are left
-  out, and so is GPT-6 Luna (user, 2026-11, matching its removal from the omp
-  cycle; Haiku 4.5 is the cheap pin). Starring in the UI rewrites the list;
-  commit those diffs.
+  instead, and shows the pins in Zed's catalog order, not the settings order.
+  Starring in the UI rewrites the list; commit those diffs.
 - Not omp: Zed 1.28.1's native Agent (1.29.1 unchanged in source) can fail on Claude with
   `unknown variant 'between_tools'`, mostly during compaction; reloading the
   agent clears it. Don't change model settings for it.

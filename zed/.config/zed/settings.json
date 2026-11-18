@@ -329,13 +329,16 @@
         "threads_sidebar": {
             "default_width": 222.0,
         },
-        // Latest-generation zed.dev models, pinned at the top of the model
-        // selector and cycled with alt-tab. This pins, it doesn't filter:
-        // Zed has no hide/allowlist setting (`hidden_models`, zed#52347, was
-        // closed unmerged; `available_models` only adds). Starring a model
-        // in the picker rewrites this list. See docs/zed.md → Agent panel.
-        // TODO: add Gemini 4 Carbon once Zed hosts it (OpenRouter:
-        // google/gemini-4-carbon); it supersedes Argon at the same price.
+        // One zed.dev model per omp cycle model, so this picker matches the
+        // omp ladder (Zed hosts older generations of some: Haiku 4.5, Terra
+        // 5.6, Sol 6.1, Astra 6; Argon stands in for Carbon). Pinned at the
+        // top of the model selector and cycled with alt-tab, in Zed's order,
+        // not this one. This pins, it doesn't filter: Zed has no
+        // hide/allowlist setting (`hidden_models`, zed#52347, was closed
+        // unmerged; `available_models` only adds). Starring a model in the
+        // picker rewrites this list. See docs/zed.md → Agent panel.
+        // TODO: replace Argon with Gemini 4 Carbon once Zed hosts it
+        // (OpenRouter: google/gemini-4-carbon).
         "favorite_models": [
             { "provider": "zed.dev", "model": "claude-fable-5-2" },
             { "provider": "zed.dev", "model": "claude-opus-5-5" },
@@ -344,8 +347,7 @@
             { "provider": "zed.dev", "model": "gpt-6-astra" },
             { "provider": "zed.dev", "model": "gpt-6.1-sol" },
             { "provider": "zed.dev", "model": "gpt-5.6-terra" },
-            { "provider": "zed.dev", "model": "gemini-4-argon" },
-            { "provider": "zed.dev", "model": "gemini-3.5-flash" }
+            { "provider": "zed.dev", "model": "gemini-4-argon" }
         ],
         "model_parameters": [],
     },
@@ -366,7 +368,26 @@
             // agent.default_model).
             "default_config_options": {
                 "mode": "default",
-                "model": "anthropic/claude-opus-5-5"
+                "model": "openrouter/openrouter/auto-code"
+            },
+            // Starred models in omp's dropdown: a "Favorites" section on top
+            // and the alt-tab cycle in omp threads. One entry per omp cycle
+            // model (OpenRouter rows; Fable is the subscription row), so the
+            // (sub) twins and the direct-Gemini duplicate stay out of alt-tab.
+            // Zed shows them in omp's order, not this one. Starring in the UI
+            // rewrites this list. See plans/omp-model-ladder.md.
+            "favorite_config_option_values": {
+                "model": [
+                    "openrouter/anthropic/claude-haiku-5.5",
+                    "openrouter/openai/gpt-6.1-terra",
+                    "openrouter/openai/gpt-6.2-sol",
+                    "openrouter/anthropic/claude-sonnet-5.5",
+                    "openrouter/openai/gpt-6.2-astra",
+                    "openrouter/google/gemini-4-carbon",
+                    "openrouter/anthropic/claude-opus-5.5",
+                    "anthropic/claude-fable-5-2",
+                    "openrouter/openrouter/auto-code"
+                ]
             },
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",

@@ -65,9 +65,17 @@ project with its own `.omp/` config: prefix omp commands with
   (Codex) roles are deliberately excluded** from the scope; see
   [Zed picker scope](DECISIONS.md#zed-picker-scope). Extras are expected; a
   missing model is not.
+- `zed/.config/zed/settings.json`
+  `agent_servers.omp.favorite_config_option_values.model` — hand-maintained
+  stars in **omp's** Zed dropdown: one value per cycle model (the OpenRouter
+  row; Fable's subscription row), giving a Favorites section and the
+  `alt-tab` cycle in omp threads. Values are the ACP option ids (the
+  `provider/id` the ACP picker probe prints). Update it whenever
+  `CYCLE_ORDER` or a cycle role's model changes; a stale id just drops out of
+  the Favorites section. Order is ignored (Zed shows omp's order).
 - `zed/.config/zed/settings.json` `agent.favorite_models` — **not omp**: the
   native Zed Agent's model selector (zed.dev-hosted models, billed through
-  Zed Pro). Hand-maintained list of the newest zed.dev model per line, pinned
+  Zed Pro). Hand-maintained: one zed.dev counterpart per omp cycle model, pinned
   at the top of the selector and cycled with `alt-tab`. It pins, it doesn't
   filter (Zed has no hide/allowlist setting). Repeated in prose in
   `docs/zed.md` → "Zed Agent's model list" (with Zed prices and the
@@ -270,11 +278,13 @@ holds provider names) before assuming they are empty.
    user to reload the Zed omp agent; the picker is read when the agent
    process starts.
 6. **Native Zed Agent favorites.** Fetch https://zed.dev/docs/ai/models and
-   check whether any line has a newer hosted model than
-   `agent.favorite_models` (and whether Gemini 4 Carbon is hosted yet; it's a
-   standing TODO in that file). Update the list and the `docs/zed.md`
-   paragraph (models, prices, generation gaps) together. Not driven by
-   `setup-settings.sh`; nothing to re-run, and Zed reloads settings live.
+   check, for each omp cycle model, whether Zed hosts a newer counterpart than
+   the one in `agent.favorite_models` (and whether Gemini 4 Carbon is hosted
+   yet, to replace Argon; a standing TODO in that file). The list holds exactly
+   one zed.dev model per cycle model; add or drop a favorite when the cycle
+   changes. Update the list and the `docs/zed.md` paragraph (models, prices,
+   generation gaps) together. Not driven by `setup-settings.sh`; nothing to
+   re-run, and Zed reloads settings live.
 7. **Docs and tests.** Update every doc listed above in the same change; run
    `for t in omp/tests/*.sh; do bash "$t"; done`.
 8. **Do not commit unless asked**; other uncommitted changes in the tree

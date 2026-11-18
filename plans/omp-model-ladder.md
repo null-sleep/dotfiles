@@ -56,7 +56,18 @@ the Zed omp agent (13 rows): the four `(sub)` Anthropic models, a direct
 pattern, then OpenRouter Haiku, Opus, Sonnet, Carbon, Terra, Auto Code, Astra,
 Sol. Type to filter instead of scrolling.
 
-Options considered, none adopted:
+Adopted: **favorites.** `agent_servers.omp.favorite_config_option_values.model`
+in `zed/.config/zed/settings.json` stars the nine cycle models (OpenRouter rows,
+Fable as the subscription row). Zed then shows a "Favorites" section above the
+full list and `alt-tab` cycles only those in an omp thread, skipping the
+`(sub)` twins and the direct-Gemini duplicate. Both follow omp's option order,
+not the order in settings (Zed `config_options.rs`). Keep the list equal to the
+cycle when the cycle changes. The native Zed Agent picker behaves the same way:
+`agent.favorite_models` is read as a set and shown in Zed's catalog order (seen
+2026-11-18: Sol, Opus, Fable, Sonnet, Haiku, Astra, Terra, Argon, Flash), and
+its Recommended section and full catalog can't be hidden.
+
+Options considered, not adopted:
 
 - Rung numbers in display names ("2 Terra") via `modelOverrides` `name`: order
   unchanged, only helps type-to-filter, and the numbers would also show in the
