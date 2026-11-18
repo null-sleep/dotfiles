@@ -252,44 +252,16 @@ reads work without it; both need `gh` authenticated (already done here).
 <a id="mcp"></a>
 ## MCP servers
 
-omp's own MCP config is `~/.omp/agent/mcp.json` — machine-local (omp writes
-it, and there's a `.lock` sibling), so like `config.yml` it is **not stowed**.
-Shape is Claude's, plus two cross-source override lists:
+Terminal omp discovers servers from machine-local `~/.omp/agent/mcp.json`,
+project config, and supported clients such as Claude Code. Use `/mcp` in the
+TUI to see server sources and status and to authorize HTTP servers. Omp's
+OAuth grants are separate from Claude Code's. For Tabularis setup see
+[MCP integration](../README.md#mcp-integration).
 
-```json
-{
-  "mcpServers": { "slack": { "type": "http", "url": "https://mcp.slack.com/mcp" } },
-  "disabledServers": ["github:github"]
-}
-```
-
-`disabledServers` is the highest-precedence denylist and is keyed
-`<source>:<name>` — it hides a same-named server from *any* discovered
-source. `enabledServers` force-enables one whose source set `enabled: false`,
-but can't override the denylist. `/mcp` lists everything with its status and
-source file; there is no `omp mcp` CLI subcommand.
-
-omp also inherits MCP servers from other harnesses' configs, which is why
-most entries here come from Claude Code without being configured twice. At
-**user** scope it reads `~/.claude.json` and `~/.claude/mcp.json`, plus
-Codex, Gemini, Cursor, Windsurf, OpenCode, and installed Claude marketplace
-plugins.
-
-**The dotfile-vs-plain-name trap** (this bit us): the dot-prefixed
-`.mcp.json` spelling is **project-scope only** — `.claude/.mcp.json` is read
-relative to the *project* dir. A server parked at `~/.claude/.mcp.json` is
-therefore treated as project config for `~/.claude/` and never loads in a
-normal cwd, even though `~/.claude/mcp.json` (no dot) would. Claude Code's
-own Slack server lives at exactly that path, so it was invisible to omp until
-it was copied into `~/.omp/agent/mcp.json`. If a server shows up in Claude
-Code but not in omp's `/mcp`, check the spelling before assuming an auth
-problem.
-
-HTTP servers using OAuth are discovered but stay disconnected until
-authenticated once per harness — omp does not share Claude Code's OAuth
-grant. Run `/mcp` in an interactive session and authenticate there; a
-headless `omp -p` run can't complete the browser callback, so a server that
-works interactively can still look absent from a piped probe.
+In Zed, `omp acp` skips that discovery and uses Zed's `context_servers`.
+The same omp OAuth grant can work in both modes, but the server definition
+must be present in Zed. See [MCP in Zed](zed.md#mcp) for forwarding and reload
+behavior.
 
 <a id="statusline-theme"></a>
 ## Status line and theme
@@ -803,9 +775,8 @@ Thread History, subject to the adapter's session support.
 - `config.yml` is deliberately not stowed — omp writes settings changes and
   migrations into it. Repo-owned defaults live in `omp/setup-settings.sh`;
   re-run it after machine setup, don't hand-copy YAML.
-- A user-level MCP server must be at `~/.claude/mcp.json` (no dot) or
-  `~/.omp/agent/mcp.json`. The `.mcp.json` spelling is project-scope only, so
-  `~/.claude/.mcp.json` is silently skipped — see [MCP servers](#mcp).
+- `~/.omp/agent/mcp.json` configures terminal omp, not `omp acp`. See
+  [MCP in Zed](zed.md#mcp).
 - Approval defaults to `yolo`. If that's ever uncomfortable for a session,
   `omp --approval-mode write` prompts before anything `exec`-tier.
 

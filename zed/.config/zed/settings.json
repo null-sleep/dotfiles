@@ -350,9 +350,8 @@
         ],
         "model_parameters": [],
     },
-    // MCP servers for Zed Agent; Zed also forwards these to ACP agents (omp,
-    // Codex). Tabularis: read-only DB schema/query tools via the
-    // ~/.local/bin/tabularis shim (see README → Tabularis → MCP integration).
+    // Zed Agent uses these servers and Zed forwards enabled entries to ACP.
+    // Terminal omp discovers its servers separately. See docs/zed.md#mcp.
     "context_servers": {
         "tabularis": { "command": "tabularis", "args": ["--mcp"] },
     },

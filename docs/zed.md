@@ -689,6 +689,30 @@ is the point; Terminal Threads for a harness you have customised (Claude,
 pi). Zed profiles, Skills, and `AGENTS.md` apply to neither — external
 agents read their own instruction files.
 
+<a id="mcp"></a>
+### MCP in Zed and Terminal Threads
+
+Zed Agent connects to the servers under `context_servers` in Zed settings.
+Zed also forwards enabled server definitions when it opens or loads an
+Agent Client Protocol (ACP) session. `omp acp` (verified on 18.22.0) mounts
+those definitions instead of discovering servers from `~/.omp/agent/mcp.json`
+or other CLI configs. A Terminal Thread is just a shell: `omp` launched
+there uses its normal [terminal MCP discovery](omp.md#mcp).
+
+To give omp an MCP server in Zed, add it to `context_servers` and open a
+new omp thread after Zed picks up the change. `enabled: false` in Zed
+prevents forwarding. Omp's ACP `/mcp list` reads omp's files, not the live
+tool list; `/mcp reload` does not ask Zed to resend server definitions.
+
+For HTTP servers, Zed forwards the URL and configured headers, not its
+native OAuth session. `omp acp` can reuse a grant from terminal omp for the
+same URL and profile if no static Authorization header is set. If it
+expires, reauthorize in terminal omp and open a new ACP thread. Do not put
+tokens in tracked Zed settings.
+
+This checkout ships [Tabularis](../README.md#mcp-integration) as its only
+Zed context server.
+
 <a id="terminal-thread-notifications"></a>
 ### Terminal Thread notifications
 

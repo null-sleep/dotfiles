@@ -1589,14 +1589,10 @@ sidekick attention bridge, adapted to omp's event set). omp is also in nvim's
 sidekick agent roster alongside pi, via a config-local `sk/cli/omp.lua` spec —
 sidekick ships no omp preset.
 
-**MCP servers** are machine-local too. omp inherits most of them from
-`~/.claude.json` automatically, so `/mcp` usually looks populated without any
-omp-side setup. The exception is Slack: Claude Code keeps it in
-`~/.claude/.mcp.json`, and that dot-prefixed spelling is **project-scope
-only**, so omp skips it. On a fresh machine, copy that server block into
-`~/.omp/agent/mcp.json` under `mcpServers`, then run `/mcp` in an interactive
-omp session to complete the OAuth flow (omp doesn't share Claude Code's
-grant). See [MCP servers](docs/omp.md#mcp) in the omp guide.
+**MCP servers:** terminal omp discovers machine-local server registrations.
+Zed's `omp acp` instead uses `context_servers` in Zed settings; this checkout
+ships only [Tabularis](#mcp-integration). See [MCP in Zed](docs/zed.md#mcp)
+for OAuth and troubleshooting.
 
 <a id="omp-theme"></a>
 ### Theme
@@ -2580,10 +2576,9 @@ Finder) need the full bundle path there instead.
 
 Zed is tracked, unlike Claude Code: `zed/.config/zed/settings.json` has a
 `context_servers.tabularis` entry using the same shim. It serves Zed Agent,
-and Zed forwards it to ACP agents (omp, Codex) too. Zed's
-`agent.tool_permissions.default` is `allow`, so Zed Agent calls its tools
-without prompting; rely on Tabularis's read-only mode and approval gates if
-that matters.
+and Zed forwards it to ACP agents that support it. See
+[MCP in Zed](docs/zed.md#mcp). Zed Agent auto-approves tool calls in this
+setup; use Tabularis's read-only mode and approval gates as needed.
 
 Exposes read-only connection/schema resources plus `list_tables`,
 `describe_table`, and `run_query` (capped at 100 rows) tools, with an audit
