@@ -52,6 +52,7 @@ equivalents appear in parentheses or a third column next to each binding.
 - [The mental model](#mental-model)
 - **[Reviewing changes — local diffs and PRs](#diff-review)**
 - [Pickers and navigation](#pickers)
+- [Bookmarks](#bookmarks)
 - [Panes, tabs, and docks](#panes-docks)
 - [Editing and LSP](#editing-lsp)
 - [Search and multibuffers](#search-multibuffers)
@@ -294,7 +295,7 @@ use `git: diff branch` or the History tab.
 | `ctrl--` / `ctrl-_` | `pane::GoBack` / `pane::GoForward` | navigation history, see below |
 | `cmd-k cmd-p` | `workspace::ReopenLastPicker` | reopen the last picker |
 | `cmd-shift-m` | `diagnostics::Deploy` | all project diagnostics as a multibuffer |
-| `project bookmarks: toggle` | `project_bookmarks::Toggle` | (1.29+, no default key) search and preview every bookmark in the workspace; set them with `editor: toggle bookmark` |
+| `project bookmarks: toggle` | `project_bookmarks::Toggle` | bookmark picker (1.29+, no default key) — see [Bookmarks](#bookmarks) |
 
 **Back and forward after a jump.** Go to definition and similar jumps
 (references, symbol and outline picks, `go_to_line`) record the previous
@@ -319,6 +320,117 @@ implementation results into a filterable picker instead of a multibuffer
 So the choice is yours per feature: picker for a quick look, multibuffer
 (`cmd-shift-f`, `cmd-shift-m`) when you want to edit the results in place.
 Still no plugin ecosystem — the set of pickers is fixed.
+
+<a id="bookmarks"></a>
+## Bookmarks
+
+A bookmark is a line you mark so you can return to it, optionally with a
+label. Bookmarks landed in 1.28; 1.29 added the picker that searches them
+across the project. **No bookmark action has a default key**, so bind the
+ones you use (block below) or run them from the palette.
+
+**Basis:** read from the v1.29.1 source (`crates/editor/src/bookmarks.rs`,
+`crates/project/src/bookmark_store.rs`, `crates/project_bookmarks/`), not yet
+tried in a running Zed; checks under [Untested](#bookmarks-untested).
+
+| palette | action | what it does |
+|---|---|---|
+| `editor: toggle bookmark` | `editor::ToggleBookmark` | add / remove an unlabelled bookmark on the cursor's line |
+| `editor: toggle bookmark with label` | `editor::ToggleBookmarkWithLabel` | add one and type a label in an inline prompt ("Enter bookmark label (Optional)") |
+| `editor: edit bookmark` | `editor::EditBookmark` | rename the bookmark on the cursor's line |
+| `editor: go to next bookmark` / `…previous…` | `editor::GoToNextBookmark` / `GoToPreviousBookmark` | step through bookmarks in the current editor |
+| `project bookmarks: toggle` | `project_bookmarks::Toggle` | the picker: fuzzy-search every bookmark in the project, with preview |
+| `editor: view bookmarks` | `editor::ViewBookmarks` | every bookmark as one editable multibuffer tab |
+| `workspace: clear bookmarks` | `workspace::ClearBookmarks` | delete every bookmark in the project, no confirmation |
+
+**Setting them.**
+
+- One bookmark per line. Toggling on a bookmarked line removes it, label
+  included.
+- With several cursors, toggle acts on each cursor's line. If every one is
+  already bookmarked it removes them all; otherwise it adds only the
+  missing ones and leaves the rest alone. The with-label variant opens one
+  prompt per new line.
+- **Gutter:** hovering a line number shows an add button. With
+  breakpoints and bookmarks both on (the default), a plain click adds a
+  *breakpoint* and `cmd`-click adds a bookmark; the tooltip says so.
+  Clicking an existing bookmark icon removes it. Right-click in the gutter
+  for Add / Remove / Edit Bookmark. `"gutter": { "bookmarks": false }`
+  hides the icons and the button.
+
+**Finding them again.**
+
+- **Picker** (`project bookmarks: toggle`): each row shows the label above
+  `path:line`. An unlabelled bookmark uses the line's own text, trimmed.
+  **The search matches labels only, not paths**, so label anything you'll
+  want to find by name; an unlabelled `}` is hard to pick out. `enter`
+  opens the file at that line; `cmd-enter` opens it as a regular tab, not a
+  preview tab, and not in a split as in the file finder. Preview pane:
+  the Preview button or `cmd-alt-p`; `cmd-alt-right` / `cmd-alt-down`
+  place it, `cmd-alt-up` hides it. Opening the picker loads every
+  bookmarked file; files deleted from disk are left out.
+- **Next / previous** only cover the current editor (the file, or every
+  excerpt of a multibuffer), wrap around at the ends, and unfold the line
+  if it is folded. They never jump to another file; use the picker for that.
+- **Bookmarks tab** (`editor: view bookmarks`): a "Bookmarks" multibuffer
+  with each bookmarked line highlighted in its surrounding context. It
+  refreshes as bookmarks change, reuses the open tab instead of opening a
+  second one, and does nothing when there are no bookmarks. The
+  [multibuffer keys](#search-multibuffers) apply (`cmd-down` to the next
+  excerpt, `alt-enter` into the file).
+
+**What they stick to.**
+
+- Bookmarks belong to the workspace (the set of project folders) and are
+  saved in Zed's database (`bookmarks` table in
+  `~/Library/Application Support/Zed/db/0-stable/db.sqlite`), so they come
+  back when the project reopens. A git worktree opened on its own is a
+  separate workspace with its own bookmarks [INFERENCE: from the
+  `workspace_id` key].
+- While the file is open, a bookmark follows its line through edits. It is
+  saved as a **row number**, though, so if the file changes while the
+  project is closed (a pull, a rebase, an agent outside Zed), the bookmark
+  comes back on whatever line now has that number. Rows past the end of the
+  file are dropped.
+- If a file is renamed while its buffer is open, its bookmarks move with
+  it; if it's deleted while open, they're removed.
+- Vim marks (`ma`, `'a`) are a separate system: they don't show in the
+  picker or the gutter.
+
+**Suggested bindings** (not in the stowed `keymap.json`; chords checked
+free in the v1.29.1 macOS and vim keymaps). `cmd-k` is the terminal's clear
+key, so none of these fire in a terminal:
+
+```jsonc
+{
+  "context": "Editor && mode == full",
+  "bindings": {
+    "cmd-k b": "editor::ToggleBookmark",
+    "cmd-k shift-b": "editor::ToggleBookmarkWithLabel",
+    "cmd-k ]": "editor::GoToNextBookmark",
+    "cmd-k [": "editor::GoToPreviousBookmark"
+  }
+},
+{
+  "context": "Workspace",
+  "bindings": {
+    "cmd-k '": "project_bookmarks::Toggle",
+    "cmd-k shift-l": "editor::ViewBookmarks"
+  }
+}
+```
+
+<a id="bookmarks-untested"></a>
+**Untested in the app.** Fix the text if reality differs, then delete the
+item:
+
+- [ ] Plain gutter click adds a breakpoint, `cmd`-click a bookmark.
+- [ ] The picker doesn't match on file paths; an unlabelled bookmark shows
+  the line text.
+- [ ] `cmd-enter` in the picker opens a regular (non-preview) tab.
+- [ ] Bookmarks survive a Zed restart; after the file changes on disk while
+  Zed is closed, they stay on the old row number.
+- [ ] The suggested chords work.
 
 <a id="panes-docks"></a>
 ## Panes, tabs, and docks

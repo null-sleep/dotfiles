@@ -35,6 +35,9 @@ Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
 | reopen last picker | `cmd-k cmd-p` | | `<leader>sr` |
 | recent projects | `alt-cmd-o` | | |
 | branch / worktree picker | `ctrl-cmd-b` / `ctrl-cmd-w` | | `<leader>Gb` / `<leader>Gw` (popups) |
+| bookmark line / labelled | `editor: toggle bookmark` / `…with label`, `cmd`-click gutter | | |
+| bookmark picker, all files | `project bookmarks: toggle` (search matches labels) | | |
+| next / prev bookmark, this file | `editor: go to next bookmark` / `…previous…` | | |
 
 In a picker: `enter` open, `cmd-enter` open in a split, `escape` cancel.
 File finder: `cmd-shift-i` includes ignored files. `cmd-t` / `gS` see only
