@@ -1933,7 +1933,18 @@ cmake`), two scripts from the [zsh](#zsh) package cover it:
   rerunning it; rerun after moving the checkout. Debug builds read the same
   `~/.config/zed`, so the stowed settings apply.
 
-Zed docs, all checked against Zed 1.28.1 (each says so at the top; after an
+**Upgrading.** Zed updates itself (the cask is `auto_updates`), so plain
+`brew upgrade` skips it and brew's recorded version lags the app:
+`brew upgrade --cask zed` (or `--greedy`) syncs the two. It quits and
+reopens Zed, which ends running agent processes (`omp acp`, Terminal
+Thread CLIs). Then, for the docs below: `gh release view vX.Y.Z -R
+zed-industries/zed` for the changelog, and since `~/src/zed`'s `origin`
+is a fork, fetch the tag from upstream (`git -C ~/src/zed fetch
+https://github.com/zed-industries/zed.git tag vX.Y.Z --no-tags`) to diff
+`assets/keymaps/` and `assets/settings/default.json` against the previous
+tag.
+
+Zed docs, all checked against Zed 1.29.1 (each says so at the top; after an
 upgrade, re-verify against the new tag and bump that line):
 
 - [`docs/zed.md`](docs/zed.md) — **reviewing changes** (uncommitted,

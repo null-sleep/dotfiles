@@ -104,7 +104,7 @@ applied as PROPOSED.
   unmerged; `available_models` only adds), so `agent.favorite_models` pins
   instead. Superseded lines (GPT-5.3-Codex, GPT-5 mini and nano) are left
   out. Starring in the UI rewrites the list; commit those diffs.
-- Not omp: Zed 1.28.1's native Agent can fail on Claude with
+- Not omp: Zed 1.28.1's native Agent (1.29.1 unchanged in source) can fail on Claude with
   `unknown variant 'between_tools'`, mostly during compaction; reloading the
   agent clears it. Don't change model settings for it.
 - Revisit if Zed ships a hide/allowlist setting, or hosts Carbon or a newer

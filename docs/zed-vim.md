@@ -7,7 +7,7 @@ panes, and panels, and the Zed-specific `g`/`]`/`z`/`ctrl-w` maps that
 replace nvim's leader keys. **Default bindings only** — mapping the nvim
 config's own keys is a later step (see the last section).
 
-**Basis: Zed 1.28.1** (`zed --version`) — checked against the `v1.28.1`
+**Basis: Zed 1.29.1** (`zed --version`) — checked against the `v1.29.1`
 tag (`assets/keymaps/vim.json`, `default-macos.json`) and the
 [Vim mode](https://zed.dev/docs/vim) docs. After a Zed upgrade, re-check
 against the new tag and bump the version here.
@@ -21,7 +21,7 @@ is `"] shift-b"`.
 
 - [Vim mode](https://zed.dev/docs/vim) — enabling, the `vim` settings
   block, supported `:` commands, differences from Vim
-- [vim.json (v1.28.1)](https://github.com/zed-industries/zed/blob/v1.28.1/assets/keymaps/vim.json)
+- [vim.json (v1.29.1)](https://github.com/zed-industries/zed/blob/v1.29.1/assets/keymaps/vim.json)
   — every binding below, with its context
 - [Key bindings](https://zed.dev/docs/key-bindings) and
   [`docs/zed.md` → Adding your own bindings](zed.md#custom-bindings)
@@ -184,7 +184,7 @@ the finder only from non-editor panes (project panel, empty pane).
 | keys | action | does |
 |---|---|---|
 | `gd`, `ctrl-]` / `gD` | `editor::GoToDefinition` / `GoToDeclaration` | definition / declaration |
-| `gy` | `editor::GoToTypeDefinition` | type definition (no `grt` in 1.28.1; Zed master adds it) |
+| `gy` | `editor::GoToTypeDefinition` | type definition (no `grt` in 1.29.1; Zed master adds it) |
 | `gI`, `gri` | `editor::GoToImplementation` | implementation |
 | `gA`, `grr` | `editor::FindAllReferences` | references, as a multibuffer |
 | `grn`, `cd` | `editor::Rename` | rename symbol |
@@ -247,7 +247,7 @@ and call hierarchy.
 **Differences.** nvim sends `gd`, `gy`, `gri`, `grr` through snacks
 pickers (a single result jumps straight there); Zed opens a multibuffer
 unless `"lsp_results_location": "picker"` is set. `grt` is the only nvim
-binding with no Zed 1.28.1 twin — `gy` covers it, and Zed master binds
+binding with no Zed 1.29.1 twin — `gy` covers it, and Zed master binds
 `grt` too. nvim's `ctrl-click` jumps to
 the definition; the Zed equivalent was not checked.
 
@@ -409,7 +409,7 @@ language's `textobjects.scm`; the rest are language-independent.
 On a signature line (outside any body), `if`/`ic` select the inside of the
 smallest enclosing `af`/`ac`, so `dif` works from the `func` line.
 
-Built-in query coverage (v1.28.1, `crates/grammars/src/<lang>/`):
+Built-in query coverage (v1.29.1, `crates/grammars/src/<lang>/`):
 - **Go** — function: `func` and method bodies, not func literals (`if` in a
   closure takes the enclosing func). Class: `struct`, `interface`, any
   other `type` declaration.
@@ -431,7 +431,7 @@ ranges, `]/`/`[/` between comments.
 enclosing syntax node, entering visual mode from normal. They take a count
 (`3[x`); shrinking retraces the grow history, like nvim's `<M-o>`/`<M-i>`
 stack. Sibling moves (`vim::SelectNextSyntaxNode` / `…Previous…`) are bound
-only in Helix mode (`alt-n`/`alt-p`) in 1.28.1; Zed master adds `]n`/`[n` in
+only in Helix mode (`alt-n`/`alt-p`) in 1.29.1; Zed master adds `]n`/`[n` in
 visual mode. See [Opt-in bindings](#opt-in).
 
 **Folds.** Range computation, persistence, settings:
@@ -471,6 +471,8 @@ Optional letters in brackets. `:e`, `:w`, `:r`, `:sp`, `:vs`, `:tabe`, and
 | `:<any zed action>` | e.g. `:editor: toggle split diff`; `command_aliases` shortens these |
 
 Vim-style `:%s/\(a\)/\1/` is auto-converted; native form is `(a)` and `$1`.
+Since 1.29 `\+` and `\{n\}` convert too, and `:s` without `g` replaces the
+right match on every line of a range (it used to go wrong after the first).
 
 <a id="opt-in"></a>
 ## Opt-in bindings

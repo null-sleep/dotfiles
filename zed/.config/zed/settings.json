@@ -62,7 +62,7 @@
     "ui_font_size": 15,
     // Thinner tab bar / status bar. Options: compact (tightest spacing and
     // chrome heights) | default | comfortable (loosest). Spacing only; fonts
-    // are unaffected. Off: still unstable in v1.28.1 (Zed warns elements may
+    // are unaffected. Off: still unstable in v1.29.1 (Zed warns elements may
     // break), and only the `unstable.` key works — bare "ui_density" is
     // silently ignored. Status: tracking issue
     // https://github.com/zed-industries/zed/issues/18078 — stable once
@@ -197,7 +197,7 @@
         "xml": true,
     },
 
-    // Per-language overrides. Go and Rust spell out Zed's defaults (v1.28.1
+    // Per-language overrides. Go and Rust spell out Zed's defaults (v1.29.1
     // assets/settings/default.json) as knobs to flip — note an explicit value
     // here beats the same key set globally.
     // Defaults drift; re-check before editing via `zed: open default settings`
@@ -275,7 +275,7 @@
     "agent": {
         "terminal_init_command": "claude",
         "enable_feedback": false,
-        // Off as a workaround (2026-11, Zed 1.28.1): auto-compaction of
+        // Off as a workaround (2026-11, Zed 1.28.1; 1.29.1 unchanged): auto-compaction of
         // Claude threads fails with "unknown variant `between_tools`,
         // expected one of `enabled`, `adaptive`, `disabled`" (Zed client vs
         // zed.dev server mismatch), and Retry repeats it. Manual compaction
@@ -337,7 +337,7 @@
         // TODO: add Gemini 4 Carbon once Zed hosts it (OpenRouter:
         // google/gemini-4-carbon); it supersedes Argon at the same price.
         "favorite_models": [
-            { "provider": "zed.dev", "model": "claude-fable-5-1" },
+            { "provider": "zed.dev", "model": "claude-fable-5-2" },
             { "provider": "zed.dev", "model": "claude-opus-5-5" },
             { "provider": "zed.dev", "model": "claude-sonnet-5-5" },
             { "provider": "zed.dev", "model": "claude-haiku-4-5" },

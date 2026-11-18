@@ -74,6 +74,7 @@ Folds follow indentation (nvim: tree-sitter) and persist per file. `zc`/`zo`,
 | uncommitted diff | `git: diff` (`ctrl-g d` in git panel) | | `<leader>vv` |
 | branch vs base, the PR view | `git: diff branch` | | `<leader>vp` |
 | against another base | `git: compare with branch` | | |
+| branch's changed files in the git panel | `git panel: show branch changes` | | |
 | next / prev hunk | `cmd-f8` / `cmd-shift-f8` | `]c` / `[c` | |
 | next / prev file (excerpt) | `cmd-down` / `cmd-up` | | `tab` / `shift-tab` (diffview) |
 | show old text inline | `cmd-'` | `do` | `<leader>hp` |

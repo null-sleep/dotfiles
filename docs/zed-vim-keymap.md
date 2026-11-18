@@ -7,8 +7,8 @@ rows (plus an unrelated `cmd-k cmd-m` block that opens `cheatsheet.md`). The
 earlier draft, which mirrored nvim keys that don't exist, was
 removed; adopt further rows from the block below.
 
-**Basis: Zed 1.28.1** (`zed --version`) — every action and default named
-here was checked against the `v1.28.1` tag
+**Basis: Zed 1.29.1** (`zed --version`) — every action and default named
+here was checked against the `v1.29.1` tag
 (`assets/keymaps/default-macos.json`, `vim.json`) and
 [All actions](https://zed.dev/docs/all-actions). After a Zed upgrade,
 re-check a row against the new tag before adopting it, and bump the
@@ -40,7 +40,7 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 - [`docs/zed.md` → Adding your own bindings](zed.md#custom-bindings) —
   contexts, chord timeout, which-key popup, `null`
 - [All actions](https://zed.dev/docs/all-actions) — every action below was
-  checked here or in the v1.28.1 keymaps
+  checked here or in the v1.29.1 keymaps
 - `nvim/.config/nvim/GUIDE.md` → Keymap index, LSP, Picker, Git, AI,
   Debugging — the source of the nvim column
 

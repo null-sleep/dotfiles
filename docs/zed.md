@@ -7,7 +7,7 @@ git, search), and how to add your own. Install/stow steps live in README's
 nvim's keymaps live in `nvim/.config/nvim/GUIDE.md`.
 Nvim comparisons are deliberately brief — learn Zed's native keys first.
 
-**Basis: Zed 1.28.1** (`zed --version`) — checked against the `v1.28.1`
+**Basis: Zed 1.29.1** (`zed --version`) — checked against the `v1.29.1`
 tag (`assets/keymaps/default-macos.json`, `vim.json`) and the zed.dev docs
 and release notes below; "not verified" marks claims checked nowhere. After
 a Zed upgrade, re-check against the new tag and bump the version here.
@@ -16,8 +16,8 @@ a Zed upgrade, re-check against the new tag and bump the version here.
 
 - [Key bindings](https://zed.dev/docs/key-bindings) — keymap.json syntax,
   contexts, precedence, `use_key_equivalents`
-- [Default macOS keymap (v1.28.1)](https://github.com/zed-industries/zed/blob/v1.28.1/assets/keymaps/default-macos.json)
-  and [vim.json](https://github.com/zed-industries/zed/blob/v1.28.1/assets/keymaps/vim.json)
+- [Default macOS keymap (v1.29.1)](https://github.com/zed-industries/zed/blob/v1.29.1/assets/keymaps/default-macos.json)
+  and [vim.json](https://github.com/zed-industries/zed/blob/v1.29.1/assets/keymaps/vim.json)
   — the ground truth for every binding in this guide
 - [Vim mode](https://zed.dev/docs/vim) — `vim_mode`, the `vim` settings
   block, Zed-specific `g`/`]`/`z` maps, `:` commands
@@ -34,7 +34,7 @@ a Zed upgrade, re-check against the new tag and bump the version here.
   [Debugger](https://zed.dev/docs/debugger)
 - [All actions](https://zed.dev/docs/all-actions),
   [All settings](https://zed.dev/docs/reference/all-settings)
-- Release notes: [stable](https://zed.dev/releases/stable) (1.19–1.28
+- Release notes: [stable](https://zed.dev/releases/stable) (1.19–1.29
   reviewed); blog posts
   [Parallel Agents](https://zed.dev/blog/parallel-agents),
   [Terminal Threads](https://zed.dev/blog/terminal-threads),
@@ -133,11 +133,11 @@ mechanics are under [Adding your own bindings](#custom-bindings).
 
 Every view here is an editable multibuffer: the
 [multibuffer keys](#search-multibuffers) apply, edits save to the real
-files, and LSP works inside them. The outline panel (`cmd-shift-b`) lists
-the focused diff's files — the only file list a branch diff has (not
-verified).
+files, and LSP works inside them. For a branch, the git panel's
+[branch mode](#git-panel-branch-mode) lists its changed files; the outline
+panel (`cmd-shift-b`) also lists the focused diff's files (not verified).
 
-**Basis:** read from the v1.28.1 source and keymaps, not yet tried in a
+**Basis:** read from the v1.29.1 source and keymaps, not yet tried in a
 running Zed; the checks still to run are in
 [Untested in the app](#diff-review-untested).
 
@@ -147,7 +147,7 @@ running Zed; the checks still to run are in
 |---|---|---|
 | what haven't I committed? [1] | `ctrl-g d` in the git panel, `git: diff` anywhere | `HEAD` (staged hunks drawn hollow) |
 | only staged / only unstaged? | `git: view staged changes` / `git: view unstaged changes`, or right-click in the git panel | `HEAD`→index / index→working tree |
-| everything on this branch, committed or not — the PR view | `git: diff branch` | merge-base with the default branch |
+| everything on this branch, committed or not — the PR view | `git: diff branch`; file list: `git panel: show branch changes` | merge-base with the default branch |
 | the same against another base (stacked PR, release branch) | `git: compare with branch`, or the `Base:` button in a branch diff | merge-base with the branch you pick |
 | one commit | git panel History tab (`cmd-2`), `git graph: open`, `git: file history` | the commit's parent |
 | what did the agent change? | depends on the agent — [Agent edits](#diff-review-agents) | — |
@@ -192,6 +192,25 @@ no default key. It is Zed's local PR view:
   merge-base. Not set here; `git: toggle diff base` flips it by rewriting
   the stowed `settings.json`, which dirties the repo.
 
+<a id="git-panel-branch-mode"></a>
+### Branch changes in the git panel (1.29+)
+
+`git panel: show branch changes` (`git_panel::ShowBranchChanges`, no
+default key) switches the panel's Changes tab from uncommitted files to
+every file changed since a base branch: the branch diff's file list.
+
+- **Base:** the default branch, unless you pick one with "Compare Against
+  Base" in the menu at the top of the Changes tab
+  (`git_panel::CompareAgainstBase`, any local or remote branch). With no
+  default branch it opens that picker. While a branch diff tab is active,
+  the panel adopts its base and follows `Base:` changes made there.
+- **Opening a file** (`enter`) opens the branch diff scrolled to it, or
+  focuses the branch diff already showing it.
+- **Read-only list:** no checkboxes, no stage or restore. Edit in the
+  diff, or switch back with `git panel: show uncommitted changes`.
+- The picked base is forgotten on leaving branch mode or switching
+  repository.
+
 ### Reviewing a PR
 
 Zed has no GitHub PR integration — no PR list, review comments, or
@@ -214,7 +233,7 @@ Check the PR out and use the branch diff:
 6. Comment and approve on GitHub: `gh pr review <N>` or the web UI.
 
 Inline diff review comments (`editor::SubmitDiffReviewComment`, `Send
-Review to Agent`) exist in 1.28.1 but sit behind the staff-only
+Review to Agent`) exist in 1.29.1 but sit behind the staff-only
 `diff-review` feature flag, and stable builds ignore `feature_flags`
 overrides. [Delta](https://zed.dev/blog/delta-public-beta) (public beta,
 Sep 2026) is Zed's separate PR replacement — review inside the agent's
@@ -229,7 +248,7 @@ edits that go through Zed:
 
 - **Zed Agent:** every edit.
 - **ACP agents that write through Zed** (ACP v1's `fs/write_text_file`,
-  still offered in 1.28.1): every edit. `omp acp` does
+  still offered in 1.29.1): every edit. `omp acp` does
   ([`docs/omp.md`](omp.md#zed-acp), probed on omp 18.4.12).
 - **ACP agents that write to disk themselves** (Claude Agent): none — edits
   are final (not verified; reported in
@@ -275,6 +294,7 @@ use `git: diff branch` or the History tab.
 | `ctrl--` / `ctrl-_` | `pane::GoBack` / `pane::GoForward` | navigation history, see below |
 | `cmd-k cmd-p` | `workspace::ReopenLastPicker` | reopen the last picker |
 | `cmd-shift-m` | `diagnostics::Deploy` | all project diagnostics as a multibuffer |
+| `project bookmarks: toggle` | `project_bookmarks::Toggle` | (1.29+, no default key) search and preview every bookmark in the workspace; set them with `editor: toggle bookmark` |
 
 **Back and forward after a jump.** Go to definition and similar jumps
 (references, symbol and outline picks, `go_to_line`) record the previous
@@ -346,7 +366,7 @@ block of the default keymap, so it needs no `keymap.json` entry.
 | terminal panel | zooms the terminal, all its splits together; button tooltip says Zoom In / Zoom Out |
 | debugger panel | zooms the panel |
 | editor (center pane) | zooms that pane; with splits open, the other panes are hidden until you zoom out. A pane with no tabs doesn't zoom |
-| project / git / outline panel | nothing — their source defines no zoom handling in v1.28.1 (not tested) |
+| project / git / outline panel | nothing — their source defines no zoom handling in v1.29.1 (not tested) |
 | git commit box | **expands the commit editor instead** (`git::ExpandCommitEditor`) |
 
 **Getting out:**
@@ -365,7 +385,7 @@ split group, and `ctrl-cmd-f` / `fn-f` (`zed::ToggleFullScreen`) puts the
 whole macOS window in full screen. Zoom keeps the window layout and only
 hides the rest of the workspace.
 
-Basis: v1.28.1 `default-macos.json` and the `workspace`, `agent_ui`,
+Basis: v1.29.1 `default-macos.json` and the `workspace`, `agent_ui`,
 `terminal_view`, and `debugger_ui` crate sources; the table is read from
 source, not tested panel by panel.
 
@@ -421,7 +441,7 @@ Native keys beyond the table:
 - `editor: fold function bodies` (no key) — folds every `@function.inside`
   range from the language's `textobjects.scm`.
 
-Source: `fold.rs`, `display_map.rs` (`crease_for_buffer_row`), v1.28.1. Vim
+Source: `fold.rs`, `display_map.rs` (`crease_for_buffer_row`), v1.29.1. Vim
 keys: [`zed-vim.md` → Tree-sitter objects and folds](zed-vim.md#treesitter).
 
 **Syntax-node selection.** Besides `cmd-ctrl-right` / `cmd-ctrl-left`
@@ -447,7 +467,7 @@ This repo has neither at its root, only `fixtures/Cargo.toml` and
 `fixtures/go.mod`, so opening the dotfiles repo starts servers rooted at
 `fixtures/`, and only once you open `animal.rs` / `animal.go`. A Rust file
 with no `Cargo.toml` above it gets a server with no workspace, which is
-the "Failed to discover workspace" error. Read from the v1.28.1 source
+the "Failed to discover workspace" error. Read from the v1.29.1 source
 (`LspStore::symbols`, `manifest_tree.rs`), not tested in the app.
 
 **The `cmd-t` prompt is one name query.** Unlike nvim's `<leader>ss`
@@ -456,7 +476,7 @@ whole prompt to each server and fuzzy-matches the symbol name locally; a
 space is an ordinary character, not a path filter. Only `::` is special:
 the part after the last `::` is used for the local match, for
 rust-analyzer's `module::item` queries. To narrow by file, use `cmd-p` or
-`alt-cmd-f` instead (source: `project_symbols.rs`, v1.28.1).
+`alt-cmd-f` instead (source: `project_symbols.rs`, v1.29.1).
 
 <a id="search-multibuffers"></a>
 ## Search and multibuffers
@@ -485,7 +505,7 @@ diff buffers:
 | `alt-enter` / `cmd-alt-enter` | `editor::OpenExcerpts` / `…Split` | open the real file at the cursor (`g space`) |
 | `shift-enter` | `editor::ExpandExcerpts` | show more context around the excerpt |
 
-**No quickfix-style curation (Zed 1.28.1).** You can't prune a results
+**No quickfix-style curation (Zed 1.29.1).** You can't prune a results
 multibuffer down to a few hand-picked matches, or send picker or file-finder
 results into one; no action removes a single excerpt, and the list is a live
 view of the query, not a saved set. Workarounds: narrow the query or its
@@ -498,10 +518,11 @@ not tested.
 ## Git
 
 Four surfaces: the **git panel** (`ctrl-shift-g`) for the file list and
-commit box, the **project diff** (`ctrl-g d` from the panel, or
-`git: diff`) and **branch diff** (`git: diff branch`) as editable
-multibuffers, and **inline hunks** in any editor. Which diff to open for
-which review is in [Reviewing changes](#diff-review).
+commit box (its Changes tab also has a [branch mode](#git-panel-branch-mode)),
+the **project diff** (`ctrl-g d` from the panel, or `git: diff`) and
+**branch diff** (`git: diff branch`) as editable multibuffers, and
+**inline hunks** in any editor. Which diff to open for which review is in
+[Reviewing changes](#diff-review).
 
 | binding | action | where |
 |---|---|---|
@@ -526,9 +547,18 @@ Split vs unified and the other display settings are under
 `git::Switch` (branch picker, also deletes branches),
 `git::StashAll`/`StashPop`, `editor::ToggleGitBlameInline`.
 
+**Dates and the commit view (1.29+, none set here).** `git.date_format`
+(`"locale"` default, `"iso"`, or strftime like `"%Y-%m-%d %H:%M"`) formats
+absolute dates; each view picks `"relative"` or `"absolute"` with its own
+`date_style`: `git.blame`, `git.inline_blame`, `git.branch_picker`,
+`git.stash_picker`, `git_panel` (relative by default) and `git_graph`
+(absolute). `git.commit_view.expand_description` (default `false`) and
+`.expand_files` (default `true`) set how a commit view opens; opening one
+from blame scrolls to the blamed file.
+
 **Where commit and rebase messages open.** The commit box runs
 `git commit --quiet -m <message> --cleanup=strip` (`--amend` for amend;
-`crates/git/src/repository.rs` at v1.28.1), so no editor is involved and
+`crates/git/src/repository.rs` at v1.29.1), so no editor is involved and
 hooks still run. Pull is non-interactive too; README's git setup sets
 `pull.rebase true`, so plain `ctrl-g down` rebases as well. Zed has no
 interactive-rebase UI and no highlighting for `git-rebase-todo`; conflicts
@@ -614,16 +644,16 @@ setting (`hidden_models`, zed#52347, was closed unmerged, and
 `language_models.*.available_models` only adds or overrides). Instead
 `agent.favorite_models` pins the newest zed.dev model in each line at the
 top of the selector (`alt-tab` cycles them); the full list stays below.
-Pinned as of 2026-11 (Zed price per 1M in/out): Claude Fable 5.1 ($11/$55),
-Opus 5.5 ($4.40/$22), Sonnet 5.5 ($2.20/$11), Haiku 4.5 ($1.10/$5.50);
-GPT-6 Astra ($11/$55), GPT-6.1 Sol ($2.20/$11), GPT-5.6 Terra
-($2.20/$13.20), GPT-6 Luna ($0.11/$0.55); Gemini 4 Argon ($2.20/$11,
+Pinned as of 2026-11 (Zed price per 1M in/out): Claude Fable 5.2 ($8.80/$44,
+hosted since Zed 1.29), Opus 5.5 ($4.40/$22), Sonnet 5.5 ($2.20/$11), Haiku
+4.5 ($1.10/$5.50); GPT-6 Astra ($11/$55), GPT-6.1 Sol ($2.20/$11), GPT-5.6
+Terra ($2.20/$13.20), GPT-6 Luna ($0.11/$0.55); Gemini 4 Argon ($2.20/$11,
 intro price until Nov 30, then $4/$20) and Gemini 3.5 Flash ($1.65/$9.90).
 GPT-5.3-Codex, GPT-5 mini, and GPT-5 nano are left out as superseded.
-Zed lags OpenRouter here: Fable 5.1 vs 5.2, Haiku 4.5 vs 5.5, GPT-5.6
-Terra vs 6.1 Terra, and no Gemini 4 Carbon or Hydrogen. **TODO:** add
-Gemini 4 Carbon (`google/gemini-4-carbon` on OpenRouter) to
-`favorite_models` once Zed hosts it. It beats Argon at the same price.
+Zed lags OpenRouter here: Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, and
+no Gemini 4 Carbon or Hydrogen. **TODO:** add Gemini 4 Carbon
+(`google/gemini-4-carbon` on OpenRouter) to `favorite_models` once Zed hosts
+it. It beats Argon at the same price.
 
 **Auto-compaction is off** (`agent.auto_compact.enabled: false`) as a
 workaround for a Zed 1.28.1 bug: compacting a Claude thread fails with
@@ -632,8 +662,9 @@ workaround for a Zed 1.28.1 bug: compacting a Claude thread fails with
 the log, every hit came from auto-compaction (Sonnet 5.5 at ~612k tokens);
 normal turns were fine. Manual compaction likely fails the same way. With
 it off, a long thread fails at the context limit instead, so start a new
-thread before then. **TODO:** re-enable after a Zed update fixes it (test
-by compacting a long Claude thread by hand).
+thread before then. The 1.29.1 client still sends `between_tools` and its
+release notes mention no fix; not retested. **TODO:** re-enable after a Zed
+update fixes it (test by compacting a long Claude thread by hand).
 
 **omp's model dropdown** is omp's own ACP `model` select, not Zed's model
 selector: `agent.favorite_models` and `alt-tab` don't reach it, and omp's
@@ -746,8 +777,14 @@ Every thread across open projects, grouped by project. Settings:
 | `shift-backspace` / `cmd-shift-backspace` | `agent::ArchiveSelectedThread` / `RemoveSelectedThread` | archive to history (running threads must finish first) / delete |
 | `cmd-g` | `agents_sidebar::ToggleThreadHistory` | all threads, all projects, chronological; `backspace` un-archives, hover-trash deletes |
 
+The waiting triangle on a thread marks a pending permission prompt and,
+since 1.29, an unanswered agent input form too (ACP elicitation, such as
+omp's plan-approval card). Zed Agent titles new threads itself;
+`agent.auto_generate_thread_titles: false` (1.29+) leaves them untitled
+until you run "Regenerate Thread Title" or rename.
+
 <a id="sidebar-focus"></a>
-**How `cmd-alt-;` works** (read from `multi_workspace.rs` at the `v1.28.1`
+**How `cmd-alt-;` works** (read from `multi_workspace.rs` at the `v1.29.1`
 tag). It is a two-state toggle with a one-slot memory, not a cycle through
 recent panels:
 
@@ -987,7 +1024,7 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   Add `!menu` so completions and pickers keep their keys.
 - **One-key agent launches.** `agent::NewExternalAgentThread` takes the
   agent to start; `agent::NewTerminalThread` opens a Terminal Thread. The
-  argument shape was not verified against 1.28.1 — bind it through
+  argument shape was not verified against 1.29.1 — bind it through
   `Add Keybinding`, which fills in the accepted form, and check
   `dev: open acp logs` if a bound agent fails to start.
 
@@ -1013,7 +1050,7 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   (out-of-sync buffers, closed), [#49162](https://github.com/zed-industries/zed/issues/49162)
   (ACP `readTextFile` can serve a stale buffer, open).
 
-  **Agent edits and autosave** (read from the v1.28.1 source, not tested):
+  **Agent edits and autosave** (read from the v1.29.1 source, not tested):
   ACP `write_text_file`, which omp uses, edits the buffer, records the edit
   for the review view, then saves it to disk at once, so agent edits are on
   disk before you review them with or without autosave. Reject restores the
@@ -1024,7 +1061,7 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   for Astro, Dart, EEx, Elixir, Elm, Go, GraphQL, HEEx, Kotlin, Rust,
   Starlark and Zig.
 
-  **Your saves** (read from the v1.28.1 source, not tested): autosaves under
+  **Your saves** (read from the v1.29.1 source, not tested): autosaves under
   `after_delay` skip `format_on_save`. `cmd-s` (`workspace::Save`) does not:
   it formats in those languages, even when the file is unchanged. Use
   `cmd-k s` (`workspace::SaveWithoutFormat`) to save without formatting, and
@@ -1116,6 +1153,9 @@ the date and Zed version in the commit message.
 - [ ] **No stage/restore:** no hunk buttons, `cmd-y` / `cmd-alt-z` do
   nothing, typing edits the real file.
 - [ ] **File list:** `cmd-shift-b` lists the branch diff's files.
+- [ ] **Git panel branch mode:** `git panel: show branch changes` lists the
+  same files as `git: diff branch`; `enter` opens the diff at that file;
+  "Compare Against Base" changes both; no stage checkboxes.
 - [ ] **Review Diff:** the button and `cmd-alt-g r` open a thread with the
   diff attached and the prompt sent; note which agent it picks.
 - [ ] **Last N commits:** `git branch -f review-base HEAD~3`, compare with
@@ -1156,7 +1196,7 @@ the date and Zed version in the commit message.
 
 **What happens.** When the project reopens, Zed recreates each open Terminal
 Thread's sidebar entry with a fresh shell. The agent process, scrollback,
-and any half-typed prompt are gone. Zed 1.28.1 stores only a title, custom
+and any half-typed prompt are gone. Zed 1.29.1 stores only a title, custom
 title, creation time, working directory, and project/worktree paths per
 thread (`sidebar_terminal_threads` in
 `~/Library/Application Support/Zed/db/0-stable/db.sqlite`), so it has no
@@ -1262,7 +1302,7 @@ assignee. Evidence:
 - Still open as of the last comments I read (Oct 2026). No linked Zed issue,
   milestone, or release note for resume exists that I found.
 
-**Patch options**, none merged into Zed 1.28.1:
+**Patch options**, none merged into Zed 1.29.1:
 
 - **[PR #65484](https://github.com/zed-industries/zed/pull/65484)** (open,
   Oct 2026) adds `ZED_TERMINAL_THREAD_ID` to the Terminal Thread shell
