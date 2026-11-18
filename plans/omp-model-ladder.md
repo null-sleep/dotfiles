@@ -42,6 +42,29 @@ slot or the last model used. `Ctrl+P` climbs, `Shift+Ctrl+P` steps down.
 | last | `fable` | Claude Fable 5.2 (subscription) | Hard reasoning or knowledge work nothing else solved |
 | router | `auto-code` | OpenRouter Auto Code | Let OpenRouter pick among Terra, Sol, Sonnet, Opus, Carbon |
 
+### The ladder exists only in the terminal
+
+`Ctrl+P` and `Alt+O` follow `cycleOrder`; Zed's omp model dropdown does not.
+omp's ACP server fills that dropdown from the model registry's own order
+(grouped by provider, then catalog order), and `~/.omp/agent/zed-models.yml`
+only filters it. Tested 2026-11-18 on omp 18.22.2 by probing `omp acp` with the
+`enabledModels` list rewritten in ladder order plus `modelProviderOrder:
+[openrouter, anthropic]`: the surviving rows came back in the same order as
+before. Zed shows the options as sent. What the dropdown lists after a reload of
+the Zed omp agent (13 rows): the four `(sub)` Anthropic models, a direct
+`google/gemini-4-carbon` duplicate pulled in by the `*/*gemini-4-carbon`
+pattern, then OpenRouter Haiku, Opus, Sonnet, Carbon, Terra, Auto Code, Astra,
+Sol. Type to filter instead of scrolling.
+
+Options considered, none adopted:
+
+- Rung numbers in display names ("2 Terra") via `modelOverrides` `name`: order
+  unchanged, only helps type-to-filter, and the numbers would also show in the
+  terminal picker and status line.
+- Tighter Carbon pattern to drop the direct-Gemini duplicate (one row shorter).
+- Upstream request or fork patch to sort ACP options by `cycleOrder`; this is
+  in omp core, not reachable from an extension.
+
 ## The numbers behind it (2026-11-18)
 
 Artificial Analysis leaderboard, Intelligence Index v5.0.1. Cost and time are
