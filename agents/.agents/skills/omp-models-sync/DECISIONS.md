@@ -103,7 +103,9 @@ applied as PROPOSED.
 - Zed can't hide models (`hidden_models`, zed-industries/zed#52347, closed
   unmerged; `available_models` only adds), so `agent.favorite_models` pins
   instead. Superseded lines (GPT-5.3-Codex, GPT-5 mini and nano) are left
-  out. Starring in the UI rewrites the list; commit those diffs.
+  out, and so is GPT-6 Luna (user, 2026-11, matching its removal from the omp
+  cycle; Haiku 4.5 is the cheap pin). Starring in the UI rewrites the list;
+  commit those diffs.
 - Not omp: Zed 1.28.1's native Agent (1.29.1 unchanged in source) can fail on Claude with
   `unknown variant 'between_tools'`, mostly during compaction; reloading the
   agent clears it. Don't change model settings for it.
@@ -114,11 +116,30 @@ applied as PROPOSED.
 
 - DeepSeek, Kimi and GLM are retired by the user (never used): no `dseek`,
   `kimi`, `glm-*` or `cheap-l` roles, cycle slots, tags or chain entries;
-  `setup-settings.sh` strips them from a live config. The `advisor` role is
-  Luna (`:high`), a cheap second model. Don't re-add them as "newest
+  `setup-settings.sh` strips them from a live config. Don't re-add them as "newest
   generation" drift.
+- Cycle order is a rough cheap-to-expensive line with `default` (Terra) in the
+  middle: `haiku`, `default`, `sol`, `sonnet`, `astra`, `carbon`, `opus`,
+  `fable`, `auto-code`. New sessions start on the `default` role (not the first
+  slot or last used model), so slot order only sets what `Ctrl+P` /
+  `Shift+Ctrl+P` reach next; keep `terra` out of the cycle (`default` is it) and
+  Sol in. `luna` is out too (user, 2026-11): Haiku 5.5 scores 36 vs Luna's 28 at
+  the same list price, and one step-down slot is enough. Rationale: Artificial
+  Analysis 2026-11 (Sol 6.2 beats Terra on index at similar cost per task; Astra
+  ties Fable on FrontierCode at far lower cost).
+- Every role, chain and the Auto Code pool use only cycle models (or their
+  `*-sub` / Codex twins) (user, 2026-11, consistency over Luna's small savings).
+  `commit` -> Haiku `:medium`, `advisor` -> Haiku `:high` (cheap, different
+  family from the Terra default; its 100K window means more advisor
+  compaction). The `luna` and `oa-s` roles, the Luna chain and Luna in the Auto
+  Code pool are gone; `RETIRED_RE` in `setup-settings.sh` strips them from a
+  live config.
+- Auto Code pool (user, 2026-11): Terra, Sol, Sonnet, Opus, Carbon only.
+  Astra and Fable stay out on purpose: the user decides when to spend on them
+  by picking them explicitly. Haiku stays out because its 100K context is
+  below the router's 1M override. Revisit if a cycle model is added or dropped.
 - Fallback chains and the Codex `oa-*` roles track the newest generation of each
-  tier (luna 6, terra 6.1, sol 6.2, astra 6.2), same as the OpenRouter roles. The
+  tier (terra 6.1, sol 6.2, astra 6.2), same as the OpenRouter roles. The
   Codex catalog on this machine lists only `gpt-6-luna` (and 5.6 Luna/Terra), so
   the 6.1/6.2 Codex ids are unverified; omp skips unavailable steps. Revisit if a
   Codex id turns out not to exist.

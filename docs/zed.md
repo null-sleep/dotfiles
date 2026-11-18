@@ -759,9 +759,10 @@ top of the selector (`alt-tab` cycles them); the full list stays below.
 Pinned as of 2026-11 (Zed price per 1M in/out): Claude Fable 5.2 ($8.80/$44,
 hosted since Zed 1.29), Opus 5.5 ($4.40/$22), Sonnet 5.5 ($2.20/$11), Haiku
 4.5 ($1.10/$5.50); GPT-6 Astra ($11/$55), GPT-6.1 Sol ($2.20/$11), GPT-5.6
-Terra ($2.20/$13.20), GPT-6 Luna ($0.11/$0.55); Gemini 4 Argon ($2.20/$11,
-intro price until Nov 30, then $4/$20) and Gemini 3.5 Flash ($1.65/$9.90).
-GPT-5.3-Codex, GPT-5 mini, and GPT-5 nano are left out as superseded.
+Terra ($2.20/$13.20); Gemini 4 Argon ($2.20/$11, intro price until Nov 30,
+then $4/$20) and Gemini 3.5 Flash ($1.65/$9.90). GPT-5.3-Codex, GPT-5 mini,
+GPT-5 nano and GPT-6 Luna are left out (superseded, or Luna dropped to match
+the omp cycle).
 Zed lags OpenRouter here: Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, and
 no Gemini 4 Carbon or Hydrogen. **TODO:** add Gemini 4 Carbon
 (`google/gemini-4-carbon` on OpenRouter) to `favorite_models` once Zed hosts

@@ -21,7 +21,6 @@ ruby -ryaml -e '
   path = File.exist?(yml) || !File.exist?(yaml) ? yml : yaml
   raise "#{path}: refusing to replace a symlink" if File.symlink?(path)
   pool = %w[
-    openai/gpt-6-luna
     openai/gpt-6.1-terra
     openai/gpt-6.2-sol
     anthropic/claude-sonnet-5.5

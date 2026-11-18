@@ -33,7 +33,6 @@ cd "$(mktemp -d)"
 # model selection. See agents/.agents/skills/omp-models-sync/SKILL.md.
 DEFAULT_ROLES='{
   "default": "openrouter/openai/gpt-6.1-terra:high",
-  "luna": "openrouter/openai/gpt-6-luna:xhigh",
   "haiku": "openrouter/anthropic/claude-haiku-5.5:medium",
   "terra": "openrouter/openai/gpt-6.1-terra:high",
   "sol": "openrouter/openai/gpt-6.2-sol:xhigh",
@@ -48,11 +47,10 @@ DEFAULT_ROLES='{
   "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-6.1-terra:high",
   "plan": "openrouter/anthropic/claude-opus-5.5:high",
-  "commit": "openrouter/openai/gpt-6-luna:medium",
+  "commit": "openrouter/anthropic/claude-haiku-5.5:medium",
   "task": "openrouter/openai/gpt-6.1-terra:high",
-  "advisor": "openrouter/openai/gpt-6-luna:high",
+  "advisor": "openrouter/anthropic/claude-haiku-5.5:high",
   "med-vision": "openrouter/openai/gpt-6.1-terra:high",
-  "oa-s": "openai-codex/gpt-6-luna:xhigh",
   "oa-m": "openai-codex/gpt-6.1-terra:high",
   "oa-l": "openai-codex/gpt-6.2-sol:xhigh",
   "sonnet-sub": "anthropic/claude-sonnet-5-5:high",
@@ -63,7 +61,6 @@ DEFAULT_ROLES='{
 }'
 DEFAULT_MODEL_TAGS='{
   "med-vision": {"name": "med-vision"},
-  "oa-s": {"name": "oa-s"},
   "oa-m": {"name": "oa-m"},
   "oa-l": {"name": "oa-l"},
   "sonnet": {"name": "sonnet"},
@@ -77,12 +74,6 @@ DEFAULT_FALLBACK_CHAINS='{
   "openrouter/openrouter/auto-code": [],
   "anthropic/claude-fable-5-2": [
     "openrouter/anthropic/claude-opus-5.5:high"
-  ],
-  "openrouter/openai/gpt-6-luna": [
-    "openai-codex/gpt-6-luna:xhigh",
-    "openai-codex/gpt-6.1-terra:high",
-    "openai-codex/gpt-6.2-sol:xhigh",
-    "openai-codex/gpt-6.2-astra:xhigh"
   ],
   "openrouter/openai/gpt-6.1-terra": [
     "openai-codex/gpt-6.1-terra:high",
@@ -153,26 +144,27 @@ set_status_line_segments() {
 }
 
 roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
-# The cycle uses model-named roles. On the first run, move the old smol/slow
-# selectors to luna/sol and copy the old default to terra (default itself is
-# left alone), and alias the built-in smol/tiny/slow roles to the new names so
+# The cycle uses model-named roles. On the first run, move the old slow
+# selector to sol and copy the old default to terra (default itself is left
+# alone), and alias the built-in smol/tiny/slow roles to the new names so
 # background features keep a cheap or strong model.
-# Selectors naming a retired provider (DeepSeek, Moonshot/Kimi, Z.AI/GLM),
-# matched in role values, chain keys and chain steps.
-RETIRED_RE='deepseek|moonshotai|z-ai/'
+# Roles use only the cycle's models. Selectors naming a retired provider
+# (DeepSeek, Moonshot/Kimi, Z.AI/GLM) or a model dropped from the cycle (GPT-6
+# Luna) are matched in role values, chain keys and chain steps.
+RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna'
 # OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
 # dead OpenRouter `fable` id is moved onto the subscription model below.
 migrated_roles="$(jq -c --arg re "$RETIRED_RE" '
-  del(."default-cheap", ."cheap-alt", .dseek, .kimi, ."glm-l", ."glm-fast", ."cheap-l")
-  | if has("luna") then . else
-      (if has("smol") then .luna = .smol else . end)
-      | (if has("slow") then .sol = .slow else . end)
+  del(."default-cheap", ."cheap-alt", .dseek, .kimi, ."glm-l", ."glm-fast", ."cheap-l", .luna, ."oa-s")
+  | if has("terra") then . else
+      (if has("slow") then .sol = .slow else . end)
       | (if has("default") then .terra = .default else . end)
       | .smol = "@haiku" | .tiny = "@haiku" | .slow = "@sol"
     end
   | del(.argon)
   | if .fable == "openrouter/anthropic/claude-fable-5.2:high" then .fable = "anthropic/claude-fable-5-2:high" else . end
-  | if ((.advisor // "") | tostring | test($re)) then .advisor = "openrouter/openai/gpt-6-luna:high" else . end
+  | if ((.advisor // "") | tostring | test($re)) then .advisor = "openrouter/anthropic/claude-haiku-5.5:high" else . end
+  | if ((.commit // "") | tostring | test($re)) then .commit = "openrouter/anthropic/claude-haiku-5.5:medium" else . end
 ' <<<"$roles")"
 # Search preferences moved from providers.webSearch* to the web model role.
 # Keep these two entries repo-owned while preserving other roles and chains.
@@ -184,7 +176,7 @@ else
 fi
 
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
-merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast")' <<<"$tags")"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast", ."oa-s")' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
   omp config set modelTags "$merged_tags"
 else
@@ -194,8 +186,8 @@ fi
 fallback_chains="$(omp config get retry.fallbackChains --json | jq -c '.value // {}')"
 # Retain the remaining non-hosted default engines after Public Web. Hosted
 # search is omitted because it can use the active Anthropic model.
-# DeepSeek, Kimi and GLM were retired: drop every chain key and string step
-# naming them (any version or thinking suffix); non-string entries are kept.
+# Drop every chain key and string step naming a retired selector (RETIRED_RE,
+# any version or thinking suffix); non-string entries are kept.
 merged_fallback_chains="$(jq -c --arg re "$RETIRED_RE" --argjson defaults "$DEFAULT_FALLBACK_CHAINS" '
   def retired: type == "string" and test($re);
   $defaults + . + {web: ["web/public", "web/parallel", "web/exa", "web/firecrawl", "web/searxng", "web/startpage", "web/duckduckgo", "web/ecosia", "web/google", "web/mojeek"]}
@@ -208,7 +200,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-CYCLE_ORDER='["default","sonnet","carbon","opus","sol","luna","haiku","auto-code","astra","fable"]'
+CYCLE_ORDER='["haiku","default","sol","sonnet","astra","carbon","opus","fable","auto-code"]'
 # Direct Anthropic subscription twins of cycle models: selectable per call
 # ("use the sonnet sub model"), kept out of the Ctrl+P/Alt+O cycle.
 SUB_ROLES='["sonnet-sub","opus-sub","haiku-sub","fable-sub"]'

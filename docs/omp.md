@@ -82,10 +82,10 @@ Inside the TUI:
 - `/login` — OAuth/key selector; `/login anthropic` jumps to one provider.
 - `/usage` — provider usage and limits.
 
-The zsh `ompf` alias starts a new Luna/medium session with OpenAI priority
-serving: `omp --model @luna --service-tier priority`. Inside an existing
+The zsh `ompf` alias starts a new session on the `default` role (Terra) with
+OpenAI priority serving: `omp --service-tier priority`. Inside an existing
 session, `/fast` toggles the same service tier independently of the model role;
-turn it off before switching to Terra or Sol unless they should also use the
+turn it off before switching to Sol or Astra unless they should also use the
 more expensive priority tier.
 
 Tool approval defaults to `yolo` (auto-approve everything). `--approval-mode
@@ -197,7 +197,7 @@ Finished agents idle, then park after a TTL — messaging them (Hub or the
 model's `write agent://<id>`) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
-**Advisor**: this setup assigns `openrouter/openai/gpt-6-luna:high` to
+**Advisor**: this setup assigns `openrouter/anthropic/claude-haiku-5.5:high` to
 `modelRoles.advisor` but leaves `advisor.enabled` false. Opt in with
 `/advisor on` (or `--advisor`) when a second model passively reviewing each
 completed turn is worth the added usage. It injects notes, interrupts only
@@ -399,25 +399,23 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 omp routes everything through **model roles**. The default is OpenRouter Terra
 at high thinking; built-in roles feed features such as plan mode, subagents,
 background work, and `omp commit`. The cycle presets are roles named after
-their models (`sonnet`, `luna`, `haiku`, `sol`, …); `smol` and `tiny` alias
+their models (`sonnet`, `haiku`, `sol`, `astra`, …); `smol` and `tiny` alias
 `@haiku` and `slow` aliases `@sol` so background work keeps a cheap or strong
 model. This setup exposes switchable cycle presets through model roles:
 
 ```yaml
 cycleOrder:
+  - haiku
   - default
+  - sol
   - sonnet
+  - astra
   - carbon
   - opus
-  - sol
-  - luna
-  - haiku
-  - auto-code
-  - astra
   - fable
+  - auto-code
 modelRoles:
   default: openrouter/openai/gpt-6.1-terra:high
-  luna: openrouter/openai/gpt-6-luna:xhigh
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
   terra: openrouter/openai/gpt-6.1-terra:high
   sol: openrouter/openai/gpt-6.2-sol:xhigh
@@ -433,13 +431,20 @@ modelRoles:
 ```
 
 Existing role assignments survive setup re-runs; only missing role and tag keys
-are seeded. The first run on a machine without a `luna` role migrates the old
-`smol`/`slow` selectors to `luna`/`sol` and copies the old `default` to `terra`.
+are seeded. The first run on a machine without a `terra` role migrates the old
+`slow` selector to `sol` and copies the old `default` to `terra`.
 `terra` stays a role but is not in the cycle, since `default` selects the same
-model. `setup-settings.sh` pins `cycleOrder` to the sequence above.
-`Ctrl+P` cycles it; `Alt+O` opens the extension's fuzzy picker over the same
-effective configuration and applies the selected role's model and thinking
-suffix.
+model. `setup-settings.sh` pins `cycleOrder` to the sequence above, a rough
+cheap-to-expensive line with `default` (Terra) in the middle: `Ctrl+P` climbs
+(Sol, Sonnet, Astra, Carbon, Opus, Fable), `Shift+Ctrl+P` steps down (Haiku).
+Every role uses a cycle model (or its `*-sub` / Codex twin): `commit` and
+`advisor` run on Haiku, `task`/`vision` on Terra, `plan` on Opus. GPT-6 Luna was
+dropped; `setup-settings.sh` removes a live `luna` role and remaps Luna-based
+`commit`/`advisor` values. Why these models and this order:
+[the model ladder](../plans/omp-model-ladder.md). A new session starts on the
+`default` role, not on the first cycle item or the last model used. `Alt+O`
+opens the extension's fuzzy picker over the same effective configuration and
+applies the selected role's model and thinking suffix.
 
 Beyond the cycle, `DEFAULT_ROLES` also seeds `*-sub` roles (`sonnet-sub`,
 `opus-sub`, `haiku-sub`, `fable-sub`) for the direct Anthropic subscription
@@ -456,10 +461,13 @@ procedure for a model-update round is the `omp-models-sync` skill
 (`agents/.agents/skills/omp-models-sync/SKILL.md`).
 
 The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
-with a repo-owned hard allowlist: GPT-6 Luna, GPT-6.1 Terra, GPT-6.2 Sol,
-Claude Sonnet 5.5, Claude Opus 5.5, and Gemini 4 Carbon. `setup-auto-code.sh`
-merges the model override into machine-local `models.yml`, including a 1,000,000
-token context window and a 32,768 token output limit. It uses Chat Completions:
+with a repo-owned hard allowlist drawn from the cycle: GPT-6.1 Terra, GPT-6.2
+Sol, Claude Sonnet 5.5, Claude Opus 5.5, and Gemini 4 Carbon. Astra and Fable
+are left out on purpose so they only run when picked explicitly, and Haiku 5.5
+because its 100K context window is below the router's 1M override.
+`setup-auto-code.sh` merges the model override into machine-local `models.yml`,
+including a 1,000,000 token context window and a 32,768 token output limit. It
+uses Chat Completions:
 OMP's OpenRouter Responses path did not enforce the request-body allowlist.
 The seeded empty fallback chain keeps retry recovery on the router instead of
 switching to an unrestricted model; an existing custom chain is preserved.

@@ -1517,11 +1517,11 @@ depend on the PATH of the terminal or GUI process that launched it. The OpenAI
 chains fall back to the direct OpenAI Codex provider, which gives an
 OpenRouter-wide limit an independent exit when a Codex step resolves and the
 subscription is signed in. The script
-**forces** the repo-owned ten-preset model cycle — `default`, `sonnet`,
-`carbon`, `opus`, `sol`, `luna`, `haiku`, `auto-code`, `astra`, `fable` —
-used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
+**forces** the repo-owned nine-preset model cycle — `haiku`,
+`default`, `sol`, `sonnet`, `astra`, `carbon`, `opus`, `fable`, `auto-code` —
+roughly cheap to expensive, starting on `default` (Terra), used by `Ctrl+P`/`Shift+Ctrl+P` and the `Alt+O`
 fuzzy picker. `smol` and `tiny` alias `@haiku`; `slow` aliases `@sol`. `auto-code` is an optional OpenRouter coding router with a
-repo-owned six-model allowlist; see [Providers and model roles](docs/omp.md#models).
+repo-owned five-model allowlist; see [Providers and model roles](docs/omp.md#models).
 `carbon` selects Gemini 4; `astra` selects GPT-6.2 Astra on OpenRouter. `fable`
 selects Claude Fable 5.2 on the direct Anthropic subscription, because
 OpenRouter's Fable is excluded by the account's Zero Data Retention setting.

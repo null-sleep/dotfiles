@@ -14,6 +14,11 @@ and what would reopen each) live in [DECISIONS.md](DECISIONS.md) next to this
 file (`skill://omp-models-sync/DECISIONS.md`). Read it before changing a role
 or rule, so a deliberate choice is not "fixed" as drift.
 
+Which models are in the cycle and why (the numbers, the ladder order, what was
+rejected, and a checklist for judging new releases) is the model ladder record,
+`plans/omp-model-ladder.md`. When new models ship, redo its "Redo it when new
+models ship" checklist before changing roles, and update its tables after.
+
 Scope: `/Users/dhruv/src/dotfiles` (stow repo). Shell must run outside a
 project with its own `.omp/` config: prefix omp commands with
 `cd "$(mktemp -d)" &&`, as `omp/setup-settings.sh` does.
@@ -28,7 +33,7 @@ project with its own `.omp/` config: prefix omp commands with
   must also be applied live, or the two drift (this already happened: live
   `gpt-5.6-*` roles vs seeded `gpt-6.*`). `omp config set modelRoles` replaces
   the **whole** object, so always pass the full merged value, e.g.
-  `omp config set modelRoles "$(omp config get modelRoles --json | jq -c '.value + {luna: "openrouter/..."}')"`.
+  `omp config set modelRoles "$(omp config get modelRoles --json | jq -c '.value + {haiku: "openrouter/..."}')"`.
   After a round, the only expected differences are the repo-forced `web`
   entries in `modelRoles` and `retry.fallbackChains`.
 - Explain any intentional divergence in a comment next to the role instead of
@@ -313,14 +318,14 @@ p.kill()
 EOF
 ```
 
-Expect the `(sub)` rows (`anthropic/*` and `openai-codex/*`) and the OpenRouter
-rows, sorted by provider, so an unlabelled `google/gemini-4-carbon` lands
-between the Anthropic and Codex rows. Check by content, not row count (it
-shifts as roles change): every cycle and `*-sub` model is present and no
-retired model (DeepSeek, Kimi, GLM) is listed. The only Codex row is
-`openai-codex/gpt-6-luna` (matched by the `luna` role's id, not by `oa-s`,
-which is excluded). Codex `gpt-5.6-terra` and OpenRouter `gpt-5.6-sol`/
-`gpt-5.6-terra` should NOT appear; if they do, the `oa-` exclusion in
+Expect the `(sub)` rows (`anthropic/*`) and the OpenRouter rows, sorted by
+provider, so an unlabelled `google/gemini-4-carbon` lands right after the
+Anthropic rows. Check by content, not row count (it shifts as roles change):
+every cycle and `*-sub` model is present and no retired model (DeepSeek, Kimi,
+GLM, GPT-6 Luna) is listed. Expect no Codex rows: no non-`oa-` role names a
+Codex-catalog id since the `luna` role (which pulled in
+`openai-codex/gpt-6-luna`) was dropped. Codex `gpt-5.6-terra` and OpenRouter
+`gpt-5.6-sol`/`gpt-5.6-terra` should NOT appear; if they do, the `oa-` exclusion in
 `setup-zed-models.sh` was lost. Known extras from the id-wide patterns: a
 second, unlabelled "Gemini 4 Carbon" (direct `google/gemini-4-carbon`). Report
 new or surprising extras; do not hand-edit `zed-models.yml` (it is generated).
