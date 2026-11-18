@@ -450,7 +450,7 @@ modelRoles:
   luna: openrouter/openai/gpt-6-luna:xhigh
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
   terra: openrouter/openai/gpt-6.1-terra:high
-  sol: openrouter/openai/gpt-6.2-sol@azure:xhigh
+  sol: openrouter/openai/gpt-6.2-sol:xhigh
   smol: "@haiku"
   tiny: "@haiku"
   slow: "@sol"
@@ -498,8 +498,9 @@ The seeded empty fallback chain keeps retry recovery on the router instead of
 switching to an unrestricted model; an existing custom chain is preserved.
 
 The allowlist uses exact OpenRouter model IDs, not role names, so update
-`setup-auto-code.sh` when changing the pool. Role thinking suffixes and `@azure`
-provider pins are not inherited; OpenRouter picks the model, effort, and provider.
+`setup-auto-code.sh` when changing the pool. Role thinking suffixes and any
+upstream provider pins are not inherited; OpenRouter picks the model, effort,
+and provider.
 There is no fixed task-cost cap, and an unavailable pool can fail a request.
 
 The Carbon preset uses OpenRouter and `high` thinking, which the model
