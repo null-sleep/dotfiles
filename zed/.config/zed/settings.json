@@ -367,8 +367,8 @@
             // is expected, commit or leave it, never discard (see
             // agent.default_model).
             "default_config_options": {
-                "mode": "plan",
-                "model": "anthropic/claude-opus-5-5"
+                "mode": "default",
+                "model": "anthropic/claude-sonnet-5-5"
             },
             "type": "custom",
             "command": "/opt/homebrew/bin/omp",

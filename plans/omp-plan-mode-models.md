@@ -109,7 +109,7 @@ Codex one. `setup-zed-models.sh` now skips the `oa-*` roles, so those rows are
 gone from the picker (22 to 19 rows). The `(sub)` suffix from
 `omp/setup-model-labels.sh` still tells the intended duplicates apart
 (Anthropic subscription vs OpenRouter Claude). Revisit with a Codex
-subscription; see the skill's "Codex roles are left out of the Zed picker".
+subscription; see "Zed picker scope" in the skill's `DECISIONS.md`.
 
 ## Evidence
 

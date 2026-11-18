@@ -346,6 +346,7 @@ If `setup-settings.sh` reports a divergent regular file, reconcile its contents 
 | `~/.codex/AGENTS.md` | **Not** stowed — machine-local; carries the same rules for Codex, which has no `@`-include |
 | `~/.agents/skills/keymap-audit/SKILL.md` | Symlinked via the `agents` stow package (`--no-folding`) |
 | `~/.agents/skills/omp-models-sync/SKILL.md` | Symlinked via the `agents` stow package (`--no-folding`) — procedure for a round of omp model updates; the standing rule in `AGENTS.md`/`CLAUDE.md` points at it |
+| `~/.agents/skills/omp-models-sync/DECISIONS.md` | Symlinked via the `agents` stow package (`--no-folding`) — the skill's standing decisions and their rationale; `SKILL.md` points at it |
 | `~/.claude/skills/*` | Compatibility symlinks created by `setup-skill-adapters.sh` for every canonical global skill except the separately selected `review-pr` |
 | `~/.claude/keybindings.json` | Symlinked via stow — pins `chat:undo` to its default Ctrl+_, which nvim's sidekick `u` keymap forwards (see GUIDE.md's AI section) |
 | `~/.claude/settings.json` | Symlinked via stow — global preferences (statusLine, theme, LSP plugins, model/effort/tui, hooks) |

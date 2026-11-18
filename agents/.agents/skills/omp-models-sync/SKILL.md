@@ -9,6 +9,11 @@ The omp model setup spans several files that must stay coherent. The user
 does a round of updates whenever new models ship. Run this procedure, apply
 the fixes, and **report what you found** (see "Flag to the user").
 
+Standing decisions (why roles, chains and the Zed setup are the way they are,
+and what would reopen each) live in [DECISIONS.md](DECISIONS.md) next to this
+file (`skill://omp-models-sync/DECISIONS.md`). Read it before changing a role
+or rule, so a deliberate choice is not "fixed" as drift.
+
 Scope: `/Users/dhruv/src/dotfiles` (stow repo). Shell must run outside a
 project with its own `.omp/` config: prefix omp commands with
 `cd "$(mktemp -d)" &&`, as `omp/setup-settings.sh` does.
@@ -34,7 +39,7 @@ project with its own `.omp/` config: prefix omp commands with
 - `omp/setup-settings.sh`
   - `DEFAULT_ROLES` — role → `provider/id:level`.
   - `DEFAULT_MODEL_TAGS`, `DEFAULT_FALLBACK_CHAINS` (GLM chains name DeepSeek,
-    Qwen and Codex models; they go stale too).
+    Kimi and Codex models; they go stale too).
   - `CYCLE_ORDER` (forced) and `SUB_ROLES` (`*-sub`: the direct Anthropic
     subscription twins, kept out of the cycle).
   - `task.perCallModelAllow` is **derived** from `CYCLE_ORDER` + `SUB_ROLES`
@@ -51,17 +56,17 @@ project with its own `.omp/` config: prefix omp commands with
   `setup-settings.sh`. Patterns are `*/*<model-id>`, matching the id on every
   provider, so a role's model also pulls in same-id models elsewhere (the
   `carbon` role also lists direct `google/gemini-4-carbon`). **The `oa-*`
-  (Codex) roles are deliberately excluded** from the scope; see the 2026-11
-  decision "Codex roles are left out of the Zed picker" below. Extras are
-  expected; a missing model is not.
+  (Codex) roles are deliberately excluded** from the scope; see
+  [Zed picker scope](DECISIONS.md#zed-picker-scope). Extras are expected; a
+  missing model is not.
 - `zed/.config/zed/settings.json` `agent.favorite_models` — **not omp**: the
   native Zed Agent's model selector (zed.dev-hosted models, billed through
   Zed Pro). Hand-maintained list of the newest zed.dev model per line, pinned
   at the top of the selector and cycled with `alt-tab`. It pins, it doesn't
   filter (Zed has no hide/allowlist setting). Repeated in prose in
   `docs/zed.md` → "Zed Agent's model list" (with Zed prices and the
-  Zed-vs-OpenRouter generation gaps). See the 2026-11 decision "Native Zed
-  Agent favorites track zed.dev's newest models".
+  Zed-vs-OpenRouter generation gaps). See
+  [Native Zed Agent favorites](DECISIONS.md#native-zed-agent-favorites).
 - `omp/.omp/agent/extensions/cycle-model-picker.ts` — `Alt+O` picker over
   `cycleOrder`.
 - Docs repeating ids: `docs/omp.md` (the `modelRoles` block under "Providers
@@ -204,8 +209,9 @@ project with its own `.omp/` config: prefix omp commands with
 8. **Do not commit unless asked**; other uncommitted changes in the tree
    (e.g. `claude/.claude/settings.json`) are the user's.
 9. **Record the decision.** If you changed a role or a rule for a non-obvious
-   reason, add it to "Decisions and rationale" below with the date, so the
-   next round can tell a deliberate choice from drift.
+   reason, add or rewrite its entry in [DECISIONS.md](DECISIONS.md), so the
+   next round can tell a deliberate choice from drift. The round's id changes
+   go in the commit message, not there.
 
 ## ACP picker probe
 
@@ -304,249 +310,7 @@ named does not exist, **and the user did not require that exact model**
 Applies to any subagent spawn, in any project. The canonical, stowed copies
 are `omp/.omp/agent/AGENTS.md` (full version, main sessions and advisors) and
 `omp/.omp/agent/RULES.md` (short sticky version, which task subagents also
-receive); keep all three wordings consistent when changing the rule.
-
-## Decisions and rationale
-
-Append new entries; keep old ones and mark them superseded rather than
-deleting. Each says what would make us revisit it. Entries marked PROPOSED
-were recommended but not yet approved/applied; once applied, drop the marker
-and say what was actually done.
-
-### 2026-11: `*-sub` roles and per-call allowlist
-
-- **Decision:** `task.perCallModelAllow` is derived from `CYCLE_ORDER` +
-  `SUB_ROLES`, canonical `provider/id` without `:level`. The user normally
-  uses only the cycle's models but wants to choose the thinking level per
-  call, so the list is per model, not per selector.
-- **Naming convention:** a bare role name (`sonnet`, `opus`, `haiku`) is the
-  OpenRouter model; `X-sub` is the direct Anthropic subscription model. The
-  user says "the sonnet sub model". The mechanism is the role name shown next
-  to each approved model in the task tool's listing, so it works in any
-  project. `AGENTS.md`/`CLAUDE.md` in the repo load only inside this repo
-  (this skill is stowed globally but loads only when an agent decides to use
-  it), so do not rely on them alone.
-- **Rejected:** a `before_subagent_spawn` extension to rewrite models (the
-  `@role` expansion was never verified, and it is extra machinery).
-- **Revisit if:** omp adds provider-aware model aliases, or the listing stops
-  showing role names.
-
-### 2026-11: Fable is subscription-only; `fable` and `fable-sub` share a model
-
-- **Finding:** `openrouter/anthropic/claude-fable-5.2` exists on OpenRouter
-  publicly but is excluded by the account's Zero Data Retention (ZDR) setting
-  (see Gotchas), so omp reports it as not found and the old `fable` cycle
-  role pointed at a dead id. Fable is available only as
-  `anthropic/claude-fable-5-2` (subscription).
-- **ZDR is a deliberate choice: do not suggest turning it off.** The user
-  considered lifting ZDR to get OpenRouter Fable (and Qwen `flash`/`max`) back
-  and chose to keep ZDR on. Treat ZDR-hidden models as unavailable, and put
-  the subscription id in the role instead.
-- **Decision (applied):** `fable` (cycle role) =
-  `anthropic/claude-fable-5-2:high`, and `fable-sub` is **kept** with the same
-  value. Two roles on one model costs nothing: the allowlist and Zed scope
-  de-duplicate, labels are per model. Keeping `fable-sub` preserves the
-  predictable "X sub" name that the per-call listing relies on. To remove a
-  role later, delete it from `DEFAULT_ROLES` and `SUB_ROLES` first and then
-  from the live object (`jq 'del(."fable-sub")'`); seeding is fill-in-only
-  and `$defaults + .` would re-add it on any run in between.
-- **Rejected:** guidance-only ("for Fable always use the anthropic id") with
-  no role change: Ctrl+P and Alt+O would still select a model omp cannot
-  find, the task listing would keep advertising a dead id, and the allowlist
-  would keep a dead entry.
-- **Consequences accepted:** Fable runs outside the ZDR setting and draws on
-  the subscription's Fable weekly cap rather than per-token OpenRouter
-  billing; `openrouter-session-cost.ts` hides the OpenRouter total while a
-  non-OpenRouter model is active.
-- **Fallback (applied):** `retry.fallbackChains["anthropic/claude-fable-5-2"]`
-  = `["openrouter/anthropic/claude-opus-5.5:high"]`, so a hit cap or an
-  expired login moves to OpenRouter Opus instead of erroring in the main
-  session. Model-selector keys match the exact model whichever role selected
-  it, so the one key covers both `fable` and `fable-sub` **when they are the
-  active model of the main session or a role-routed subagent**. Per-call
-  spawns (`fable` or `fable-sub` passed as `model`) get no automatic fallback
-  (`omp://tools/task.md`: per-call workers "do not drop `model` or use an
-  automatic model fallback"); they rely on the unavailable-model rule above.
-  It is seeded fill-in-only like the GLM chains.
-- **Revisit if:** the user lifts ZDR (then OpenRouter Fable could return as
-  `fable`, with `fable-sub` as the subscription twin), or Anthropic changes
-  subscription limits.
-
-### 2026-11: Fallback chains and Codex roles
-
-- **Applied:** GLM 5.3 chain Qwen step -> `qwen3.8-2.4t-a95b:xhigh`; GLM 5.3
-  Flash chain DeepSeek step -> `deepseek-v4.1-flash-1017:max` (newer and
-  cheaper than `v4-flash-0731`, ZDR-visible), Qwen step ->
-  `qwen3.8-27b:medium`, Codex tail -> `openai-codex/gpt-6-luna:high`. Both
-  Qwen models support only `low,medium,xhigh`, so use exactly those levels.
-  All new ids were run once with `omp -p --model <id>` and answered.
-- **Unverified:** which Qwen model is the analog of the old `-max` (an
-  inference from price and size). `27b` has a 262k context on its ZDR
-  endpoint versus 1M for GLM Flash, so a long session falling back to it may
-  fail and move on to the next entry.
-- `oa-s` = `openai-codex/gpt-6-luna:high` (verified to run). **`oa-l` is
-  unchanged** at `gpt-5.6-sol:xhigh`, which omp reports as not found. Codex is
-  low priority (see Gotchas), so leave it unless the user asks; if they do,
-  check an interactive session (`/model`) for `openai-codex/gpt-6.1-sol`.
-- The DeepSeek/Qwen fallback steps are low-stakes (the user rarely uses the
-  GLM roles); do not spend effort optimizing them each round beyond keeping
-  ids valid.
-- **Not adopted, flag each round:** `gemini-4-hydrogen` (supports `xhigh`;
-  `carbon` stops at `high`). `kimi-k3.1-pro` was adopted 2026-11-17.
-
-### 2026-11: Unavailable subagent model -> use judgement
-
-- **Decision:** the user wants agents to pick a sensible substitute and tell
-  them, not stop to ask, when a requested subagent model is unavailable. See
-  "When a requested subagent model is unavailable".
-- **Not done:** an extension or `before_subagent_spawn` hook to automate it;
-  per-call selection has no built-in fallback by design, and judgement covers
-  the cases (ZDR-hidden ids, expired logins, caps, typos).
-- **Revisit if:** omp adds a per-call fallback chain, or substitutions turn
-  out wrong often enough to justify an explicit mapping.
-
-### 2026-11: ACP (Zed) is a supported surface for all of this
-
-- **Finding (probed on omp 18.20.2):** a fresh `omp acp` with the Zed
-  entry's flags gets the global `AGENTS.md`, the `RULES.md` sticky rule, the
-  per-call `model` field and the approved-model listing with role names,
-  the same as the terminal. A thread started after reloading the Zed agent
-  had them all.
-- **Requirement:** the user wants this to keep working in Zed; every round
-  ends with the ACP check in Procedure step 5 and the ACP items under "Flag
-  to the user".
-- **Out of scope:** see the next entry.
-- **Revisit if:** omp's ACP mode starts reloading context files per thread,
-  or Zed gains a per-thread agent process.
-
-### 2026-11: Zed dropdown model and fallback gaps are out of scope
-
-- **Decision (user):** do not track or fix the model picked in the Zed
-  dropdown (`default_config_options.model`, written by Zed on each pick).
-  It churns with the user's choice, so a check against it is stale by the
-  next thread. Do not flag that it lacks a fallback chain and do not add
-  `anthropic/*` subscription chains for it.
-- **Also accepted:** per-call spawns never fall back (omp design; the
-  `RULES.md` substitute rule covers them), and whether fallback chains honour
-  the `zed-models.yml` `enabledModels` scope stays unverified (it only
-  affects GLM chains, which the user rarely uses).
-- **Not done:** `*-sub` -> OpenRouter twin fallback chains for Opus, Sonnet
-  and Haiku. They would cover a capped subscription in the main thread, but
-  the user chose to keep the Zed subscription model out of this setup.
-- **Revisit if:** the user starts relying on a subscription model as a fixed
-  Zed default, or a cap or expired login keeps interrupting Zed threads.
-
-### 2026-11: The Zed picker is regenerated and checked every round
-
-- **Finding (probed 2026-11-16, matches a Zed screenshot):** the picker
-  listed 22 entries. Because `enabledModels` patterns are `*/*<id>`, a role's
-  id matches on every provider, so it also showed a second "Gemini 4 Carbon"
-  (direct `google/gemini-4-carbon`, unlabelled). `(sub)` names come from
-  `models.yml` via `setup-model-labels.sh`, which `setup-settings.sh` does not
-  run.
-- **Decision:** Procedure step 4 runs the labels script after setup, and step
-  5 runs the ACP picker probe. Extras are tolerated and reported.
-- **Not done (unverified idea):** emitting provider-scoped patterns for
-  roles that name a provider, which would drop the cross-provider extras and
-  the duplicate Carbon. Not tried; revisit if the duplicates keep confusing
-  picks.
-
-### 2026-11: Codex roles are left out of the Zed picker
-
-- **Finding:** `oa-m` is `openai-codex/gpt-5.6-terra`. Its id pattern
-  `*/*gpt-5[.-]6-terra` matched on every provider, so the Zed picker showed
-  three near-identical Terra rows: Codex `GPT-5.6 Terra (sub)`, OpenRouter
-  `GPT-5.6 Terra`, and the intended OpenRouter `GPT-6.1 Terra` (plus
-  OpenRouter `GPT-5.6 Sol` from `oa-l`). A live Zed plan ran on the Codex
-  Terra instead of the intended one.
-- **Decision (user, 2026-11-16):** `setup-zed-models.sh` skips every `oa-*`
-  role, so the Zed picker drops from 22 to 19 rows and loses those three
-  GPT-5.6 rows. The `oa-*` roles still exist and route in the terminal and
-  for subagents; only the Zed dropdown changed. Codex is low priority and the
-  GPT-5.6 rows are an older generation than GPT-6.1. `omp/tests/zed-models-config.sh`
-  covers it.
-- **Why Claude does not have this problem:** the Anthropic subscription
-  models and their OpenRouter twins are both intended picker rows, told apart
-  by the `(sub)` suffix, with a role for each (`opus`/`opus-sub` and so on).
-  They are the same model on two billing routes, so picking the wrong twin
-  only changes the route. Codex differed in two ways: the OpenRouter GPT-5.6
-  rows were pulled in only by `oa-*`'s ids (no role of yours wanted them), and
-  the near-identical names were different generations (GPT-5.6 Terra beside
-  the intended GPT-6.1 Terra), so a wrong pick changed the model itself.
-  (Inference from the picker contents and the live session; not a separate
-  test.)
-- **Revisit if:** a Codex subscription becomes a regular Zed choice. Then
-  delete the `oa-` test in `setup-zed-models.sh`, re-run
-  `omp/setup-settings.sh`, re-probe the picker, and expect the Codex Terra
-  and the OpenRouter GPT-5.6 rows to return. If you want only the
-  subscription row, try provider-scoped patterns first (untested; see the
-  entry above).
-
-### 2026-11: In Zed, plan mode uses the thread's model
-
-- **Finding (probed on omp 18.20.2 with Zed's `omp acp` flags):** entering
-  Plan keeps the current model and thinking (a plan-mode turn ran on
-  `gpt-6.1-terra`, not the `plan` role's Opus); picking a model in Plan
-  applies at once; leaving Plan keeps it; a model change can reset thinking
-  (`high` -> `medium` on OpenRouter GPT-6.1 Sol/Terra and GPT-6 Luna;
-  unchanged on Claude (OpenRouter and sub) and Codex GPT-5.6 Terra; cause
-  unknown). Recorded in
-  `plans/omp-plan-mode-models.md`.
-- **Consequence:** in Zed the selectors choose the planning model and
-  thinking per thread, which the user values as more flexible than the
-  terminal's fixed `plan` role. Do not "fix" it by trying to force the
-  `plan` role in ACP, and do not build the wanted `/planopus`-style
-  commands for Zed (they are terminal-only; `sessionModes` is undefined in
-  ACP). The `plan` role stays maintained for the terminal.
-- **Unknown:** whether this is deliberate ACP behaviour or a side effect;
-  how plan approval and its execution target appear in Zed.
-- **Revisit if:** an omp release makes ACP plan mode apply the `plan` role
-  (the user would lose per-thread choice; flag it), or Zed's model picker
-  stops being available while in Plan.
-
-### 2026-11: Native Zed Agent favorites track zed.dev's newest models
-
-- **Request (user):** limit the native Zed Agent's model list to the newest
-  model in each line Zed hosts, and add Gemini 4 Carbon once Zed hosts it.
-  This covers Zed only, not omp.
-- **Finding (Zed 1.28.1):** Zed has no way to hide models.
-  `hidden_models` (zed-industries/zed#52347) was closed unmerged, and
-  `language_models.*.available_models` only adds or overrides (Discussion
-  #50303).
-- **Decision:** `agent.favorite_models` pins Claude Fable 5.1, Opus 5.5,
-  Sonnet 5.5, Haiku 4.5; GPT-6 Astra, GPT-6.1 Sol, GPT-5.6 Terra, GPT-6 Luna;
-  Gemini 4 Argon, Gemini 3.5 Flash. GPT-5.3-Codex, GPT-5 mini and GPT-5 nano
-  are left out as superseded (my call; the user can add them back). All ids
-  except `gemini-4-argon` were found in the Zed binary.
-- **Why a list in the settings file rather than starring in the UI:** it's
-  stowed and reviewable. Starring still works, but it rewrites the list, so
-  commit those diffs rather than discarding them.
-- **Seen alongside (not omp):** Zed 1.28.1's native Agent can fail on
-  Claude with `unknown variant 'between_tools', expected one of 'enabled',
-  'adaptive', 'disabled'`, mostly during compaction. Retrying fails the same
-  way; reloading the agent clears it. It's a Zed client/server mismatch, so
-  don't touch any model setting to fix it.
-- **Revisit if:** Zed ships a real hide/allowlist setting (switch to it),
-  Zed hosts Carbon or a newer generation of any pinned line, or the user
-  wants the GPT-5.x Codex/mini/nano lines back.
-
-### 2026-11-17: GPT-6.2, Kimi K3.1 Pro, DeepSeek 1017 round
-
-- **Applied:** `sol` -> `openrouter/openai/gpt-6.2-sol@azure:xhigh`, `astra` ->
-  `openrouter/openai/gpt-6.2-astra:xhigh` (same price as the 6.1 Sol / 6
-  Astra generation they replace except Astra, now $8/$40 instead of $10/$50);
-  Auto Code pool Sol -> `gpt-6.2-sol`; fallback chains re-keyed to the 6.2 ids.
-  Also brought `DEFAULT_ROLES` in line with what was already live (seeded
-  script had lagged): `kimi` -> `kimi-k3.1-pro:high`, `dseek` ->
-  `deepseek-v4.1-flash-1017:max`, `advisor` -> `deepseek-v4.1-flash-1017:high`,
-  `luna`/`commit`/`med-vision`/`vision` keep their `@azure` pins, `task` ->
-  `gpt-6.1-terra:high`, Codex `oa-*` -> `gpt-6-luna:xhigh`, `gpt-6.1-terra`,
-  `gpt-6.1-sol`, plus `oa-xl` = `gpt-6-astra:xhigh`; GLM chains use
-  `deepseek-v4.1-flash-1017` then `kimi-k3.1-pro`.
-- **Live drift found:** `glm-fast` pointed at `glm-5.3` instead of
-  `glm-5.3-flash` (fixed).
-- **No newer version exists** (OpenRouter public and per-key catalogs agree,
-  so no ZDR hiding) for Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.2, Gemini 4
-  Carbon, GLM 5.3, GPT-6.1 Terra, GPT-6 Luna (no 6.2 Terra or Luna yet).
-- **Zed favorites unchanged:** zed.dev still hosts GPT-6 Astra / 6.1 Sol /
-  5.6 Terra / 6 Luna, Fable 5.1, Haiku 4.5, Gemini 4 Argon; no 6.2.
+receive); keep all three wordings consistent when changing the rule. Not
+automated (no `before_subagent_spawn` hook): per-call selection has no
+fallback by design. Revisit if omp adds per-call fallback chains, or
+substitutions are often wrong.
