@@ -197,7 +197,7 @@ Finished agents idle, then park after a TTL — messaging them (Hub or the
 model's `write agent://<id>`) revives them with history intact. `/jobs` is the quick
 async-job snapshot.
 
-**Advisor**: this setup assigns `openrouter/deepseek/deepseek-v4.1-flash-1017:high` to
+**Advisor**: this setup assigns `openrouter/openai/gpt-6-luna:high` to
 `modelRoles.advisor` but leaves `advisor.enabled` false. Opt in with
 `/advisor on` (or `--advisor`) when a second model passively reviewing each
 completed turn is worth the added usage. It injects notes, interrupts only
@@ -441,8 +441,6 @@ cycleOrder:
   - luna
   - haiku
   - auto-code
-  - dseek
-  - kimi
   - astra
   - fable
 modelRoles:
@@ -455,8 +453,6 @@ modelRoles:
   tiny: "@haiku"
   slow: "@sol"
   auto-code: openrouter/openrouter/auto-code
-  dseek: openrouter/deepseek/deepseek-v4.1-flash-1017:max
-  kimi: openrouter/moonshotai/kimi-k3.1-pro:high
   carbon: openrouter/google/gemini-4-carbon:high
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
@@ -516,10 +512,6 @@ retry:
   fallbackChains:
     anthropic/claude-fable-5-2:
       - openrouter/anthropic/claude-opus-5.5:high
-      - openrouter/deepseek/deepseek-v4.1-flash-1017:max
-      - openrouter/moonshotai/kimi-k3.1-pro:high
-      - openrouter/deepseek/deepseek-v4.1-flash-1017:max
-      - openrouter/moonshotai/kimi-k3.1-pro:high
 ```
 
 `retry.modelFallback` is on by default. Model-selector keys apply whenever

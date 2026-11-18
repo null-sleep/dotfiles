@@ -112,7 +112,15 @@ applied as PROPOSED.
 
 ## Standing notes for each round
 
-- GLM fallback chains are low-stakes (the GLM roles are rarely used): keep
-  their ids valid, don't optimize them.
+- DeepSeek, Kimi and GLM are retired by the user (never used): no `dseek`,
+  `kimi`, `glm-*` or `cheap-l` roles, cycle slots, tags or chain entries;
+  `setup-settings.sh` strips them from a live config. The `advisor` role is
+  Luna (`:high`), a cheap second model. Don't re-add them as "newest
+  generation" drift.
+- Fallback chains and the Codex `oa-*` roles track the newest generation of each
+  tier (luna 6, terra 6.1, sol 6.2, astra 6.2), same as the OpenRouter roles. The
+  Codex catalog on this machine lists only `gpt-6-luna` (and 5.6 Luna/Terra), so
+  the 6.1/6.2 Codex ids are unverified; omp skips unavailable steps. Revisit if a
+  Codex id turns out not to exist.
 - Not adopted, flag each round: `gemini-4-hydrogen` (supports `xhigh`;
   `carbon` stops at `high`).
