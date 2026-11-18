@@ -253,6 +253,14 @@ cargo install cargo-nextest --locked   # --locked is required by nextest
 cargo install cargo-audit
 ```
 
+The JDK symlinks are a one-time setup on each machine; they point to Homebrew's
+stable `opt` paths, so normal upgrades do not require recreating them. Verify
+discovery with `/usr/libexec/java_home -V`. Without the links, Java still works
+through the shell's `JAVA_HOME` and `PATH`, but macOS Java wrappers and IDEs
+using system discovery may not find it. The shell defaults to Java 17; use
+`init-java 21` or `init-java 25` to switch in the current shell. There is no
+need to run `brew link` or add Homebrew's suggested PATH lines to `.zshrc`.
+
 Rust tools installed by rustup: `cargo`, `rustc`, `clippy`, `rustfmt`, `rust-analyzer`, `rust-src`. The `~/.cargo/bin` PATH entry in `.zshrc_config.zsh` makes them available in the shell.
 
 Additional cargo subcommands installed via `cargo install`: `cargo-nextest` (faster, better test runner — `cargo nextest run`) and `cargo-audit` (scans `Cargo.lock` for crates with known security advisories — `cargo audit`).
