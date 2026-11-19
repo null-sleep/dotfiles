@@ -978,7 +978,7 @@ its header. Stop is the button next to send.
 
 - **Zed Agent tools** — `agent.tool_permissions` (replaced the old
   `always_allow_tool_actions` boolean). `default: "allow"` auto-approves;
-  `always_deny` blocks silently, but the only rules cover the `edit_file` tool (case-insensitive path match: `\.env`, which also hits `.envrc`/`.env.example`, and `*.pem`/`*.key`); `write_file`, terminal, read, move/copy/delete and fetch are unguarded, so the agent can still create, overwrite or read those files. Avoid
+  `always_deny` blocks silently, but the only rules cover the `edit_file` and `write_file` tools (case-insensitive path match: `\.env`, which also hits `.envrc`/`.env.example`, and `*.pem`/`*.key`); terminal, read, move/copy/delete and fetch are unguarded, so a shell command can still read or write those files. Untrusted folders open in restricted mode (`session.trust_all_worktrees: false`), where the agent has no write or terminal tools. Avoid
   `always_confirm` and per-tool `"default": "confirm"` — each is a prompt.
   Zed's hardcoded `rm -rf` guards (`/`, `~`, `$HOME`, `.`, `..`) always block.
 - **Zed Agent sandbox** — `terminal` and `fetch` run in an OS sandbox that
@@ -999,7 +999,8 @@ its header. Stop is the button next to send.
   "tool_permissions": {
     "default": "allow",
     "tools": {
-      "edit_file": { "always_deny": [{ "pattern": "\\.env" }, { "pattern": "\\.(pem|key)$" }] }
+      "edit_file": { "always_deny": [{ "pattern": "\\.env" }, { "pattern": "\\.(pem|key)$" }] },
+      "write_file": { "always_deny": [{ "pattern": "\\.env" }, { "pattern": "\\.(pem|key)$" }] }
     }
   }
 },

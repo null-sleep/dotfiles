@@ -208,13 +208,12 @@ tool. It does **not** run on switch, or for worktrees made with
   use the global file and guard on a repo marker (a script's path, a file
   name).
 - **Trust.** No hook, global ones included, runs in a Restricted Mode
-  worktree. Zed passes the source workspace's trust to the new one, and
-  this repo's `settings.json` sets `session.trust_all_worktrees: true`; on
-  a stock install, trust the main checkout first. That setting skips Zed's
-  restricted mode, so an untrusted repo's `.zed/settings.json` (LSP binaries,
-  MCP servers, tasks) is honoured immediately, and the Zed Agent keeps its
-  full auto-approved toolset there (restricted mode would drop it to a
-  profile with no write or terminal tools).
+  worktree. Zed passes the source workspace's trust to the new one. This
+  repo's `settings.json` sets `session.trust_all_worktrees: false`, so trust
+  the main checkout (or its parent, e.g. `~/src`, which covers every folder
+  below) first. Restricted mode ignores the repo's `.zed/settings.json`
+  (LSP binaries, MCP servers, tasks) and drops the Zed Agent to a profile
+  with no write or terminal tools.
 - **Re-running.** Hook tasks also appear in the task picker
   (`cmd-shift-r`), so the template doubles as a manual "re-run setup" for
   worktrees made outside Zed.
