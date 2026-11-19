@@ -149,7 +149,12 @@ async function loadHost(): Promise<Host | undefined> {
       cycleOrderLookup: isCycleOrderLookup(candidateLookup) ? candidateLookup : undefined,
       formatModelWithRouting:
         typeof formatModelWithRouting === "function"
-          ? (model => String(formatModelWithRouting(model)))
+          ? (model => {
+              const formatted: unknown = formatModelWithRouting(model);
+              return typeof formatted === "string"
+                ? formatted
+                : `${model.provider}/${model.id}${upstreamSuffix(model)}`;
+            })
           : undefined,
     };
   } catch {
@@ -259,7 +264,8 @@ export function injectCritiqueOption(
   if (isStringOptionArray(options)) {
     if (options.includes(CRITIQUE_LABEL)) return { options, callbacks };
     const keepIdx = options.findIndex(label => label.startsWith("Approve and keep context"));
-    const insertAt = keepIdx >= 0 ? keepIdx + 1 : options.length;
+    // No "keep" row: land before the trailing "Save and quit", not after it.
+    const insertAt = keepIdx >= 0 ? keepIdx + 1 : Math.max(options.length - 1, 0);
     const nextOptions = [
       ...options.slice(0, insertAt),
       CRITIQUE_LABEL,
@@ -309,8 +315,8 @@ export function buildCritiqueFeedback(params: {
     `   - **Verdict**: ready vs. needs changes`,
     `   - **TL;DR**: 3-5 concise bullets summarizing what it found`,
     `   - **Actionable findings**: concrete bugs, wrong file/symbol/API assumptions, missing edge cases, ordering hazards, or verification gaps (with exact file/symbol evidence; skip nitpicks and out-of-scope expansion)`,
-    `2. Once the subagent finishes, write a short **Critique TL;DR (${params.role})** Markdown summary (the verdict + 3-5 bullets of what the critique said and what you changed or rejected) to \`out://\` via \`write\` so it stays visible in the chat transcript.`,
-    `3. Incorporate every valid critique finding into \`${params.planFilePath}\` (leave sound parts alone; if the critique found zero real issues, keep the plan unchanged).`,
+    `2. Incorporate every valid critique finding into \`${params.planFilePath}\` (leave sound parts alone; if the critique found zero real issues, keep the plan unchanged).`,
+    `3. Write a short **Critique TL;DR (${params.role})** Markdown summary (the verdict + 3-5 bullets of what the critique said and what you changed or rejected) to \`out://\` via \`write\` so it stays visible in the chat transcript.`,
     `4. Re-propose the plan by writing its title/slug to \`xd://propose\` via \`write\` so Plan Review reopens.`,
   ];
 

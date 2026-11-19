@@ -155,6 +155,9 @@ export default function (pi: ExtensionAPI) {
           prompt: event.prompt,
           modelMatch: event.prompt.match(/model: "([^"]+)"/)?.[1] ?? null,
           roleMatch: event.prompt.match(/Critique TL;DR \\(([^)]+)\\)/)?.[1] ?? null,
+          hasPlanPath: event.prompt.includes("demo-plan.md"),
+          hasFallback:
+            event.prompt.includes("the active plan file") || event.prompt.includes('"current plan"'),
           hasOut: event.prompt.includes("out://"),
           hasPropose: event.prompt.includes("xd://propose"),
           activeModel: current ? current.provider + "/" + current.id : null,
@@ -221,7 +224,7 @@ try:
     found_row = pump(8.0, lambda: "Critique plan (subagent)" in plain_screen())
     print("HAS_CRITIQUE_ROW:" + ("1" if found_row else "0"))
 
-    # Move slider right 1 step from default (index 0) -> second cycle role
+    # Move slider one step right of its starting role (default) -> a different role
     os.write(fd, b"\\x1b[C")
     pump(0.2)
 
@@ -266,6 +269,7 @@ async function runPtyScenario(ompBin: string, mode: "critique" | "approve") {
   return data;
 }
 
+let defaultRoleSelector: unknown;
 try {
   const bins = ["/opt/homebrew/bin/omp", `${process.env.HOME}/.local/bin/omp`].filter(bin =>
     existsSync(bin),
@@ -275,15 +279,25 @@ try {
       stdout: "pipe",
       stderr: "ignore",
     });
-    const rolesJson: unknown = JSON.parse(await new Response(rolesProc.stdout).text());
+    let rolesJson: unknown;
+    try {
+      rolesJson = JSON.parse(await new Response(rolesProc.stdout).text());
+    } catch {
+      rolesJson = undefined;
+    }
     await rolesProc.exited;
     const configuredRoles: unknown =
       typeof rolesJson === "object" && rolesJson !== null
         ? Reflect.get(rolesJson, "value")
         : undefined;
 
+    if (bin === "/opt/homebrew/bin/omp" && typeof configuredRoles === "object" && configuredRoles !== null) {
+      defaultRoleSelector = Reflect.get(configuredRoles, "default");
+    }
     const critiqueData = await runPtyScenario(bin, "critique");
     assert.equal(Reflect.get(critiqueData, "planStatus"), "active");
+    assert.equal(Reflect.get(critiqueData, "hasPlanPath"), true, "plan path missing from prompt");
+    assert.equal(Reflect.get(critiqueData, "hasFallback"), false, "prompt used fallback plan text");
     assert.equal(Reflect.get(critiqueData, "hasOut"), true);
     assert.equal(Reflect.get(critiqueData, "hasPropose"), true);
     const roleMatch = Reflect.get(critiqueData, "roleMatch");
@@ -303,6 +317,12 @@ try {
   if (existsSync("/opt/homebrew/bin/omp")) {
     const approveData = await runPtyScenario("/opt/homebrew/bin/omp", "approve");
     assert.equal(Reflect.get(approveData, "planStatus"), "inactive");
+    // Approve executes on the slider role (one step right of default), not default.
+    const defaultSelector: unknown = defaultRoleSelector;
+    const activeModel = Reflect.get(approveData, "activeModel");
+    if (typeof defaultSelector === "string" && !defaultSelector.startsWith("@")) {
+      assert.notEqual(activeModel, defaultSelector.replace(/:[a-z]+$/, ""));
+    }
     console.log(
       `PASS PTY approve (/opt/homebrew/bin/omp) -> activeModel=${String(Reflect.get(approveData, "activeModel"))}:${String(Reflect.get(approveData, "thinking"))}`,
     );
