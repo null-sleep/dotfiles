@@ -29,7 +29,8 @@ case ${TERM_PROGRAM:-} in
 esac
 command -v jq >/dev/null 2>&1 || { printf '%s\n' "$bell"; exit 0; }
 
-input=$(timeout 2 cat 2>/dev/null)
+if command -v timeout >/dev/null 2>&1; then input=$(timeout 2 cat 2>/dev/null)
+else input=$(cat 2>/dev/null); fi
 
 caption=$(jq -r '
   def short: tostring | if length > 40 then .[:39] + "…" else . end;

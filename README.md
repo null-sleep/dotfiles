@@ -465,7 +465,7 @@ That command:
 
 `settings.json` doesn't name a specific theme directly — it pins the fixed slug `"theme": "custom:active"`, which resolves to `~/.claude/themes/active.json`. The [unified `theme` switcher](#unified-theme-switching) overwrites that file with the dark or light palette, and because Claude hot-reloads theme **files** (not the `theme` setting) the change applies to running sessions with no restart. To switch by hand instead, just pick a theme in `/theme`.
 
-**Inside Zed**, the `claude` zsh function (in `.zshrc_config.zsh`) launches Claude with `--settings '{"theme":"custom:<slug>"}'` (`dracula` or `catppuccin-latte`), chosen from Zed's `theme.mode` (`system` falls back to the macOS appearance). The override is per session, so Ghostty sessions and the `theme` switcher are unaffected.
+**Inside Zed**, the `claude` zsh function (in `.zshrc_config.zsh`) launches Claude with `--settings '{"theme":"custom:<slug>"}'` (`dracula` or `catppuccin-latte`), chosen from Zed's `theme.mode` (`system` falls back to the macOS appearance). The override is per session, so Ghostty sessions and the `theme` switcher are unaffected. It is reapplied on every launch, so `/theme` picks last only until the next `claude` start.
 
 **Adding more synced themes/skills:** drop a theme into
 `claude/.claude/themes/` or a skill into `agents/.agents/skills/`, then re-run
