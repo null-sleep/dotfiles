@@ -110,7 +110,7 @@ waits until you save and `cmd-w` it. The git panel's commit box needs no editor.
 | new thread / pick agent | `cmd-n` / `alt-cmd-shift-n` (panel) | | `<leader>an` |
 | send / send and follow | `enter` / `cmd-enter` | | |
 | interrupt and send now | `cmd-shift-enter` | | |
-| attach file, symbol, diagnostics | `@` | | `<leader>ap` / `<leader>af`, `<leader>ac` / `<leader>ae` |
+| attach file, symbol, diagnostics | `@` | | `<leader>ap`, `<leader>af` / `<leader>ac`, `<leader>ae` |
 | quote selection into thread | `cmd->` | | `<leader>at`, `<leader>as` |
 | model picker / profile / mode | `alt-cmd-/` / `cmd-i` / `shift-tab` | | |
 | search thread | `cmd-f` | | |

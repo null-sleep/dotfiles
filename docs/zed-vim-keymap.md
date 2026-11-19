@@ -204,7 +204,8 @@ languages you have opened a file in this session; see
 | `yp` / `yP` yank path | `cmd-k p` (absolute only) | borrow | `editor::CopyRelativePath` / `CopyPath` |
 | `yu` permalink | — | borrow | `editor::CopyPermalinkToLine` |
 | `<Esc>` clear highlights | `escape` | default | `editor::Cancel` already does it |
-| `gcc`, `ys`/`cs`/`ds` | same | default | |
+| `gcc` | same | default | |
+| `ys`/`cs`/`ds` | not mapped (no surround plugin) | default | Zed-only |
 | `<leader>us`/`uc`/`uo` | — | skip | nvim-specific utilities |
 
 <a id="block"></a>
@@ -357,7 +358,9 @@ the docs don't show. Add either via the keymap editor (`space s k` →
 - **What `ctrl-h/j/k/l` displace in normal mode:** `editor::Backspace`,
   `vim::Down`, `editor::KillRingCut`, `editor::ScrollCursorCenter` (`zz`
   does the same) — none worth keeping. Never bind them in insert mode:
-  `ctrl-k` is digraph there.
+  `ctrl-k` is digraph there. The `Dock` block likely also takes them from
+  the bottom-dock terminal (readline `ctrl-k`/`ctrl-l`; not tested); use
+  `Dock && !Terminal` to keep them.
 - **`y` becomes a chord prefix** for `y p`/`y shift-p`/`y u`. Nothing is
   lost (`p`/`u` are not motions, text objects start with `i`/`a`); `y`
   just resolves on the next key, as an operator does anyway.
@@ -395,10 +398,10 @@ Open calls from review; each is a one-line change once decided.
 <a id="adopting"></a>
 ## Adopting a row
 
-1. Paste the block (or a subset) into `zed/.config/zed/keymap.json`,
-   replacing the file's array. The block already contains the `alt-]` /
-   `alt-[` thread-cycling entry that `keymap.json` holds today, so replace
-   rather than append. Zed reloads keymaps on save.
+1. Merge the block (or a subset) into `zed/.config/zed/keymap.json`'s
+   array. Keep the existing `cmd-k cmd-v` and `cmd-k cmd-m` entries; drop
+   the block's `alt-]` / `alt-[` entry, which `keymap.json` already has.
+   Zed reloads keymaps on save.
 2. If a key does nothing, `dev: open key context view` shows the context
    under the cursor; `cmd-shift-p` shows what the action is bound to.
 3. After a week, update the **Status** line and the call column: *borrow*

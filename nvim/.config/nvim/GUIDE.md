@@ -2330,7 +2330,7 @@ Inside the tree (buffer-local, set by `on_attach`):
 | `f` | Live filter — type to narrow tree to matching filenames |
 | `F` | Clear live filter |
 | `W` | Collapse all directories |
-| `H` | Toggle dotfiles visibility |
+| `H` | Collapse all |
 | `I` | Toggle git-ignored files visibility |
 | `U` | Toggle custom-filtered files (`.git`, `.DS_Store`, `node_modules`) |
 | `R` | Refresh tree |

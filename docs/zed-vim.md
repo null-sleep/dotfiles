@@ -111,8 +111,9 @@ Used many times a day; each is covered in full below.
 }
 ```
 
-The repo's `settings.json` ships `vim_mode: false` with the `vim` block in
-place; flip the flag and uncomment the editing block. **`cmd-k cmd-v`**
+The repo's `settings.json` ships `vim_mode: false` and a `vim` block with
+only `use_system_clipboard`; flip the flag and add the snippet's other keys
+(the commented "Editing" block has `vertical_scroll_margin`). **`cmd-k cmd-v`**
 (`workspace::ToggleVimMode`, bound in `keymap.json`; palette:
 `workspace: toggle vim mode`) toggles it live and writes `vim_mode` back to
 `settings.json` — check `git diff zed/` afterwards. It does not fire in the

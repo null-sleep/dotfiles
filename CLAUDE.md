@@ -21,7 +21,8 @@ planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
 `docs/ripgrep.md`, `docs/pi.md`, `docs/omp.md`, `docs/zed.md`,
 `docs/zed-vim.md`, `docs/zed-vim-keymap.md` — distinct from `plans/`, which
-is design docs).
+is design docs), and root `cheatsheet.md` (the Zed cheatsheet opened by the
+`cmd-k cmd-m` task).
 `README.md` is the maintained setup/reference doc for the whole repo.
 
 Editing something under `nvim/.config/nvim/`? See the nested
