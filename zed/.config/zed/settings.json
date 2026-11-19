@@ -24,7 +24,7 @@
         "show_branch_status_icon": false
     },
     "git_panel": {
-        "show_count_badge": false,
+        "show_count_badge": true,
         "folder_indicator": "chevron",
         "file_icons": false,
         "tree_view": false,
