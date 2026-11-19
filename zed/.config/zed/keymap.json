@@ -24,7 +24,9 @@
             "cmd-k cmd-v": "workspace::ToggleVimMode"
         }
     },
-    // Open cheatsheet.md via the "cheatsheet" task in tasks.json.
+    // Open cheatsheet.md via the "cheatsheet" task in tasks.json. Shadows Zed's
+    // default toolchain::AddToolchain; like cmd-k cmd-v, doesn't fire with a
+    // terminal focused (cmd-k clears the terminal).
     {
         "context": "Workspace",
         "bindings": {

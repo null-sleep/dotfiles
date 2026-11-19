@@ -98,7 +98,7 @@ Used many times a day; each is covered in full below.
 | `ctrl-shift-r` | open agent diff (review changes) |
 | `alt-shift-y` / `alt-shift-z` | keep all / reject all agent edits |
 | `cmd-k cmd-v` | toggle vim mode (`workspace::ToggleVimMode`; writes `vim_mode` to `settings.json`) |
-| `cmd-k cmd-m` | open `cheatsheet.md` (the `cheatsheet` task in `tasks.json`; opens as a markdown preview, `cmd-shift-v` shows the source) |
+| `cmd-k cmd-m` | open `cheatsheet.md` (the `cheatsheet` task in `tasks.json`; opens as a markdown preview, `cmd-shift-v` shows the source). Shadows Zed's default `toolchain::AddToolchain`; like `cmd-k cmd-v`, dead with a terminal focused |
 
 <a id="mental-model"></a>
 ## The mental model
@@ -251,7 +251,7 @@ edits that go through Zed:
 - **ACP agents that write through Zed** (ACP v1's `fs/write_text_file`,
   still offered in 1.29.1): every edit. `omp acp` does
   ([`docs/omp.md`](omp.md#zed-acp), probed on omp 18.4.12).
-- **ACP agents that write to disk themselves** (Claude Agent): none — edits
+- **ACP agents that write to disk themselves** (the registry Claude ACP agent, not installed here — Claude runs in Terminal Threads): none — edits
   are final (not verified; reported in
   [zed#50142](https://github.com/zed-industries/zed/issues/50142) and
   [#56048](https://github.com/zed-industries/zed/discussions/56048)). A Zed
@@ -639,7 +639,7 @@ the **project diff** (`ctrl-g d` from the panel, or `git: diff`) and
 | binding | action | where |
 |---|---|---|
 | `ctrl-shift-g` | `git_panel::ToggleFocus` | anywhere |
-| `ctrl-g d` | `git::Diff` | panel; project diff multibuffer |
+| `ctrl-g d` | `git::Diff` | panel |
 | `space` / `cmd-y` / `cmd-shift-y` | `git::ToggleStaged` / `StageFile` / `UnstageFile` | panel list (`x`) |
 | `cmd-ctrl-y` / `cmd-ctrl-shift-y` | `git::StageAll` / `UnstageAll` | panel, project diff |
 | `cmd-y` / `cmd-shift-y` | `git::StageAndNext` / `UnstageAndNext` | project diff, editor hunks (`d u` / `d shift-u`) |
@@ -729,7 +729,7 @@ like one:
 | hide, focus stays put | `cmd-b` (agentic layout, left dock) / `cmd-r` (classic layout, right dock) |
 | hide the dock you are focused in | `ctrl-alt-w` |
 | show it again | the same `cmd-b` / `cmd-r`; or `cmd-?`, which also focuses the message box |
-| hide every dock, then restore them | `cmd-alt-y` |
+| hide every dock, then restore them | `cmd-alt-y` (from a dock or empty pane; inside an editor `git::ToggleStaged` wins) |
 | hide / show the thread list only | `cmd-alt-j` |
 
 `cmd-?` pressed while the panel is focused returns to the editor but leaves
@@ -803,7 +803,7 @@ What each side gives you:
 - **ACP gets Zed's integration.** Every key in [Inside a thread](#inside-thread)
   and [Reviewing agent edits](#review) applies: keep/reject per hunk in the
   review multibuffer (`ctrl-shift-r`, `cmd-y`/`cmd-alt-z`; only for agents
-  that write through Zed — omp does, Claude doesn't, see
+  that write through Zed — omp does, the registry Claude ACP agent doesn't, see
   [Agent edits](#diff-review-agents)), follow the agent
   through files (`cmd-enter`), `@file`/`@symbol`/`@diagnostics` from Zed's
   own index, `cmd->` to quote a selection, image paste, a searchable
@@ -978,7 +978,7 @@ its header. Stop is the button next to send.
 
 - **Zed Agent tools** — `agent.tool_permissions` (replaced the old
   `always_allow_tool_actions` boolean). `default: "allow"` auto-approves;
-  `always_deny` blocks silently (edits to `.env`, `*.pem`, `*.key`). Avoid
+  `always_deny` blocks silently, but the only rules cover the `edit_file` tool (paths matching `\.env`, which also hits `.envrc`/`.env.example`, and `*.pem`/`*.key`); terminal, read, move/copy/delete and fetch are unguarded, so a shell command can still read or write those files. Avoid
   `always_confirm` and per-tool `"default": "confirm"` — each is a prompt.
   Zed's hardcoded `rm -rf` guards (`/`, `~`, `$HOME`, `.`, `..`) always block.
 - **Zed Agent sandbox** — `terminal` and `fetch` run in an OS sandbox that
@@ -1020,7 +1020,7 @@ The review buffer is a multibuffer, so the [multibuffer keys](#search-multibuffe
 | binding | action | what it does |
 |---|---|---|
 | `ctrl-shift-r` | `agent::OpenAgentDiff` | "Review Changes" multibuffer of every edit in the thread |
-| `ctrl-shift-d` | `git::Diff` | the ordinary project diff, from inside a thread |
+| `ctrl-shift-d` | `git::Diff` | the ordinary project diff, from a thread's message box (context `AcpThread > Editor`) |
 | `cmd-y` / `cmd-alt-z` | `agent::Keep` / `agent::Reject` | per hunk, in the review buffer or an inline agent diff |
 | `alt-shift-y` / `alt-shift-z` | `agent::KeepAll` / `agent::RejectAll` | whole thread (also from the message box) |
 | `alt-shift-u` | `agent::UndoLastReject` | bring back the last rejected hunk |
@@ -1297,7 +1297,7 @@ the date and Zed version in the commit message.
   the file.
 - [ ] **omp ACP thread:** an edit appears under `ctrl-shift-r`; reject
   restores the file.
-- [ ] **Claude Agent:** the edit lands on disk and the review buffer stays
+- [ ] **Registry Claude ACP agent (not installed here):** the edit lands on disk and the review buffer stays
   empty.
 
 **Display**

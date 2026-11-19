@@ -1847,7 +1847,7 @@ Stowed to `~/.config/zed/`:
 - **`settings.json`** — Hack Nerd Font Mono, theme pinned to Dracula Solid
   (`"mode": "dark"`, so it ignores the macOS appearance), the agent-panel sidebar width, and
   agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
-  auto-approved (`.env`/key-file edits silently denied), its terminal sandbox
+  auto-approved (only the `edit_file` tool is denied `.env*`/`*.pem`/`*.key` paths; shell commands can still touch them), its terminal sandbox
   off, and omp run with `--approval-mode yolo` (details:
   [`docs/zed.md`](docs/zed.md#inside-thread)). Claude runs in Terminal
   Threads, not over ACP: `agent.terminal_init_command` starts `claude` in
@@ -1910,7 +1910,7 @@ Stowed to `~/.config/zed/`:
   [`cheatsheet.md`](cheatsheet.md); the vim-mode bindings to adopt from nvim
   are proposed in [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
 - **`tasks.json`** — the `cheatsheet` task, which runs
-  `zed $HOME/src/dotfiles/cheatsheet.md`. Zed extensions can't add UI or
+  `zed $HOME/src/dotfiles/cheatsheet.md` (assumes the repo lives at `~/src/dotfiles`). Zed extensions can't add UI or
   actions, so a task plus a keybinding is the way to get a shortcut cheatsheet.
   `settings.json` sets `markdown_preview.open_markdown_files_in_preview`, so it
   opens rendered, but so does every other `.md` (README included). A tab

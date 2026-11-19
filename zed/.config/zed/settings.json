@@ -315,7 +315,9 @@
         // omp-like `yolo`: Zed Agent's built-in tools never prompt. Deny
         // rules block silently (no prompt); Zed's built-in `rm -rf /`, `~`,
         // `.` guards still apply. External ACP agents keep their own
-        // permission mode — see docs/zed.md → Inside a thread.
+        // permission mode — see docs/zed.md → Inside a thread. The only deny
+        // rules cover edit_file (\.env*, *.pem, *.key); terminal, read, move/
+        // copy/delete and fetch are unguarded.
         "tool_permissions": {
             "default": "allow",
             "tools": {
