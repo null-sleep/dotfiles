@@ -1,6 +1,6 @@
 {
   "includeCoAuthoredBy": false,
-  "model": "opus",
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
