@@ -332,7 +332,8 @@
         },
         // One zed.dev model per omp cycle model, so this picker matches the
         // omp ladder (Zed hosts older generations of some: Haiku 4.5, Terra
-        // 5.6, Sol 6.1; Argon stands in for Neon). Pinned at the top of the
+        // 5.6, Sol 6.1; Argon stands in for Neon; Hydrogen and Auto Code have
+        // no zed.dev counterpart, so 7 for 9). Pinned at the top of the
         // model selector and cycled with alt-tab, in Zed's order, not this
         // one. This pins, it doesn't filter: Zed has no hide/allowlist
         // setting (`hidden_models`, zed#52347, was closed unmerged;

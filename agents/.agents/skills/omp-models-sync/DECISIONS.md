@@ -36,7 +36,9 @@ applied as PROPOSED.
 - The `anthropic/claude-fable-5-2` -> OpenRouter Opus fallback chain covers a
   hit cap or expired login for the main session and role-routed subagents.
   Per-call spawns never fall back (omp design); the unavailable-model rule in
-  `SKILL.md` covers them.
+  `SKILL.md` covers them: substitute and report, deliberately not automated by
+  a hook or mapping. Revisit if omp adds a per-call fallback chain or
+  substitutions often go wrong.
 - Accepted: Fable bypasses ZDR and uses the subscription's weekly cap;
   `openrouter-session-cost.ts` hides the OpenRouter total while it's active.
 - Revisit if ZDR is lifted or Anthropic changes subscription limits.

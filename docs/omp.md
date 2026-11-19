@@ -493,15 +493,23 @@ replaced Gemini 4 Carbon, which scored lower on coding at a higher cost per
 task, and GPT-6.2 Astra, which trailed Neon and Opus on coding. Neon is
 verbose at `xhigh`; check current OpenRouter pricing before long runs.
 
-The subscription Fable model gets a model-specific automatic fallback chain to
-OpenRouter Opus 5.5 when its weekly cap is hit or the login fails. It is seeded
-fill-in-only so later hand edits survive setup re-runs:
+Three models get model-specific automatic fallback chains, seeded
+fill-in-only so later hand edits survive setup re-runs. Subscription Fable
+falls back to OpenRouter Opus 5.5 when its weekly cap is hit or the login
+fails; OpenRouter Terra and Sol fall back to their Codex subscription ids
+(unverified in the Codex catalog; omp skips a step it can't resolve):
 
 ```yaml
 retry:
   fallbackChains:
     anthropic/claude-fable-5-2:
       - openrouter/anthropic/claude-opus-5.5:high
+    openrouter/openai/gpt-6.1-terra:
+      - openai-codex/gpt-6.1-terra:high
+      - openai-codex/gpt-6.2-sol:xhigh
+    openrouter/openai/gpt-6.2-sol:
+      - openai-codex/gpt-6.2-sol:xhigh
+      - openai-codex/gpt-6.1-terra:high
 ```
 
 `retry.modelFallback` is on by default. Model-selector keys apply whenever

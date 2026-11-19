@@ -139,7 +139,7 @@ stow --no-folding agents     # generic global Agent Skills
 stow --no-folding cursor     # needs cursor-agent installed — see the Cursor CLI section
 stow --no-folding opencode   # needs the opencode formula — see the opencode section
 stow --no-folding pi         # themes + minimal footer extension — see the pi section
-stow --no-folding omp        # six extensions + global AGENTS.md/RULES.md; config.yml stays machine-local — see the omp section
+stow --no-folding omp        # seven extensions + global AGENTS.md/RULES.md; config.yml stays machine-local — see the omp section
 stow ghostty                 # needs the ghostty cask — the primary terminal
 stow rcmd                    # needs the rcmd cask
 stow --no-folding herdr      # needs the herdr formula — see the Herdr section
@@ -597,7 +597,10 @@ theme status     # show appearance, macOS mode (auto/pinned), and follower state
 It leaves macOS and the other tools unchanged; Ghostty, omp, and opencode still
 follow the system or terminal appearance. Claude sessions launched inside Zed
 follow Zed's theme instead of this switcher. A macOS appearance change or watch
-agent restart resyncs all three tools; `theme follow` also resyncs them.
+agent restart resyncs all three tools; `theme follow` also resyncs them. A
+targeted switch exits 1 when its tool wasn't switched (missing palette, no jq,
+pi not set up). `bash zsh/tests/theme.sh` tests the switcher against isolated
+state with stubbed macOS commands (needs `jq`).
 
 **Three modes — `dark` · `light` · `auto`:**
 
@@ -2242,7 +2245,7 @@ Open a new shell. On the first launch antigen clones every bundle (takes ~20s) a
 <a id="prompt-starship"></a>
 ### Prompt (Starship)
 
-The prompt is [Starship](https://starship.rs) — a single Rust binary. Config lives in `zsh/.config/starship.toml`; `stow zsh` links it to `~/.config/starship.toml` (Starship's default path, so no `STARSHIP_CONFIG` needed). `.zshrc_config.zsh` runs `eval "$(starship init zsh)"` behind a `command -v starship` guard, so if the binary is missing the shell prints a one-line hint instead of breaking.
+The prompt is [Starship](https://starship.rs) — a single Rust binary. Config lives in `zsh/.config/starship.toml`; `stow zsh` links it to `~/.config/starship.toml` (Starship's default path, so no `STARSHIP_CONFIG` needed outside Zed; see below). `.zshrc_config.zsh` runs `eval "$(starship init zsh)"` behind a `command -v starship` guard, so if the binary is missing the shell prints a one-line hint instead of breaking.
 
 ```bash
 brew install starship        # included in the Brewfile
