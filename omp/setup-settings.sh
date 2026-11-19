@@ -143,32 +143,37 @@ roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 # Roles use only the cycle's models. Selectors naming a retired provider
 # (DeepSeek, Moonshot/Kimi, Z.AI/GLM) or a model dropped from the cycle (GPT-6
 # Luna, GPT-6.x Astra, Gemini 4 Carbon) are matched in role values, chain keys
-# and chain steps. A role whose value matches, or is an `@alias` to a deleted
-# role, is reset to its DEFAULT_ROLES value; one with no default is kept and
-# named in a stderr warning. Chain keys and steps are dropped below.
+# and chain steps. A role whose value (string or array) matches, or is an
+# `@alias` to a deleted role, is reset to its DEFAULT_ROLES value; one with no
+# default is kept. Both are named on stderr. Chain keys and steps are dropped
+# below.
 RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna|gpt-6(\.[0-9]+)?-astra|gemini-4-carbon'
 # OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
 # dead OpenRouter `fable` id is moved onto the subscription model below.
-migrated_roles="$(jq -c --arg re "$RETIRED_RE" --argjson defaults "$DEFAULT_ROLES" '
-  ["default-cheap", "cheap-alt", "dseek", "kimi", "glm-l", "glm-fast", "cheap-l", "luna", "oa-s", "astra", "carbon", "oa-xl"] as $gone
-  | del(.[$gone[]])
+migration="$(jq -c --arg re "$RETIRED_RE" --argjson defaults "$DEFAULT_ROLES" '
+  ["default-cheap", "cheap-alt", "dseek", "kimi", "glm-l", "glm-fast", "cheap-l", "luna", "oa-s", "astra", "carbon", "oa-xl", "argon"] as $gone
+  | def bad: (type == "string" or type == "array")
+      and ((tostring | test($re))
+           or (type == "string" and startswith("@") and (.[1:] as $a | $gone | index($a)) != null));
+  del(.[$gone[]])
   | if has("terra") then . else
       (if has("slow") then .sol = .slow else . end)
       | (if has("default") then .terra = .default else . end)
       | .smol = "@haiku" | .tiny = "@haiku" | .slow = "@sol"
     end
-  | del(.argon)
   | if .fable == "openrouter/anthropic/claude-fable-5.2:high" then .fable = "anthropic/claude-fable-5-2:high" else . end
-  | with_entries(
-      .key as $k
-      | (.value | if type == "string" and startswith("@") then .[1:] else null end) as $alias
-      | if (.value | type == "string")
-           and ((.value | test($re)) or ($alias != null and ($gone | index($alias)) != null))
-           and ($defaults | has($k))
-        then .value = $defaults[$k] else . end)
+  | [to_entries[] | select(.value | bad) | .key] as $bad
+  | {
+      roles: with_entries(.key as $k | if (.value | bad) and ($defaults | has($k)) then .value = $defaults[$k] else . end),
+      reset: [$bad[] | select(. as $k | $defaults | has($k))],
+      stale: [$bad[] | select(. as $k | $defaults | has($k) | not)]
+    }
 ' <<<"$roles")"
-stale="$(jq -r --arg re "$RETIRED_RE" '[to_entries[] | select((.value | type == "string") and (.value | test($re))) | .key] | join(", ")' <<<"$migrated_roles")"
-[ -z "$stale" ] || echo "warning: roles with retired selectors and no default, left as-is: $stale" >&2
+migrated_roles="$(jq -c '.roles' <<<"$migration")"
+reset="$(jq -r '.reset | join(", ")' <<<"$migration")"
+stale="$(jq -r '.stale | join(", ")' <<<"$migration")"
+[ -z "$reset" ] || echo "note: roles with retired or dangling selectors reset to defaults: $reset" >&2
+[ -z "$stale" ] || echo "warning: roles with retired or dangling selectors and no default, left as-is: $stale" >&2
 # Search preferences moved from providers.webSearch* to the web model role.
 # Keep these two entries repo-owned while preserving other roles and chains.
 merged_roles="$(jq -c --argjson defaults "$DEFAULT_ROLES" '$defaults + . + {web: "web/perplexity"}' <<<"$migrated_roles")"
