@@ -112,7 +112,12 @@ preference questions via the `ask` tool (2–4 options plus a recommended
 default), and submits by writing the slug to the internal `xd://propose`
 device — approval happens only through the review UI that opens then
 (`/plan-review` reopens it). Approving offers execution options and restores
-write access.
+write access. In the terminal TUI, the stowed `plan-critique.ts` extension adds
+**Critique plan (subagent)** right under **Approve and keep context**, reusing
+the `continue with` slider to pick the critique subagent's model and thinking
+level (`modelRoles[role]`), post a **Critique TL;DR** via `out://`, revise the
+plan, and reopen `Plan Review` (while **Approve** options still execute on that
+slider role; design in [`plans/omp-plan-critique.md`](../plans/omp-plan-critique.md)).
 
 **Which model plans** depends on where omp runs (probed on 18.20.2; evidence
 in [`plans/omp-plan-mode-models.md`](../plans/omp-plan-mode-models.md)):
@@ -658,7 +663,7 @@ Session controls worth knowing:
 ## nvim bridge
 
 `~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`,
-`cycle-model-picker.ts`, and `cwd-name.ts`) is the sidekick attention
+`cycle-model-picker.ts`, `plan-critique.ts`, and `cwd-name.ts`) is the sidekick attention
 bridge (running `»` / done `●` marks in nvim's agent view). It's a port of
 the pi extension with two omp-specific remaps: omp has no `agent_settled`
 event, so it listens on `agent_end` gated by
@@ -736,9 +741,9 @@ ACP-specific catches:
 
 What you lose in an ACP thread:
 
-- The extensions: `nvim-notify` needs `$NVIM`, and `turn-count` and
-  `cycle-model-picker` (`Alt+O`) only act when `ctx.hasUI`. The exception
-  is `zed-plan-in-chat`, which only acts in ACP threads.
+- The extensions: `nvim-notify` needs `$NVIM`, and `turn-count`,
+  `cycle-model-picker` (`Alt+O`), and `plan-critique` only act in the TUI. The
+  exception is `zed-plan-in-chat`, which only acts in ACP threads.
 - omp's TUI: status line, theme, keybindings (Ctrl+P cycling), and launch
   flags such as `--goal` and `--profile`.
 

@@ -1481,7 +1481,7 @@ designated-owner convention as brew for [opencode](#opencode) and npm for pi.
 ### What's managed
 
 Much less than pi: no theme ports (omp built-ins are used — see
-[Theme](#omp-theme)), six focused extensions, and two user-level instruction
+[Theme](#omp-theme)), seven focused extensions, and two user-level instruction
 files.
 
 | File | Method |
@@ -1491,6 +1491,7 @@ files.
 | `~/.omp/agent/extensions/cwd-name.ts` | Symlinked via stow (`--no-folding`); launch-folder name on the status line's right side, only outside nvim |
 | `~/.omp/agent/extensions/cycle-model-picker.ts` | Symlinked via stow (`--no-folding`); `Alt+O` fuzzy picker over `cycleOrder` presets |
 | `~/.omp/agent/extensions/openrouter-session-cost.ts` | Symlinked via stow (`--no-folding`); exact cumulative OpenRouter generation cost through the native `cost` segment |
+| `~/.omp/agent/extensions/plan-critique.ts` | Symlinked via stow (`--no-folding`); adds **Critique plan (subagent)** to the TUI `Plan Review` modal, reusing the `continue with` slider model to critique, post a TL;DR via `out://`, revise, and reopen review — see [`plans/omp-plan-critique.md`](plans/omp-plan-critique.md); tested by `omp/tests/plan-critique-smoke.ts` (rerun after `brew upgrade omp`) |
 | `~/.omp/agent/extensions/zed-plan-in-chat.ts` | Symlinked via stow (`--no-folding`); Zed only (gated by `OMP_ZED_PLAN_IN_CHAT=1` in the Zed `agent_servers.omp.env`): posts the full plan to the chat before the plan-approval card — see [`plans/zed-omp-plan-approval-preview.md`](plans/zed-omp-plan-approval-preview.md); tested by `omp/tests/zed-plan-in-chat-smoke.ts` (rerun after `brew upgrade omp`) |
 | `~/.omp/agent/AGENTS.md` | Symlinked via stow (`--no-folding`); global preferences for main sessions and advisors in every project (subagent model selection: naming, no-fallback judgement rule). Task subagents do not receive `AGENTS.md` |
 | `~/.omp/agent/RULES.md` | Symlinked via stow (`--no-folding`); one-line sticky rule carried on every request and inherited by task subagents (substitute an unavailable subagent model, never ask) |

@@ -6,8 +6,8 @@ agents, zed
 (`pi` stows
 its theme palettes and the minimal `claude-footer.ts` extension — pi writes to
 its own settings.json, so that stays machine-local; `omp` stows only its
-`nvim-notify.ts`, `turn-count.ts`, `cycle-model-picker.ts`,
-`openrouter-session-cost.ts`, and `cwd-name.ts` extensions plus the user-level
+`nvim-notify.ts`, `turn-count.ts`, `cwd-name.ts`, `cycle-model-picker.ts`,
+`openrouter-session-cost.ts`, `plan-critique.ts`, and `zed-plan-in-chat.ts` extensions plus the user-level
 `AGENTS.md` and `RULES.md` (global subagent-model preferences) —
 config.yml is seeded via `omp config` and stays machine-local, and
 `~/.omp/agent/` also holds runtime state, so it's stowed `--no-folding`; `herdr` stows only

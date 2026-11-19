@@ -6,7 +6,7 @@ zellij, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, codebook, agents
 its theme palettes and the minimal `Codex-footer.ts` extension — pi writes to
 its own settings.json, so that stays machine-local; `omp` stows only its
 `nvim-notify.ts`, `turn-count.ts`, `cwd-name.ts`, `cycle-model-picker.ts`,
-`openrouter-session-cost.ts`, and `zed-plan-in-chat.ts` extensions plus the
+`openrouter-session-cost.ts`, `plan-critique.ts`, and `zed-plan-in-chat.ts` extensions plus the
 user-level `AGENTS.md` and `RULES.md` (global subagent-model preferences) —
 config.yml is seeded via `omp config`
 and stays machine-local, and `~/.omp/agent/` also holds runtime state, so it's

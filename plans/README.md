@@ -466,6 +466,12 @@ knowingly reaches into private API.
   search/replace swap reads `inst._context` / `inst._buf` and the internal
   `grug-far.inputs` module, with no pcall — an upstream rename throws on
   keypress. Check: `<leader>sR`, type something in search, `<localleader>S`.
+- **`plan-critique.ts` → omp `InteractiveMode.prototype.showPlanReview`.**
+  Wraps the unexported TUI host method from `@oh-my-pi/pi-coding-agent/modes/interactive-mode`
+  (plus `config/registry` and `config/model-resolver`) to inject **Critique plan (subagent)**,
+  shadow `slider.onChange`, and funnel selection into `onFeedbackChange` + `"refine"`.
+  Degrades to stock `Plan Review` if the module or method moves. Check after `brew upgrade omp`:
+  `bun omp/tests/plan-critique-smoke.ts`; details in [omp-plan-critique.md](omp-plan-critique.md#upkeep).
 
 ---
 
@@ -699,6 +705,14 @@ Grouped by state, not priority.
   the tested behavior, including headless `--plan-yolo` ignoring the plan
   model, a live Zed run that planned on the wrong "Terra", and the wanted
   `/planopus`-style commands.
+- [omp-plan-critique.md](omp-plan-critique.md) — shipped decision record
+  (2026-11-19): adds **Critique plan (subagent)** inside omp's TUI `Plan Review`
+  modal (`omp/.omp/agent/extensions/plan-critique.ts`), reusing the `continue with`
+  model slider to critique on that role's exact `provider/model-id[@upstream][:level]`,
+  post a TL;DR via `out://`, revise `local://<slug>-plan.md`, and re-open review.
+  Documents the 18.18 vs 18.22 `showPlanReview` signature shift, what the three
+  stock Approve modes do to context, why `"refine"` + default `task` beat direct
+  `runStructuredSubagent` or `agent: "reviewer"`, and post-upgrade upkeep.
 - [omp-model-setup-2026-11.md](omp-model-setup-2026-11.md) — decision record
   (2026-11-16), a compressed digest of the whole omp model-setup session: what
   exists now and who owns it, every decision with what was rejected (per-call
