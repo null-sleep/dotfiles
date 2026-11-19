@@ -6,8 +6,8 @@ own worktree tooling (per-worktree ports, Docker stacks, local config).
 Companion to [`docs/zed.md`](zed.md); install/stow steps live in README's
 `## Zed` section.
 
-**Basis: Zed 1.29.1** (`zed --version`) — checked against the zed.dev pages
-below and the `v1.29.1` tag:
+**Basis: Zed 1.29.2** (`zed --version`) — checked against the zed.dev pages
+below and the `v1.29.2` tag:
 
 - `crates/git_ui_core/src/{worktree_service,worktree_picker,created_worktrees}.rs`
 - `crates/project/src/git_store.rs` — worktree paths

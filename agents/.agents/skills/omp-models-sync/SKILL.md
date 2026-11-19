@@ -211,7 +211,7 @@ than editing silently, since each tool has its own catalog and price list.
   other (`alt-tab` and favorites never reach omp's dropdown). Zed's
   `agent.default_model` is rewritten on every pick, so it's out of scope like
   omp's `default_config_options.model`.
-- **zed.dev lags OpenRouter.** As of 2026-11 (Zed 1.29.1) Zed hosts Fable
+- **zed.dev lags OpenRouter.** As of 2026-11 (Zed 1.29.2) Zed hosts Fable
   5.2 (same as OpenRouter), Haiku 4.5 (5.5), GPT-5.6 Terra (6.1 Terra), and
   no Gemini 4 Neon, Carbon or Hydrogen. Only pin what https://zed.dev/docs/ai/models lists; never
   copy omp's newest ids into `favorite_models`. Zed ids follow neither omp

@@ -1956,7 +1956,7 @@ https://github.com/zed-industries/zed.git tag vX.Y.Z --no-tags`) to diff
 `assets/keymaps/` and `assets/settings/default.json` against the previous
 tag.
 
-Zed docs, all checked against Zed 1.29.1 (each says so at the top; after an
+Zed docs, all checked against Zed 1.29.2 (each says so at the top; after an
 upgrade, re-verify against the new tag and bump that line):
 
 - [`docs/zed.md`](docs/zed.md) — **reviewing changes** (uncommitted,
