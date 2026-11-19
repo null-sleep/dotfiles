@@ -782,8 +782,9 @@ Thread History, subject to the adapter's session support.
   default engines. Hosted search is omitted to avoid an Anthropic fallback.
   OMP may prepend xAI for X-only queries; 18.20.0 also prepends Hacker News for
   HN-only queries.
-  The old `providers.webSearchOrder`/`webSearchExclude` settings were migrated
-  upstream to the web role and fallback chain (`setup-settings.sh`).
+  The web role and fallback chain replace the old
+  `providers.webSearchOrder`/`webSearchExclude` settings; leftover old keys are
+  ignored and stay in `config.yml`.
 - `memory.backend` is repo-pinned to `local`. It consolidates persisted
   sessions into project-scoped summaries; inspect the active injection with
   `/memory view` and the full artifact with `read memory://root/MEMORY.md`.
