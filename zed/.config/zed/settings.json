@@ -273,7 +273,7 @@
     "file_scan_exclusions": ["...", "**/.worktrees", "**/.claude/worktrees"],
 
     "agent": {
-        // Public Terminal Thread default; other checkouts may differ.
+        // Command run when a Terminal Thread opens.
         "terminal_init_command": "claude",
         "enable_feedback": false,
         // Off as a workaround (2026-11, Zed 1.28.1; 1.29.1 unchanged): auto-compaction of
