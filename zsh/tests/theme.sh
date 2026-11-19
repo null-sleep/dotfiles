@@ -91,6 +91,12 @@ assert_state none
 [ ! -s "$MOCK_LOG" ] || fail 'invalid arguments touched macOS'
 
 reset_state
+mv "$CLAUDE/dracula.json" "$CLAUDE/dracula.json.bak"
+if bash "$THEME" dark --tool claude >/dev/null 2>&1; then fail 'targeted switch with a missing palette exited 0'; fi
+mv "$CLAUDE/dracula.json.bak" "$CLAUDE/dracula.json"
+assert_state none
+
+reset_state
 bash "$THEME" dark >/dev/null
 assert_state all
 [ "$(wc -l <"$MOCK_LOG" | tr -d ' ')" = 2 ] || fail 'unified switch did not pin macOS'

@@ -284,6 +284,7 @@ apply_mode() {
   # The summary echoes $report — what each step actually did — not the intended
   # pair, so a skipped/failed step shows up here instead of masquerading as done.
   report="${report# }"
+  APPLY_REPORT="$report"
   if [ "$seed" = 1 ]; then
     echo "theme seed → $mode (${report// / · })"
   elif [ "$pin" = 1 ]; then
@@ -328,6 +329,8 @@ case "$mode" in
   dark|light)
     if [ -n "$target" ]; then
       apply_mode "$mode" 0 0 "$target"
+      # A targeted switch has one job; exit non-zero when it didn't happen.
+      case "$APPLY_REPORT" in *:failed|*:missing|*:no-jq|*:not-set-up) exit 1 ;; esac
     else
       apply_mode "$mode" 1
     fi ;;
