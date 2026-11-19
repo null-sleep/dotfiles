@@ -762,8 +762,8 @@ Claude Haiku 4.5 ($1.10/$5.50), GPT-5.6 Terra ($2.20/$13.20), GPT-6.1 Sol
 ($2.20/$11), Claude Sonnet 5.5 ($2.20/$11), Gemini 4 Argon ($2.20/$11, intro
 price until Nov 30, then $4/$20; the stand-in for Neon), Claude Opus 5.5
 ($4.40/$22) and Claude Fable 5.2 ($8.80/$44, hosted since Zed 1.29). That is
-7 entries for 9 cycle models: Gemini 4 Hydrogen (Zed doesn't host it) and
-OpenRouter Auto Code (an OpenRouter-only router) have no zed.dev pin. Models
+7 entries for 8 cycle models: Gemini 4 Hydrogen has no zed.dev pin because
+Zed doesn't host it. Models
 outside the omp cycle (GPT-6 Astra, Gemini 3.5 Flash, GPT-6 Luna,
 GPT-5.3-Codex, GPT-5 mini and nano) are left out. Zed lags OpenRouter here:
 Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, GPT-6.1 Sol vs 6.2, and no

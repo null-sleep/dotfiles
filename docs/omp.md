@@ -418,7 +418,6 @@ cycleOrder:
   - neon
   - opus
   - fable
-  - auto-code
 modelRoles:
   default: openrouter/openai/gpt-6.1-terra:high
   haiku: openrouter/anthropic/claude-haiku-5.5:medium
@@ -427,7 +426,6 @@ modelRoles:
   smol: "@haiku"
   tiny: "@haiku"
   slow: "@sol"
-  auto-code: openrouter/openrouter/auto-code
   hydrogen: openrouter/google/gemini-4-hydrogen:high  # trial
   neon: openrouter/google/gemini-4-neon:xhigh
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
@@ -469,23 +467,24 @@ can drift from the seeded defaults because seeding is fill-in-only; the
 procedure for a model-update round is the `omp-models-sync` skill
 (`agents/.agents/skills/omp-models-sync/SKILL.md`).
 
-The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
-with a repo-owned hard allowlist drawn from the cycle: GPT-6.1 Terra, GPT-6.2
-Sol, Claude Sonnet 5.5, Claude Opus 5.5, Gemini 4 Neon, and Gemini 4 Hydrogen. Fable is left out
-on purpose so it only runs when picked explicitly, and Haiku 5.5
-because its 100K context window is below the router's 1M override.
-`setup-auto-code.sh` merges the model override into machine-local `models.yml`,
-including a 1,000,000 token context window and a 32,768 token output limit. It
-uses Chat Completions:
-OMP's OpenRouter Responses path did not enforce the request-body allowlist.
-The seeded empty fallback chain keeps retry recovery on the router instead of
-switching to an unrestricted model; an existing custom chain is preserved.
+**No Auto Code router (removed 2026-11-19).** This setup used to carry an
+`auto-code` preset for [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
+with a repo-owned model pool. It was dropped for two reasons found in testing:
 
-The allowlist uses exact OpenRouter model IDs, not role names, so update
-`setup-auto-code.sh` when changing the pool. Role thinking suffixes and any
-upstream provider pins are not inherited; OpenRouter picks the model, effort,
-and provider.
-There is no fixed task-cost cap, and an unavailable pool can fail a request.
+- OpenRouter only routes among models it has measured for Auto Code. With the
+  pool restricted to one model at a time, Sol, Sonnet and Opus routed; Gemini 4
+  Neon and Hydrogen failed with "No measured models satisfy the Auto Code
+  policy", and GPT-6.1 Terra with "No router pool model is routable". The
+  effective pool was three models, and newly released models are left out
+  until OpenRouter measures them.
+- omp records and shows the requested model (`openrouter/auto-code`), not the
+  one the router picked. The routed model is only in the response's `model`
+  field or the OpenRouter generation record, so you can't see what ran.
+
+Pick a cycle model instead. `setup-settings.sh` removes a live `auto-code`
+role, tag and fallback chain. A machine that ran the old `setup-auto-code.sh`
+keeps a harmless `openrouter/auto-code` override in `~/.omp/agent/models.yml`;
+delete `providers.openrouter.modelOverrides["openrouter/auto-code"]` to tidy it.
 
 The Neon preset uses OpenRouter and `xhigh` thinking (OpenRouter offers `low`
 to `xhigh`), the setting its published coding scores were measured at. It

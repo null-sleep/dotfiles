@@ -151,7 +151,7 @@ be rare now that README no longer carries its own keymap tables.
 ## Keeping omp models in sync
 
 The omp model setup (`omp/setup-settings.sh` roles, cycle, `*-sub` roles,
-derived `task.perCallModelAllow`; Auto Code pool; Zed list; docs repeating
+derived `task.perCallModelAllow`; fallback chains; Zed lists; docs repeating
 model ids) must stay coherent, and the live `~/.omp/agent/config.yml` must
 match the script's `DEFAULT_ROLES` (seeding is fill-in-only, so editing the
 script alone does not change a configured machine). Always use the newest

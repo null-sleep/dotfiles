@@ -8,7 +8,7 @@ set -euo pipefail
 config_dir="$(omp config path)"
 mkdir -p "$config_dir"
 
-# Same legacy-JSON migration guard as setup-auto-code.sh.
+# Let OMP migrate legacy JSON before creating an override YAML of our own.
 if [[ ! -e "$config_dir/models.yml" && ! -e "$config_dir/models.yaml" && -e "$config_dir/models.json" ]]; then
   omp models find anthropic --json >/dev/null
   if [[ ! -e "$config_dir/models.yml" && ! -e "$config_dir/models.yaml" ]]; then

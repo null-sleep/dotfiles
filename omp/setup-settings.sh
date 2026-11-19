@@ -44,7 +44,6 @@ DEFAULT_ROLES='{
   "neon": "openrouter/google/gemini-4-neon:xhigh",
   "hydrogen": "openrouter/google/gemini-4-hydrogen:high",
   "fable": "anthropic/claude-fable-5-2:high",
-  "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-6.1-terra:high",
   "plan": "openrouter/anthropic/claude-opus-5.5:high",
   "commit": "openrouter/anthropic/claude-haiku-5.5:medium",
@@ -66,11 +65,9 @@ DEFAULT_MODEL_TAGS='{
   "opus": {"name": "opus"},
   "neon": {"name": "neon"},
   "hydrogen": {"name": "hydrogen"},
-  "fable": {"name": "fable"},
-  "auto-code": {"name": "auto-code"}
+  "fable": {"name": "fable"}
 }'
 DEFAULT_FALLBACK_CHAINS='{
-  "openrouter/openrouter/auto-code": [],
   "anthropic/claude-fable-5-2": [
     "openrouter/anthropic/claude-opus-5.5:high"
   ],
@@ -142,16 +139,16 @@ roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 # background features keep a cheap or strong model.
 # Roles use only the cycle's models. Selectors naming a retired provider
 # (DeepSeek, Moonshot/Kimi, Z.AI/GLM) or a model dropped from the cycle (GPT-6
-# Luna, GPT-6.x Astra, Gemini 4 Carbon) are matched in role values, chain keys
-# and chain steps. A role whose value (string or array) matches, or is an
-# `@alias` to a deleted role, is reset to its DEFAULT_ROLES value; one with no
-# default is kept. Both are named on stderr. Chain keys and steps are dropped
-# below.
-RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna|gpt-6(\.[0-9]+)?-astra|gemini-4-carbon'
+# Luna, GPT-6.x Astra, Gemini 4 Carbon, the OpenRouter Auto Code router) are
+# matched in role values, chain keys and chain steps. A role whose value
+# (string or array) matches, or is an `@alias` to a deleted role, is reset to
+# its DEFAULT_ROLES value; one with no default is kept. Both are named on
+# stderr. Chain keys and steps are dropped below.
+RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna|gpt-6(\.[0-9]+)?-astra|gemini-4-carbon|openrouter/auto-code'
 # OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
 # dead OpenRouter `fable` id is moved onto the subscription model below.
 migration="$(jq -c --arg re "$RETIRED_RE" --argjson defaults "$DEFAULT_ROLES" '
-  ["default-cheap", "cheap-alt", "dseek", "kimi", "glm-l", "glm-fast", "cheap-l", "luna", "oa-s", "astra", "carbon", "oa-xl", "argon"] as $gone
+  ["default-cheap", "cheap-alt", "dseek", "kimi", "glm-l", "glm-fast", "cheap-l", "luna", "oa-s", "astra", "carbon", "oa-xl", "argon", "auto-code"] as $gone
   | def bad: (type == "string" or type == "array")
       and ((tostring | test($re))
            or (type == "string" and startswith("@") and (.[1:] as $a | $gone | index($a)) != null));
@@ -184,7 +181,7 @@ else
 fi
 
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
-merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast", ."oa-s", .astra, .carbon)' <<<"$tags")"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast", ."oa-s", .astra, .carbon, ."auto-code")' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
   omp config set modelTags "$merged_tags"
 else
@@ -208,7 +205,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-CYCLE_ORDER='["haiku","default","hydrogen","sol","sonnet","neon","opus","fable","auto-code"]'
+CYCLE_ORDER='["haiku","default","hydrogen","sol","sonnet","neon","opus","fable"]'
 # Direct Anthropic subscription twins of cycle models: selectable per call
 # ("use the sonnet sub model"), kept out of the Ctrl+P/Alt+O cycle.
 SUB_ROLES='["sonnet-sub","opus-sub","haiku-sub","fable-sub"]'
@@ -224,7 +221,6 @@ per_call_allow="$(jq -c --argjson cycle "$CYCLE_ORDER" --argjson sub "$SUB_ROLES
     | sub(":(off|minimal|low|medium|high|xhigh|max|auto|inherit)$"; "") ] | unique
 ' <<<"$merged_roles")"
 omp config set task.perCallModelAllow "$per_call_allow"
-bash "$SCRIPT_DIR/setup-auto-code.sh"
 
 bash "$SCRIPT_DIR/setup-zed-models.sh"
 
