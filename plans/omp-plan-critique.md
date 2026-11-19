@@ -7,7 +7,7 @@
 
 ## Goal and UX
 
-When omp proposes a plan (`write` to `xd://propose`, or `/plan-review`), the fullscreen `Plan Review` modal opens with a `continue with ◂ default | sonnet | carbon | opus | sol … ▸` model slider and the `Plan mode - next step` action list:
+When omp proposes a plan (`write` to `xd://propose`, or `/plan-review`), the fullscreen `Plan Review` modal opens with a `continue with ◂ haiku | default | hydrogen | sol | sonnet | neon | opus | fable | auto-code ▸` model slider and the `Plan mode - next step` action list:
 
 - `(0. Refine plan)` — shown at the top on 18.22+ only when inline annotations or section deletions exist
 - `1. Approve and execute`
@@ -22,28 +22,27 @@ Workflow:
 - Press `Enter` on **`Critique plan (subagent)`**:
   1. The modal closes as a plan refinement (plan mode stays active; session history and any inline plan edits stay intact).
   2. The planning agent spawns **one** read-only `task` subagent pinned to that slider role's exact `provider/model-id[@upstream][:level]` selector (`modelRoles[role]`) to verify the plan file against the live codebase.
-  3. Once the subagent finishes, the planner writes a **Critique TL;DR (`<role>`)** (verdict + 3–5 bullets of what the critique flagged and what was changed or rejected) to `out://` so it stays visible in the chat transcript.
-  4. The planner updates `local://<slug>-plan.md` (folding in any inline annotations you added in `Plan Review` before clicking Critique) and writes to `xd://propose`, reopening `Plan Review` automatically.
+  3. The planner updates `local://<slug>-plan.md` with the valid findings (folding in any inline annotations you added in `Plan Review` before clicking Critique).
+  4. The planner writes a **Critique TL;DR (`<role>`)** (verdict + 3–5 bullets of what the critique flagged and what was changed or rejected) to `out://` so it stays visible in the chat transcript.
+  5. The planner writes to `xd://propose`, reopening `Plan Review` automatically.
 - Pressing `Enter` on any **Approve** row still exits plan mode and executes on the selected `continue with` slider role as usual.
 
 ---
 
 ## Research findings: omp's Plan Review & Plan Mode internals
 
-Checked against omp **18.22.2** (`/opt/homebrew/bin/omp`) and **18.18.6** (`~/.local/bin/omp`):
+Originally checked against omp **18.22.2** and **18.18.6**; the smoke test last passed on **19.0.0**, the only binary installed now. The 18.18 string-options path (see 3 below) has had no automated run since 18.18.6 was removed.
 
 ### 1. Public `ExtensionAPI` vs. `InteractiveMode.prototype.showPlanReview`
 
-| Capability | Public `ExtensionAPI` (`omp://extensions.md`) | Host prototype (`InteractiveMode.prototype.showPlanReview`) |
-|---|---|---|
-| Observe review open + read `planFilePath`, `title`, `tiers` | `yes` (`plan_review_requested` event) | `yes` (paired with `plan_review_requested`) |
-| Add a row to `Plan mode - next step` | `no` — `resolvePlanReview` only accepts fixed ids (`execute`, `compact`, `keep`, `refine`, `save`) | `yes` — `options` array passed to `PlanReviewOverlay` is built right before `showPlanReview` |
-| Read the `continue with` slider's highlighted role | `no` — slider `index` and `onChange(idx)` live in a local closure inside `handlePlanApproval`; `tiers` only lists available roles | `yes` — `extra.slider.onChange` can be wrapped in `showPlanReview` |
-| Intercept keys while `PlanReviewOverlay` is open | `no` — `PlanReviewOverlay` captures terminal input until `Esc` | `yes` — native arrow/Enter/mouse selection works on the injected row |
+- **Observe review open, read `planFilePath` / `title` / `tiers`** — public API: yes (`plan_review_requested`). Host prototype: yes, paired with that event.
+- **Add a row to `Plan mode - next step`** — public API: no, `resolvePlanReview` only accepts the fixed ids `execute`, `compact`, `keep`, `refine`, `save`. Host prototype: yes, the `options` array is built right before `showPlanReview`.
+- **Read the `continue with` slider's highlighted role** — public API: no, the slider `index` and `onChange(idx)` live in a closure inside `handlePlanApproval`, and `tiers` only lists available roles. Host prototype: yes, `extra.slider.onChange` can be wrapped.
+- **Intercept keys while `PlanReviewOverlay` is open** — public API: no, the overlay captures terminal input until `Esc`. Host prototype: yes, native arrow/Enter/mouse selection works on the injected row.
 
 Like `turn-count.ts` (`SEGMENTS` registry mutation) and `zed-plan-in-chat.ts` (`AgentSideConnection` / `AcpAgent` prototype wrappers), extensions loaded by omp receive the **host's live in-process module instances**, making `@oh-my-pi/pi-coding-agent/modes/interactive-mode` patchable without a fork.
 
-### 2. What the three stock Approve options actually do (`InteractiveMode.#En`)
+### 2. What the three stock Approve options actually do
 
 All three exit plan mode, restore write/edit tools, autosave the plan, switch to the `continue with` model (`executionModel`), and send the approved plan prompt:
 
@@ -64,7 +63,7 @@ Between 18.18.6 and 18.22.2, `InteractiveMode.handlePlanApproval` changed how it
 
 `injectCritiqueOption` branches on `typeof options[0] === "string"` so both shapes work:
 - On `string[]`, it splices `"Critique plan (subagent)"` after `"Approve and keep context…"` and increments any `disabledIndices >= insertAt`.
-- On `ObjectChoice[]`, it splices `{ id: "critique", label: "Critique plan (subagent)", detail: "…" }` after `id === "keep"`. Notice `PlanReviewOverlay.#A()` renders `[refine (if annotations), ...options, save]`, so `Critique plan (subagent)` always appears even when `Refine plan` is hidden.
+- On `ObjectChoice[]`, it splices `{ id: "critique", label: "Critique plan (subagent)", detail: "…" }` after `id === "keep"`. The overlay renders `[refine (if annotations), ...options, save]`, so `Critique plan (subagent)` always appears even when `Refine plan` is hidden.
 
 ### 4. Why `out://` works for the TL;DR inside Plan Mode
 
@@ -76,15 +75,15 @@ omp's `plan-mode-active.md` forbids plain-text assistant replies (`Turn ends ONL
 
 ---
 
+<a id="decisions-and-rejected-alternatives"></a>
 ## Key design decisions & rejected alternatives
 
-<a id="decisions-and-rejected-alternatives"></a>
 
 ### 1. Delegate through native `"refine"` + `task` instead of calling `runStructuredSubagent` directly
 
 - **Chosen:** When `showPlanReview` resolves with `critique`, populate `callbacks.onFeedbackChange(critiquePrompt)` and return `"refine"` (`"Refine plan"` on 18.18.x). `handlePlanApproval` then dispatches a normal refinement turn to the planner, which spawns one `task` subagent, posts the `out://` TL;DR, updates the plan, and re-proposes via `xd://propose`.
 - **Rejected:** Importing `runStructuredSubagent` from `@oh-my-pi/pi-coding-agent/task/structured-subagent` inside the extension, running the subagent while the UI waits, and then feeding its raw text into `"refine"`.
-  - Why rejected: `runStructuredSubagent` takes an internal `ToolSession` (~35 methods/getters constructed inside `sdk.ts`), bypasses Agent Hub (`Alt+A`) / TUI tool-call progress unless manually wired to `asyncJobManager`, and would still need a planner turn afterward to edit `local://<slug>-plan.md` and re-open `Plan Review`. Letting the planner call `task` uses omp's battle-tested plan-mode subagent sandbox (`GH()` in `structured-subagent.ts` automatically restricts tools to `read`, `grep`, `glob`, `web_search`, `ast_grep` and prepends `plan-mode-subagent.md`) and shows live progress in the TUI and Agent Hub.
+  - Why rejected: `runStructuredSubagent` takes an internal `ToolSession` (~35 methods/getters constructed inside `sdk.ts`), bypasses Agent Hub (`Alt+A`) / TUI tool-call progress unless manually wired to `asyncJobManager`, and would still need a planner turn afterward to edit `local://<slug>-plan.md` and re-open `Plan Review`. Letting the planner call `task` uses omp's battle-tested plan-mode subagent sandbox (`structured-subagent.ts` automatically restricts tools to `read`, `grep`, `glob`, `web_search`, `ast_grep` and prepends `plan-mode-subagent.md`) and shows live progress in the TUI and Agent Hub.
 
 ### 2. Omit `agent` (use default `task`) instead of `agent: "reviewer"`
 
@@ -92,18 +91,18 @@ omp's `plan-mode-active.md` forbids plain-text assistant replies (`Turn ends ONL
 - **Rejected:** Spawning `agent: "reviewer"`.
   - Why rejected:
     1. Bundled `reviewer` defines a rigid JTD `output` schema (`overall_correctness: "correct" | "incorrect"`, `findings[].file_path`, `line_start`, `line_end`) built for **code diffs**, which fights architectural/prose plan critique and omits a natural TL;DR structure.
-    2. In `structured-subagent.ts` (`zH`), passing a `perCallModel` throws a preflight error if `task.agentModelOverrides[agentName]` is ever set (`Per-call model conflicts with task.agentModelOverrides for agent "reviewer"`). Default `task` avoids both traps while still getting clamped to read-only tools by plan mode.
+    2. In `structured-subagent.ts`, passing a `perCallModel` throws a preflight error if `task.agentModelOverrides[agentName]` is ever set (`Per-call model conflicts with task.agentModelOverrides for agent "reviewer"`). Default `task` avoids both traps while still getting clamped to read-only tools by plan mode.
 
 ### 3. Resolve exact `provider/model-id[@upstream][:level]` from `getRoleModelCycle`
 
 - **Chosen:** Resolve the slider role through `session.getRoleModelCycle(cycleOrder)` + `formatModelStringWithRouting(entry.model)` + `:thinkingLevel` (falling back to `settings.getModelRole(role)` and `plan_review_requested`'s `tiers`).
-- **Why:** `task`'s per-call model validator (`hj` / `zH` in `structured-subagent.ts`) rejects `@role` aliases, patterns, and comma lists, and requires `@upstream` routing pins (`@azure` on `sol` / `luna`) to match `formatModelStringWithRouting`. Using `getRoleModelCycle` guarantees the exact string (`openrouter/openai/gpt-6.2-sol@azure:xhigh`, `anthropic/claude-fable-5-2:high`, etc.) and preserves the role's configured thinking level. Every role on the `continue with` slider comes from `cycleOrder`, which `omp/setup-settings.sh` already seeds into `task.perCallModelAllow`.
+- **Why:** `task`'s per-call model validator (in `structured-subagent.ts`) rejects `@role` aliases, patterns, and comma lists, and requires any `@upstream` routing pin to match `formatModelStringWithRouting`. Using `getRoleModelCycle` guarantees the exact string (e.g. `openrouter/google/gemini-4-hydrogen:high`) and preserves the role's explicitly configured thinking level. No role pins an upstream today (`omp-models-sync/DECISIONS.md`: no `@azure` on OpenRouter OpenAI roles); the `@upstream` handling is defensive. Every role on the `continue with` slider comes from `cycleOrder`, which `omp/setup-settings.sh` already seeds into `task.perCallModelAllow`.
 
 ### 4. Populate `onFeedbackChange` instead of calling `ctx.resolvePlanReview` on pick
 
 - **Chosen:** Inside `showPlanReview`'s `.then(...)`, call `wrappedCallbacks.onFeedbackChange(feedback)` (preserving any inline annotations the user already made in `latestFeedback`) and return `"refine"`. Also normalize `"critique"` → `"refine"` in `wrappedCallbacks.onClose` so `plan_review_resolved` listeners see a valid choice id.
 - **Rejected:** Calling `ctx.resolvePlanReview(reviewId, "refine", { feedback })` after the user presses Enter on `Critique plan (subagent)`.
-  - Why rejected: Pressing Enter in `PlanReviewOverlay` sets `#u = true` (committed) before resolving `showPlanReview`. Calling `resolvePlanReview` afterward invokes `overlay.selectOption("refine")`, which immediately returns `false` because `if (this.#u) return false`. Writing to `onFeedbackChange` sets `handlePlanApproval`'s local feedback variable `ee` directly before `if (we === "refine")` reads it on the next microtask.
+  - Why rejected: Pressing Enter in `PlanReviewOverlay` marks it committed before resolving `showPlanReview`. Calling `resolvePlanReview` afterward invokes `overlay.selectOption("refine")`, which returns `false` because the overlay is already committed. Writing to `onFeedbackChange` sets `handlePlanApproval`'s local feedback variable directly, before it checks for the `"refine"` result on the next microtask.
 
 ### 5. Public-API-only `/plan-critique` command (not chosen as primary UI)
 
@@ -111,14 +110,14 @@ omp's `plan-mode-active.md` forbids plain-text assistant replies (`Turn ends ONL
 
 ---
 
-## Upkeep & known fragility
-
 <a id="upkeep"></a>
+## Upkeep & known fragility
 
 `omp/.omp/agent/extensions/plan-critique.ts` depends on these unblessed host details (also listed under `Known fragility` in [`plans/README.md`](README.md)):
 
 1. `@oh-my-pi/pi-coding-agent/modes/interactive-mode` remains importable from extensions and exports `InteractiveMode` with `prototype.showPlanReview`, alongside optional `@oh-my-pi/pi-coding-agent/config/registry` (`lookup("cycleOrder")`) and `@oh-my-pi/pi-coding-agent/config/model-resolver` (`formatModelStringWithRouting`).
-2. `handlePlanApproval` passes `"Plan mode - next step"` as the prompt title, `{ slider }` in the 5th argument, and `onFeedbackChange` / `onClose` in the 4th argument, and treats a `"refine"` (or `"Refine plan"`) return value as a refinement submission using the latest `onFeedbackChange` text.
+2. `task.perCallModelAllow` (derived from `cycleOrder` by `omp/setup-settings.sh`) must contain every slider role; an `@upstream` pin on a role would not match it, because the allowlist holds canonical `provider/id` only.
+3. `handlePlanApproval` passes `"Plan mode - next step"` as the prompt title, `{ slider }` in the 5th argument, and `onFeedbackChange` / `onClose` in the 4th argument, and treats a `"refine"` (or `"Refine plan"`) return value as a refinement submission using the latest `onFeedbackChange` text.
 
 Fallback: if `InteractiveMode.prototype.showPlanReview` moves or fails to import, `loadHost()` returns `undefined` and `Plan Review` degrades cleanly to stock omp behavior (and if `registry` or `model-resolver` moves, `resolveCritiqueSelector` falls back to `settings.getModelRole(role)` and `plan_review_requested` `tiers`).
 
@@ -130,7 +129,7 @@ Run the zero-LLM smoke suite (takes ~12s; exercises unit helpers plus real PTY `
 bun omp/tests/plan-critique-smoke.ts
 ```
 
- Also check `which -a omp`: if an older `~/.local/bin/omp` shadows `/opt/homebrew/bin/omp`, either remove `~/.local/bin/omp` or keep `plan-critique-smoke.ts` passing against both.
+Also check `which -a omp`: if an older `~/.local/bin/omp` exists, the test runs against it too (that is how the 18.18 string-options path gets covered).
 
 ---
 

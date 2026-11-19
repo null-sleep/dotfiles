@@ -52,6 +52,10 @@ project with its own `.omp/` config: prefix omp commands with
     on every run: canonical `provider/id`, no `:level`, so any thinking level
     is selectable per call. Never hand-set it; it is overwritten. Add the role
     to the cycle or `SUB_ROLES` and re-run instead.
+- `omp/.omp/agent/extensions/plan-critique.ts` — no model ids, but it builds
+  a `task` `model:` selector from each cycle role, so every `CYCLE_ORDER` role
+  must stay in `task.perCallModelAllow`; rerun `omp/tests/plan-critique-smoke.ts`
+  after cycle changes.
 - `omp/setup-auto-code.sh` — the Auto Code router pool is a fixed list of
   OpenRouter ids; it does **not** follow role edits.
 - `omp/setup-model-labels.sh` — appends ` (sub)` to `anthropic/*` and
