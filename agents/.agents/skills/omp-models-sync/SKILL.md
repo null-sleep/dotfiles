@@ -1,6 +1,6 @@
 ---
 name: omp-models-sync
-description: Update or audit this dotfiles repo's omp (Oh My Pi) model setup — modelRoles, the Ctrl+P/Alt+O cycle, the *-sub Anthropic subscription roles, the per-call subagent allowlist, Auto Code pool, fallback chains, Zed model list (omp's ACP picker and the native Zed Agent's favorite_models), and the docs that repeat model ids. Use when new models ship, when the user says "update/refresh/sync the models" or asks whether the omp config is stale or drifted, and whenever you edit omp/setup-settings.sh model data.
+description: Update or audit this dotfiles repo's omp (Oh My Pi) model setup — modelRoles, the Ctrl+P/Alt+O cycle, the *-sub Anthropic subscription roles, the per-call subagent allowlist, fallback chains, Zed model list (omp's ACP picker and the native Zed Agent's favorite_models), and the docs that repeat model ids. Use when new models ship, when the user says "update/refresh/sync the models" or asks whether the omp config is stale or drifted, and whenever you edit omp/setup-settings.sh model data.
 ---
 
 # omp models sync
@@ -56,8 +56,9 @@ project with its own `.omp/` config: prefix omp commands with
   a `task` `model:` selector from each cycle role, so every `CYCLE_ORDER` role
   must stay in `task.perCallModelAllow`; rerun `omp/tests/plan-critique-smoke.ts`
   after cycle changes.
-- `omp/setup-auto-code.sh` — the Auto Code router pool is a fixed list of
-  OpenRouter ids; it does **not** follow role edits.
+- No OpenRouter Auto Code router (removed 2026-11-19, see
+  [DECISIONS.md](DECISIONS.md)): don't re-add one without the router check in
+  Gotchas.
 - `omp/setup-model-labels.sh` — appends ` (sub)` to `anthropic/*` and
   `openai-codex/*` names; re-run when either provider ships models.
 - `omp/setup-zed-models.sh` — writes `~/.omp/agent/zed-models.yml`, the
@@ -88,8 +89,8 @@ project with its own `.omp/` config: prefix omp commands with
 - `omp/.omp/agent/extensions/cycle-model-picker.ts` — `Alt+O` picker over
   `cycleOrder`.
 - Docs repeating ids: `docs/omp.md` (the `modelRoles` block under "Providers
-  and model roles", Advisor paragraph, Per-call model paragraph, Auto Code
-  pool sentence, the Plan mode section's `plan` role and thinking finding,
+  and model roles", Advisor paragraph, Per-call model paragraph, the Auto
+  Code removal note, the Plan mode section's `plan` role and thinking finding,
   "ACP-specific catches" under "Zed — ACP thread or terminal"), `README.md`
   (omp setup section) and `omp/.omp/agent/AGENTS.md` (names
   `anthropic/claude-fable-5-2` and `claude-sonnet-5-5`). `plans/` files are
@@ -114,8 +115,9 @@ project with its own `.omp/` config: prefix omp commands with
   provider cleanup, the `fable` id, the `web` entries). `cycleOrder` and
   `task.perCallModelAllow` are forced/derived on every run. `advisor.*` is
   not seeded (the `advisor` role is in `modelRoles`).
-- `~/.omp/agent/models.yml` — written by `setup-auto-code.sh` (router pool
-  override) and `setup-model-labels.sh` (`(sub)` `modelOverrides`).
+- `~/.omp/agent/models.yml` — written by `setup-model-labels.sh` (`(sub)`
+  `modelOverrides`). An old `openrouter/auto-code` override from the removed
+  router script is harmless and can be deleted.
 - `~/.omp/agent/zed-models.yml` — generated Zed picker scope; never hand-edit.
 - `~/.omp/agent/models.db` — omp's own catalog cache (read-only evidence;
   `omp models find` is the supported way to query it).
@@ -151,8 +153,14 @@ than editing silently, since each tool has its own catalog and price list.
   a `^model:level` prompt tag. A bad selector errors; there is no fallback.
 - Project `.omp/` settings can narrow `task.perCallModel`/`perCallModelAllow`
   but never widen them. Keep them in global config.
-- Auto Code's pool needs OpenRouter ids; `*-sub` and `oa-*` roles are not
-  usable there.
+- **OpenRouter routers (Auto Code) only route among models OpenRouter has
+  measured, and omp hides what ran.** Before adding a router role, send one
+  request per pool model with the pool narrowed to that model (`plugins:
+  [{"id": "auto-router", "allowed_models": [<id>]}]`): "No measured models
+  satisfy the Auto Code policy" or "No router pool model is routable" means it
+  is never picked. omp records and shows the requested router id, not the
+  routed model (that is only in the response `model` field and
+  `/api/v1/generation?id=<gen-id>`).
 - Codex subscription (`openai-codex/*`, the `oa-*` roles) is **low priority**
   for this user, who uses OpenRouter for those models and only sometimes has
   a Codex subscription. A missing or "not found" `openai-codex/*` id is
@@ -230,8 +238,8 @@ holds provider names) before assuming they are empty.
 
 1. **Discover.** For each provider (`openrouter`, `anthropic`; `openai-codex`
    only as a quick check, see Gotchas) run `omp models find <family> --json`
-   for every family in the cycle, `*-sub`, `neon`, `fable`, the fallback
-   chains, and the Auto Code pool. Find the newest
+   for every family in the cycle, `*-sub`, `neon`, `fable`, and the
+   fallback chains. Find the newest
    version and note anything deprecated, renamed, repriced or missing. Check
    thinking levels the model supports before keeping a `:level` suffix. If an
    OpenRouter id is missing, run the ZDR check in Gotchas before calling it
@@ -245,13 +253,11 @@ holds provider names) before assuming they are empty.
    see Policy; chains: `$defaults + .` never updates an existing key, so
    delete the old key and add the new one together, e.g. `omp config set
    retry.fallbackChains "$(omp config get retry.fallbackChains --json | jq -c
-   '.value | del(.["<old primary id>"]) + {"<new primary id>": [...]}')"`),
-   and update `setup-auto-code.sh` if the router pool should change.
+   '.value | del(.["<old primary id>"]) + {"<new primary id>": [...]}')"`).
    **Fallback chains are part of every round**, not an afterthought: re-key
    each OpenAI chain to its primary role's current OpenRouter id (the key is
    the exact model id, so a role bump to a new generation leaves its chain
-   dead; the Fable chain's key stays `anthropic/claude-fable-5-2` and the
-   Auto Code chain is intentionally empty), and point every step at the newest
+   dead; the Fable chain's key stays `anthropic/claude-fable-5-2`), and point every step at the newest
    generation of that tier (`openai-codex/*`, and
    `openrouter/anthropic/claude-opus-*` for Fable), the same rule as the
    roles. The Codex `oa-*` roles follow the same generations. Compare the
@@ -356,7 +362,7 @@ Always surface these in your final report, even if you resolved them:
 
 - A newer version of a model already in a role, or a new family worth a
   preset (and which role you would put it in).
-- A model in a role, the cycle, the Auto Code pool or a fallback chain that is
+- A model in a role, the cycle or a fallback chain that is
   deprecated, renamed, repriced or gone from the catalog.
 - Pins in other tools that are behind the newest generation (`pi`,
   `opencode`; see "Other tools with their own model pins"), and any new file

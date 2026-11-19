@@ -2,8 +2,8 @@
 
 Status: decision record, applied 2026-11-18 and revised 2026-11-19 (Gemini 4
 Neon replaced Gemini 4 Carbon, GPT-6.2 Astra dropped, both on coding
-benchmarks). Covers the omp cycle, roles, fallback chains, Auto Code pool and
-Zed favorites. Intent: record which models this setup uses, in what order, and
+benchmarks; the Auto Code router removed). Covers the omp cycle, roles,
+fallback chains and Zed favorites. Intent: record which models this setup uses, in what order, and
 why, so the next round of model releases can be judged the same way instead of
 from scratch. The how-to for applying a change is the
 [omp-models-sync skill](../agents/.agents/skills/omp-models-sync/SKILL.md); its
@@ -20,15 +20,17 @@ short standing rules. Earlier history: [omp-model-setup-2026-11.md](omp-model-se
   Artificial Analysis Coding Agent Index and its components.
 - Rank on **cost and time per task**, not list price. Verbose models cost
   several times their list price suggests, and terse ones (Astra) far less.
-- Every role, fallback chain and the Auto Code pool uses only cycle models (or
-  their `*-sub` / Codex twins). Fable never goes in Auto Code: it runs only
-  when picked.
+- Every role and fallback chain uses only cycle models (or their `*-sub` /
+  Codex twins).
+- **No router.** OpenRouter Auto Code only routed among models it had
+  measured (Sol, Sonnet, Opus in practice) and omp never showed which one ran;
+  pick the rung yourself.
 
 ## The ladder
 
 `cycleOrder` (cheap on the left, `default` in the middle):
 `haiku`, `default` (Terra), `hydrogen` (trial), `sol`, `sonnet`, `neon`,
-`opus`, `fable`, `auto-code`. A new session starts on the `default` role, not the first slot or
+`opus`, `fable`. A new session starts on the `default` role, not the first slot or
 the last model used. `Ctrl+P` climbs, `Shift+Ctrl+P` steps down.
 
 | Rung | Role | Model | Use when |
@@ -41,7 +43,6 @@ the last model used. `Ctrl+P` climbs, `Shift+Ctrl+P` steps down.
 | 3 | `neon` | Gemini 4 Neon (`xhigh`) | Hard coding and agent work; codebase questions; long context, audio/video input |
 | 3 | `opus` | Claude Opus 5.5 | Hard coding where a Claude take is wanted (leads FrontierCode); also the `plan` role |
 | last | `fable` | Claude Fable 5.2 (subscription) | Hard problems nothing else solved |
-| router | `auto-code` | OpenRouter Auto Code | Let OpenRouter pick among Terra, Hydrogen, Sol, Sonnet, Neon, Opus |
 
 ### Picking a model in practice
 
@@ -78,7 +79,7 @@ dropdown lists the four `(sub)` Anthropic models, a direct
 then the OpenRouter cycle models. Type to filter instead of scrolling.
 
 Adopted: **favorites.** `agent_servers.omp.favorite_config_option_values.model`
-in `zed/.config/zed/settings.json` stars the nine cycle models (OpenRouter
+in `zed/.config/zed/settings.json` stars the eight cycle models (OpenRouter
 rows, Fable as the subscription row). Zed then shows a "Favorites" section above
 the full list and `alt-tab` cycles only those in an omp thread, skipping the
 `(sub)` twins and the direct-Gemini duplicate. Both follow omp's option order,
@@ -196,10 +197,16 @@ Output speed (tokens per second, where measured): Sonnet 147, Opus 118, Neon
   weekly cap.
 - **Haiku is the only step down; Luna is dropped.** Same list price, Haiku
   scores 36 vs Luna's 28; Luna's lower verbosity saves fractions of a cent on
-  commit messages. Consistency won. Haiku's 100K context is the catch: it is
-  kept out of Auto Code (1M override) and makes the advisor compact more.
-- **Auto Code pool:** Terra, Hydrogen, Sol, Sonnet, Neon, Opus. Fable is out so
-  the user decides when to spend on it; Haiku is out for its context.
+  commit messages. Consistency won. Haiku's 100K context is the catch: it
+  makes the advisor compact more.
+- **Auto Code router removed (2026-11-19).** Narrowing the pool to one model
+  per request showed Sol, Sonnet and Opus route; Neon and Hydrogen fail with
+  "No measured models satisfy the Auto Code policy" (new releases wait until
+  OpenRouter measures them) and Terra with "No router pool model is
+  routable", so the six-model pool was really three. omp also records and
+  shows `openrouter/auto-code` instead of the routed model, so there was no
+  way to tell what ran. Picking a rung directly is clearer and covers the
+  newest models.
 
 ## Considered and not adopted
 
@@ -231,10 +238,12 @@ Output speed (tokens per second, where measured): Sonnet 147, Opus 118, Neon
    - Add a side step only if it brings a different family or a capability the
      rungs lack (context, modality, a coding-component lead).
    - Skip it if an existing rung beats it on coding, cost and time together.
-4. **Check context windows** against roles that need long context (Auto Code's
-   1M override, the advisor, long sessions on `default`).
-5. **Keep consistency:** only cycle models in roles, chains, the Auto Code
-   pool and both Zed favorites lists; Fable-class models stay out of Auto Code.
+4. **Check context windows** against roles that need long context (the
+   advisor, long sessions on `default`).
+5. **Keep consistency:** only cycle models in roles, chains and both Zed
+   favorites lists. If a router is ever reconsidered, first check which pool
+   models it actually routes (one model per request) and whether omp shows
+   the routed model.
 6. **Apply** with the omp-models-sync skill, then update this file's tables
    and choices (or add a dated section if the reasoning changed).
 

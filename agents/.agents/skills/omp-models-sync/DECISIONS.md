@@ -124,24 +124,31 @@ applied as PROPOSED.
   generation" drift.
 - Cycle order is a rough cheap-to-expensive line with `default` (Terra) in the
   middle: `haiku`, `default`, `hydrogen` (trial), `sol`, `sonnet`, `neon`,
-  `opus`, `fable`, `auto-code`. New sessions start on the `default` role (not the first
+  `opus`, `fable`. New sessions start on the `default` role (not the first
   slot or last used model), so slot order only sets what `Ctrl+P` /
   `Shift+Ctrl+P` reach next; keep `terra` out of the cycle (`default` is it) and
   Sol in. `luna` is out too (user, 2026-11): Haiku 5.5 scores 36 vs Luna's 28 at
   the same list price, and one step-down slot is enough. Rationale: Artificial
   Analysis 2026-11 (Sol 6.2 beats Terra on index at similar cost per task) and
   the coding note below.
-- Every role, chain and the Auto Code pool use only cycle models (or their
+- Every role and chain uses only cycle models (or their
   `*-sub` / Codex twins) (user, 2026-11, consistency over Luna's small savings).
   `commit` -> Haiku `:medium`, `advisor` -> Haiku `:high` (cheap, different
   family from the Terra default; its 100K window means more advisor
-  compaction). The `luna` and `oa-s` roles, the Luna chain and Luna in the Auto
-  Code pool are gone; `RETIRED_RE` in `setup-settings.sh` strips them from a
+  compaction). The `luna` and `oa-s` roles and the Luna chain are gone; `RETIRED_RE` in `setup-settings.sh` strips them from a
   live config.
-- Auto Code pool (user, 2026-11): Terra, Hydrogen (trial), Sol, Sonnet, Opus,
-  Neon. Fable stays out on purpose: the user decides when to spend on it by
-  picking it explicitly. Haiku stays out because its 100K context is below the
-  router's 1M override. Revisit if a cycle model is added or dropped.
+- **No OpenRouter Auto Code router** (user, removed 2026-11-19). Tested with
+  the pool narrowed to one model per request: Sol, Sonnet and Opus routed;
+  Gemini 4 Neon and Hydrogen failed with "No measured models satisfy the Auto
+  Code policy" (OpenRouter only routes models it has measured, so new releases
+  are left out), and GPT-6.1 Terra with "No router pool model is routable". The
+  six-model pool was really three. omp also records and shows
+  `openrouter/auto-code`, not the routed model (only in the response `model`
+  field or the generation record), so you can't tell what ran. The role, tag,
+  empty fallback chain, cycle slot, Zed favorite, `setup-auto-code.sh` and its
+  test are gone; `RETIRED_RE` and the role/tag `del` lists strip them from a
+  live config. Revisit only if the router covers new models promptly and omp
+  shows the routed model; run the router check in `SKILL.md` Gotchas first.
 - Coding benchmarks decide the top of the ladder (user, 2026-11-19). On the
   Artificial Analysis Coding Agent Index v2.1 (each model in its own vendor's
   harness): Neon xhigh 58.6 ($6.86/task), Fable 5.2 high 58.2, Opus 5.5 max
@@ -159,9 +166,8 @@ applied as PROPOSED.
 - `hydrogen` is a **trial** (user, 2026-11-19): Gemini 4 Hydrogen at `high`,
   right after `default`. Same general index as Terra (51) at about 2x the cost
   per task, but about 1.7x faster per task and 10x faster to the first token
-  (17 s vs 173 s); 52.3 on the Coding Agent Index at `xhigh`. In the Auto Code
-  pool too (user, 2026-11-19); Zed hosts no Hydrogen, so no native
-  favorite. To end the trial: drop it from `DEFAULT_ROLES`, `DEFAULT_MODEL_TAGS`
+  (17 s vs 173 s); 52.3 on the Coding Agent Index at `xhigh`. Zed hosts no Hydrogen, so no
+  native favorite. To end the trial: drop it from `DEFAULT_ROLES`, `DEFAULT_MODEL_TAGS`
   and `CYCLE_ORDER`, add `.hydrogen` to the role and tag `del` lists, remove it
-  from the Auto Code pool (and its test) and the omp Zed favorites, and update
+  from the omp Zed favorites, and update
   the docs and the ladder record.
