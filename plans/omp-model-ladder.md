@@ -43,6 +43,27 @@ the last model used. `Ctrl+P` climbs, `Shift+Ctrl+P` steps down.
 | last | `fable` | Claude Fable 5.2 (subscription) | Hard problems nothing else solved |
 | router | `auto-code` | OpenRouter Auto Code | Let OpenRouter pick among Terra, Hydrogen, Sol, Sonnet, Neon, Opus |
 
+### Picking a model in practice
+
+- **Coding, codebase exploration and explanations: Neon.** It beats Sonnet on
+  all three, leads on questions about a codebase and long context, and starts
+  answering fastest of the strong models (about 1 minute vs about 5 for Sonnet
+  and 6 for Opus).
+- **Reviews: Neon first, Opus as the careful second pass.** Opus edges ahead on
+  merge-quality judgment and is more willing to say it doesn't know; it is the
+  slowest to start.
+- **"Faster" has three meanings.** Time to first token, time to finish a task
+  and tokens per second rank models differently: Neon starts soonest, Sol
+  finishes soonest, and the Claude models stream fastest once they start.
+- **Sol is the quick general model, not a coder.** It finishes general tasks
+  about 2.6x faster than Neon for a fraction of the cost, but scores below
+  Sonnet on coding.
+- **Hydrogen is the speed trial at Terra's level**: same general score, much
+  quicker to start and finish, at about twice the cost per task.
+- **Speed and price on paper mislead.** Verbose models cost and take far more
+  per task than their list price or streaming speed suggest; compare per-task
+  numbers.
+
 ### The ladder exists only in the terminal
 
 `Ctrl+P` and `Alt+O` follow `cycleOrder`; Zed's omp model dropdown does not.
