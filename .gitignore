@@ -54,3 +54,4 @@ iterm2/com.googlecode.iterm2.plist
 !/herdr/.config/herdr/config.toml
 /fixtures/target/
 /fixtures/Cargo.lock
+/fixtures/fixtures
