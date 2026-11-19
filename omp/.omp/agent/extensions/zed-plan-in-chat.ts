@@ -32,6 +32,10 @@ const ENV_FLAG = "OMP_ZED_PLAN_IN_CHAT";
 const PATCHED = Symbol.for("zed-plan-in-chat");
 // Mirrors the preview rule in omp's #requestAcpPlanApprovalChoice.
 const PREVIEW_LINES = 12;
+// Larger plans are cut in the chat copy; the plan file stays the full record.
+const MAX_CHAT_CHARS = 100_000;
+// lastPosted is never told when a session closes; keep only the newest few.
+const MAX_SESSIONS = 32;
 
 type LocalProtocolOptions = { getArtifactsDir(): string; getSessionId(): string };
 type PlanFileOptions = { localProtocolOptions: LocalProtocolOptions; cwd: string };
@@ -117,7 +121,8 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
   if (globals[PATCHED]) return;
   globals[PATCHED] = true;
 
-  // Keyed by the exact approval message; overwritten on re-proposal, deleted on use.
+  // Keyed by the exact approval message; deleted on use, or once omp's handler
+  // returns without eliciting (e.g. a client without form elicitation).
   const stash = new Map<string, Stashed>();
   // Last plan text posted per ACP session. After Refine, plan mode keeps nudging
   // the model to call a tool, so it often re-proposes an unchanged plan within
@@ -133,9 +138,9 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
     return originalPrompt.call(this, params);
   };
 
-  async function remember(session: SessionLike, title: string): Promise<void> {
+  async function remember(session: SessionLike, title: string): Promise<string | undefined> {
     const state = session.getPlanModeState();
-    if (!state?.enabled) return;
+    if (!state?.enabled) return undefined;
     const manager = session.sessionManager;
     const options: PlanFileOptions = {
       localProtocolOptions: {
@@ -151,11 +156,13 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
       readPlan: url => host!.readPlanFile(url, options),
       listPlanFiles: () => host!.listPlanFiles({ localProtocolOptions: options.localProtocolOptions }),
     });
-    stash.set(approvalMessage(plan.title, plan.planContent), {
+    const key = approvalMessage(plan.title, plan.planContent);
+    stash.set(key, {
       title: plan.title,
       planContent: plan.planContent,
       absPath: host!.resolvePlanFilePath(plan.planFilePath, options),
     });
+    return key;
   }
 
   const sessionProto = host.AgentSession.prototype;
@@ -163,8 +170,12 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
   sessionProto.setPlanProposalHandler = function (this: SessionLike, handler: PlanProposalHandler | null) {
     const wrapped: PlanProposalHandler | null = handler
       ? async title => {
-          await remember(this, title).catch(() => {});
-          return handler(title);
+          const key = await remember(this, title).catch(() => undefined);
+          try {
+            return await handler(title);
+          } finally {
+            if (key !== undefined) stash.delete(key);
+          }
         }
       : handler;
     return originalSetHandler.call(this, wrapped);
@@ -177,7 +188,12 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
     const hit = key === undefined ? undefined : stash.get(key);
     if (!hit) return originalElicit.call(this, params);
     stash.delete(key!);
-    const text = `${hit.planContent.trimEnd()}\n\n---\n\nPlan file: \`${hit.absPath}\``;
+    const body = hit.planContent.trimEnd();
+    const shown =
+      body.length > MAX_CHAT_CHARS
+        ? `${body.slice(0, MAX_CHAT_CHARS)}\n\n… (plan cut at ${MAX_CHAT_CHARS} characters; the file below has all of it)`
+        : body;
+    const text = `${shown}\n\n---\n\nPlan file: \`${hit.absPath}\``;
     const unchanged = lastPosted.get(params.sessionId) === text;
     if (!unchanged) {
       try {
@@ -192,7 +208,9 @@ export default async function zedPlanInChat(_pi: ExtensionAPI) {
       } catch {
         return originalElicit.call(this, params);
       }
+      lastPosted.delete(params.sessionId);
       lastPosted.set(params.sessionId, text);
+      if (lastPosted.size > MAX_SESSIONS) lastPosted.delete(lastPosted.keys().next().value!);
     }
     const pointer = unchanged ? "The plan is unchanged from the copy above." : "The full plan is in the chat above.";
     return originalElicit.call(this, {

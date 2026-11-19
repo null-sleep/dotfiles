@@ -6,6 +6,8 @@
 //   bun omp/tests/zed-plan-in-chat-smoke.ts without  # env unset: stock 12-line card
 // Optional third arg: substring of the model to use (default "haiku").
 // DUMP=<n> prints every recorded event from index n.
+// STRICT=1 fails a SKIP (the model never re-proposed, so dedupe went untested).
+// On any failure, the tail of omp's stderr is printed.
 type Obj = Record<string, unknown>;
 type Msg = { jsonrpc: "2.0"; id?: number | string; method?: string; params?: Obj; result?: Obj; error?: unknown };
 
@@ -28,8 +30,14 @@ else delete env.OMP_ZED_PLAN_IN_CHAT;
 
 const proc = Bun.spawn(
   ["/opt/homebrew/bin/omp", "acp", "--approval-mode", "yolo", "--config", `${process.env.HOME}/.omp/agent/zed-models.yml`],
-  { stdin: "pipe", stdout: "pipe", stderr: "ignore", env, cwd: workdir },
+  { stdin: "pipe", stdout: "pipe", stderr: "pipe", env, cwd: workdir },
 );
+// Drained continuously so a chatty omp can't block on a full pipe.
+let stderrText = "";
+void (async () => {
+  const decoder = new TextDecoder();
+  for await (const chunk of proc.stderr) stderrText = (stderrText + decoder.decode(chunk)).slice(-8000);
+})();
 // Any hang (omp exiting mid-handshake, a lost response) fails instead of blocking.
 setTimeout(() => {
   console.log("FAIL overall timeout");
@@ -229,5 +237,8 @@ const checks: [string, boolean | "skip"][] =
         ["stock 12-line preview", elicitMessage.includes("Step 1:") && elicitMessage.endsWith("\n…")],
         ["stayed in plan mode", !modeToDefault],
       ];
-for (const [name, ok] of checks) console.log(`${ok === "skip" ? "SKIP" : ok ? "PASS" : "FAIL"} ${name}`);
-process.exit(checks.every(([, ok]) => ok !== false) ? 0 : 1);
+const strict = process.env.STRICT === "1";
+for (const [name, ok] of checks) console.log(`${ok === "skip" ? (strict ? "FAIL (skip)" : "SKIP") : ok ? "PASS" : "FAIL"} ${name}`);
+const passed = checks.every(([, ok]) => ok === true || (ok === "skip" && !strict));
+if (!passed && stderrText.trim()) console.log(`--- omp stderr (tail) ---\n${stderrText.slice(-2000)}`);
+process.exit(passed ? 0 : 1);
