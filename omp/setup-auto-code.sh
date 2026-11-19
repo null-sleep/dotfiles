@@ -25,7 +25,8 @@ ruby -ryaml -e '
     openai/gpt-6.2-sol
     anthropic/claude-sonnet-5.5
     anthropic/claude-opus-5.5
-    google/gemini-4-carbon
+    google/gemini-4-neon
+    google/gemini-4-hydrogen
   ]
 
   def mapping(parent, key, path)

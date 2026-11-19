@@ -68,7 +68,7 @@ applied as PROPOSED.
 ## Zed picker scope
 
 - Regenerated from roles every run. `*/*<id>` patterns match every provider,
-  so extras (a second, unlabelled direct Gemini 4 Carbon) are tolerated and
+  so extras (a second, unlabelled direct Gemini 4 Neon) are tolerated and
   reported; a missing model is not. `(sub)` labels come from
   `setup-model-labels.sh`, which `setup-settings.sh` does not run (`SKILL.md`
   Procedure step 4).
@@ -100,10 +100,10 @@ applied as PROPOSED.
 
 - User (2026-11): one zed.dev favorite per omp cycle model, so the native
   picker matches the ladder: Haiku 4.5, GPT-5.6 Terra, GPT-6.1 Sol, Sonnet
-  5.5, GPT-6 Astra, Gemini 4 Argon (stand-in for Carbon), Opus 5.5, Fable 5.2.
-  Use the newest generation Zed hosts for each; replace Argon with Gemini 4
-  Carbon once Zed hosts it. Models outside the cycle stay out (Gemini 3.5
-  Flash, GPT-6 Luna, GPT-5.3-Codex, GPT-5 mini and nano). Zed only, not omp.
+  5.5, Gemini 4 Argon (stand-in for Neon), Opus 5.5, Fable 5.2. Use the newest
+  generation Zed hosts for each; replace Argon with Gemini 4 Neon once Zed
+  hosts it. Models outside the cycle stay out (GPT-6 Astra, Gemini 3.5 Flash,
+  GPT-6 Luna, GPT-5.3-Codex, GPT-5 mini and nano). Zed only, not omp.
 - Zed can't hide models (`hidden_models`, zed-industries/zed#52347, closed
   unmerged; `available_models` only adds), so `agent.favorite_models` pins
   instead, and shows the pins in Zed's catalog order, not the settings order.
@@ -111,7 +111,7 @@ applied as PROPOSED.
 - Not omp: Zed 1.28.1's native Agent (1.29.1 unchanged in source) can fail on Claude with
   `unknown variant 'between_tools'`, mostly during compaction; reloading the
   agent clears it. Don't change model settings for it.
-- Revisit if Zed ships a hide/allowlist setting, or hosts Carbon or a newer
+- Revisit if Zed ships a hide/allowlist setting, or hosts Neon or a newer
   generation of a pinned line.
 
 ## Standing notes for each round
@@ -121,14 +121,14 @@ applied as PROPOSED.
   `setup-settings.sh` strips them from a live config. Don't re-add them as "newest
   generation" drift.
 - Cycle order is a rough cheap-to-expensive line with `default` (Terra) in the
-  middle: `haiku`, `default`, `sol`, `sonnet`, `astra`, `carbon`, `opus`,
-  `fable`, `auto-code`. New sessions start on the `default` role (not the first
+  middle: `haiku`, `default`, `hydrogen` (trial), `sol`, `sonnet`, `neon`,
+  `opus`, `fable`, `auto-code`. New sessions start on the `default` role (not the first
   slot or last used model), so slot order only sets what `Ctrl+P` /
   `Shift+Ctrl+P` reach next; keep `terra` out of the cycle (`default` is it) and
   Sol in. `luna` is out too (user, 2026-11): Haiku 5.5 scores 36 vs Luna's 28 at
   the same list price, and one step-down slot is enough. Rationale: Artificial
-  Analysis 2026-11 (Sol 6.2 beats Terra on index at similar cost per task; Astra
-  ties Fable on FrontierCode at far lower cost).
+  Analysis 2026-11 (Sol 6.2 beats Terra on index at similar cost per task) and
+  the coding note below.
 - Every role, chain and the Auto Code pool use only cycle models (or their
   `*-sub` / Codex twins) (user, 2026-11, consistency over Luna's small savings).
   `commit` -> Haiku `:medium`, `advisor` -> Haiku `:high` (cheap, different
@@ -136,14 +136,30 @@ applied as PROPOSED.
   compaction). The `luna` and `oa-s` roles, the Luna chain and Luna in the Auto
   Code pool are gone; `RETIRED_RE` in `setup-settings.sh` strips them from a
   live config.
-- Auto Code pool (user, 2026-11): Terra, Sol, Sonnet, Opus, Carbon only.
-  Astra and Fable stay out on purpose: the user decides when to spend on them
-  by picking them explicitly. Haiku stays out because its 100K context is
-  below the router's 1M override. Revisit if a cycle model is added or dropped.
+- Auto Code pool (user, 2026-11): Terra, Hydrogen (trial), Sol, Sonnet, Opus,
+  Neon. Fable stays out on purpose: the user decides when to spend on it by
+  picking it explicitly. Haiku stays out because its 100K context is below the
+  router's 1M override. Revisit if a cycle model is added or dropped.
+- Coding benchmarks decide the top of the ladder (user, 2026-11-19). On the
+  Artificial Analysis Coding Agent Index v2.1 (each model in its own vendor's
+  harness): Neon xhigh 58.6 ($6.86/task), Fable 5.2 high 58.2, Opus 5.5 max
+  58.2, Sonnet 5.5 max 56.3, Carbon high 55.5 ($9.75), GPT-6.2 Astra max 53.5
+  ($5.12). So Neon replaced Carbon (better and cheaper; Carbon's price doubles
+  on 2026-12-01) and Astra was dropped with its `oa-xl` role and chain steps
+  (it trailed Neon, Opus and Sonnet on coding despite the higher general
+  index). `neon` runs at `xhigh`, the measured setting. Revisit if Astra's
+  successor or a Neon `high` row changes the coding order.
 - Fallback chains and the Codex `oa-*` roles track the newest generation of each
-  tier (terra 6.1, sol 6.2, astra 6.2), same as the OpenRouter roles. The
-  Codex catalog on this machine lists only `gpt-6-luna` (and 5.6 Luna/Terra), so
-  the 6.1/6.2 Codex ids are unverified; omp skips unavailable steps. Revisit if a
-  Codex id turns out not to exist.
-- Not adopted, flag each round: `gemini-4-hydrogen` (supports `xhigh`;
-  `carbon` stops at `high`).
+  tier (terra 6.1, sol 6.2), same as the OpenRouter roles. The Codex catalog on
+  this machine lists only `gpt-6-luna` (and 5.6 Luna/Terra), so the 6.1/6.2
+  Codex ids are unverified; omp skips unavailable steps. Revisit if a Codex id
+  turns out not to exist.
+- `hydrogen` is a **trial** (user, 2026-11-19): Gemini 4 Hydrogen at `high`,
+  right after `default`. Same general index as Terra (51) at about 2x the cost
+  per task, but about 1.7x faster per task and 10x faster to the first token
+  (17 s vs 173 s); 52.3 on the Coding Agent Index at `xhigh`. In the Auto Code
+  pool too (user, 2026-11-19); Zed hosts no Hydrogen, so no native
+  favorite. To end the trial: drop it from `DEFAULT_ROLES`, `DEFAULT_MODEL_TAGS`
+  and `CYCLE_ORDER`, add `.hydrogen` to the role and tag `del` lists, remove it
+  from the Auto Code pool (and its test) and the omp Zed favorites, and update
+  the docs and the ladder record.

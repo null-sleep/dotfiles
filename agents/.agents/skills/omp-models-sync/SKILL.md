@@ -61,7 +61,7 @@ project with its own `.omp/` config: prefix omp commands with
   `model` select) lists. Regenerated from `modelRoles` on every run of
   `setup-settings.sh`. Patterns are `*/*<model-id>`, matching the id on every
   provider, so a role's model also pulls in same-id models elsewhere (the
-  `carbon` role also lists direct `google/gemini-4-carbon`). **The `oa-*`
+  `neon` role also lists direct `google/gemini-4-neon`). **The `oa-*`
   (Codex) roles are deliberately excluded** from the scope; see
   [Zed picker scope](DECISIONS.md#zed-picker-scope). Extras are expected; a
   missing model is not.
@@ -201,7 +201,7 @@ than editing silently, since each tool has its own catalog and price list.
   omp's `default_config_options.model`.
 - **zed.dev lags OpenRouter.** As of 2026-11 (Zed 1.29.1) Zed hosts Fable
   5.2 (same as OpenRouter), Haiku 4.5 (5.5), GPT-5.6 Terra (6.1 Terra), and
-  no Gemini 4 Carbon or Hydrogen. Only pin what https://zed.dev/docs/ai/models lists; never
+  no Gemini 4 Neon, Carbon or Hydrogen. Only pin what https://zed.dev/docs/ai/models lists; never
   copy omp's newest ids into `favorite_models`. Zed ids follow neither omp
   form exactly: Claude is dashed (`claude-opus-5-5`), GPT and Gemini are
   dotted (`gpt-6.1-sol`, `gemini-3.5-flash`), provider `zed.dev`. Verify an
@@ -226,8 +226,8 @@ holds provider names) before assuming they are empty.
 
 1. **Discover.** For each provider (`openrouter`, `anthropic`; `openai-codex`
    only as a quick check, see Gotchas) run `omp models find <family> --json`
-   for every family in the cycle, `*-sub`, `astra`, `fable`,
-   `carbon`, the fallback chains, and the Auto Code pool. Find the newest
+   for every family in the cycle, `*-sub`, `neon`, `fable`, the fallback
+   chains, and the Auto Code pool. Find the newest
    version and note anything deprecated, renamed, repriced or missing. Check
    thinking levels the model supports before keeping a `:level` suffix. If an
    OpenRouter id is missing, run the ZDR check in Gotchas before calling it
@@ -279,7 +279,7 @@ holds provider names) before assuming they are empty.
    process starts.
 6. **Native Zed Agent favorites.** Fetch https://zed.dev/docs/ai/models and
    check, for each omp cycle model, whether Zed hosts a newer counterpart than
-   the one in `agent.favorite_models` (and whether Gemini 4 Carbon is hosted
+   the one in `agent.favorite_models` (and whether Gemini 4 Neon is hosted
    yet, to replace Argon; a standing TODO in that file). The list holds exactly
    one zed.dev model per cycle model; add or drop a favorite when the cycle
    changes. Update the list and the `docs/zed.md` paragraph (models, prices,
@@ -329,7 +329,7 @@ EOF
 ```
 
 Expect the `(sub)` rows (`anthropic/*`) and the OpenRouter rows, sorted by
-provider, so an unlabelled `google/gemini-4-carbon` lands right after the
+provider, so an unlabelled `google/gemini-4-neon` lands right after the
 Anthropic rows. Check by content, not row count (it shifts as roles change):
 every cycle and `*-sub` model is present and no retired model (DeepSeek, Kimi,
 GLM, GPT-6 Luna) is listed. Expect no Codex rows: no non-`oa-` role names a
@@ -337,13 +337,13 @@ Codex-catalog id since the `luna` role (which pulled in
 `openai-codex/gpt-6-luna`) was dropped. Codex `gpt-5.6-terra` and OpenRouter
 `gpt-5.6-sol`/`gpt-5.6-terra` should NOT appear; if they do, the `oa-` exclusion in
 `setup-zed-models.sh` was lost. Known extras from the id-wide patterns: a
-second, unlabelled "Gemini 4 Carbon" (direct `google/gemini-4-carbon`). Report
+second, unlabelled "Gemini 4 Neon" (direct `google/gemini-4-neon`). Report
 new or surprising extras; do not hand-edit `zed-models.yml` (it is generated).
 
 The probe needs `OPENROUTER_API_KEY` in its environment, as Zed's omp process
 has it. Without it (seen from an eval kernel, 2026-11-16) `session/new`
 lists only a handful of rows (`anthropic/*`, Codex and
-`google/gemini-4-carbon`) and starts on a subscription model; that is a probe
+`google/gemini-4-neon`) and starts on a subscription model; that is a probe
 artifact, not drift.
 
 ## Flag to the user
@@ -367,7 +367,7 @@ Always surface these in your final report, even if you resolved them:
   anything else that would behave differently in a Zed ACP thread (other than
   the Zed dropdown model the user picked, which is out of scope).
 - A newer zed.dev-hosted model than one in `agent.favorite_models`, a
-  favorite Zed no longer hosts, Gemini 4 Carbon becoming available on Zed,
+  favorite Zed no longer hosts, Gemini 4 Neon becoming available on Zed,
   a favorite id you couldn't verify, and an introductory price ending (Gemini
   4 Argon: $2.20/$11 until 2026-11-30, then $4/$20).
 - omp release notes affecting roles, `task.perCallModel*`, `cycleOrder`,

@@ -41,8 +41,8 @@ DEFAULT_ROLES='{
   "slow": "@sol",
   "sonnet": "openrouter/anthropic/claude-sonnet-5.5:high",
   "opus": "openrouter/anthropic/claude-opus-5.5:high",
-  "carbon": "openrouter/google/gemini-4-carbon:high",
-  "astra": "openrouter/openai/gpt-6.2-astra:xhigh",
+  "neon": "openrouter/google/gemini-4-neon:xhigh",
+  "hydrogen": "openrouter/google/gemini-4-hydrogen:high",
   "fable": "anthropic/claude-fable-5-2:high",
   "auto-code": "openrouter/openrouter/auto-code",
   "vision": "openrouter/openai/gpt-6.1-terra:high",
@@ -56,8 +56,7 @@ DEFAULT_ROLES='{
   "sonnet-sub": "anthropic/claude-sonnet-5-5:high",
   "opus-sub": "anthropic/claude-opus-5-5:high",
   "haiku-sub": "anthropic/claude-haiku-5-5:medium",
-  "fable-sub": "anthropic/claude-fable-5-2:high",
-  "oa-xl": "openai-codex/gpt-6.2-astra:xhigh"
+  "fable-sub": "anthropic/claude-fable-5-2:high"
 }'
 DEFAULT_MODEL_TAGS='{
   "med-vision": {"name": "med-vision"},
@@ -65,8 +64,8 @@ DEFAULT_MODEL_TAGS='{
   "oa-l": {"name": "oa-l"},
   "sonnet": {"name": "sonnet"},
   "opus": {"name": "opus"},
-  "carbon": {"name": "carbon"},
-  "astra": {"name": "astra"},
+  "neon": {"name": "neon"},
+  "hydrogen": {"name": "hydrogen"},
   "fable": {"name": "fable"},
   "auto-code": {"name": "auto-code"}
 }'
@@ -77,16 +76,9 @@ DEFAULT_FALLBACK_CHAINS='{
   ],
   "openrouter/openai/gpt-6.1-terra": [
     "openai-codex/gpt-6.1-terra:high",
-    "openai-codex/gpt-6.2-sol:xhigh",
-    "openai-codex/gpt-6.2-astra:xhigh"
+    "openai-codex/gpt-6.2-sol:xhigh"
   ],
   "openrouter/openai/gpt-6.2-sol": [
-    "openai-codex/gpt-6.2-sol:xhigh",
-    "openai-codex/gpt-6.2-astra:xhigh",
-    "openai-codex/gpt-6.1-terra:high"
-  ],
-  "openrouter/openai/gpt-6.2-astra": [
-    "openai-codex/gpt-6.2-astra:xhigh",
     "openai-codex/gpt-6.2-sol:xhigh",
     "openai-codex/gpt-6.1-terra:high"
   ]
@@ -150,12 +142,13 @@ roles="$(omp config get modelRoles --json | jq -c '.value // {}')"
 # background features keep a cheap or strong model.
 # Roles use only the cycle's models. Selectors naming a retired provider
 # (DeepSeek, Moonshot/Kimi, Z.AI/GLM) or a model dropped from the cycle (GPT-6
-# Luna) are matched in role values, chain keys and chain steps.
-RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna'
+# Luna, GPT-6.x Astra, Gemini 4 Carbon) are matched in role values, chain keys
+# and chain steps.
+RETIRED_RE='deepseek|moonshotai|z-ai/|gpt-6-luna|gpt-6(\.[0-9]+)?-astra|gemini-4-carbon'
 # OpenRouter Fable is hidden by the ZDR setting, so a machine still carrying the
 # dead OpenRouter `fable` id is moved onto the subscription model below.
 migrated_roles="$(jq -c --arg re "$RETIRED_RE" '
-  del(."default-cheap", ."cheap-alt", .dseek, .kimi, ."glm-l", ."glm-fast", ."cheap-l", .luna, ."oa-s")
+  del(."default-cheap", ."cheap-alt", .dseek, .kimi, ."glm-l", ."glm-fast", ."cheap-l", .luna, ."oa-s", .astra, .carbon, ."oa-xl")
   | if has("terra") then . else
       (if has("slow") then .sol = .slow else . end)
       | (if has("default") then .terra = .default else . end)
@@ -176,7 +169,7 @@ else
 fi
 
 tags="$(omp config get modelTags --json | jq -c '.value // {}')"
-merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast", ."oa-s")' <<<"$tags")"
+merged_tags="$(jq -c --argjson defaults "$DEFAULT_MODEL_TAGS" '$defaults + . | del(.argon, ."glm-l", ."glm-fast", ."oa-s", .astra, .carbon)' <<<"$tags")"
 if [ "$merged_tags" != "$tags" ]; then
   omp config set modelTags "$merged_tags"
 else
@@ -200,7 +193,7 @@ else
   echo "retry.fallbackChains presets already set — left as-is."
 fi
 
-CYCLE_ORDER='["haiku","default","sol","sonnet","astra","carbon","opus","fable","auto-code"]'
+CYCLE_ORDER='["haiku","default","hydrogen","sol","sonnet","neon","opus","fable","auto-code"]'
 # Direct Anthropic subscription twins of cycle models: selectable per call
 # ("use the sonnet sub model"), kept out of the Ctrl+P/Alt+O cycle.
 SUB_ROLES='["sonnet-sub","opus-sub","haiku-sub","fable-sub"]'

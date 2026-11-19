@@ -85,7 +85,7 @@ Inside the TUI:
 The zsh `ompf` alias starts a new session on the `default` role (Terra) with
 OpenAI priority serving: `omp --service-tier priority`. Inside an existing
 session, `/fast` toggles the same service tier independently of the model role;
-turn it off before switching to Sol or Astra unless they should also use the
+turn it off before switching to Sol unless it should also use the
 more expensive priority tier.
 
 Tool approval defaults to `yolo` (auto-approve everything). `--approval-mode
@@ -399,7 +399,7 @@ the shadow — dark-dracula applies. Left unworked around deliberately; see
 omp routes everything through **model roles**. The default is OpenRouter Terra
 at high thinking; built-in roles feed features such as plan mode, subagents,
 background work, and `omp commit`. The cycle presets are roles named after
-their models (`sonnet`, `haiku`, `sol`, `astra`, …); `smol` and `tiny` alias
+their models (`sonnet`, `haiku`, `sol`, `neon`, …); `smol` and `tiny` alias
 `@haiku` and `slow` aliases `@sol` so background work keeps a cheap or strong
 model. This setup exposes switchable cycle presets through model roles:
 
@@ -407,10 +407,10 @@ model. This setup exposes switchable cycle presets through model roles:
 cycleOrder:
   - haiku
   - default
+  - hydrogen
   - sol
   - sonnet
-  - astra
-  - carbon
+  - neon
   - opus
   - fable
   - auto-code
@@ -423,10 +423,10 @@ modelRoles:
   tiny: "@haiku"
   slow: "@sol"
   auto-code: openrouter/openrouter/auto-code
-  carbon: openrouter/google/gemini-4-carbon:high
+  hydrogen: openrouter/google/gemini-4-hydrogen:high  # trial
+  neon: openrouter/google/gemini-4-neon:xhigh
   sonnet: openrouter/anthropic/claude-sonnet-5.5:high
   opus: openrouter/anthropic/claude-opus-5.5:high
-  astra: openrouter/openai/gpt-6.2-astra:xhigh
   fable: anthropic/claude-fable-5-2:high  # subscription; OpenRouter Fable is ZDR-blocked
 ```
 
@@ -436,10 +436,14 @@ are seeded. The first run on a machine without a `terra` role migrates the old
 `terra` stays a role but is not in the cycle, since `default` selects the same
 model. `setup-settings.sh` pins `cycleOrder` to the sequence above, a rough
 cheap-to-expensive line with `default` (Terra) in the middle: `Ctrl+P` climbs
-(Sol, Sonnet, Astra, Carbon, Opus, Fable), `Shift+Ctrl+P` steps down (Haiku).
+(Hydrogen, Sol, Sonnet, Neon, Opus, Fable), `Shift+Ctrl+P` steps down (Haiku).
+`hydrogen` (Gemini 4 Hydrogen at `high`) is a trial slot: same general score
+as Terra, about 1.7x faster per task and 10x faster to the first token, at
+about twice the cost per task.
 Every role uses a cycle model (or its `*-sub` / Codex twin): `commit` and
-`advisor` run on Haiku, `task`/`vision` on Terra, `plan` on Opus. GPT-6 Luna was
-dropped; `setup-settings.sh` removes a live `luna` role and remaps Luna-based
+`advisor` run on Haiku, `task`/`vision` on Terra, `plan` on Opus. GPT-6 Luna,
+GPT-6.2 Astra and Gemini 4 Carbon were dropped; `setup-settings.sh` removes
+their roles and chain entries from a live config and remaps Luna-based
 `commit`/`advisor` values. Why these models and this order:
 [the model ladder](../plans/omp-model-ladder.md). A new session starts on the
 `default` role, not on the first cycle item or the last model used. `Alt+O`
@@ -462,8 +466,8 @@ procedure for a model-update round is the `omp-models-sync` skill
 
 The `auto-code` preset uses [OpenRouter Auto Code](https://openrouter.ai/docs/guides/routing/routers/auto-code)
 with a repo-owned hard allowlist drawn from the cycle: GPT-6.1 Terra, GPT-6.2
-Sol, Claude Sonnet 5.5, Claude Opus 5.5, and Gemini 4 Carbon. Astra and Fable
-are left out on purpose so they only run when picked explicitly, and Haiku 5.5
+Sol, Claude Sonnet 5.5, Claude Opus 5.5, Gemini 4 Neon, and Gemini 4 Hydrogen. Fable is left out
+on purpose so it only runs when picked explicitly, and Haiku 5.5
 because its 100K context window is below the router's 1M override.
 `setup-auto-code.sh` merges the model override into machine-local `models.yml`,
 including a 1,000,000 token context window and a 32,768 token output limit. It
@@ -478,10 +482,11 @@ upstream provider pins are not inherited; OpenRouter picks the model, effort,
 and provider.
 There is no fixed task-cost cap, and an unavailable pool can fail a request.
 
-The Carbon preset uses OpenRouter and `high` thinking, which the model
-supports. Carbon is geared toward difficult, long-running tasks and can spend
-more tokens per task than cheaper presets. Check current OpenRouter pricing
-before long runs.
+The Neon preset uses OpenRouter and `xhigh` thinking (OpenRouter offers `low`
+to `xhigh`), the setting its published coding scores were measured at. It
+replaced Gemini 4 Carbon, which scored lower on coding at a higher cost per
+task, and GPT-6.2 Astra, which trailed Neon and Opus on coding. Neon is
+verbose at `xhigh`; check current OpenRouter pricing before long runs.
 
 The subscription Fable model gets a model-specific automatic fallback chain to
 OpenRouter Opus 5.5 when its weekly cap is hit or the login fails. It is seeded

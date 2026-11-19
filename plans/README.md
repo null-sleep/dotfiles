@@ -706,11 +706,12 @@ Grouped by state, not priority.
   substitute-and-report rule, Zed picker without `oa-*`), the evidence, traps
   hit, review history and open items. Start here for the why; the
   `omp-models-sync` skill is the how-to.
-- [omp-model-ladder.md](omp-model-ladder.md) — decision record (2026-11-18):
-  which models the omp cycle uses, in what order, and why (Terra default, Sol,
-  Astra; Carbon/Opus as side steps; Fable last; Haiku only step-down), with the
-  Artificial Analysis and OpenRouter numbers behind it, what was not adopted,
-  and the checklist to redo the ladder when new models ship.
+- [omp-model-ladder.md](omp-model-ladder.md) — decision record (2026-11-18,
+  revised 2026-11-19): which models the omp cycle uses, in what order, and why
+  (Terra default, Sol, then Neon or Opus on coding benchmarks; Sonnet as a side
+  step; Fable last; Haiku only step-down; Astra and Carbon dropped), with the
+  Artificial Analysis coding and general numbers behind it, what was not
+  adopted, and the checklist to redo the ladder when new models ship.
 - [zed-spell-check.md](zed-spell-check.md) — decision record (2026-11-15):
   which Zed spell-check extension to use. Chosen: Codebook (code-aware
   identifiers, comments, strings); Typos as noise fallback, Harper for prose,

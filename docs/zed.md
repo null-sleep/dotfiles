@@ -759,14 +759,14 @@ picker matches the [omp ladder](../plans/omp-model-ladder.md), at the top of
 the selector (`alt-tab` cycles them, in Zed's order, not the settings order);
 the full list stays below. Pinned as of 2026-11 (Zed price per 1M in/out):
 Claude Haiku 4.5 ($1.10/$5.50), GPT-5.6 Terra ($2.20/$13.20), GPT-6.1 Sol
-($2.20/$11), Claude Sonnet 5.5 ($2.20/$11), GPT-6 Astra ($11/$55), Gemini 4
-Argon ($2.20/$11, intro price until Nov 30, then $4/$20; the stand-in for
-Carbon), Claude Opus 5.5 ($4.40/$22) and Claude Fable 5.2 ($8.80/$44, hosted
-since Zed 1.29). Models outside the omp cycle (Gemini 3.5 Flash, GPT-6 Luna,
+($2.20/$11), Claude Sonnet 5.5 ($2.20/$11), Gemini 4 Argon ($2.20/$11, intro
+price until Nov 30, then $4/$20; the stand-in for Neon), Claude Opus 5.5
+($4.40/$22) and Claude Fable 5.2 ($8.80/$44, hosted since Zed 1.29). Models
+outside the omp cycle (GPT-6 Astra, Gemini 3.5 Flash, GPT-6 Luna,
 GPT-5.3-Codex, GPT-5 mini and nano) are left out. Zed lags OpenRouter here:
-Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, GPT-6.1 Sol vs 6.2, GPT-6 Astra
-vs 6.2, and no Gemini 4 Carbon or Hydrogen. **TODO:** replace Argon with
-Gemini 4 Carbon (`google/gemini-4-carbon` on OpenRouter) once Zed hosts it.
+Haiku 4.5 vs 5.5, GPT-5.6 Terra vs 6.1 Terra, GPT-6.1 Sol vs 6.2, and no
+Gemini 4 Neon. **TODO:** replace Argon with Gemini 4 Neon
+(`google/gemini-4-neon` on OpenRouter) once Zed hosts it.
 
 **Auto-compaction is off** (`agent.auto_compact.enabled: false`) as a
 workaround for a Zed 1.28.1 bug: compacting a Claude thread fails with
