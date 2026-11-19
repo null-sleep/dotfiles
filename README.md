@@ -2439,8 +2439,8 @@ Verify with `ssh -T git@github.com` — a successful run prints `Hi <username>!`
 
 ## CMake
 
-Cross-platform build system generator, included in the [`Brewfile`](Brewfile).
-Install separately with `brew install cmake`.
+Cross-platform build system generator. The [`Brewfile`](Brewfile) installs it;
+run `brew install cmake` only if you skip the Brewfile.
 
 ## Colima
 
