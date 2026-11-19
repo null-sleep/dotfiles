@@ -212,8 +212,9 @@ tool. It does **not** run on switch, or for worktrees made with
   this repo's `settings.json` sets `session.trust_all_worktrees: true`; on
   a stock install, trust the main checkout first. That setting skips Zed's
   restricted mode, so an untrusted repo's `.zed/settings.json` (LSP binaries,
-  MCP servers, tasks) is honoured immediately, alongside auto-approved agent
-  tools.
+  MCP servers, tasks) is honoured immediately, and the Zed Agent keeps its
+  full auto-approved toolset there (restricted mode would drop it to a
+  profile with no write or terminal tools).
 - **Re-running.** Hook tasks also appear in the task picker
   (`cmd-shift-r`), so the template doubles as a manual "re-run setup" for
   worktrees made outside Zed.

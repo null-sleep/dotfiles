@@ -1847,7 +1847,7 @@ Stowed to `~/.config/zed/`:
 - **`settings.json`** — Hack Nerd Font Mono, theme pinned to Dracula Solid
   (`"mode": "dark"`, so it ignores the macOS appearance), the agent-panel sidebar width, and
   agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
-  auto-approved (only the `edit_file` tool is denied `.env*`/`*.pem`/`*.key` paths; shell commands can still touch them), its terminal sandbox
+  auto-approved (only the `edit_file` tool is denied `.env*`/`*.pem`/`*.key` paths; `write_file` and shell commands can still touch them), its terminal sandbox
   off, and omp run with `--approval-mode yolo` (details:
   [`docs/zed.md`](docs/zed.md#inside-thread)). Claude runs in Terminal
   Threads, not over ACP: `agent.terminal_init_command` starts `claude` in
