@@ -78,7 +78,7 @@ Used many times a day; each is covered in full below.
 
 | key | does |
 |---|---|
-| `cmd-shift-p` / `cmd-p` / `cmd-shift-f` | command palette / file finder / project search |
+| `cmd-shift-p` / `cmd-p` / `cmd-shift-f` | command palette / file finder / floating text search |
 | `f12` / `alt-shift-f12` | go to definition / find references |
 | `f2` / `cmd-.` | rename / code actions |
 | `cmd-shift-i` / `cmd-/` | format / toggle comment |
@@ -115,7 +115,7 @@ Used many times a day; each is covered in full below.
    diagnostics, references, project diff, and agent review all open one
    buffer of excerpts from many files; edit in place, `cmd-s` saves all.
    Since 1.9 most of these also have a Telescope-style picker with a
-   preview pane (`alt-cmd-f` live grep, `lsp_results_location: "picker"`)
+   preview pane (`cmd-shift-f` live grep, `lsp_results_location: "picker"`)
    for when you want to look, not edit.
 4. **The agent panel is just a dock panel.** Threads (Zed Agent, external
    ACP agents, Terminal Threads) live in the Threads Sidebar; focus, zoom,
@@ -285,7 +285,7 @@ use `git: diff branch` or the History tab.
 |---|---|---|
 | `cmd-shift-p` | `command_palette::Toggle` | every action, with its binding; sorted by recency |
 | `cmd-p` | `file_finder::Toggle` | fuzzy file finder with preview; pre-fills from the selection (`file_finder.prefill_query_from_selection`) |
-| `alt-cmd-f` | `text_finder::Toggle` | live-grep picker with preview (Telescope `live_grep`); pre-fills from the selection or an open search; from the project-search view it carries the query over |
+| `cmd-shift-f` | `text_finder::Toggle` | live-grep picker with preview (Telescope `live_grep`); pre-fills from the selection or an open search; custom binding swaps Zed's defaults with `alt-cmd-f` |
 | `cmd-t` / `cmd-shift-o` | `project_symbols::Toggle` / `outline::Toggle` | workspace symbols (with preview; only from [running language servers](#language-servers)) / current-file symbols (modal) |
 | `cmd-shift-b` | `outline_panel::ToggleFocus` | outline as a panel; in a multibuffer, a tree of its files |
 | `ctrl-tab` / `ctrl-shift-tab` | `tab_switcher::Toggle` | MRU tab switcher with file preview |
@@ -318,7 +318,7 @@ file finder, text finder, and project symbols show a live preview pane, and
 implementation results into a filterable picker instead of a multibuffer
 (per binding: `["editor::FindAllReferences", { "open_results_in": "picker" }]`).
 So the choice is yours per feature: picker for a quick look, multibuffer
-(`cmd-shift-f`, `cmd-shift-m`) when you want to edit the results in place.
+(`alt-cmd-f`, `cmd-shift-m`) when you want to edit the results in place.
 Still no plugin ecosystem — the set of pickers is fixed.
 
 <a id="bookmarks"></a>
@@ -588,7 +588,7 @@ whole prompt to each server and fuzzy-matches the symbol name locally; a
 space is an ordinary character, not a path filter. Only `::` is special:
 the part after the last `::` is used for the local match, for
 rust-analyzer's `module::item` queries. To narrow by file, use `cmd-p` or
-`alt-cmd-f` instead (source: `project_symbols.rs`, v1.29.2).
+`cmd-shift-f` instead (source: `project_symbols.rs`, v1.29.2).
 
 <a id="search-multibuffers"></a>
 ## Search and multibuffers
@@ -599,7 +599,7 @@ rust-analyzer's `module::item` queries. To narrow by file, use `cmd-p` or
 | `cmd-g` / `cmd-shift-g` | `search::SelectNextMatch` / `…Previous…` | step through matches |
 | `alt-enter` (search bar) | `search::SelectAllMatches` | cursor on every match |
 | `cmd-alt-c` / `cmd-alt-w` / `cmd-alt-x` | `search::ToggleCaseSensitive` / `ToggleWholeWord` / `ToggleRegex` | search options |
-| `cmd-shift-f` / `cmd-shift-h` | `pane::DeploySearch` (+ replace) | project search multibuffer (`g /`) / search-and-replace |
+| `alt-cmd-f` / `cmd-shift-h` | `pane::DeploySearch` (+ replace) | project search multibuffer (`g /`) / search-and-replace |
 | `cmd-shift-j` | `project_search::ToggleFilters` | include/exclude globs |
 | `cmd-enter` / `cmd-shift-enter` | `project_search::SearchInNew` / `ToggleAllSearchResults` | query in a fresh tab / expand-collapse all results |
 | `escape` | `project_search::ToggleFocus` | query box <-> results |

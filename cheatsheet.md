@@ -7,7 +7,7 @@
 Not listed here? `cmd-shift-p` palette or `cmd-k cmd-s` keymap editor (nvim:
 `<leader>sk`) searches every action; `cmd-,` settings.
 
-Columns: **Zed** native key, **Vim** Zed's vim-mode key, **nvim** this repo's
+Columns: **Zed** key (including custom bindings), **Vim** Zed's vim-mode key, **nvim** this repo's
 nvim config. One notation throughout: `alt-]` is nvim's `<M-]>`, `ctrl-s` is
 `<C-s>`; `<leader>` is `space`. A blank cell means the key to its left still
 applies (Zed keys work in vim mode); a blank nvim cell can also mean nvim has
@@ -21,9 +21,9 @@ Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
 |---|---|---|---|
 | command palette | `cmd-shift-p` | `:` | |
 | file finder | `cmd-p` | | `<leader>sf`, `<leader><leader>` |
-| live-grep picker | `alt-cmd-f` | | `<leader>sg` |
-| grep word / selection | `alt-cmd-f` (prefills) | | `<leader>sw` |
-| project search, editable results | `cmd-shift-f` | `g/` | |
+| live-grep picker | `cmd-shift-f` | | `<leader>sg` |
+| grep word / selection | `cmd-shift-f` (prefills) | | `<leader>sw` |
+| project search, editable results | `alt-cmd-f` | `g/` | |
 | project search and replace | `cmd-shift-h` | | `<leader>sR` |
 | search in file / next, prev match | `cmd-f` / `cmd-g`, `cmd-shift-g` | `/` / `n`, `N` | |
 | symbols in file / project | `cmd-shift-o` / `cmd-t` | `gO` / `gS` | `gO` / `<leader>ss` |
@@ -38,6 +38,8 @@ Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
 | bookmark line / labelled | `editor: toggle bookmark` / `…with label`, `cmd`-click gutter | | |
 | bookmark picker, all files | `project bookmarks: toggle` (search matches labels) | | |
 | next / prev bookmark, this file | `editor: go to next bookmark` / `…previous…` | | |
+
+The live-grep and project-search shortcuts are swapped from Zed's defaults.
 
 In a picker: `enter` open, `cmd-enter` open in a split, `escape` cancel.
 File finder: `cmd-shift-i` includes ignored files. `cmd-t` / `gS` see only

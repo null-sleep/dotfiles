@@ -57,7 +57,7 @@ Used many times a day; each is covered in full below.
 | keys | does | nvim habit it replaces |
 |---|---|---|
 | `:` | command palette (also every `:w`, `:q`, `:sp`) | `:` |
-| `cmd-p`, `alt-cmd-f`, `gS` | file finder, live-grep picker, project symbols (all with preview) | `<leader>sf`, `<leader>sg`, `<leader>ss` |
+| `cmd-p`, `cmd-shift-f`, `gS` | file finder, live-grep picker, project symbols (all with preview) | `<leader>sf`, `<leader>sg`, `<leader>ss` |
 | `gs`, `cmd-shift-b` | symbols in this file (modal), outline panel | `<leader>sd`, `<leader>o` |
 | `gd` / `gy` / `gI` / `gA` | definition / type / implementation / references | `gd` / `gy` / `gri` / `grr` |
 | `grn` / `gra` / `K` | rename / code actions / hover | `grn` / `<leader>ca` / `K` |
@@ -173,7 +173,7 @@ Tab-strip `:` commands (`:ls`, `:tabn`, `:tabnew`…) are in [`:` commands](#ex)
 In pickers, on top of the [native picker keys](zed.md#pickers): `ctrl-u`
 clears the query, `ctrl-w` deletes a word, `ctrl-h` backspaces. The
 pickers are Telescope-style since 1.9 — resizable, with a preview pane —
-and `alt-cmd-f` (`text_finder::Toggle`) is the live-grep picker, seeded
+and `cmd-shift-f` (`text_finder::Toggle`, custom binding) is the live-grep picker, seeded
 from the selection; `g/` stays the editable multibuffer. No default
 replaces nvim's `<leader><leader>` smart picker — `cmd-p` (recent files
 rank first on an empty query) or `ctrl-tab` come closest; `space f` opens

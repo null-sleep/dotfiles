@@ -4,6 +4,15 @@
 // docs/zed-vim-keymap.md; adopt rows from there. nvim keymaps live in
 // GUIDE.md.
 [
+    // Swap the floating text finder and editable project-search tab shortcuts.
+    // Unscoped bindings override the defaults in editors and search bars alike.
+    {
+        "use_key_equivalents": true,
+        "bindings": {
+            "cmd-shift-f": "text_finder::Toggle",
+            "alt-cmd-f": "pane::DeploySearch"
+        }
+    },
     // Step through agent threads in sidebar order. Zed has no default key for
     // this; ctrl-tab opens the MRU switcher instead. Scoped to the agent panel
     // and threads sidebar so alt-] / alt-[ still type normally in editors.

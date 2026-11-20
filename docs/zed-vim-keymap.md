@@ -90,11 +90,11 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 <a id="pickers"></a>
 ### Pickers and search
 
-| nvim | Zed default | call | why |
+| nvim | Zed key | call | why |
 |---|---|---|---|
 | `<leader>sf` files | `cmd-p` | borrow | keeps the `s*` family intact |
-| `<leader>sg` live grep | `alt-cmd-f` picker, `g/` multibuffer | borrow | `text_finder::Toggle` is Telescope `live_grep` (preview, 1.9+); `g/` stays for editing results |
-| `<leader>sw` grep word/selection | `alt-cmd-f` | borrow | the text finder pre-fills from the selection (1.9 notes): `viw` then `space s w` |
+| `<leader>sg` live grep | `cmd-shift-f` picker, `g/` multibuffer | borrow | `text_finder::Toggle` is Telescope `live_grep` (preview, 1.9+); custom key swaps Zed's `alt-cmd-f` default; `g/` stays for editing results |
+| `<leader>sw` grep word/selection | `cmd-shift-f` | borrow | the text finder pre-fills from the selection (1.9 notes): `viw` then `space s w` |
 | `<leader>ss` workspace symbols | `gS` | borrow | alias; `gS` stays. Same as nvim: only already-started servers answer ([Zed's rule](zed.md#language-servers)). Different prompt: no `name path` split, the whole text is the name query ([details](zed.md#language-servers)) |
 | `<leader>sd` document symbols | `gs` | borrow | alias; `gs` stays |
 | `<leader>s/`, `<leader>sb` in-buffer fuzzy | `/`, `cmd-f` | default | `/` is the same thing |
