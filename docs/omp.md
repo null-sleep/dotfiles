@@ -671,7 +671,7 @@ Session controls worth knowing:
 
 `~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`,
 `cycle-model-picker.ts`, `plan-critique.ts`, `cwd-name.ts`,
-`openrouter-session-cost.ts`, and `zed-plan-in-chat.ts`) is the sidekick attention
+`openrouter-session-cost.ts`, `zed-plan-in-chat.ts`, and `rtk.ts`) is the sidekick attention
 bridge (running `»` / done `●` marks in nvim's agent view). It's a port of
 the pi extension with two omp-specific remaps: omp has no `agent_settled`
 event, so it listens on `agent_end` gated by
