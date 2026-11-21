@@ -51,6 +51,7 @@
     },
     "base_keymap": "Zed",
     "vim_mode": false,
+    "code_lens": "on",
     "vim": {
         // nvim yanks to the system clipboard (y only); Zed's closest match.
         "use_system_clipboard": "on_yank",
