@@ -485,6 +485,9 @@ Pick a cycle model instead. `setup-settings.sh` removes a live `auto-code`
 role, tag and fallback chain. A machine that ran the old `setup-auto-code.sh`
 keeps a harmless `openrouter/auto-code` override in `~/.omp/agent/models.yml`;
 delete `providers.openrouter.modelOverrides["openrouter/auto-code"]` to tidy it.
+If that leaves `openrouter: {}` behind, delete the whole `openrouter` entry
+too: omp 19 refuses to load `models.yml` with an empty provider ("Provider
+openrouter: must specify ...").
 
 The Neon preset uses OpenRouter and `xhigh` thinking (OpenRouter offers `low`
 to `xhigh`), the setting its published coding scores were measured at. It
