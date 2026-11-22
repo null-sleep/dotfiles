@@ -992,8 +992,9 @@ Setup on each Mac (Orca's own settings live in a SQLite database under
     It only works inside Orca with "Claude subagent navigation" enabled in
     its settings (Claude 2.1.300+); elsewhere the chord is bound to nothing.
   - `~/.config/opencode/tui.json` — Orca adds an opencode plugin entry with an
-    absolute path to a generated, unstowed plugin file. Not used here:
-    `git checkout -- opencode/.config/opencode/tui.json` after enabling hooks.
+    absolute path to a generated, unstowed plugin file. `tui.json` isn't
+    tracked here (opencode isn't used), so there's nothing to revert: delete
+    the file it creates in `~/.config/opencode/` if you don't want it.
 - Orca rewrites those hook entries on upgrades, so expect a recurring diff in
   `claude/.claude/` to recommit. Delete the `*.bak` files it leaves beside them (git history has the originals).
 
@@ -1241,7 +1242,6 @@ a fresh machine.
 | File | Method |
 |---|---|
 | `~/.config/opencode/opencode.json` | Symlinked via stow (`--no-folding`) |
-| `~/.config/opencode/tui.json` | Symlinked via stow (`--no-folding`) |
 | `~/.config/opencode/plugins/nvim-notify.ts` | Symlinked via stow (`--no-folding`) |
 | `~/.local/share/opencode/auth.json` | **Not** tracked — credentials, written by `/connect` |
 
@@ -1265,8 +1265,8 @@ config is safe in a plain terminal.
 <a id="opencode-theme"></a>
 ### Theme
 
-`tui.json` sets the **`system`** theme (also opencode's default — pinned here so
-it's a deliberate choice rather than whatever the default becomes). It derives
+There is no tracked `tui.json`: opencode's default theme is **`system`**,
+which is what we want, so nothing needs pinning. It derives
 its greys from the terminal's background color and takes its accents from ANSI
 0-15, instead of carrying fixed hex colors. Since Ghostty supplies both, and
 Ghostty already flips between Catppuccin Latte and Dracula with the system
