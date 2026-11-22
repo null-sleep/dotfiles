@@ -571,6 +571,11 @@ Grouped by state, not priority.
 
 ## Active — outstanding work with momentum
 
+- [nvim-parallel-agents/](nvim-parallel-agents/README.md) — research and
+  scoping (started 2026-11-22) for Zed-style parallel agents in nvim: a Zed
+  feature survey, Zed design lessons for Lua, keep-vs-replace sidekick,
+  isolation/topology models, and worktree switching from the main root.
+  Research done; triage not started. Mirrored in the private fork.
 - [sidekick-agent-event-pipeline.md](sidekick-agent-event-pipeline.md) — a
   cmux-style event pipeline so nvim knows which Claude session needs input / is
   done / is idle (pipeline first, UI later). The UI now has its own plan:
