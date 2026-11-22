@@ -19,6 +19,7 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 - [Unified theme switching](#unified-theme-switching)
 - [Claude Squad](#claude-squad)
 - [Herdr](#herdr)
+- [Orca](#orca) — trial
 - [Cursor CLI (cursor-agent)](#cursor-cli-cursor-agent)
 - [Codex CLI](#codex-cli) · [desktop app](#codex-desktop-app)
 - [Linear CLI & agent skill](#linear-cli-agent-skill)
@@ -951,6 +952,38 @@ hook installed.
 - `herdr integration uninstall <agent>` removes the generated hook file, but
   the portable tracked registration remains until deliberately removed from
   the repository.
+
+## Orca
+
+[Orca](https://orca.dev) (Stably AI, MIT) is a desktop app that runs coding
+agents (Claude Code, Codex, pi, Cursor CLI, ...) side by side. Each task gets
+its own `git worktree`, agent terminal, and browser tab. It also ships an
+`orca` CLI that scripts the running app. Compared with [Herdr](#herdr)
+(persistent TUI sessions, reattachable over SSH), Orca is a GUI built around
+worktree-per-task. **Test driving**: only the install is tracked, no stow
+package yet (its main settings live in-app; only `~/.orca/keybindings.json`
+and per-repo `orca.yaml` / `.worktreeinclude` are file-based).
+
+```bash
+brew install --cask stablyai/orca/orca    # or `brew bundle`; needs macOS 13.4+
+brew upgrade --cask orca
+```
+
+First launch:
+
+- Accept the import of `~/.claude`, `~/.codex`, and Ghostty settings (read-only).
+- Settings → General → Orca CLI: register it, then check
+  `command -v orca && orca status --json`.
+- Settings → Terminal: zsh with `-l`, so the PATH setup in `.zshrc_config.zsh`
+  applies inside agent terminals.
+
+Gotchas:
+
+- `orca agent hooks on` likely writes hooks into `~/.claude/settings.json`,
+  which is stowed from `claude/`. Run `orca agent hooks status` first, and
+  review `git diff claude/` afterwards.
+- Deleting a worktree in Orca also deletes its branch.
+- Codex history sharing into `~/.codex` is on by default.
 
 <a id="cursor-cli-cursor-agent"></a>
 ## Cursor CLI (cursor-agent)

@@ -25,6 +25,7 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # third-party tap without a separate
                                                # `brew trust` (newer Homebrew gates these).
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
+tap "stablyai/orca", trusted: true             # Orca cask (see GUI apps below)
 tap "anomalyco/tap", trusted: true             # opencode formula (see coding agents below)
 tap "can1357/tap", trusted: true               # omp formula (see coding agents below)
 tap "schpet/tap", trusted: true            # linear-cli formula (see Agent Skills below)
@@ -158,6 +159,7 @@ cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
 cask "tabularis"        # database GUI client (test driving); tap in Taps above
+cask "stablyai/orca/orca"  # multi-agent worktree app (test driving); see README → "Orca"
 cask "vorssaint"       # menu bar utility toolkit (keep-awake, system monitor,
                        # per-app volume mixer, ...). Modular: each utility is
                        # installed/removed from the app's settings hub. No config
