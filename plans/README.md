@@ -447,6 +447,15 @@ off or delete them as they land; add new ones freely.
   real keys plus ~50 `featureAvailable.*` booleans and no secrets, so either is
   repo-safe; the open cost is re-exporting after every settings change.
 
+- [ ] **Look into Orca Bots** (wanted 2026-11-22) — Orca's persistent agents
+  that take jobs from chat, Slack, GitHub, Linear, a schedule, or a webhook and
+  hand code changes to workers in their own worktrees (docs:
+  <https://orca.dev/docs/bots>). Open questions: whether they earn a place next
+  to [Herdr](../README.md#herdr); the connector trade-offs (Slack/GitHub/Linear
+  need an Orca sign-in, and Slack config tokens are stored in Orca Cloud); that
+  bots live in Orca's app state, so they won't carry across Macs via stow; and
+  that the default chat permission is "Full access". Nothing set up.
+
 ## Known fragility
 
 Deliberate dependencies on other plugins' *private* internals. Each breaks
