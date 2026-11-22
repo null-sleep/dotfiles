@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# theme — switch Claude Code, Neovim, and pi between a predefined dark and light
-# theme in one shot (macOS/Ghostty/opencode follow natively). See README →
+# theme — switch Claude Code and Neovim between a predefined dark and light
+# theme in one shot (macOS/Ghostty follow natively). See README →
 # "Unified theme switching".
 #
 # THE PAIR (edit the LIGHT/DARK arrays below to change it)
-#   light → catppuccin-latte (Claude · nvim · pi) · macOS light
-#   dark  → dracula          (Claude · nvim · pi) · macOS dark
+#   light → catppuccin-latte (Claude · nvim) · macOS light
+#   dark  → dracula          (Claude · nvim) · macOS dark
 #
 # USAGE
 #   theme            # toggle dark/light (pins, like `dark`/`light`)
 #   theme dark       # PIN dark everywhere (turns macOS Auto OFF)
 #   theme light      # PIN light everywhere (turns macOS Auto OFF)
-#   theme dark --tool claude  # switch only Claude (also: nvim, pi)
+#   theme dark --tool claude  # switch only Claude (also: nvim)
 #   theme auto       # hand control back to macOS Auto (sunset/sunrise); follow it
-#   theme follow     # match Claude+nvim+pi to current macOS appearance (don't set macOS)
+#   theme follow     # match Claude+nvim to current macOS appearance (don't set macOS)
 #   theme seed       # create only MISSING per-tool theme files (first-run setup)
 #   theme watch      # daemon: follow macOS appearance changes forever (LaunchAgent)
 #   theme status
@@ -21,22 +21,22 @@
 # THREE MODES (dark · light · auto)
 #   dark / light  PIN that appearance everywhere at once: macOS Auto is switched
 #                 OFF (AppleInterfaceStyleSwitchesAutomatically=false), macOS is set
-#                 to the fixed appearance, and Claude+nvim+pi are swapped to match. It
+#                 to the fixed appearance, and Claude+nvim are swapped to match. It
 #                 stays put until you change it again — exactly like choosing Light
 #                 or Dark in System Settings → Appearance.
 #   auto          Hands the wheel back to macOS: re-enables native Auto so macOS
-#                 flips itself at sunset/sunrise, and Claude+nvim+pi follow via the
+#                 flips itself at sunset/sunrise, and Claude+nvim follow via the
 #                 `watch` LaunchAgent. NOTE: the `defaults` Auto flag governs
 #                 *future* evaluations — macOS applies the schedule at the next
 #                 sunrise/sunset (or a System Settings → Auto click), it does not
-#                 retroactively repaint the current desktop. We sync Claude+nvim+pi to
+#                 retroactively repaint the current desktop. We sync Claude+nvim to
 #                 the present appearance immediately so nothing is out of step.
 #
 # AUTO-FOLLOW (macOS as the source of truth)
 #   In `auto` mode macOS owns the appearance, but nothing would tell
-#   Claude/nvim/pi when it flips on a schedule or via Control Center. `theme watch` closes that
+#   Claude/nvim when it flips on a schedule or via Control Center. `theme watch` closes that
 #   gap: a LaunchAgent polls the macOS appearance and runs `theme follow` on every
-#   change, so Claude+nvim+pi track macOS no matter who changed it. See README →
+#   change, so Claude+nvim track macOS no matter who changed it. See README →
 #   "Auto-follow on macOS appearance changes" and macos/setup-theme-follow.sh.
 #
 # HOW EACH TOOL SWITCHES LIVE (no restarts)
@@ -57,44 +57,27 @@
 #   nvim   : the chosen variant is written to nvim's theme state file; running
 #            instances apply it via the fs-watch in themes.lua (themes.watch()).
 #            New nvim instances read the same file at startup.
-#   opencode: NOT touched by this script, same as Ghostty. Its `system` theme
-#            paints from the terminal's own ANSI palette, so Ghostty's swap
-#            recolors it for free — see README → "opencode".
-#   pi     : same shape as Claude — settings.json pins the fixed theme name
-#            "active" and ~/.pi/agent/themes/active.json is overwritten with the
-#            chosen palette. pi hot-reloads the active theme file, so running
-#            sessions recolor live.
 set -uo pipefail
 
 CLAUDE_THEMES="$HOME/.claude/themes"
 NVIM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/theme.txt"
-PI_THEMES="$HOME/.pi/agent/themes"
-
-# jq, resolved once with explicit fallbacks. `watch` runs under launchd, whose
-# PATH is just /usr/bin:/bin:/usr/sbin:/sbin — macOS 15+ ships jq at /usr/bin/jq
-# so that normally resolves, but on a machine where only the brew copy exists the
-# daemon would miss it. The fallbacks cover both brew prefixes (Apple Silicon,
-# Intel); if none exists the pi step is skipped rather than erroring.
-for JQ in "$(command -v jq 2>/dev/null)" /opt/homebrew/bin/jq /usr/local/bin/jq; do
-  [ -x "$JQ" ] && break
-done
 
 # --- predefined pair -------------------------------------------------------
 # The ONLY place the pair is defined — setup scripts call `theme seed` rather
-# than restating it. The pi column is a filename in ~/.pi/agent/themes/.
-#         Claude slug        nvim variant       macOS dark  pi theme file
-LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false"     "catppuccin-latte" )
-DARK=(    "dracula"          "dracula"          "true"      "dracula"          )
+# than restating it.
+#         Claude slug        nvim variant       macOS dark
+LIGHT=(   "catppuccin-latte" "catppuccin-latte" "false" )
+DARK=(    "dracula"          "dracula"          "true"  )
 
-usage() { echo "usage: theme [dark|light|auto|toggle|follow|seed|watch|status] [--tool claude|nvim|pi]" >&2; exit "${1:-2}"; }
+usage() { echo "usage: theme [dark|light|auto|toggle|follow|seed|watch|status] [--tool claude|nvim]" >&2; exit "${1:-2}"; }
 
 help() {
   cat <<'EOF'
-theme — switch Claude Code, Neovim, and pi between a dark and light theme in
-one shot (macOS/Ghostty/opencode follow natively).
+theme — switch Claude Code and Neovim between a dark and light theme in
+one shot (macOS/Ghostty follow natively).
 
 USAGE
-  theme [command] [--tool claude|nvim|pi]
+  theme [command] [--tool claude|nvim]
 
 COMMANDS
   toggle    Flip dark↔light and PIN it, turning macOS Auto OFF (this is the
@@ -102,7 +85,7 @@ COMMANDS
   dark      PIN dark everywhere (turns macOS Auto OFF).
   light     PIN light everywhere (turns macOS Auto OFF).
   auto      Hand control back to macOS Auto (sunset/sunrise) and follow it.
-  follow    Match Claude+nvim+pi to the current macOS appearance (don't set macOS).
+  follow    Match Claude+nvim to the current macOS appearance (don't set macOS).
   seed      First-run setup: create only the per-tool theme files that are
             missing, from the current macOS appearance. Never overwrites.
   watch     Daemon: follow macOS appearance changes forever (LaunchAgent).
@@ -110,14 +93,14 @@ COMMANDS
   -h, --help   Show this help.
 
 OPTIONS
-  --tool TOOL  Switch only claude, nvim, or pi; requires dark or light. It
+  --tool TOOL  Switch only claude or nvim; requires dark or light. It
                leaves macOS and the other tools unchanged. Claude sessions
                launched inside Zed follow Zed, not this switcher. The watch
                agent resyncs all tools on an appearance change or restart.
 
 THE PAIR (edit the LIGHT/DARK arrays in this script to change it)
-  light → catppuccin-latte (Claude · nvim · pi) · macOS light
-  dark  → dracula          (Claude · nvim · pi) · macOS dark
+  light → catppuccin-latte (Claude · nvim) · macOS light
+  dark  → dracula          (Claude · nvim) · macOS dark
 
 MODES
   dark / light  PIN that appearance everywhere: macOS Auto is switched OFF and
@@ -126,7 +109,7 @@ MODES
   auto          Switch everything to the schedule-correct theme right now (read
                 from the same location-based sunrise/sunset schedule macOS uses),
                 then re-enable native macOS Auto so it keeps flipping at
-                sunset/sunrise. Claude+nvim+pi follow via the `watch` LaunchAgent.
+                sunset/sunrise. Claude+nvim follow via the `watch` LaunchAgent.
 
 See README → "Unified theme switching" for the LaunchAgent setup.
 EOF
@@ -176,37 +159,21 @@ macos_scheduled_mode() {
   esac
 }
 
-# Which source palette pi's active.json currently holds. active.json is a copy
-# with its `name` rewritten, so identify it by comparing the colors block
-# against each source theme rather than reading a name that's always "active".
-pi_active_name() {
-  local f
-  [ -x "$JQ" ] || { echo '(jq missing)'; return; }
-  [ -f "$PI_THEMES/active.json" ] || { echo '(pi not set up)'; return; }
-  for f in "$PI_THEMES"/*.json; do
-    [ "$f" = "$PI_THEMES/active.json" ] && continue
-    if "$JQ" -e --slurpfile a "$PI_THEMES/active.json" '.colors == $a[0].colors' "$f" >/dev/null 2>&1; then
-      basename "$f" .json; return
-    fi
-  done
-  echo '(custom)'
-}
-
-# Apply a resolved mode (dark|light) to Claude, nvim, and pi. With pin=1 it also PINS
+# Apply a resolved mode (dark|light) to Claude and nvim. With pin=1 it also PINS
 # the macOS appearance — the hand-driven path (`theme dark|light`): it turns macOS
 # Auto OFF and sets the fixed appearance, so it stays put like picking Light/Dark
 # in System Settings. With pin=0 it leaves macOS untouched: that's `follow`, which
-# switches Claude+nvim+pi to *match* an appearance macOS already moved to. It must not
+# switches Claude+nvim to *match* an appearance macOS already moved to. It must not
 # write macOS back, or it would fight Auto mode and risk a flip loop with watch.
 # seed=1 (the `seed` command) only creates what's missing — nothing existing is
 # overwritten. It's what the per-tool setup scripts call on a fresh machine.
 # target selects one tool or all; a targeted switch never pins macOS.
 apply_mode() {
-  local mode="$1" pin="$2" seed="${3:-0}" target="${4:-all}" claude_slug nvim_variant macos_dark pi_theme tmp report=""
+  local mode="$1" pin="$2" seed="${3:-0}" target="${4:-all}" claude_slug nvim_variant macos_dark tmp report=""
   if [ "$mode" = dark ]; then
-    claude_slug="${DARK[0]}";  nvim_variant="${DARK[1]}";  macos_dark="${DARK[2]}";  pi_theme="${DARK[3]}"
+    claude_slug="${DARK[0]}";  nvim_variant="${DARK[1]}";  macos_dark="${DARK[2]}"
   else
-    claude_slug="${LIGHT[0]}"; nvim_variant="${LIGHT[1]}"; macos_dark="${LIGHT[2]}"; pi_theme="${LIGHT[3]}"
+    claude_slug="${LIGHT[0]}"; nvim_variant="${LIGHT[1]}"; macos_dark="${LIGHT[2]}"
   fi
 
   # 1) macOS appearance — Ghostty and other appearance-aware apps follow it. Pinning
@@ -252,35 +219,6 @@ apply_mode() {
     fi
   fi
 
-  # 4) pi — same active-slot trick as Claude: settings.json pins the fixed theme
-  # name "active" and we swap what themes/active.json *contains*. pi hot-reloads
-  # the active custom theme file when it changes, so running sessions recolor
-  # live. The `name` field is rewritten to "active" on the way in — the source
-  # files keep their honest names so they stay individually selectable in pi's
-  # theme picker, and pi requires theme names to be unique.
-  if [ "$target" = all ] || [ "$target" = pi ]; then
-    if [ "$seed" = 1 ] && [ -e "$PI_THEMES/active.json" ]; then
-      report="$report pi:kept"
-    elif [ ! -d "$PI_THEMES" ]; then
-      report="$report pi:not-set-up"
-    elif [ ! -e "$PI_THEMES/$pi_theme.json" ]; then
-      echo "theme: warning — $PI_THEMES/$pi_theme.json not found (stow pi?); pi not switched" >&2
-      report="$report pi:missing"
-    elif [ ! -x "$JQ" ]; then
-      echo "theme: warning — jq not found; pi not switched" >&2
-      report="$report pi:no-jq"
-    else
-      tmp="$(mktemp "$PI_THEMES/.active.XXXXXX")" \
-        && "$JQ" '.name = "active"' "$PI_THEMES/$pi_theme.json" >"$tmp" \
-        && mv -f "$tmp" "$PI_THEMES/active.json" \
-        && report="$report pi:$pi_theme" \
-        || { rm -f "${tmp:-}"; echo "theme: warning — failed to update pi active.json" >&2; report="$report pi:failed"; }
-    fi
-  fi
-
-  # opencode is NOT touched: its `system` theme rides the terminal's own palette
-  # (like Starship), so Ghostty's light/dark swap recolors it for free.
-
   # The summary echoes $report — what each step actually did — not the intended
   # pair, so a skipped/failed step shows up here instead of masquerading as done.
   report="${report# }"
@@ -311,7 +249,7 @@ while [ "$#" -gt 0 ]; do
 done
 mode="${mode:-toggle}"
 if [ -n "$target" ]; then
-  case "$target" in claude|nvim|pi) ;; *) usage ;; esac
+  case "$target" in claude|nvim) ;; *) usage ;; esac
   case "$mode" in dark|light) ;; *) usage ;; esac
 fi
 case "$mode" in
@@ -341,7 +279,7 @@ case "$mode" in
     # (or a System Settings → Auto click). So we read what Auto *would* show now
     # from the same sun schedule (macos_scheduled_mode; fall back to the current
     # appearance if it's unreadable) and apply it everywhere with pin=1 — painting
-    # macOS, Ghostty, Claude, nvim, and pi to the schedule-correct theme immediately.
+    # macOS, Ghostty, Claude and nvim to the schedule-correct theme immediately.
     # Then we flip the Auto flag back on. Because the live appearance now already
     # matches the schedule, the next evaluation is a no-op rather than a jarring flip.
     sched="$(macos_scheduled_mode)"; [ -n "$sched" ] || sched="$(macos_appearance_fast)"
@@ -349,11 +287,11 @@ case "$mode" in
     defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool true
     echo "theme → auto  (macOS now follows the sunset/sunrise schedule)" ;;
   follow)
-    # Match Claude+nvim+pi to whatever macOS currently is, without touching macOS.
+    # Match Claude+nvim to whatever macOS currently is, without touching macOS.
     apply_mode "$(macos_appearance_fast)" 0 ;;
   seed)
-    # First-run setup, called by claude/setup-theme.sh and pi/setup-settings.sh
-    # so neither has to restate the pair. Fills in missing per-tool theme files
+    # First-run setup, called by claude/setup-theme.sh so it
+    # does not have to restate the pair. Fills in missing per-tool theme files
     # from the current appearance; never overwrites, never touches macOS.
     apply_mode "$(macos_appearance_fast)" 0 1 ;;
   watch)
@@ -375,7 +313,6 @@ case "$mode" in
     echo "macOS mode:       $([ "$(defaults read -g AppleInterfaceStyleSwitchesAutomatically 2>/dev/null)" = 1 ] && echo 'auto (sunset/sunrise)' || echo 'pinned')"
     echo "nvim state:       $(cat "$NVIM_STATE" 2>/dev/null || echo '(unset)')"
     echo "claude active:    $([ -e "$CLAUDE_THEMES/active.json" ] && { readlink "$CLAUDE_THEMES/active.json" 2>/dev/null || echo 'real file'; } || echo '(not seeded)')"
-    echo "pi active:        $(pi_active_name)"
     echo "follower:         $(launchctl print "gui/$(id -u)/com.dhruv.theme-follow" >/dev/null 2>&1 && echo 'loaded' || echo 'not loaded')"
     exit 0 ;;
   *) usage ;;

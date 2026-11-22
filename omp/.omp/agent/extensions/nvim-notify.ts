@@ -2,11 +2,11 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { spawn } from "node:child_process";
 
 /**
- * omp → nvim agent-view attention bridge (port of the pi extension; see
+ * omp → nvim agent-view attention bridge (see
  * plans/sidekick-agent-view.md Phase 3). When omp runs inside an nvim
  * sidekick terminal, $NVIM and $SIDEKICK_SESSION are inherited and the shared
  * hook script (~/.claude/hooks/sidekick-notify.sh) does the RPC. Covers
- * running (`»`) and done (`●`) only — urgent (`!`) stays Claude/opencode.
+ * running (`»`) and done (`●`) only — urgent (`!`) stays Claude-only.
  */
 
 const SCRIPT = `${process.env.HOME}/.claude/hooks/sidekick-notify.sh`;
@@ -14,7 +14,7 @@ const SCRIPT = `${process.env.HOME}/.claude/hooks/sidekick-notify.sh`;
 export default function nvimNotify(pi: ExtensionAPI) {
   // No-op outside sidekick (same guard as the script) and inside a claude
   // session's tool subprocess (events would mis-attribute to the parent's
-  // row). Unlike pi there is no subagent env marker: omp task subagents run
+  // row). There is no subagent env marker: omp task subagents run
   // in-process with their own extension runner — ctx.hasUI (false there, and
   // in print/RPC mode) is the per-event guard instead.
   if (!process.env.NVIM || !process.env.SIDEKICK_SESSION) return;
@@ -46,7 +46,7 @@ export default function nvimNotify(pi: ExtensionAPI) {
     if (ctx.hasUI && !ctx.hasPendingMessages())
       notify("turn-complete", { type: "agent_end" });
   });
-  // No reason field to filter (unlike pi): omp emits session_shutdown only on
+  // No reason field to filter: omp emits session_shutdown only on
   // real dispose — reload/switch keep the extension runner alive.
   pi.on("session_shutdown", (_event, ctx) => {
     if (ctx.hasUI) notify("session-end", { type: "session_shutdown" });

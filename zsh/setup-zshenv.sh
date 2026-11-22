@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-time setup: seed this machine's ~/.zshenv with an empty
-# OPENROUTER_API_KEY so opencode/pi have somewhere to read a key from.
+# OPENROUTER_API_KEY so omp has somewhere to read a key from.
 #
 # ~/.zshenv is deliberately NOT stowed — it holds a live credential once you
 # fill it in, and a stowed symlink would put that straight into this repo.

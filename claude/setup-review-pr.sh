@@ -38,7 +38,7 @@ echo "review-pr -> generic"
 SKILL_REAL_DIR="$DIR"
 
 # Link the canonical home skill into hosts that use their own documented skill
-# directories. Cursor, pi, omp, and OpenCode read ~/.agents/skills directly.
+# directories. Cursor and omp read ~/.agents/skills directly.
 link_host_skill() {
   local host_dir="$1"
   local host_name="$2"

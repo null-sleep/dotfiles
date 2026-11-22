@@ -321,8 +321,8 @@
       "### User-specific",
       "**Primary use of Claude Code**: personal dotfiles management (stow-managed configs for nvim, zsh, ghostty, claude, etc.) — hobby/personal use given max subscription posture",
       "**Trusted repo**: whichever of the two dotfiles checkouts is the working directory, plus its own remotes (see Source control). Clearance differs by checkout and does NOT transfer between them: in the private fork, private visibility clears confidential material for commits/pushes; in the PUBLIC repo nothing confidential is cleared — anything committed there is published, including private repo names, local paths, and infrastructure detail. In both, secrets and personal/entrusted sensitive data are never cleared by visibility alone.",
-      "**Org-specific CLIs**: None configured — non-standard CLIs seen (claude, opencode, pi, rtk) are personal tooling from this dotfiles repo, not org-specific",
-      "**Routine operations**: editing, stowing, and committing config routine under this repo's stow packages (nvim, zsh, ghostty, claude, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, agents) is expected personal workflow"
+      "**Org-specific CLIs**: None configured — non-standard CLIs seen (claude, rtk) are personal tooling from this dotfiles repo, not org-specific",
+      "**Routine operations**: editing, stowing, and committing config routine under this repo's stow packages (nvim, zsh, ghostty, claude, cursor, omp, yknotify, ripgrep, herdr, agents) is expected personal workflow"
     ]
   }
 }

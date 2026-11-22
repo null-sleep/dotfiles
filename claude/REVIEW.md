@@ -18,7 +18,7 @@ Available to each agent host at:
 | Host | Path |
 | --- | --- |
 | Claude Code | `~/.claude/skills/review-pr` |
-| Cursor, pi, omp, OpenCode | `~/.agents/skills/review-pr` |
+| Cursor, omp | `~/.agents/skills/review-pr` |
 | Codex | `~/.codex/skills/review-pr` |
 
 ## Never use these instead

@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-time setup: register herdr's Claude Code and pi integrations, and drop
+# One-time setup: register herdr's Claude Code and omp integrations, and drop
 # the release-matched herdr agent skill into ~/.agents/skills/. Run after
 # `stow --no-folding herdr` and `brew install herdr`.
 #
@@ -13,10 +13,9 @@
 # under an isolated temporary HOME, then installed into the real ~/.claude.
 # This keeps the external installer away from the git-tracked settings file.
 #
-# pi integration: `herdr integration install pi` only writes
-# ~/.pi/agent/extensions/herdr-agent-state.ts (no settings.json edit — same as
-# this repo's stowed claude-footer.ts / nvim-notify.ts extensions, which also
-# load without a `packages` entry). Machine-local, not tracked.
+# omp integration: `herdr integration install omp` only writes
+# ~/.omp/agent/extensions/herdr-omp-agent-state.ts (no config.yml edit — same
+# as this repo's stowed nvim-notify.ts extension). Machine-local, not tracked.
 
 set -euo pipefail
 
@@ -34,9 +33,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS="$ROOT/claude/.claude/settings.json"
 "$ROOT/claude/setup-settings.sh" --check
 
-if [ ! -d "$HOME/.pi/agent" ]; then
-  echo "Error: $HOME/.pi/agent not found."
-  echo "Run 'stow --no-folding pi' from the repo root first, then re-run this script."
+if [ ! -d "$HOME/.omp/agent" ]; then
+  echo "Error: $HOME/.omp/agent not found."
+  echo "Run 'stow --no-folding omp' from the repo root first, then re-run this script."
   exit 1
 fi
 
@@ -75,9 +74,9 @@ install -m 755 "$GENERATED_HOOK" "$HOME/.claude/hooks/herdr-agent-state.sh"
 cleanup
 trap - EXIT HUP INT TERM
 
-# --- pi integration ------------------------------------------------------
-echo "Installing herdr pi integration..."
-herdr integration install pi
+# --- omp integration -----------------------------------------------------
+echo "Installing herdr omp integration..."
+herdr integration install omp
 
 # --- Agent skill -----------------------------------------------------------
 # Regenerated unconditionally (single fast command) so it cannot drift from the
@@ -94,6 +93,6 @@ fi
 
 echo
 echo "Done. herdr integration status:"
-herdr integration status | grep -E '^(claude|pi):'
+herdr integration status | grep -E '^(claude|omp):'
 echo
 echo "The tracked Claude settings were validated but not modified."

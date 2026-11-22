@@ -1,8 +1,8 @@
 # omp — a practical guide
 
 How to actually use [omp](https://github.com/can1357/oh-my-pi) (Oh My Pi),
-can1357's batteries-included fork of pi that trades pi's minimal core for one
-fat binary with everything built in. Install/setup steps live in README's
+can1357's batteries-included terminal coding agent (a fork of pi): one fat
+binary with everything built in. Install/setup steps live in README's
 `## omp` section; this is the "what can it do and how do I drive it"
 reference. The guide was originally checked against omp 18.1.8; the setup
 and search settings below were updated for 18.18.6 and 18.20.0. The repo
@@ -25,6 +25,7 @@ and the repo-owned theme/status-line/web-search policy through
 - [Magic keywords and session controls](#keywords)
 - [nvim bridge](#nvim-bridge)
 - [Zed — ACP thread or terminal](#zed-acp)
+- [Terminal setup](#terminal-setup)
 - [Gotchas cheat-sheet](#gotchas)
 - [Command quick-reference](#commands)
 
@@ -33,10 +34,9 @@ and the repo-owned theme/status-line/web-search policy through
 <a id="mental-model"></a>
 ## The mental model
 
-1. **omp is pi's inverse.** Everything this repo bolts onto pi as an
-   extension — plan mode, subagents, LSP, a status line, PR state, usage —
-   ships built in, alongside things pi doesn't have at all (DAP debugging,
-   `pr://` URLs, memory backends, voice). 31 built-in tools; the model drives
+1. **omp is batteries-included.** Plan mode, subagents, LSP, a status line,
+   PR state, and usage all ship built in, alongside DAP debugging,
+   `pr://` URLs, memory backends, and voice. 31 built-in tools; the model drives
    most of them, you drive the slash commands.
 2. **One config store, one CLI.** Settings live in `~/.omp/agent/config.yml`
    (YAML, machine-local — omp writes to it, so it's seeded by
@@ -48,10 +48,9 @@ and the repo-owned theme/status-line/web-search policy through
    files, skills, slash commands, agents, and settings. Practical upshot on
    this machine: `CLAUDE.md` files, `~/.claude` skills and commands all apply
    inside omp too — instructions written for Claude Code steer omp.
-4. **`PI_*` is a shared namespace.** omp honors most `PI_*` env vars (it *is*
-   pi under the hood), plus `OMP_*` ones. That makes existing terminal fixes
-   free (see [Gotchas](#gotchas)) — and makes globally exporting pi-config
-   vars dangerous, since both agents would obey.
+4. **`PI_*` is a shared namespace.** omp honors most `PI_*` env vars (it is a
+   pi fork), plus `OMP_*` ones. That makes existing terminal fixes free (see
+   [Terminal setup](#terminal-setup)).
 
 <a id="core"></a>
 ## Core omp in five minutes
@@ -141,12 +140,12 @@ in [`plans/omp-plan-mode-models.md`](../plans/omp-plan-mode-models.md)):
 auto-approve on the first proposal, then implement on `--plan-yolo-into`
 (default: the `smol` role).
 
-**How enforcement differs from pi-plan-mode.** omp hard-guards `write`/`edit`
+**How enforcement works.** omp hard-guards `write`/`edit`
 — they can only touch session-local artifacts while planning
 (`plan-mode-guard`), and subagents spawned during planning get a read-only
 toolset (`read`, `grep`, `glob`, `web_search`). But `bash` stays fully
 enabled and is only *instructed* to be read-only by the system prompt —
-there is no fail-closed command parser like pi-plan-mode's. With this
+there is no fail-closed command parser. With this
 machine's `yolo` approval default, a confused model could run a mutating
 command mid-plan; treat omp's plan mode as "working tree protected from the
 edit tools", not a sandbox.
@@ -271,8 +270,8 @@ behavior.
 <a id="statusline-theme"></a>
 ## Status line and theme
 
-`setup-settings.sh` forces the repo-owned look, matching the Claude Code /
-pi footer philosophy — plain, one line, no powerline chrome:
+`setup-settings.sh` forces the repo-owned look, matching the Claude Code
+footer philosophy — plain, one line, no powerline chrome:
 
 ```yaml
 statusLine:
@@ -287,7 +286,7 @@ statusLine:
     model: { showThinkingLevel: true }
 ```
 
-Unlike pi, the footer isn't replaced by a stowed TypeScript port — it's
+The footer isn't replaced by a stowed TypeScript port — it's
 omp's native status line configured through settings, plus extension-registered
 segments (`turn_count` and `cwd_name`, below) and a narrow wrapper around the
 native `cost` segment. Changing the layout still means editing
@@ -313,7 +312,7 @@ resume/branch/tree stay accurate) plus Claude Code's context-growth bars
 (`▁▂▃▄▅▆▇█`, same algorithm as `claude/.claude/statusline-command.sh`) render
 *inside* the native status line. Without the extension the unknown id renders
 invisible; if the `SEGMENTS` export ever disappears the extension falls back
-to the `ctx.ui.setStatus` hook-status row. (`setFooter`, pi's whole-footer
+to the `ctx.ui.setStatus` hook-status row. (`setFooter`, the whole-footer
 escape hatch, is still a no-op.) Full audit and caveats:
 [plans/omp-fork-customization.md](../plans/omp-fork-customization.md).
 
@@ -375,7 +374,7 @@ does per-turn subagent attribution because child transcripts do not persist the
 spawning `parentToolCallId`. If the mutable segment export disappears, the same
 OpenRouter value falls back to the hook-status row instead of breaking startup.
 
-One gap against pi's `claude-footer.ts` is accepted, not chased. **Context
+One gap against Claude Code's own status line is accepted, not chased. **Context
 colors are baked constants** (error ≥90%, purple ≥70%, warning ≥50%, plus
 500k/270k/150k absolute-token floors) rather than Claude's two-tier 70/90.
 And `cache_hit` renders `59.43%` where the Claude footer shows `CH59%`.
@@ -557,10 +556,8 @@ resolution prefers stored OAuth over env keys, so after login `anthropic/*`
 ids bill the subscription while `openrouter/*` ids keep hitting the API key
 — you choose per role.
 
-**Spend accounting**: `OPENROUTER_API_KEY` is shared with pi, so
-OpenRouter's per-key spend (pi's `/usage`, the dashboard) mixes both agents.
-omp's own `/usage` and the status-line `cost` segment are per-session and
-unaffected.
+**Spend accounting**: omp's own `/usage` and the status-line `cost` segment
+are per-session; OpenRouter's dashboard shows per-key spend.
 
 <a id="memory"></a>
 ## Local memory and autolearn
@@ -675,20 +672,16 @@ Session controls worth knowing:
 `~/.omp/agent/extensions/nvim-notify.ts` (stowed, alongside `turn-count.ts`,
 `cycle-model-picker.ts`, `plan-critique.ts`, `cwd-name.ts`,
 `openrouter-session-cost.ts`, `zed-plan-in-chat.ts`, and `rtk.ts`) is the sidekick attention
-bridge (running `»` / done `●` marks in nvim's agent view). It's a port of
-the pi extension with two omp-specific remaps: omp has no `agent_settled`
-event, so it listens on `agent_end` gated by
+bridge (running `»` / done `●` marks in nvim's agent view). omp has no
+`agent_settled` event, so it listens on `agent_end` gated by
 `!willContinue && ctx.isIdle() && !ctx.hasPendingMessages()`, and `ctx.hasUI`
-replaces pi's subagent env-var guard (omp task children run in-process).
-No `@narumitw` packages are installed for omp — everything they backport to
-pi is native here.
+stands in for a subagent env-var guard (omp task children run in-process).
 
 <a id="zed-acp"></a>
 ## Zed — ACP thread or terminal
 
 `omp acp` is a stdio ACP server built into the omp binary, wired as a
-`custom` entry in `agent_servers` in the stowed Zed `settings.json` (the
-registry `pi-acp` drives `pi`, not omp). Both modes share `~/.omp` auth,
+`custom` entry in `agent_servers` in the stowed Zed `settings.json`. Both modes share `~/.omp` auth,
 config, model roles, and skills; they differ in UI and in which stowed
 extensions run. Zed's generic comparison is in
 [`docs/zed.md`](zed.md#agent-panel).
@@ -766,14 +759,54 @@ with `omp -c` / `omp -r` (see
 [`docs/zed.md`](zed.md#terminal-thread-restore)); ACP threads restore from
 Thread History, subject to the adapter's session support.
 
+<a id="terminal-setup"></a>
+## Terminal setup
+
+omp reads `Shift+Enter` (newline instead of submit) and `Option+Backspace`
+(delete word) as distinct keys via the kitty keyboard protocol, so what you get
+depends on the emulator.
+
+- **Ghostty** (the daily driver) — configured. `alt+backspace=text:\x1b\x7f` is
+  bound and the old `shift+enter=text:\n` mapping is gone, since it swallowed
+  the chord before omp could see it. Details in README's `## Ghostty` section.
+- **Terminal.app** — nothing to configure for the most part; where it still
+  sends a plain Return for `Shift+Enter`, a fallback that reads macOS modifier
+  state only works on the same Mac — **over SSH** it degrades to submit. Use
+  Ghostty for remote work.
+- **JetBrains (RustRover/GoLand/IDEA) embedded terminal** — JediTerm can't
+  distinguish `Shift+Enter` from `Enter` at all; there is no fix, so switch to
+  Ghostty for multi-line input. What *is* fixed: `.zshrc_config.zsh` exports
+  `PI_HARDWARE_CURSOR=1` when `$TERMINAL_EMULATOR` is `JetBrains-JediTerm`, so
+  the caret stays visible (the hardware cursor is hidden by default).
+- **VS Code / Cursor integrated terminal** — not configured here, and not
+  needed for VS Code 1.109.5+, which enables the kitty protocol by default.
+  Cursor tracks an older VS Code base, so `Shift+Enter` submits instead of
+  inserting a newline there — for omp and Claude Code alike. Easiest fix is to
+  run Claude Code's `/terminal-setup` once inside that terminal: it writes the
+  binding below into Cursor's `keybindings.json` (leaving any existing binding
+  alone) and flips `terminal.integrated.gpuAcceleration` to `"off"`. Or add it
+  by hand to `~/Library/Application Support/Cursor/User/keybindings.json` (swap
+  `Cursor` for `Code` on stock VS Code):
+
+  ```json
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "\u001b[13;2u" },
+    "when": "terminalFocus"
+  }
+  ```
+
+Claude Code wants the same three things from Ghostty and is covered by the same
+config: Option-as-Meta on (its `Option+P` / `Alt+B` / `Alt+F` chords), no
+`shift+enter` override, and `Option+Backspace` reaching the app.
+
 <a id="gotchas"></a>
 ## Gotchas cheat-sheet
 
-- **Never export `PI_CODING_AGENT_DIR` or `PI_CONFIG_DIR` globally** — pi
-  *and* omp both obey them; a global export silently relocates one agent's
-  config into the other's. Use `omp --profile <name>` for isolation instead.
-- The shared `PI_*` namespace also helps: the `.zshrc_config.zsh` JediTerm
-  export of `PI_HARDWARE_CURSOR=1` fixes omp's cursor too, for free.
+- **Don't export `PI_CODING_AGENT_DIR` or `PI_CONFIG_DIR` globally** — omp
+  obeys them (shared `PI_*` namespace) and would relocate its config. Use
+  `omp --profile <name>` for isolation instead.
 - omp won't run in `$HOME`: it silently auto-switches to a temp dir unless
   `--allow-home` is passed — surprising when a sidekick nvim session's cwd
   is `~` (relative file mentions resolve against the temp dir). Config reads
@@ -800,8 +833,6 @@ Thread History, subject to the adapter's session support.
   every agent on this machine" now.
 - The `github` tool is disabled by default (`github.enabled: false`);
   `pr://`/`issue://` reads work regardless.
-- OpenRouter per-key spend mixes pi and omp — the shared key means neither
-  agent's provider-side number is "just this tool".
 - `config.yml` is deliberately not stowed — omp writes settings changes and
   migrations into it. Repo-owned defaults live in `omp/setup-settings.sh`;
   re-run it after machine setup, don't hand-copy YAML.

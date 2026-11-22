@@ -69,9 +69,8 @@ end
 -- Not routed through ai_context.M.ref on purpose: that one is cwd-relative
 -- and self-quotes, while these are repo-relative (or absolute) for sharing
 -- outside this checkout. Only claude and cursor resolve a line range at all —
--- opencode wants `#a-b` without the L and may not accept it from the TUI, pi
--- has no range syntax — so on those the path still resolves and the range
--- reads as a hint.
+-- omp doesn't — so there the path still resolves and the range reads as a
+-- hint.
 
 -- Yank: Claude @-mention reference for the current visual selection, e.g.
 -- "@foo/bar.lua#L42-58". Falls back to absolute path outside a repo.

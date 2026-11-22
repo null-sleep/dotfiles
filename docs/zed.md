@@ -257,7 +257,7 @@ edits that go through Zed:
   [#56048](https://github.com/zed-industries/zed/discussions/56048)). A Zed
   maintainer said in June 2026 that ACP v2 drops these filesystem APIs and
   external-agent review needs a new design, with no timeline.
-- **Terminal Threads** (omp/claude/pi CLIs): none.
+- **Terminal Threads** (omp/claude CLIs): none.
 
 For the rest, git is the review. Commit or stash before handing over a
 task; then `git: diff` shows exactly what the agent changed, `cmd-alt-z`
@@ -748,7 +748,7 @@ Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+` menu >
 Terminal) are a plain terminal tracked as a thread, for the CLI itself
 (sidekick-in-nvim). Claude can also run this way:
 `agent.terminal_init_command: "claude"` types `claude` into every new
-Terminal Thread (Ctrl-C it for a plain shell, or to run `pi`/`codex`). They
+Terminal Thread (Ctrl-C it for a plain shell, or to run `omp`/`codex`). They
 do not resume after a Zed restart ([details](#terminal-thread-restore)).
 One-key launches: see [Adding your own bindings](#custom-bindings).
 
@@ -814,7 +814,7 @@ What each side gives you:
   and one set of keys for every agent, Zed Agent included.
 - **Terminal gets the whole CLI.** Slash commands, hooks, status line,
   plugins, skills, the CLI's current version, and your own config for it
-  (this repo's `claude/` hooks and skills, pi's extensions) all run; over
+  (this repo's `claude/` hooks and skills, omp's extensions) all run; over
   ACP only what the adapter forwards exists, and the adapter can lag the
   CLI. In exchange the thread is a
   terminal: scrollback instead of a transcript, no review loop (review with
@@ -849,7 +849,7 @@ to a Terminal Thread. `settings.json` sets `default_config_options` to
 
 Rule of thumb: ACP for Zed Agent, Codex, and Claude when the in-editor
 review loop or transcript UI is the point; Terminal Threads for a harness
-you have customised and want the whole CLI for (Claude hooks/skills, pi).
+you have customised and want the whole CLI for (Claude hooks/skills, omp).
 Zed profiles, Skills, and `AGENTS.md` apply to neither — external
 agents read their own instruction files.
 
@@ -1364,12 +1364,10 @@ Per thread, in this order:
    |---|---|---|---|
    | omp | `omp -c` | `omp -r` | `omp -r <id-prefix>` |
    | claude | `claude -c` | `claude -r` | `claude -r <session-id>` |
-   | pi | `pi -c` | `pi -r` | `pi --session <path\|id>` |
 
    Flags are from each CLI's `--help`. `claude -c` is documented as the most
    recent conversation *in the current directory*; omp stores sessions in
-   per-directory folders under `~/.omp/agent/sessions/`; pi's scoping is
-   unchecked.
+   per-directory folders under `~/.omp/agent/sessions/`.
 4. omp after a crash or an update that interrupted a running turn:
    `omp --restore` resumes like `-r`, then continues the unfinished turn and
    its subagents.

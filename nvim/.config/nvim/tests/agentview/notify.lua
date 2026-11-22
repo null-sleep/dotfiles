@@ -41,7 +41,7 @@ check('force-ack clears the episode flag',
 emit('zed', 'needs-permission', 'hi again')
 check('urgent after a force-ack pops again', spy.take() == 1)
 
-emit('pi', 'turn-complete', 'done')
+emit('omp', 'turn-complete', 'done')
 check('turn-complete never pops (a popup per turn trains you to dismiss)', spy.take() == 0)
 
 -- === argv shapes ========================================================

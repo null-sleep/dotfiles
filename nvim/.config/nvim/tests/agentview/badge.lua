@@ -42,31 +42,31 @@ local function silent() return not shows('●') and not shows('!') end
 reset()
 check('no sessions: the badge is silent', silent(), badge())
 
-ALIVE = { claude = true, cursor = true, opencode = true }
+ALIVE = { claude = true, cursor = true, omp = true }
 emit('claude', 'turn-complete')
 check('a lone unread is named with the ● glyph', shows('● claude'), badge())
 emit('cursor', 'turn-complete')
 check('a second unread adds +1, naming the most recent',
   shows('● cursor +1'), badge())
-emit('opencode', 'needs-permission')     -- urgent, and the most recent
+emit('omp', 'needs-permission')     -- urgent, and the most recent
 check('the most recent urgent wins the glyph and the name',
-  shows('! opencode'), badge())
+  shows('! omp'), badge())
 check('+N counts the rest', shows('+2'), badge())
 check('the badge names unread_candidates[1]',
-  ai.unread_candidates()[1] == 'opencode', vim.inspect(ai.unread_candidates()))
+  ai.unread_candidates()[1] == 'omp', vim.inspect(ai.unread_candidates()))
 
 -- An urgent outranks a *newer* plain unread: triage, not recency.
 emit('claude', 'turn-complete')          -- claude is now the most recent event
 check('a newer plain unread does not displace an urgent',
-  shows('! opencode'), badge())
+  shows('! omp'), badge())
 
 -- Sitting in the ringing pane: the shared candidate list drops it, so the
 -- badge can never name a session the jump then refuses to route to.
-H.stamp('opencode')
+H.stamp('omp')
 local cand = ai.unread_candidates()
 check('the pane you are sitting in leaves the candidate list',
-  not vim.tbl_contains(cand, 'opencode'), vim.inspect(cand))
-check('the badge drops it too', not shows('opencode'), badge())
+  not vim.tbl_contains(cand, 'omp'), vim.inspect(cand))
+check('the badge drops it too', not shows('omp'), badge())
 check('the badge falls to the next candidate',
   shows('● ' .. cand[1]) and shows('+1'), badge())
 check('and stops claiming urgency', not shows('!'), badge())
@@ -79,9 +79,9 @@ H.stamp(nil)
 
 -- A stopped session rings in the registry but is not routable.
 reset()
-ALIVE = { opencode = true }
+ALIVE = { omp = true }
 emit('claude', 'needs-input')            -- unread, but not running
-emit('opencode', 'turn-complete')
+emit('omp', 'turn-complete')
 check('a stopped session is excluded from the candidates',
   not vim.tbl_contains(ai.unread_candidates(), 'claude'), vim.inspect(ai.unread_candidates()))
 check('a stopped session never reaches the badge', not shows('claude'), badge())
@@ -97,9 +97,9 @@ H.stamp(nil)
 
 -- === jump_unread lands where the badge pointed ==========================
 reset()
-ALIVE = { claude = true, opencode = true }
+ALIVE = { claude = true, omp = true }
 emit('claude', 'turn-complete')
-emit('opencode', 'needs-permission')
+emit('omp', 'needs-permission')
 local target = ai.unread_candidates()[1]
 local notes = {}
 local real_notify = vim.notify
@@ -107,7 +107,7 @@ vim.notify = function(m) notes[#notes + 1] = m end
 ai.jump_unread()
 vim.notify = real_notify
 check('jump_unread lands on the badge target',
-  target == 'opencode' and (notes[1] or ''):find('opencode', 1, true) ~= nil, notes[1])
+  target == 'omp' and (notes[1] or ''):find('omp', 1, true) ~= nil, notes[1])
 check('the landing notify carries the phrase',
   (notes[1] or ''):find('wants permission', 1, true) ~= nil, notes[1])
 check('the landing notify is one line', not (notes[1] or ''):find('\n'), notes[1])

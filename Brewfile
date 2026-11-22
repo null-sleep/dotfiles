@@ -14,8 +14,6 @@
 #   • nvim LSP servers/formatters — Mason, inside nvim (Languages section)
 #   • cursor-agent CLI            — cursor.com/cli install script; self-updates
 #                                   (README → "Cursor CLI (cursor-agent)")
-#   • pi coding agent             — npm install -g + pi/setup-settings.sh
-#                                   (README → "pi")
 
 #-----------------------------------------------------------------------------
 # Taps
@@ -26,7 +24,6 @@ tap "delphinus/sfmono-square", trusted: true   # SF Mono Square font. `trusted: 
                                                # `brew trust` (newer Homebrew gates these).
 tap "TabularisDB/tabularis", trusted: true     # Tabularis cask (see GUI apps below)
 tap "stablyai/orca", trusted: true             # Orca cask (see GUI apps below)
-tap "anomalyco/tap", trusted: true             # opencode formula (see coding agents below)
 tap "can1357/tap", trusted: true               # omp formula (see coding agents below)
 tap "schpet/tap", trusted: true            # linear-cli formula (see Agent Skills below)
 
@@ -99,20 +96,15 @@ cask "claude-code@latest"
 cask "codex"
 
 #-----------------------------------------------------------------------------
-# OpenRouter-backed coding agents. opencode and omp both read
-# OPENROUTER_API_KEY from the environment (README → "OpenRouter"). The other
-# agent, pi, is npm-only — see the header note.
+# OpenRouter-backed coding agent. omp reads OPENROUTER_API_KEY from the
+# environment (README → "OpenRouter").
 #-----------------------------------------------------------------------------
-brew "opencode"        # terminal AI coding agent; tap in Taps above. Config in
-                       # opencode/ (then `stow --no-folding opencode`). Pulls in
-                       # its own `node` — the runtime section below installs the
-                       # same formula for nvim, so this is a shared dependency.
 brew "omp"             # oh-my-pi terminal coding agent; tap in Taps above.
                        # Config in omp/ (then `stow --no-folding omp` and
                        # `bash omp/setup-settings.sh`).
 
-# Linear issue CLI — one vendored Agent Skills copy serves Cursor, Pi, OMP,
-# OpenCode, and Claude Code; `agents` is stowed after `brew bundle`.
+# Linear issue CLI — one vendored Agent Skills copy serves Cursor, OMP,
+# and Claude Code; `agents` is stowed after `brew bundle`.
 brew "schpet/tap/linear"
 
 #-----------------------------------------------------------------------------
@@ -123,7 +115,7 @@ brew "schpet/tap/linear"
 brew "rtk"
 
 #-----------------------------------------------------------------------------
-# Agent multiplexer — herdr keeps agent panes (Claude Code, pi, ...) running
+# Agent multiplexer — herdr keeps agent panes (Claude Code, omp, ...) running
 # detached from the terminal, across restarts and over SSH. Config in herdr/
 # (then `stow --no-folding herdr` and `bash herdr/setup-herdr.sh` — see
 # README → "Herdr"). brew owns the binary: upgrade with `brew upgrade herdr`,

@@ -128,11 +128,6 @@ Not omp, not covered by `setup-settings.sh`; they do not follow role edits.
 Check them during a round and **flag** newer generations to the user rather
 than editing silently, since each tool has its own catalog and price list.
 
-- `pi/setup-settings.sh` `defaultModel` (pi's default; also `docs/pi.md`
-  mentions `pi-btw` taking an `openrouter/<model-id>` and the footer example
-  in `pi/.pi/agent/extensions/claude-footer.ts`).
-- `opencode/.config/opencode/opencode.json` `model` and `small_model`
-  (OpenRouter ids).
 - `claude/.claude/settings.json` `model` (a Claude Code alias such as
   `sonnet`, not an id; the alias tracks Anthropic's newest of that tier).
 - `zed/.config/zed/settings.json`: `agent.default_model` and
@@ -364,8 +359,7 @@ Always surface these in your final report, even if you resolved them:
   preset (and which role you would put it in).
 - A model in a role, the cycle or a fallback chain that is
   deprecated, renamed, repriced or gone from the catalog.
-- Pins in other tools that are behind the newest generation (`pi`,
-  `opencode`; see "Other tools with their own model pins"), and any new file
+- Pins in other tools that are behind the newest generation (Claude Code, Zed; see "Other tools with their own model pins"), and any new file
   the Procedure's sweep turned up that this skill did not list.
 - Live config that had drifted from `DEFAULT_ROLES`, and what you changed.
 - A `anthropic` subscription login that is expired or missing: the cycle

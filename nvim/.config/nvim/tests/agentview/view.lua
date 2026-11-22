@@ -63,12 +63,12 @@ local function detach()
 end
 
 -- === render: alignment across every row kind ============================
-S.add('claude'); S.add('cursor'); S.add('opencode'); S.add('pi')
+S.add('claude'); S.add('cursor'); S.add('omp'); S.add('xtra')
 ev.sessions = {
   claude = { unread = true, attention = 'needs-permission', running = true },  -- urgent  !
   cursor = { unread = true, attention = 'turn-complete' },                     -- unread  ●
-  opencode = { running = true },                                               -- running »
-  pi = {},                                                                     -- idle    ○
+  omp = { running = true },                                               -- running »
+  xtra = {},                                                                   -- idle    ○
 }
 ai._labels = { claude = 'a-very-long-label-that-overruns-thirty-columns', cursor = 'リファクタ' }
 ai._dynamic = { spawner = 'registered' }
@@ -101,7 +101,7 @@ check('a spawning row never holds a number', digits[5] == ' ')
 
 -- rows_by_lnum lockstep: the digit keymaps and <CR> both index by cursor line,
 -- so the map must name exactly the session drawn on that line.
-local names = { 'claude', 'cursor', 'opencode', 'pi', 'spawner' }
+local names = { 'claude', 'cursor', 'omp', 'xtra', 'spawner' }
 local lockstep = true
 for i, n in ipairs(names) do
   if lnum_of(n) ~= i then lockstep = false end
@@ -168,16 +168,16 @@ refresh()
 vim.api.nvim_set_current_win(main_win())
 ev.sessions = {
   claude = { deferred = true, attention = 'turn-complete' },
-  pi = { unread = true, attention = 'turn-complete' },
+  xtra = { unread = true, attention = 'turn-complete' },
 }
 H.stamp('claude', main_win())
-av.select('pi'); settle()
+av.select('xtra'); settle()
 check('embed promotes the outgoing session deferral',
   ev.sessions.claude.unread == true and ev.sessions.claude.deferred == nil,
   vim.inspect(ev.sessions.claude))
-check('embed acks the incoming ring', ev.status('pi') == 'idle', ev.status('pi'))
+check('embed acks the incoming ring', ev.status('xtra') == 'idle', ev.status('xtra'))
 check('embed re-stamps the main pane',
-  (vim.w[main_win()].sidekick_cli or {}).name == 'pi')
+  (vim.w[main_win()].sidekick_cli or {}).name == 'xtra')
 
 -- A sidebar-side preview leaves main_win non-current: looking at a row is not
 -- reading it, so nothing is acked.
@@ -185,7 +185,7 @@ ev.sessions.claude = { unread = true, attention = 'turn-complete' }
 move_to(lnum_of('claude'))
 check('a j/k preview acks nothing', ev.status('claude') == 'unread', ev.status('claude'))
 check('the preview still swaps the buffer', main_buf() == S.buf('claude'))
-check('previewing does not commit the active session', ai.active == 'pi', tostring(ai.active))
+check('previewing does not commit the active session', ai.active == 'xtra', tostring(ai.active))
 
 -- === keymaps ============================================================
 local lhs = {}

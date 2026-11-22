@@ -1,10 +1,8 @@
 # dotfiles
 
 Stow-managed dotfiles repo. Stow packages: nvim, zsh, ghostty, macos, rcmd,
-zellij, cursor, opencode, pi, omp, yknotify, ripgrep, herdr, codebook, agents
-(`pi` stows
-its theme palettes and the minimal `Codex-footer.ts` extension — pi writes to
-its own settings.json, so that stays machine-local; `omp` stows only its
+zellij, cursor, omp, yknotify, ripgrep, herdr, codebook, agents
+(`omp` stows only its
 `nvim-notify.ts`, `turn-count.ts`, `cwd-name.ts`, `cycle-model-picker.ts`,
 `openrouter-session-cost.ts`, `plan-critique.ts`, and `zed-plan-in-chat.ts`
 extensions plus the user-level `AGENTS.md` and `RULES.md` (global subagent-model preferences) —
@@ -20,7 +18,7 @@ nothing else in `~/.config/codebook/` can land in the repo); `agents` stows gene
 `--no-folding`). NOT stow packages: `plans/` (design/feature
 planning docs), `fixtures/` (per-language demo files for testing editor
 features), `docs/` (standalone learn-it reference guides, e.g.
-`docs/ripgrep.md`, `docs/pi.md`, `docs/omp.md` — distinct from `plans/`, which
+`docs/ripgrep.md`, `docs/omp.md` — distinct from `plans/`, which
 is design docs).
 `README.md` is the maintained setup/reference doc for the whole repo.
 

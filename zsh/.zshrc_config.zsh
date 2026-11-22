@@ -158,7 +158,6 @@ alias v=nvim
 alias vi=nvim
 
 # Coding agents
-alias oc=opencode
 alias ompf='omp --service-tier priority'
 
 # Exec the bundle's real executable, not the Homebrew shim that symlinks into it —
@@ -222,12 +221,12 @@ else
     export KUBE_EDITOR="nvim-editor"
 fi
 
-# pi in JetBrains' embedded terminal (RustRover/GoLand/IDEA all set this).
-# pi hides the hardware cursor by default for compatibility; JediTerm needs it
-# back or the caret is invisible while typing. Scoped to JediTerm so Ghostty
-# keeps pi's default. Shift+Enter is unfixable there — JediTerm can't tell it
-# from Enter — so use Ghostty for pi when you need multi-line input.
-# See https://pi.dev/docs/latest/terminal-setup
+# omp in JetBrains' embedded terminal (RustRover/GoLand/IDEA all set this).
+# omp (a pi fork, so it reads PI_*) hides the hardware cursor by default for
+# compatibility; JediTerm needs it back or the caret is invisible while typing.
+# Scoped to JediTerm so Ghostty keeps the default. Shift+Enter is unfixable
+# there — JediTerm can't tell it from Enter — so use Ghostty for omp when you
+# need multi-line input. See docs/omp.md → Terminal setup.
 [[ "$TERMINAL_EMULATOR" == "JetBrains-JediTerm" ]] && export PI_HARDWARE_CURSOR=1
 
 # FZF

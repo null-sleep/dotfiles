@@ -1,6 +1,6 @@
--- omp (oh-my-pi, a pi fork) has no upstream sidekick preset — sidekick
--- resolves sk/cli/<tool>.lua from the runtimepath, so this config-local spec
--- integrates it exactly like pi's bundled one. Mirrors sk/cli/pi.lua.
+-- omp (oh-my-pi) has no upstream sidekick preset — sidekick resolves
+-- sk/cli/<tool>.lua from the runtimepath, so this config-local spec
+-- integrates it like a bundled one.
 ---@type sidekick.cli.Config
 return {
   cmd = { "omp" },

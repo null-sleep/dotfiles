@@ -114,7 +114,7 @@ end
 
 -- The one case no glyph can reach: an urgent ring raised while nvim doesn't
 -- have OS focus (you alt-tabbed away — exactly what the ring exists for).
--- Urgent-only by design: a popup per turn-complete across four agents trains
+-- Urgent-only by design: a popup per turn-complete across several agents trains
 -- you to dismiss them. Body is the agent's own text when it sent one — the
 -- phrase would only restate it ("wants permission: Claude needs your
 -- permission to use Bash"), and the title already names the session.

@@ -106,7 +106,7 @@ Requires a Nerd Font for statusline separators and completion icons.
 - **(mini.notify)** — mini.notify: floating notification popups for `vim.notify()` calls (outline's guard declines, etc.); `lsp_progress.enable = false` suppresses noisy `$/progress` notifications from language servers; `:Notifications` reopens dismissed ones (like `:messages` but for mini.notify). No keymaps, no dedicated config file — set up inline in `plugins.lua`
 - **`ai.lua`** — sidekick.nvim setup: Claude CLI integration (NES pinned off). snacks as picker, right-split layout
 - **`agentview.lua`** — the `<leader>av` agent-view tab: sidebar of all sidekick sessions + the selected session's terminal embedded via `nvim_win_set_buf` (sidekick owns no window while the view is current — `ai.lua`'s show/focus/toggle paths delegate here). Lazy-required — no Load-order entry
-- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by all five agents over `--remote-expr` RPC through the shared `claude/.claude/hooks/sidekick-notify.sh` (Claude hooks, an opencode plugin, pi and omp extensions, cursor's native Claude-hook merge; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
+- **`agent_events.lua`** — per-session attention registry (unread/urgent/running) fed by all three agents over `--remote-expr` RPC through the shared `claude/.claude/hooks/sidekick-notify.sh` (Claude hooks, an omp extension, cursor's native Claude-hook merge; `$NVIM` + `$SIDEKICK_SESSION` env bridge injected in `ai.lua`). Fires `User AgentSessionEvent`; consumers: agentview glyphs, statusline badge, `<leader>aj`. No timers, no polling
 - **`ai_context.lua`** — overrides sidekick's `{position}`/`{function}`/`{class}` context vars (wired as `cli.context` in `ai.lua`) to emit Claude-native `@relpath#L<n>` / `@relpath#L<a>-<b>` mentions instead of sidekick's column-off-by-one, type/name-prefixed refs. No `require('sidekick.*')`, so it loads during sidekick's first-launch download; lazy-required — no Load-order entry
 - **`pickers/aibuffers.lua`** — `<leader>ab`'s multi-select picker: open file buffers, all preselected (bare `<CR>` = old send-everything; `<Tab>` toggle, `<C-a>` all), confirm sends the chosen `@relpath` mentions. Lazy-required — no Load-order entry
 - **`themes.lua`** — Theme registry (all theme plugins, variants, setup functions, overrides), persistence to `stdpath('data')/theme.txt`, `apply()` and `all_variants()`
@@ -679,11 +679,12 @@ make `<leader>o` refuse to open the outline on it. Same separation described in
 ### Sidekick's session backends shell out on every lookup
 
 `State.get()` runs **every registered backend's `sessions()`** synchronously on
-the UI thread, and two of them shell out — neither of which we asked for:
+the UI thread, and some of them shell out — none of which we asked for:
 
-- **opencode** registers itself as a *load side-effect* of its tool spec, which
-  sidekick `dofile`s merely because `opencode` is in the default `cli.tools`.
-  Its `sessions()` runs a system-wide `lsof -iTCP -sTCP:LISTEN`: **40ms**.
+- **opencode** (a bundled sidekick preset we don't use) registers itself as a
+  *load side-effect* of its tool spec, which sidekick `dofile`s merely because
+  it's in the default `cli.tools`. Its `sessions()` runs a system-wide
+  `lsof -iTCP -sTCP:LISTEN`: **40ms**.
 - **tmux / zellij** register on `executable(name) == 1` *alone* — **not** on
   `cli.mux.enabled`, which only picks the backend for *new* sessions. Disabling
   mux does not stop their discovery. Installing tmux (the README recommends it
@@ -691,26 +692,22 @@ the UI thread, and two of them shell out — neither of which we asked for:
   `tmux` on `PATH`.
 
 So `State.get` cost 40.8ms, and the detach sweep — 9 of them with 3 forked
-sessions — froze nvim for **~370ms**. `ai.lua` stubs those backends'
-`sessions()` to `{}` and prunes `cli.tools` to the agent set (`claude`,
-`cursor`, `opencode`, `pi`, `omp`): now **0.05ms**. Stubbing only disables discovery
-of *externally started* sessions, which is why `opencode` stays stubbed even
-as an agent — sessions we spawn go through the terminal backend like the rest.
+sessions — froze nvim for **~370ms**. `ai.lua` prunes `cli.tools` to the agent
+set (`claude`, `cursor`, `omp`) and stubs tmux/zellij's `sessions()` to
+`{}`: now **0.05ms**. Stubbing only disables discovery of *externally started*
+sessions; sessions we spawn go through the terminal backend regardless.
 
-Three traps if you revisit this:
+Two traps if you revisit this:
 
 - **There is no config-level opt-out.** `cli.tools.opencode = false` leaves the
   key in `cli.tools`, so `Config.tools()` still `dofile`s and registers it.
-- **Order.** `ai.lua` calls `Session.setup()` (normally lazy) so registration
-  precedes the stub, which also warms `tool.lua`'s dofile cache — the spec then
-  can't reload and quietly restore the real `sessions()`. Prune *after* the
-  stub: pruning first leaves that cache cold, and one `tool.get('opencode')`
-  brings the 40ms back with no signal.
+  Remove the key (`tools[name] = nil`) instead, and do it *before*
+  `Session.setup()`, which is what loads every spec in `cli.tools`.
 - **Stub, never `nil`.** `Session.new` asserts `backends[name]` exists, so
   nil-ing tmux would hard-error if mux is ever enabled.
 
 Pruning to the agent set also means no other spec is ever `dofile`d, so no
-future upstream tool can reintroduce this. `cursor`'s, `pi`'s and `omp`'s specs
+future upstream tool can reintroduce this. `cursor`'s and `omp`'s specs
 are safe to keep — bare `cmd`/`is_proc`/`url`, no `sessions()` scanner; check
 that before adding any further preset. `omp` has no upstream preset at all: its
 spec is this config's own `sk/cli/omp.lua`, resolved off the runtimepath the
@@ -2866,12 +2863,11 @@ registering a per-keystroke `vim.on_key` handler for a dead feature.
 
 **CLI integration** — runs one or more agent CLI sessions in terminal splits,
 organized around the **active session**: the CLI session whose window you
-last entered (default: the pre-warmed `claude`). Five agents are registered —
-Claude Code, Cursor's `cursor-agent`, `opencode`, `pi` and `omp` (oh-my-pi, a
-pi fork). The pool is flat —
+last entered (default: the pre-warmed `claude`). Three agents are registered —
+Claude Code, Cursor's `cursor-agent` and `omp` (oh-my-pi). The pool is flat —
 a session's *name prefix* carries its agent (`claude 2`, `cursor: tests`,
-`opencode: api`) and drives which binary spawns, and every key below works
-the same on all five. `<leader>aa` toggles the
+`omp: api`) and drives which binary spawns, and every key below works
+the same on all three. `<leader>aa` toggles the
 active session, `<leader>ax` kills it, and **all send keys, `<leader>ao`,
 `<M-a>`, and `<C-.>`/`<leader>ai` target it** — with several sessions
 running, sends never stop to ask which one.
@@ -2879,7 +2875,7 @@ running, sends never stop to ask which one.
 `<leader>an` spawns a **new** session in two steps: an agent picker
 (the first item is highlighted, so plain `<CR>` confirms it — one extra
 Enter vs the old claude-only flow, accepted; the order is `cursor`, `claude`,
-`opencode`, `pi`, `omp` — `cursor` ranked first as a trial, TODO in `ai.lua` to
+`omp` — `cursor` ranked first as a trial, TODO in `ai.lua` to
 revisit), then a label prompt; `<Esc>`
 cancels either step. A blank label auto-names the session: the bare agent
 name (`cursor`) if nothing is running under it, else a number from a counter
@@ -2917,15 +2913,11 @@ does real damage (Claude's Ctrl+_ cycles the model in cursor):
 | Agent | `u` sends | Source |
 |---|---|---|
 | claude | 0x1F | pinned in the stowed `claude/.claude/keybindings.json` |
-| pi | 0x1F | stock `tui.editor.undo` = `ctrl+-` |
-| omp | 0x1F | stock — pi fork, keeps `tui.editor.undo` = `ctrl+-` |
-| opencode | 0x1F | stock `input_undo` = `ctrl+-,super+z` |
+| omp | 0x1F | stock `tui.editor.undo` = `ctrl+-` |
 | cursor | 0x15 | fallback — cursor has no input-undo at all |
 
-One byte covers four agents: 0x1F *is* `ctrl+-` on the wire (`0x5F & 0x1F`),
-and only claude needs its binding pinned. **Don't send Ctrl+Z (0x1A) to
-opencode** — that's its `terminal_suspend`; only the Windows build reuses
-`ctrl+z` for undo. The Ctrl+U fallback is a kill-line: unrecoverable, one line
+One byte covers both: 0x1F *is* `ctrl+-` on the wire (`0x5F & 0x1F`),
+and only claude needs its binding pinned. The Ctrl+U fallback is a kill-line: unrecoverable, one line
 per press.
 There is **no tool launcher**: however many agents are in `cli.tools`,
 sidekick's launcher (formerly `<leader>as`) stays unbound — `<leader>an`'s
@@ -3013,10 +3005,10 @@ what keeps active-session tracking correct there.
 **Attention glyphs** (leading column of every row — a fixed column so one
 vertical scan reads all statuses, and a long label overruns rightward instead
 of covering the signal — from the `agent_events.lua`
-registry — all five agents feed it through the same stowed
+registry — all three agents feed it through the same stowed
 `claude/.claude/hooks/sidekick-notify.sh` script: Claude via its hook
-registrations, opencode via a stowed plugin, pi and omp via stowed
-extensions, cursor by merging the Claude hook registrations natively — see
+registrations, omp via a stowed
+extension, cursor by merging the Claude hook registrations natively — see
 the repo README's per-tool sections):
 
 | Glyph | Meaning | Cleared by |
@@ -3035,13 +3027,13 @@ main pane to another session, or closing the view (interacting cancels it,
 your next prompt too). cmux's focused-pane rule dropped such an event
 outright, which made it
 unrecoverable; `!` still rings immediately either way. And ring support is
-**tiered by agent**. Claude and opencode emit the
-full set; pi has no permission/question events in its vocabulary, omp has
+**tiered by agent**. Claude emits the
+full set; omp has
 `tool_approval_requested` but the stowed extension doesn't wire it (omp's
 `yolo` approval default makes it near-dead; wire it if that default ever
 changes), and
 cursor's aren't reachable through the Claude-hook merge (it deliberately
-drops `Notification`/`PermissionRequest`) — so cursor, pi and omp rows can
+drops `Notification`/`PermissionRequest`) — so cursor and omp rows can
 show `»`/`●`/`○` but **never `!`**, and on those rows absence of `!` does not
 mean nothing is needed.
 
@@ -3051,7 +3043,7 @@ desktop notification: session label as the title, the agent's own prompt text
 as the body (its phrase, "wants permission", only when it sent none). Via
 `terminal-notifier` when installed, falling back to `osascript` (see
 README → Neovim for why the fallback is the worse one). Urgent only: never
-for `●` — a popup per turn across five agents trains you to ignore them —
+for `●` — a popup per turn across three agents trains you to ignore them —
 and **at most one per blocked episode**. The first `!` you're away for pops;
 everything until you engage stays silent, whatever tier it arrives as. Both
 halves matter: answering a permission prompt emits no hook, so a tier-based
@@ -3123,10 +3115,10 @@ mention shape (`{quickfix}` included); diagnostics and `{buffers}`/`{file}`
 still use sidekick's stock `cli/context` module.
 
 **A ref only auto-attaches on claude and cursor.** Every send key emits the
-same `@path#L…` string to whichever agent is active, but opencode and pi never
-resolve a *pasted* `@` ref into an attachment — in both, `@` is an autocomplete
-trigger that builds the attachment as you pick from its popup, and neither
-re-scans the submitted text. So on those two the ref arrives as text and the
+same `@path#L…` string to whichever agent is active, but omp never
+resolves a *pasted* `@` ref into an attachment — `@` is an autocomplete
+trigger that builds the attachment as you pick from its popup, and it
+doesn't re-scan the submitted text. So there the ref arrives as text and the
 agent reads the file with its own tool, which it usually but not always does.
 Nothing to work around, and no better shape exists (`#L` stays the right one —
 it's machine-parsed on claude and legible everywhere); when you want the code

@@ -3,10 +3,10 @@
 -- the name carries the agent, the agent picks the binary (create_session).
 -- AGENTS[1] is the primary/home base: pre-warmed, teardown fallback (the
 -- <leader>an picker ranks independently — see new_session).
-local AGENTS = { 'claude', 'cursor', 'opencode', 'pi', 'omp' }
+local AGENTS = { 'claude', 'cursor', 'omp' }
 local PRIMARY = AGENTS[1]
 -- Binary per agent, only where it differs from the name. Everything else about
--- an agent is derived from AGENTS, so a fifth entry needs a line here only if
+-- an agent is derived from AGENTS, so a new entry needs a line here only if
 -- its executable is named differently.
 local EXE = { cursor = 'cursor-agent' }
 
@@ -171,50 +171,38 @@ require('sidekick').setup({
   nes = { enabled = false },
 })
 
--- Kill the shell-out session backends. State.get() runs EVERY registered
--- backend's sessions() synchronously on the UI thread, and two of them shell
--- out: opencode (`lsof -iTCP -sTCP:LISTEN`, 40ms) and tmux/zellij (a full `ps`
--- scan, +22ms). Neither was asked for — opencode registers its scanner as a
--- *load side-effect* of its tool spec, and Session.setup() registers
--- tmux/zellij on `executable(name)==1` alone, NOT on cli.mux.enabled. So
--- State.get cost 40.8ms and the detach sweep below (9 of them with 3 forked
--- sessions) froze nvim for ~370ms. Now 0.05ms. See GUIDE.md "Sidekick's
--- session backends shell out on every lookup".
--- Still stubbed now that opencode is an agent: it only drops discovery of
--- opencode servers started *outside* nvim. Ours spawn through the terminal
--- backend like every other agent.
---
--- Three constraints, each learned the hard way:
---   * Stub sessions(), don't nil the backend — Session.new asserts it exists.
---     This only disables discovery of *externally started* sessions.
---   * Call Session.setup() first (it's normally lazy). Registering before we
---     stub also warms tool.lua's dofile cache, so the spec can't reload and
---     quietly restore the real sessions().
---   * Skip tmux/zellij when mux IS enabled — there, discovery is the feature.
-local Session = require('sidekick.cli.session')
-Session.setup()
-local no_sessions = function() return {} end
-local no_discovery = { 'opencode' }
-if not require('sidekick.config').cli.mux.enabled then
-  vim.list_extend(no_discovery, { 'tmux', 'zellij' })
-end
-for _, name in ipairs(no_discovery) do
-  local backend = Session.backends[name]
-  if backend then backend.sessions = no_sessions end
-end
-
--- Keep only AGENTS' presets: no other spec is ever dofile'd (opencode proved a
--- spec can register a scanner on load) and State.get's per-call tool loop
--- shrinks from 13 entries (12 bundled + our omp spec) to 5. cursor/pi/omp are
--- safe to keep — bare
+-- Keep only AGENTS' presets in cli.tools, BEFORE Session.setup(): setup() loads
+-- every tool spec in cli.tools (Config.tools()), and a spec can register a
+-- session backend as a load side-effect — the bundled opencode one registers an
+-- `lsof -iTCP -sTCP:LISTEN` scanner (40ms per State.get). Pruning first means
+-- those specs are never dofile'd. cursor/omp are safe to keep — bare
 -- cmd/is_proc/url, no sessions() scanner (omp's spec is ours: sk/cli/omp.lua
--- in this config; sidekick has no omp preset). Must run *after* the stub above —
--- pruning first leaves the dofile cache cold, so a later tool.get('opencode')
--- would re-register the real 40ms sessions(). The tool launcher (formerly
+-- in this config; sidekick has no omp preset). The tool launcher (formerly
 -- <leader>as) stays unbound however many tools there are — see keymaps.lua.
 local tools = require('sidekick.config').cli.tools
 for name in pairs(tools) do
   if not vim.tbl_contains(AGENTS, name) then tools[name] = nil end
+end
+
+-- Kill the shell-out tmux/zellij session backends. State.get() runs EVERY
+-- registered backend's sessions() synchronously on the UI thread, and
+-- Session.setup() registers tmux/zellij on `executable(name)==1` alone, NOT on
+-- cli.mux.enabled: a full `ps` scan, +22ms, that nobody asked for. Across the
+-- detach sweep (9 State.get calls with 3 forked sessions) that froze nvim for
+-- ~370ms. Now 0.05ms. See GUIDE.md "Sidekick's session backends shell out on
+-- every lookup".
+--
+-- Two constraints:
+--   * Stub sessions(), don't nil the backend — Session.new asserts it exists.
+--     This only disables discovery of *externally started* sessions.
+--   * Skip tmux/zellij when mux IS enabled — there, discovery is the feature.
+local Session = require('sidekick.cli.session')
+Session.setup()
+if not require('sidekick.config').cli.mux.enabled then
+  for _, name in ipairs({ 'tmux', 'zellij' }) do
+    local backend = Session.backends[name]
+    if backend then backend.sessions = function() return {} end end
+  end
 end
 
 -- Promote the sidekick CLI to a full-height edge column on every show.
@@ -477,15 +465,11 @@ vim.api.nvim_create_autocmd('FileType', {
     -- u: input-undo (vim's own would E21 in an unmodifiable terminal buffer).
     -- An allowlist, never a denylist — cursor showed what an unverified TUI
     -- does with a guessed byte: 0x1F cycles its model, and it has no undo at
-    -- all (binary-inspected 2026-07-22). 0x1F covers the other four because
+    -- all (binary-inspected 2026-07-22). 0x1F covers the others because
     -- it IS ctrl+- on the wire (0x5F & 0x1F), their stock undo key.
-    -- Trap: do NOT send Ctrl+Z to opencode — that's its terminal_suspend; only
-    -- its Windows build reuses ctrl+z for undo.
     local UNDO_SEQ = {
       claude   = '\31',  -- ctrl+_, pinned in the stowed claude keybindings.json
-      pi       = '\31',  -- stock: tui.editor.undo = ctrl+-
-      omp      = '\31',  -- stock: pi fork, keeps tui.editor.undo = ctrl+-
-      opencode = '\31',  -- stock: input_undo = "ctrl+-,super+z"
+      omp      = '\31',  -- stock: tui.editor.undo = ctrl+-
     }
     -- Unverified agents fall back to Ctrl+U (kill line back): safe, but
     -- unrecoverable and one line per press. Undo only applies while the input
