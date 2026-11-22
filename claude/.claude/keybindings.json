@@ -7,6 +7,12 @@
       "bindings": {
         "ctrl+_": "chat:undo"
       }
+    },
+    {
+      "context": "Chat",
+      "bindings": {
+        "ctrl+alt+g": "command:orca-agent-view"
+      }
     }
   ]
 }

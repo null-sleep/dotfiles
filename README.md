@@ -960,28 +960,43 @@ agents (Claude Code, Codex, pi, Cursor CLI, ...) side by side. Each task gets
 its own `git worktree`, agent terminal, and browser tab. It also ships an
 `orca` CLI that scripts the running app. Compared with [Herdr](#herdr)
 (persistent TUI sessions, reattachable over SSH), Orca is a GUI built around
-worktree-per-task. **Test driving**: only the install is tracked, no stow
-package yet (its main settings live in-app; only `~/.orca/keybindings.json`
-and per-repo `orca.yaml` / `.worktreeinclude` are file-based).
+worktree-per-task. **Test driving**: no stow package; settings are in-app (only
+`~/.orca/keybindings.json` and per-repo `orca.yaml` / `.worktreeinclude` are
+file-based).
 
 ```bash
 brew install --cask stablyai/orca/orca    # or `brew bundle`; needs macOS 13.4+
 brew upgrade --cask orca
 ```
 
-First launch:
+Setup on each Mac (Orca's own settings live in a SQLite database under
+`~/Library/Application Support/orca/`, so they can't be stowed):
 
-- Accept the import of `~/.claude`, `~/.codex`, and Ghostty settings (read-only).
-- Settings → General → Orca CLI: register it, then check
-  `command -v orca && orca status --json`.
+- `brew bundle` installs the cask and links `orca` onto `PATH`
+  (`command -v orca && orca status --json`).
+- First launch: accept the import of `~/.claude`, `~/.codex`, and Ghostty
+  settings (read-only).
 - Settings → Terminal: zsh with `-l`, so the PATH setup in `.zshrc_config.zsh`
   applies inside agent terminals.
+- Settings → Open in → Add app (manual): label `Neovide`, command
+  `/Applications/Neovide.app/Contents/MacOS/neovide --chdir`. Orca runs
+  `/bin/sh -c "<command> <worktree path>"`, so the path lands as `--chdir`'s
+  value. The bundle path (not the Homebrew shim or the zsh `neovide` function,
+  which `/bin/sh` can't see) keeps the window visible to
+  [`rcmd`](#rcmd), and `--chdir` avoids the directory buffer nvim-tree hijacks.
+- `orca agent hooks on` (status in the app, state in that database). It is
+  all-or-nothing and writes into stowed files:
+  - `claude/.claude/settings.json` hooks — committed. They use `${HOME}` paths
+    behind a `-x` check, so they no-op where Orca isn't installed.
+  - `claude/.claude/keybindings.json` — `ctrl+alt+g` runs `orca-agent-view`.
+  - `~/.config/opencode/tui.json` — Orca adds an opencode plugin entry with an
+    absolute path to a generated, unstowed plugin file. Not used here:
+    `git checkout -- opencode/.config/opencode/tui.json` after enabling hooks.
+- Orca rewrites those hook entries on upgrades, so expect a recurring diff in
+  `claude/.claude/` to recommit. Delete the `*.bak` files it leaves beside them.
 
 Gotchas:
 
-- `orca agent hooks on` likely writes hooks into `~/.claude/settings.json`,
-  which is stowed from `claude/`. Run `orca agent hooks status` first, and
-  review `git diff claude/` afterwards.
 - Deleting a worktree in Orca also deletes its branch.
 - Codex history sharing into `~/.codex` is on by default.
 
