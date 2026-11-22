@@ -433,6 +433,19 @@ alias grb='git fetch origin && git rebase origin/$(git_base_branch)'
 alias grbc='git rebase --continue'
 alias grba='git rebase --abort'
 
+# Stash / discard
+alias gst='git stash push -u'  # incl. untracked; gst -m "msg" to label
+alias gsd='git stash drop'     # latest, or gsd stash@{2}
+alias gsp='git stash pop'
+# Discard everything (tracked + untracked) but stay recoverable via fsck. Drops
+# only if a stash was created: on a clean tree stash is a no-op and a bare drop
+# would delete an OLDER stash.
+gnuke() {
+  local before=$(git rev-parse -q --verify refs/stash)
+  git stash push -u -m "gnuke $(date +%F-%T)" || return
+  [[ $(git rev-parse -q --verify refs/stash) != "$before" ]] && git stash drop
+}
+
 # Git Functions
 
 # Remove alias from `antigen bundle git` if it exists to allow function definition

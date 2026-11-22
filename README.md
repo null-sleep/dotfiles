@@ -2187,7 +2187,16 @@ gco <linear-issue-url>        # check out a linked PR (fzf picker if multiple)
 gpr                           # select an open PR with fzf and check it out
 gpv                           # view the current branch's PR in the terminal
 gpo                           # open the current branch's PR in a browser
+gst [-m msg]                  # stash everything, including untracked files
+gsd                           # drop the latest stash
+gsp                           # pop the latest stash
+gnuke                         # discard all changes (tracked and untracked), recoverable
 ```
+
+`gnuke` stashes everything with `-u` and drops the stash, but only if one was
+created (on a clean tree a bare `git stash drop` would delete an older stash).
+Recover a discarded change with `git fsck --no-reflog --unreachable`, then
+`git stash apply <hash>`; the entry is labelled `gnuke <timestamp>`.
 
 `gnbm` reads `origin`'s configured default branch (`main` or `master`), fetches
 it, and starts the named branch at that fetched commit without checking out the
