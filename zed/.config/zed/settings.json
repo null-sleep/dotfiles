@@ -257,6 +257,21 @@
     "git": {
         "auto_fetch": { "enabled": false, "interval_secs": 60 },
     },
+    // Gutter (the strip left of the code). Other knobs spell out Zed's
+    // defaults; flip one to false to drop that column and narrow the gutter.
+    "gutter": {
+        // Digits of width reserved for line numbers (default 4, even in short
+        // files). 1 = size to the file's actual line count.
+        "min_line_number_digits": 1,
+        // Show line numbers at all.
+        "line_numbers": true,
+        // Fold chevrons (the `v` next to function/block starts).
+        "folds": true,
+        // Run icons next to tests and main (from tasks.json / language runnables).
+        "runnables": true,
+        // Breakpoint/bookmark dot column (the hover dot that shows "Set Bookmark").
+        "breakpoints": true,
+    },
     // Reopen the last-closed workspace even if its window was closed before
     // quitting (the default "last_session" only restores windows still open
     // at quit).
