@@ -989,11 +989,13 @@ Setup on each Mac (Orca's own settings live in a SQLite database under
   - `claude/.claude/settings.json` hooks — committed. They use `${HOME}` paths
     behind a `-x` check, so they no-op where Orca isn't installed.
   - `claude/.claude/keybindings.json` — `ctrl+alt+g` runs `orca-agent-view`.
+    It only works inside Orca with "Claude subagent navigation" enabled in
+    its settings (Claude 2.1.300+); elsewhere the chord is bound to nothing.
   - `~/.config/opencode/tui.json` — Orca adds an opencode plugin entry with an
     absolute path to a generated, unstowed plugin file. Not used here:
     `git checkout -- opencode/.config/opencode/tui.json` after enabling hooks.
 - Orca rewrites those hook entries on upgrades, so expect a recurring diff in
-  `claude/.claude/` to recommit. Delete the `*.bak` files it leaves beside them.
+  `claude/.claude/` to recommit. Delete the `*.bak` files it leaves beside them (git history has the originals).
 
 Gotchas:
 

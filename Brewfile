@@ -159,7 +159,8 @@ cask "signal"
 cask "vlc"             # media player
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
 cask "tabularis"        # database GUI client (test driving); tap in Taps above
-cask "stablyai/orca/orca"  # multi-agent worktree app (test driving); see README → "Orca"
+cask "orca"            # multi-agent worktree app (test driving); tap in Taps above,
+                       # see README → "Orca"
 cask "vorssaint"       # menu bar utility toolkit (keep-awake, system monitor,
                        # per-app volume mixer, ...). Modular: each utility is
                        # installed/removed from the app's settings hub. No config
