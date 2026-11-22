@@ -1899,8 +1899,10 @@ Stowed to `~/.config/zed/`:
   agent permissions set to never prompt, like omp's `yolo`: Zed Agent tools
   auto-approved (only the `edit_file`/`write_file` tools are denied `.env*`/`*.pem`/`*.key` paths; shell commands can still touch them; untrusted folders open in restricted mode, so trust `~/src` once from Zed's banner), its terminal sandbox
   off, and omp run with `--approval-mode yolo` (details:
-  [`docs/zed.md`](docs/zed.md#inside-thread)). Claude runs in Terminal
-  Threads, not over ACP: `agent.terminal_init_command` starts `claude` in
+  [`docs/zed.md`](docs/zed.md#inside-thread)). Claude is available over ACP
+  (`claude-acp`) on a Claude subscription, no terminal `claude` needed
+  ([details](docs/zed.md#claude-acp-subscription)), and also in Terminal
+  Threads: `agent.terminal_init_command` starts `claude` in
   each one, and `agent.enable_feedback` is off.
   `terminal.option_as_meta` makes Option act as Alt in Zed's terminal, so
   omp's `Alt+O` picker works there (otherwise it types `ø`). Thinking blocks,

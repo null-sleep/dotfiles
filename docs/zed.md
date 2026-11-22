@@ -251,7 +251,7 @@ edits that go through Zed:
 - **ACP agents that write through Zed** (ACP v1's `fs/write_text_file`,
   still offered in 1.29.2): every edit. `omp acp` does
   ([`docs/omp.md`](omp.md#zed-acp), probed on omp 18.4.12).
-- **ACP agents that write to disk themselves** (the registry Claude ACP agent, not installed here — Claude runs in Terminal Threads): none — edits
+- **ACP agents that write to disk themselves** (the registry Claude ACP agent, `claude-acp`): none — edits
   are final (not verified; reported in
   [zed#50142](https://github.com/zed-industries/zed/issues/50142) and
   [#56048](https://github.com/zed-industries/zed/discussions/56048)). A Zed
@@ -739,13 +739,14 @@ If `cmd-b` hits the wrong dock, you are in the other layout: check with
 Layouts are described under [Panes, tabs, and docks](#panes-docks).
 
 **External agents** (ACP) install from `zed: acp registry`; `settings.json`
-has Codex (`codex-acp`, a registry entry) and omp, which isn't in the
+has Claude (`claude-acp`, a registry entry), Codex (`codex-acp`, also a
+registry entry), and omp, which isn't in the
 registry, so it's a `custom` entry running `omp acp --approval-mode yolo
---config ~/.omp/agent/zed-models.yml`. Both appear in the `+` menu and
+--config ~/.omp/agent/zed-models.yml`. All appear in the `+` menu and
 sidebar like any thread. They bring their own auth and instructions (not
 Zed's `AGENTS.md`) and ignore Zed profiles. **Terminal Threads** (`+` menu >
 Terminal) are a plain terminal tracked as a thread, for the CLI itself
-(sidekick-in-nvim). Claude runs this way here, not over ACP:
+(sidekick-in-nvim). Claude can also run this way:
 `agent.terminal_init_command: "claude"` types `claude` into every new
 Terminal Thread (Ctrl-C it for a plain shell, or to run `pi`/`codex`). They
 do not resume after a Zed restart ([details](#terminal-thread-restore)).
@@ -815,9 +816,7 @@ What each side gives you:
   plugins, skills, the CLI's current version, and your own config for it
   (this repo's `claude/` hooks and skills, pi's extensions) all run; over
   ACP only what the adapter forwards exists, and the adapter can lag the
-  CLI. Auth is the CLI's — Zed's Terminal Threads post (May 2026) says this
-  is the only way to use Claude Code on a Claude *subscription* in Zed;
-  Codex's native login works either way. In exchange the thread is a
+  CLI. In exchange the thread is a
   terminal: scrollback instead of a transcript, no review loop (review with
   git: [Agent edits](#diff-review-agents)), no waiting/done signals in the
   sidebar.
@@ -830,9 +829,28 @@ What each side gives you:
   See
   [Terminal Threads after a restart](#terminal-thread-restore).
 
-Rule of thumb: ACP for Zed Agent and Codex when the in-editor review loop
-is the point; Terminal Threads for a harness you have customised (Claude,
-pi). Zed profiles, Skills, and `AGENTS.md` apply to neither — external
+<a id="claude-acp-subscription"></a>
+**Claude on a subscription over ACP.** `claude-acp` (registry entry
+"Claude Agent", the ACP adapter for Anthropic's Claude Agent SDK) works on a
+Claude Pro/Max subscription directly in an ACP thread; the terminal `claude`
+CLI is not required. Install it from `zed: acp registry`, open a Claude Agent
+thread, and sign in with `/login` using your Claude account (not an API key,
+which bills the API instead). Confirmed working on this machine. Zed's
+[External Agents docs](https://zed.dev/docs/ai/external-agents#claude-agent)
+and [Use an Existing Subscription](https://zed.dev/docs/ai/use-an-existing-subscription)
+agree. Zed's May 2026 blog post saying the terminal was the only
+subscription route is superseded: Anthropic paused the announced billing
+split, and as of 2026-11 its
+[help article](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+says Agent SDK usage signed in with a plan still draws from subscription
+limits. That can change; if ACP usage starts billing separately, fall back
+to a Terminal Thread. `settings.json` sets `default_config_options` to
+`model: sonnet` and `mode: bypassPermissions` (no approval prompts).
+
+Rule of thumb: ACP for Zed Agent, Codex, and Claude when the in-editor
+review loop or transcript UI is the point; Terminal Threads for a harness
+you have customised and want the whole CLI for (Claude hooks/skills, pi).
+Zed profiles, Skills, and `AGENTS.md` apply to neither — external
 agents read their own instruction files.
 
 <a id="mcp"></a>
@@ -1298,7 +1316,7 @@ the date and Zed version in the commit message.
   the file.
 - [ ] **omp ACP thread:** an edit appears under `ctrl-shift-r`; reject
   restores the file.
-- [ ] **Registry Claude ACP agent (not installed here):** the edit lands on disk and the review buffer stays
+- [ ] **Registry Claude ACP agent (`claude-acp`):** the edit lands on disk and the review buffer stays
   empty.
 
 **Display**

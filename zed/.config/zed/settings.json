@@ -371,6 +371,13 @@
         "tabularis": { "command": "tabularis", "args": ["--mcp"] },
     },
     "agent_servers": {
+        "claude-acp": {
+            "default_config_options": {
+                "model": "sonnet",
+                "mode": "bypassPermissions"
+            },
+            "type": "registry"
+        },
         "codex-acp": { "type": "registry" },
         // `--approval-mode yolo`: omp's ACP mode asks before every bash call
         // unless yolo is set explicitly; the built-in default doesn't count.
@@ -382,7 +389,7 @@
             // agent.default_model).
             "default_config_options": {
                 "mode": "default",
-                "model": "openrouter/openrouter/auto-code"
+                "model": "openrouter/anthropic/claude-sonnet-5.5"
             },
             // Starred models in omp's dropdown: a "Favorites" section on top
             // and the alt-tab cycle in omp threads. One entry per omp cycle
