@@ -2195,8 +2195,17 @@ gnuke                         # discard all changes (tracked and untracked), rec
 
 `gnuke` stashes everything with `-u` and drops the stash, but only if one was
 created (on a clean tree a bare `git stash drop` would delete an older stash).
-Recover a discarded change with `git fsck --no-reflog --unreachable`, then
-`git stash apply <hash>`; the entry is labelled `gnuke <timestamp>`.
+`gnuke` prints the undo command (`git stash apply <hash>`) when it finishes.
+If you lose it, list the unreachable commits and pick the one labelled
+`On <branch>: gnuke <timestamp>` (not the `index on` / `untracked files on`
+ones, which `fsck` lists too):
+
+```bash
+git fsck --no-reflog --unreachable | awk '/commit/{print $3}' |
+  xargs git log --no-walk --format='%h %s' | grep gnuke
+```
+
+Recovery works until `git gc` prunes unreachable objects (two weeks by default).
 
 `gnbm` reads `origin`'s configured default branch (`main` or `master`), fetches
 it, and starts the named branch at that fetched commit without checking out the

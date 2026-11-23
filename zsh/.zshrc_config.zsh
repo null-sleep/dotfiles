@@ -441,9 +441,11 @@ alias gsp='git stash pop'
 # only if a stash was created: on a clean tree stash is a no-op and a bare drop
 # would delete an OLDER stash.
 gnuke() {
-  local before=$(git rev-parse -q --verify refs/stash)
+  local before=$(git rev-parse -q --verify refs/stash) after
   git stash push -u -m "gnuke $(date +%F-%T)" || return
-  [[ $(git rev-parse -q --verify refs/stash) != "$before" ]] && git stash drop
+  after=$(git rev-parse -q --verify refs/stash)
+  [[ $after != "$before" ]] || return 0
+  git stash drop -q && print "discarded; to undo: git stash apply $after"
 }
 
 # Git Functions
