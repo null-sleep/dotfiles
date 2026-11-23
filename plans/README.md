@@ -95,6 +95,10 @@ off or delete them as they land; add new ones freely.
   2026-11-15) — the remaining gaps against omp's ACP pop-ups need Zed changes.
   Scoped in
   [zed-fork-terminal-thread-notifications.md](zed-fork-terminal-thread-notifications.md).
+- [ ] **List user tasks in the Zed command palette (fork)** (found 2026-11-22)
+  — the palette shows actions only, so the `cheatsheet` task can't be run from
+  `cmd-shift-p` without `task: spawn`. Scoped in
+  [zed-fork-palette-tasks.md](zed-fork-palette-tasks.md).
 - [ ] **Look into quieting omp's "Run Command" cards in Zed** (found
   2026-11-14) — every `bash` call in an omp ACP thread draws a card with the
   full command; output is already collapsed (`expand_terminal_card: false`)
@@ -686,6 +690,8 @@ Grouped by state, not priority.
   — idea (2026-11-15): Zed fork changes for richer Terminal Thread pop-ups
   (option to skip the Dock bounce, re-notify after dismiss, caption from
   OSC 9/777, OSC 7501 status).
+- [zed-fork-palette-tasks.md](zed-fork-palette-tasks.md) — idea (2026-11-22):
+  Zed fork change to list `tasks.json` tasks in the command palette.
 - [zed-claude-stop-bell.md](zed-claude-stop-bell.md) — implemented
   (2026-11-15): instant Claude bell hooks for Zed Terminal Threads (captioned
   pop-ups) and Ghostty (Dock bounce), how they compare with omp's ACP

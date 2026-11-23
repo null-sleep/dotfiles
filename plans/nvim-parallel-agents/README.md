@@ -175,6 +175,19 @@ loses CLI features that matter, that's concrete evidence for the nvim
 build. Step 0's measurements and step 1 (session ids and registry) in the
 synthesis below would still be worth doing, since they're cheap.
 
+### Trial list (running)
+
+Items found while using Zed, in the three buckets above.
+
+**2. A small fork patch fixes it**
+
+- Tasks can't be run from the command palette (`cmd-shift-p` lists actions
+  only), so the cheatsheet task needs `cmd-k cmd-m` or `task: spawn`. Found
+  2026-11-22; scope in
+  [../zed-fork-palette-tasks.md](../zed-fork-palette-tasks.md).
+- Terminal Thread notifications: see
+  [../zed-fork-terminal-thread-notifications.md](../zed-fork-terminal-thread-notifications.md).
+
 ## Synthesis so far (2026-11-22)
 
 Claude's take after reading all five research docs. This is a
