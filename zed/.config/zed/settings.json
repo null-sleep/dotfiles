@@ -255,6 +255,7 @@
     },
 
     "git": {
+        "git_gutter": "tracked_files",
         "auto_fetch": { "enabled": false, "interval_secs": 60 },
     },
     // Gutter (the strip left of the code). Other knobs spell out Zed's

@@ -156,6 +156,9 @@ running Zed; the checks still to run are in
 [1] `git: diff` obeys `git.diff_base` (default `head`); `git: diff head`
 always shows uncommitted changes. See [Branch diff](#branch-diff).
 
+The Git gutter is explicitly enabled for tracked files (`git.git_gutter`),
+showing added, changed, and deleted lines against the selected diff base.
+
 ### Uncommitted changes — the project diff
 
 `ctrl-g d` is bound only in the git panel; elsewhere use `git: diff`, or
