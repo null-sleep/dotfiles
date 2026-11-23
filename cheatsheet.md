@@ -15,6 +15,22 @@ no equivalent. `—` means no key; use the palette.
 Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
 `docs/zed-vim-keymap.md` (staged, commented out, in `keymap.json`).
 
+## Index
+
+- [Find and navigate](#find-and-navigate)
+- [Code](#code)
+- [Review changes](#review-changes)
+- [Agent](#agent)
+- [Tabs and panes](#tabs-and-panes)
+- [Panels and docks](#panels-and-docks)
+  - [Project panel](#project-panel)
+  - [Outline panel](#outline-panel)
+  - [Git panel](#git-panel)
+  - [Threads sidebar](#threads-sidebar)
+  - [Terminal, tasks, debugger](#terminal-tasks-debugger)
+- [Vim-only extras](#vim-only-extras)
+- [Gotchas](#gotchas)
+
 ## Find and navigate
 
 | Action | Zed | Vim | nvim |
