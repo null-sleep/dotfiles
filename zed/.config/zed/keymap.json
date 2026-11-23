@@ -26,6 +26,41 @@
 // - Verified against v1.29.2 and the ~/src/zed nightly (2026-11-19), not the
 //   installed 1.29.3: re-check an action name if a binding does nothing
 //   (dev: open key context view).
+//
+// Staged groups, with a verdict on each (usage unmeasured; cross out what you
+// never press). Keep = real gap in Zed; Optional = Zed already has a key;
+// Cheap = low cost either way.
+// - Panes and tabs: ctrl-h/j/k/l, space space, space b b/x/o
+//   Keep ctrl-h/j/k/l (+ Dock block): docks aren't panes, so ctrl-w h/j/k/l
+//   dead-ends at panels. space space = cmd-p; space b b/x/o = ctrl-tab,
+//   cmd-w, alt-cmd-t: Optional.
+// - Search: space s f/g/w/s/d/r/k
+//   Optional: cmd-p, cmd-shift-f, gS, gs, cmd-k cmd-p, cmd-k cmd-s exist.
+//   Keep only if the leader reflex is strong.
+// - Peek: space p d/t/i/r
+//   Keep if you use nvim's peek floats; gd/gy/gri/grr give the multibuffer
+//   version, and ctrl-w d / ctrl-w D already open the picker.
+// - Code: space c a/f/d, space t i
+//   Optional: gra / g. (code action), cmd-shift-i (format), cmd-shift-m
+//   (diagnostics). ctrl-: for inlay hints is a stretch, so space t i is Keep.
+// - Panels: space e, space o
+//   Keep space e (reveal in tree); space o = cmd-shift-b. Neither works from
+//   inside the panels themselves (excluded contexts).
+// - Git: space g g/d/p/c/f, space t b
+//   Keep space g d/p/c/f and space t b (no default key). space g g has f6 /
+//   the palette as the alternative. Prefix is g here, v in nvim: decide.
+// - Agent: space a a/x/n/l/v/d, visual space a t/s
+//   Optional: space a a = cmd-?; space a x = ctrl-alt-w. space a l is the
+//   shakiest (popup may stay open); space a d needs an active thread.
+//   space a n/v/d have no easy default key.
+// - Debugger: space d b/c/i/o/O/q/l/u
+//   Optional: the F-keys match nvim's. Keep only for away-from-F-row use.
+// - Toggles and yanks: space t n/d, y p/P/u
+//   Keep y p/P/u (copy path, permalink: no useful default); space t n/d are
+//   rarely pressed. y becomes a chord prefix (no delay for y y / y i w).
+// - Insert: jk
+//   Cheap and a strong reflex if you use it in nvim; skip if you reach for
+//   escape.
 [
     // Swap the floating text finder and editable project-search tab shortcuts.
     // Unscoped bindings override the defaults in editors and search bars alike.
