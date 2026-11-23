@@ -2175,7 +2175,7 @@ Used by [Claude Squad](#claude-squad) (pushing session branches) and omp's
 PR status segment — no extra scopes needed
 beyond the defaults `gh auth login` grants.
 
-The shell includes short commands for common pull-request operations:
+The shell includes short commands for common git and pull-request operations:
 
 ```bash
 gnb <branch>                  # create and switch to <branch> from the current commit
