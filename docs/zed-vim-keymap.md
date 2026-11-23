@@ -1,9 +1,12 @@
 # Zed vim mode — recommended keymap
 
-**Status:** proposal, with `<M-]>` / `<M-[>` (cycle threads) and
-`cmd-k cmd-v` (`workspace::ToggleVimMode`, not an nvim carry-over) adopted
-and tested (2026-11-14). `zed/.config/zed/keymap.json` holds those two
-rows (plus an unrelated `cmd-k cmd-m` block that opens `cheatsheet.md`). The
+**Status:** `<M-]>` / `<M-[>` (cycle threads) and `cmd-k cmd-v`
+(`workspace::ToggleVimMode`, not an nvim carry-over) adopted and tested
+(2026-11-14). Every *borrow* row (not the *try* rows) is staged in
+`zed/.config/zed/keymap.json` (2026-11-22) but **commented out and untested**:
+uncomment to adopt, live with them, then flip calls to **adopted** or back to
+*default*. The file also has an
+unrelated `cmd-k cmd-m` block that opens `cheatsheet.md`. The
 earlier draft, which mirrored nvim keys that don't exist, was
 removed; adopt further rows from the block below.
 
@@ -24,7 +27,7 @@ Three rules behind every call:
    (`gd`, `]d`, `]c`, `du`/`dp`, `gS`, `ZZ`). A leader alias *beside* it
    is fine when the leader key is the reflex.
 2. **Borrow an nvim key when it is daily muscle memory with no cheap Zed
-   equivalent** (`H`/`L`, `ctrl-h/j/k/l`, `jk`, `<leader><leader>`,
+   equivalent** (`ctrl-h/j/k/l`, `jk`, `<leader><leader>`,
    `<leader>e`, `<leader>aa`).
 3. **Never shadow a Zed chord prefix.** `space g` is fine; `g r` is not —
    it delays `grn`/`gra`/`grr` by the 1 s chord timeout (the removed draft
@@ -74,10 +77,10 @@ Notation: nvim keys as in GUIDE.md (`<leader>sf`); Zed keys as in
 
 | nvim | Zed default | call | why |
 |---|---|---|---|
-| `H` / `L` prev/next buffer | `[b` / `]b` | borrow | most-pressed nav keys; loses `vim::WindowTop`/`WindowBottom` (`M` stays), as nvim did |
+| `H` / `L` prev/next buffer | `[b` / `]b`, `cmd-{` / `cmd-}` | default | not used in practice; leaving them unbound keeps `vim::WindowTop`/`WindowBottom` |
 | `<C-h/j/k/l>` split nav | `ctrl-w h/j/k/l` | borrow | one key vs two; needs the `Dock` block or it dead-ends at panels |
 | `<A-h/j/k/l>` resize | `ctrl-w <`/`>`/`-`/`+` | try | rarely used; `ctrl-w _`/`=` cover the common cases |
-| `gb` alternate buffer | `ctrl-^` | borrow | `ctrl-^` is awkward on a Mac; loses `gb` block-comment (`cmd-k cmd-/` remains) |
+| `gb` alternate buffer | `ctrl-^` | default | `gb` keeps Zed's block-comment toggle; `ctrl-^` is the alternate file, awkward on a Mac but not worth a remap |
 | `jj` / `jk` escape | `escape`, `ctrl-c`, `ctrl-[` | borrow | `jk` only; one escape chord is enough |
 | `<leader><leader>` smart picker | `cmd-p` (recent-first when empty) | borrow | daily; same picker |
 | `<leader>bb` buffer picker | `ctrl-tab` | borrow | MRU tab switcher with preview |
@@ -201,7 +204,7 @@ languages you have opened a file in this session; see
 | `<leader>td` diagnostics on/off | — | borrow | `editor::ToggleDiagnostics` |
 | `<leader>tq` quickfix window | `cmd-shift-m` | default | same as `<leader>cd` |
 | `<leader>tf` / `tL` format/lint-on-save | — | skip | settings, not actions |
-| `yp` / `yP` yank path | `cmd-k p` (absolute only) | borrow | `editor::CopyRelativePath` / `CopyPath` |
+| `yp` / `yP` yank path | `cmd-k p` (absolute only) | borrow | `workspace::CopyRelativePath` / `CopyPath` |
 | `yu` permalink | — | borrow | `editor::CopyPermalinkToLine` |
 | `<Esc>` clear highlights | `escape` | default | `editor::Cancel` already does it |
 | `gcc` | same | default | |
@@ -221,9 +224,6 @@ Every *borrow* and *try*, grouped by context, ready to paste into
     "context": "Editor && vim_mode == normal && !menu",
     "bindings": {
       // tabs and panes
-      "shift-h": "pane::ActivatePreviousItem",
-      "shift-l": "pane::ActivateNextItem",
-      "g b": "pane::AlternateFile",
       "ctrl-h": "workspace::ActivatePaneLeft",
       "ctrl-j": "workspace::ActivatePaneDown",
       "ctrl-k": "workspace::ActivatePaneUp",
@@ -290,8 +290,8 @@ Every *borrow* and *try*, grouped by context, ready to paste into
       // toggles and yanks
       "space t n": "editor::ToggleRelativeLineNumbers",
       "space t d": "editor::ToggleDiagnostics",
-      "y p": "editor::CopyRelativePath",
-      "y shift-p": "editor::CopyPath",
+      "y p": "workspace::CopyRelativePath",
+      "y shift-p": "workspace::CopyPath",
       "y u": "editor::CopyPermalinkToLine"
     }
   },
@@ -323,7 +323,7 @@ Every *borrow* and *try*, grouped by context, ready to paste into
 
   // ── Docks: make ctrl-h/j/k/l come back from panels ──────────────────
   {
-    "context": "Dock",
+    "context": "Dock && !Terminal",
     "bindings": {
       "ctrl-h": "workspace::ActivatePaneLeft",
       "ctrl-j": "workspace::ActivatePaneDown",
@@ -332,9 +332,9 @@ Every *borrow* and *try*, grouped by context, ready to paste into
     }
   },
 
-  // ── Non-editor panes (project panel, empty pane): same leader keys ──
+  // ── Non-editor panes (empty pane, other docks): same leader keys ──
   {
-    "context": "!Editor && !Terminal",
+    "context": "!Editor && !Terminal && !ProjectPanel && !GitPanel && !OutlinePanel",
     "bindings": {
       "space space": "file_finder::Toggle",
       "space e": "project_panel::ToggleFocus",
@@ -358,15 +358,17 @@ the docs don't show. Add either via the keymap editor (`space s k` →
 - **What `ctrl-h/j/k/l` displace in normal mode:** `editor::Backspace`,
   `vim::Down`, `editor::KillRingCut`, `editor::ScrollCursorCenter` (`zz`
   does the same) — none worth keeping. Never bind them in insert mode:
-  `ctrl-k` is digraph there. The `Dock` block likely also takes them from
-  the bottom-dock terminal (readline `ctrl-k`/`ctrl-l`; not tested); use
-  `Dock && !Terminal` to keep them.
+  `ctrl-k` is digraph there. The `Dock` block is scoped `Dock && !Terminal`, so a docked
+  terminal keeps readline `ctrl-k`/`ctrl-l`; leave it with `f6`.
 - **`y` becomes a chord prefix** for `y p`/`y shift-p`/`y u`. Nothing is
   lost (`p`/`u` are not motions, text objects start with `i`/`a`); `y`
   just resolves on the next key, as an operator does anyway.
-- **Vim contexts are `Editor`-only**, hence the `!Editor && !Terminal`
-  block for panels. It doesn't collide with vim.json's own `space f`,
-  `space /`, `space shift-s`, `space w …` there.
+- **Vim contexts are `Editor`-only**, hence the
+  `!Editor && !Terminal && !ProjectPanel && !GitPanel && !OutlinePanel`
+  block for empty panes and other docks. The three panels are excluded
+  because they bind plain `space` (stage, open), so `space e` / `space g g` /
+  `space a a` don't work from them. It doesn't collide with vim.json's own
+  `space f`, `space /`, `space shift-s`, `space w …` there.
 - **Leader chords wait 1 s** before `space` falls through to
   `vim::WrappingRight`; the which-key popup (`which_key.enabled`, on in
   this repo's `settings.json`) lists what can complete a pending chord
@@ -398,9 +400,10 @@ Open calls from review; each is a one-line change once decided.
 <a id="adopting"></a>
 ## Adopting a row
 
-1. Merge the block (or a subset) into `zed/.config/zed/keymap.json`'s
-   array. Keep the existing `cmd-k cmd-v` and `cmd-k cmd-m` entries; drop
-   the block's `alt-]` / `alt-[` entry, which `keymap.json` already has.
+1. Uncomment the staged block (or a subset) in
+   `zed/.config/zed/keymap.json`. The existing `cmd-k cmd-v` and
+   `cmd-k cmd-m` entries stay; the block's `alt-]` / `alt-[` entry is
+   already left out, since `keymap.json` has it.
    Zed reloads keymaps on save.
 2. If a key does nothing, `dev: open key context view` shows the context
    under the cursor; `cmd-shift-p` shows what the action is bound to.

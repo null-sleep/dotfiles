@@ -1685,8 +1685,9 @@ Stowed to `~/.config/zed/`:
   (`multi_workspace::NextThread` / `PreviousThread`, agent panel and sidebar
   only), `cmd-k cmd-v` (`workspace::ToggleVimMode`) to toggle vim mode, and
   `cmd-k cmd-m` (`task::Spawn` → the `cheatsheet` task) to open
-  [`cheatsheet.md`](cheatsheet.md); the vim-mode bindings to adopt from nvim
-  are proposed in [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md).
+  [`cheatsheet.md`](cheatsheet.md). The nvim-style vim-mode leader layer (the
+  *borrow* rows of [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md)) is
+  staged in the file but commented out; uncomment the entries to adopt them.
 - **`tasks.json`** — the `cheatsheet` task, which runs
   `zed $HOME/src/dotfiles/cheatsheet.md` (assumes the repo lives at `~/src/dotfiles`). Zed extensions can't add UI or
   actions, so a task plus a keybinding is the way to get a shortcut cheatsheet.
@@ -1748,7 +1749,7 @@ upgrade, re-verify against the new tag and bump that line):
   navigation, tabs/panes/panels, the Zed-specific `g`/`]`/`ctrl-w` maps,
   and `:` commands.
 - [`docs/zed-vim-keymap.md`](docs/zed-vim-keymap.md) — which nvim bindings
-  to carry over, with the `keymap.json` block to paste.
+  to carry over, and the block staged (commented out) in `keymap.json`.
 - [`docs/zed-worktrees.md`](docs/zed-worktrees.md) — git worktrees:
   creating, switching, and deleting from the picker, `create_worktree`
   setup hooks, and repos whose own script manages worktrees (per-worktree

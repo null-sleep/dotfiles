@@ -49,8 +49,8 @@ off or delete them as they land; add new ones freely.
   (borrow / default / try / skip) and the pasteable block are in
   `docs/zed-vim-keymap.md` (2026-11-14); its Status line is the tracker.
   Remaining work is living with it: paste the block (or adopted rows) into
-  `zed/.config/zed/keymap.json`, which now holds only the `alt-]` / `alt-[`
-  thread-cycling keys (the stale draft
+  `zed/.config/zed/keymap.json`, where the borrow rows are staged but commented
+  out (alongside `alt-]` / `alt-[`, `cmd-k cmd-v`, `cmd-k cmd-m`; the stale draft
   mirroring non-existent nvim keys and binding `g r` was removed
   2026-11-14), then flip rows to *adopted* or back to *default* as they
   prove themselves. GUIDE.md stays the owner of nvim's keys.

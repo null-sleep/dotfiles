@@ -13,7 +13,7 @@ nvim config. One notation throughout: `alt-]` is nvim's `<M-]>`, `ctrl-s` is
 applies (Zed keys work in vim mode); a blank nvim cell can also mean nvim has
 no equivalent. `—` means no key; use the palette.
 Full reference: `docs/zed.md`, `docs/zed-vim.md`; nvim keys to adopt in Zed:
-`docs/zed-vim-keymap.md`.
+`docs/zed-vim-keymap.md` (staged, commented out, in `keymap.json`).
 
 ## Find and navigate
 

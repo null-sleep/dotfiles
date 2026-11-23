@@ -1,8 +1,31 @@
 // Zed keymap — stowed to ~/.config/zed/keymap.json (see README → "Zed").
-// Nearly empty while learning Zed's native keys. The vim-mode bindings to
-// carry over from nvim, with a block to paste, live in
-// docs/zed-vim-keymap.md; adopt rows from there. nvim keymaps live in
-// GUIDE.md.
+// Vim-mode leader layer carried over from nvim: the "borrow" rows of
+// docs/zed-vim-keymap.md (the "try" rows, alt-h/j/k/l resize and ctrl-\
+// terminal, are left out). nvim keymaps live in GUIDE.md.
+//
+// Vim block (added 2026-11-22, untested; COMMENTED OUT below, uncomment the
+// entries to adopt): risks and rows to reconsider.
+// - space is now a chord prefix: plain space (move right) waits out the chord
+//   timeout (1 s) before firing alone. y p / y u / y shift-p add no delay to
+//   y y or y i w (y resolves on the next key, as an operator does anyway).
+// - H / L are not bound (you don't use them for tabs), so they stay vim's
+//   WindowTop / WindowBottom. Tabs: [b / ]b, cmd-{ / cmd-}.
+//   g b is NOT bound either (it stays Zed's block-comment toggle); use ctrl-^
+//   for the alternate file.
+// - ctrl-h/j/k/l change meaning in normal mode (backspace, down, kill-ring
+//   cut, scroll-center). The Dock block is "Dock && !Terminal", so a docked
+//   terminal keeps readline keys but ctrl-h/j/k/l can't leave it: use f6
+//   (cmd-k clears a terminal, so cmd-k chords never fire there).
+// - The !Editor block skips ProjectPanel/GitPanel/OutlinePanel (they bind
+//   plain space), so space e / g g / a a don't work from those panels.
+// - space a l (thread switcher) is a hold-the-modifier popup; from a chord it
+//   may stay open until Enter or Esc. space a d does nothing without an active
+//   agent conversation. space a n / l / v need the agent UI enabled.
+// - Git prefix is space g *, but nvim's diffview keys are <leader>v*. Pick one
+//   after a week (see docs/zed-vim-keymap.md, "To check").
+// - Verified against v1.29.2 and the ~/src/zed nightly (2026-11-19), not the
+//   installed 1.29.3: re-check an action name if a binding does nothing
+//   (dev: open key context view).
 [
     // Swap the floating text finder and editable project-search tab shortcuts.
     // Unscoped bindings override the defaults in editors and search bars alike.
@@ -23,6 +46,113 @@
             "alt-[": "multi_workspace::PreviousThread"
         }
     },
+    // // ── vim mode: nvim leader layer (docs/zed-vim-keymap.md) ───────────────
+    // {
+    //     "context": "Editor && vim_mode == normal && !menu",
+    //     "bindings": {
+    //         // tabs and panes
+    //         "ctrl-h": "workspace::ActivatePaneLeft",
+    //         "ctrl-j": "workspace::ActivatePaneDown",
+    //         "ctrl-k": "workspace::ActivatePaneUp",
+    //         "ctrl-l": "workspace::ActivatePaneRight",
+    //         "space space": "file_finder::Toggle",
+    //         "space b b": "tab_switcher::Toggle",
+    //         "space b x": "pane::CloseActiveItem",
+    //         "space b o": "pane::CloseOtherItems",
+
+    //         // pickers and search
+    //         "space s f": "file_finder::Toggle",
+    //         "space s g": "text_finder::Toggle", // live-grep picker; g/ = multibuffer
+    //         "space s w": "text_finder::Toggle", // select the word first
+    //         "space s s": "project_symbols::Toggle",
+    //         "space s d": "outline::Toggle",
+    //         "space s r": "workspace::ReopenLastPicker",
+    //         "space s k": "zed::OpenKeymap",
+
+    //         // LSP; p* = "peek": results in a picker with preview
+    //         "space p d": ["editor::GoToDefinition", { "open_results_in": "picker" }],
+    //         "space p t": ["editor::GoToTypeDefinition", { "open_results_in": "picker" }],
+    //         "space p i": ["editor::GoToImplementation", { "open_results_in": "picker" }],
+    //         "space p r": ["editor::FindAllReferences", { "open_results_in": "picker" }],
+    //         "space c a": "editor::ToggleCodeActions",
+    //         "space c f": "editor::Format",
+    //         "space c d": "diagnostics::Deploy",
+    //         "space t i": "editor::ToggleInlayHints",
+
+    //         // panels
+    //         "space e": "project_panel::ToggleFocus",
+    //         "space o": "outline_panel::ToggleFocus",
+
+    //         // git
+    //         "space g g": "git_panel::ToggleFocus",
+    //         "space g d": "git::Diff",
+    //         "space g p": "git::DiffBranch", // merge-base vs default branch
+    //         "space g c": "git::CompareWithBranch", // same, pick the base
+    //         "space g f": "git::FileHistory",
+    //         "space t b": "editor::ToggleGitBlameInline",
+
+    //         // agent
+    //         "space a a": "agent::ToggleFocus",
+    //         "space a x": "workspace::CloseActiveDock",
+    //         "space a n": "agent::ToggleNewThreadMenu",
+    //         "space a l": "agents_sidebar::ToggleThreadSwitcher",
+    //         "space a v": "multi_workspace::ToggleWorkspaceSidebar",
+    //         "space a d": "agent::OpenAgentDiff",
+
+    //         // debugger
+    //         "space d b": "editor::ToggleBreakpoint",
+    //         "space d c": "debugger::Continue",
+    //         "space d i": "debugger::StepInto",
+    //         "space d o": "debugger::StepOver",
+    //         "space d shift-o": "debugger::StepOut",
+    //         "space d q": "debugger::Stop",
+    //         "space d l": "debugger::Rerun",
+    //         "space d u": "debug_panel::ToggleFocus",
+
+    //         // toggles and yanks
+    //         "space t n": "editor::ToggleRelativeLineNumbers",
+    //         "space t d": "editor::ToggleDiagnostics",
+    //         "y p": "workspace::CopyRelativePath",
+    //         "y shift-p": "workspace::CopyPath",
+    //         "y u": "editor::CopyPermalinkToLine"
+    //     }
+    // },
+    // {
+    //     "context": "Editor && vim_mode == visual && !menu",
+    //     "bindings": {
+    //         "space a t": "agent::AddSelectionToThread",
+    //         "space a s": "agent::AddSelectionToThread",
+    //         "space s w": "text_finder::Toggle" // grep the selection
+    //     }
+    // },
+    // {
+    //     "context": "Editor && vim_mode == insert",
+    //     "bindings": { "j k": "vim::NormalBefore" }
+    // },
+    // // Docks are not panes: without this ctrl-h/j/k/l dead-ends at a panel.
+    // // !Terminal keeps readline ctrl-k/l/h/j in a docked terminal, so leave
+    // // that one with f6.
+    // {
+    //     "context": "Dock && !Terminal",
+    //     "bindings": {
+    //         "ctrl-h": "workspace::ActivatePaneLeft",
+    //         "ctrl-j": "workspace::ActivatePaneDown",
+    //         "ctrl-k": "workspace::ActivatePaneUp",
+    //         "ctrl-l": "workspace::ActivatePaneRight"
+    //     }
+    // },
+    // // Vim contexts are Editor-only; same leader keys from empty panes. Panels
+    // // that bind plain space (stage, open, preview) are excluded so it still
+    // // fires without waiting out the chord timeout.
+    // {
+    //     "context": "!Editor && !Terminal && !ProjectPanel && !GitPanel && !OutlinePanel",
+    //     "bindings": {
+    //         "space space": "file_finder::Toggle",
+    //         "space e": "project_panel::ToggleFocus",
+    //         "space g g": "git_panel::ToggleFocus",
+    //         "space a a": "agent::ToggleFocus"
+    //     }
+    // },
     // Toggle vim mode. Zed has no default key (palette: "workspace: toggle vim
     // mode"). Workspace context so it works with vim on or off. Rewrites
     // settings.json's vim_mode; Terminal has its own cmd-k (terminal::Clear),

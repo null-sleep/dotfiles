@@ -26,7 +26,7 @@ is `"] shift-b"`.
 - [Key bindings](https://zed.dev/docs/key-bindings) and
   [`docs/zed.md` → Adding your own bindings](zed.md#custom-bindings)
 - `nvim/.config/nvim/GUIDE.md` → Keymap index — the nvim habits this doc
-  maps onto Zed (`H`/`L`, `<C-hjkl>`, `gb`, `jj`)
+  maps onto Zed (`<C-hjkl>`, `jj`, `<leader>` chords)
 
 ## Contents
 
@@ -546,6 +546,6 @@ in `keymap.json` (how-to in [`docs/zed.md`](zed.md#custom-bindings)):
 ## Later: mapping the nvim bindings
 
 Deliberately not done yet — learn the defaults first. The per-key
-recommendations (borrow / default / try / skip, with a pasteable
-`keymap.json` block) live in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md);
+recommendations (borrow / default / try / skip, with the block staged
+commented out in `keymap.json`) live in [`docs/zed-vim-keymap.md`](zed-vim-keymap.md);
 its status line tracks what has been adopted.
