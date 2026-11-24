@@ -1,47 +1,66 @@
 # rcmd configuration file
 # Edit this file to customise rcmd's behaviour. Changes are picked up within a few seconds.
 # Full settings reference: run `rcmd config help`
-stages: []
-appKeyAssignments: {}
-windowKeyAssignments: {}
-ignoredApps: []
-appsWhereRcmdIsPaused: []
-ignoredKeys: []
-searchPins: {}
+
+# true: settings this file leaves out reset to defaults on every read
+overrideUserDefaults: false
+
 triggers:
   triggerKeys: [rcmd]
   windowTriggerKeys: [rshift]
-  assignKeyTriggerKeys: [rcmd, ralt]
-  hideOnFocusTriggerKeys: [rcmd, lshift]
+  stageTriggerKeys: []
+  secondTriggerGestures: [doubleTap]
   enableAssignHotkey: true
   enableHideOthersHotkey: false
+  assignKeyTriggerKeys: [rcmd, ralt]
+  hideOnFocusTriggerKeys: [rcmd, lshift]
   alwaysHideOthers: false
+  doubleTapGapMs: 250
+  doubleTapMaxPressMs: 250
+  doubleTapDisabled: false
+
+# trigger + key → app
+appKeyAssignments: {}
+
+# app → letter → saved window
+windowKeyAssignments: {}
+
+# what the window switcher lists first
+favorites: []
+
+favoritesPrefix: f
+
+stages: []
+
+# typed query → the app it always opens
+searchPins: {}
+
 appSwitcher:
   showAppSwitcher: true
   appSwitcherOSDDelay: 0
-  appSwitcherFeatures: [runningApps, launchableApps, bottomActions]
+  adaptiveFollowupGraceMs: 150
+  appSwitcherFeatures: [lastWindow, runningApps, launchableApps, bottomActions]
   switcherScreenPlacement: {position: center, offsetX: 0, offsetY: 150}
   osdSize: {width: 600, height: 550}
   actionKeys: {hideKey: minus, actionKey: equal, exposeKey: period, enableHideAndActionKeys: true}
   hideOnlyFocusedAppOnMinus: false
   appSort: name
   appSortReverse: false
+
 windowSwitcher:
-  showWindowSwitcher: true
   windowSwitcherOSDDelay: 0
   windowSwitcherAppearance: comfortable
-  windowKeyMode: mixed
   osdLook:
     density: comfortable
     backgroundStyle:
-      glass: {opacity: 5.78855298913043e-1}
+      glass: {opacity: 0.578855298913043}
     accentColor: '#FF9400FF'
     foregroundColor: adaptive
     keycapColor: adaptive
     keycapStyle: badge
     searchBarStyle: glassy
-    cornerRadius: 2.8e+1
-    appIconSize: 3e+1
+    cornerRadius: 28
+    appIconSize: 30
     iconStyle: native
     fontStyle: rounded
     focusStyle: bar
@@ -51,29 +70,37 @@ windowSwitcher:
   windowSwitcherFeatures: [lastWindow, windows, windowActions, bottomActions]
   windowSwitcherDimFocused: false
   windowSwitcherPlacement: {mirrorAppSwitcher: false, position: center, offsetX: 0, offsetY: 150}
-  osdSize: {width: 600, height: 550}
+  osdSize: {width: 800, height: 650}
   actionKeys: {windowMinimizeKey: minus, windowAssignKey: equal, enableWindowMinimizeAndAssignKeys: true}
   minimizeOnlyFocusedWindowOnMinus: true
-stageSwitcher:
-  stageTriggerKeys: [capsLock]
-  actionKeys: {stageAssignKey: equal, stageCloseKey: minus, stageRepositionKey: section, stageCloseAction: close}
-  stageReopenClosedItems: true
-  stageSwitcherOSDDelay: 80
-  showStageSwitcher: true
-  stageSwitcherPlacement: {mirrorAppSwitcher: false, position: bottomRight, offsetX: 0, offsetY: 0}
+
+stageSwitcher: {actionKeys: {stageAssignKey: equal, stageCloseKey: minus, stageRepositionKey: section, stageCloseAction: close}, stageReopenClosedItems: true, showStageSwitcher: true}
+
 tabCycle:
   enableTabCycle: true
   tabCycleScope: auto
   tabCycleSearchScope: allWindows
   tabCycleInclude: [minimized, hidden]
-  tabCycleFocusOnKeyUp: true
-  hijackCommandTab: true
+  commandTabSwitcher: {left: apps, right: windows}
+  disableSystemCommandTabHotkey: false
+  commandTabPassThroughApps: [codes.rambo.VirtualBuddy, com.apple.ScreenSharing]
+  commandKeySticky: {left: false, right: false}
+  commandKeyCycleKey: {left: true, right: true}
   stickyAppSwitcher: false
-  stickyAppSwitcherScope: rcmdOnly
   windowCycleKey: grave
   enableWindowCycleKey: true
-  hijackWindowCycleHotkey: true
-spaces: {spaceMode: multi, createMissingSpaces: true, osdOnActiveSpaceOnly: false, enableInstantSpaceSwitching: true}
+  windowCycleShowsTiles: true
+
+spaces:
+  spaceMode: multi
+  createMissingSpaces: true
+  osdOnActiveSpaceOnly: false
+  currentSpaceShowsCycledApps: true
+  currentSpaceShowsQueryMatches: true
+  currentSpaceShowsAssignedApps: true
+  enableInstantSpaceSwitching: true
+  instantSpaceSwipe: false
+
 general:
   whenAlreadyFocusedAction: Hide
   focusBehaviour: sameSpaceWindow
@@ -82,6 +109,7 @@ general:
   focusOnKeyUp: false
   activationMode: onRelease
   searchMatchMode: anchored
+  osdDisplay: activeWindow
   searchOptionalPrefixes:
   - google
   - microsoft
@@ -101,6 +129,20 @@ general:
   - 8k
   - 3d
   showMenubarAppsInSearch: false
+  showLensItemsInSearch: true
+  lensRowCap: 30
+  lensFetchFavicons: true
+  enableQuickKeys: true
+  editorApp: ''
+  terminalApp: ''
   enableStickySpaceSearch: true
-  hidePerAppSettings: false
-overrideUserDefaults: false
+  enableAppSearch: true
+
+# bundle IDs rcmd never lists
+ignoredApps: []
+
+# keys rcmd never takes
+ignoredKeys: []
+
+# bundle IDs where rcmd stops intercepting keys
+appsWhereRcmdIsPaused: []

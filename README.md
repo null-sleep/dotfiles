@@ -2333,7 +2333,7 @@ stow rcmd
 
 The app reads `~/.config/rcmd/config.yaml` continuously and picks up edits within a few seconds — hand-edit it, or let rcmd's own settings UI write through the symlink. Run `rcmd config help` for the full settings reference. `~/.config/rcmd/search-cache.yaml` (learned query → app selections) is intentionally not tracked — it's a disposable cache, not a setting.
 
-The `rcmd config …` CLI is bundled inside the app but isn't on `PATH` by default. The [`zsh`](#zsh) package exposes it by symlinking `~/.local/bin/rcmd` → `/Applications/rcmd.app/Contents/SharedSupport/rcmdCLI` (tracked as `zsh/.local/bin/rcmd`), so `rcmd config help` / `rcmd config get …` work from any shell once `rcmd.app` is installed. If the app isn't installed the symlink simply dangles — harmless.
+The `rcmd config …` CLI is bundled inside the app but isn't on `PATH` by default. The [`zsh`](#zsh) package exposes it by symlinking `~/.local/bin/rcmd` → `/Applications/rcmd.app/Contents/Helpers/rcmdCLI` (tracked as `zsh/.local/bin/rcmd`), so `rcmd config help` / `rcmd config get …` work from any shell once `rcmd.app` is installed. If the app isn't installed the symlink simply dangles — harmless.
 
 ## ripgrep
 
