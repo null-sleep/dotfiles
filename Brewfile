@@ -158,6 +158,7 @@ cask "chatgpt"         # ChatGPT desktop app — also the Codex desktop app sinc
                        # above — see README → "Codex desktop app".
 cask "signal"
 cask "vlc"             # media player
+cask "firefox"         # web browser
 cask "rcmd"            # app/window switcher; config in rcmd/  (then `stow rcmd`)
 cask "tabularis"        # database GUI client (test driving); tap in Taps above
 cask "orca"            # multi-agent worktree app (test driving); tap in Taps above,
