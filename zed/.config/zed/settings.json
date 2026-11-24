@@ -413,7 +413,7 @@
             // agent.default_model).
             "default_config_options": {
                 "mode": "default",
-                "model": "openrouter/anthropic/claude-sonnet-5.5"
+                "model": "openrouter/openai/gpt-6.1-terra"
             },
             // Starred models in omp's dropdown: a "Favorites" section on top
             // and the alt-tab cycle in omp threads. One entry per omp cycle
