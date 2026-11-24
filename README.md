@@ -64,7 +64,7 @@ section below; the rest of this README is reference material for individual tool
 4. **Install everything from the [`Brewfile`](Brewfile)** — `cd ~/src/dotfiles && brew bundle`. Installs every core CLI, build tool (including [CMake](#cmake)), font, runtime, and GUI app in one shot — idempotent, safe to re-run (a few situational tools are left commented in the Brewfile). The SF Mono Square tap is marked `trusted: true` so `brew bundle` installs it without a prompt. Then finish the [Fonts](#fonts) step — SF Mono Square needs a manual symlink into `~/Library/Fonts`.
 5. **Rust** — not in the Brewfile; install via rustup ([Languages](#languages)).
 6. **Stow the configs** — `stow nvim zsh ghostty rcmd ripgrep && stow --no-folding agents claude cursor omp herdr zed` (add `zellij` only if you enabled that optional formula), then `stow --no-folding codebook` on its own, because it aborts if `~/.config/codebook/codebook.toml` already exists as a regular file ([Setup](#setup), [Codebook](#codebook)).
-7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)).
+7. **Per-tool setup:** antigen + zsh-direnv + `~/.zshrc` ([ZSH](#zsh)); git identity + SSH key/config ([Git](#git)); Claude Code setup scripts ([Claude Code](#claude-code)); Cursor CLI statusline setup ([Cursor CLI](#cursor-cli-cursor-agent)); Codex RTK instructions + login + permissions ([Codex CLI](#codex-cli)); `setup-zshenv.sh` + `OPENROUTER_API_KEY` in `~/.zshenv` ([OpenRouter](#openrouter)); `omp/setup-settings.sh` ([omp](#omp)); `herdr/setup-herdr.sh` ([Herdr](#herdr)); Neovide config symlink ([Neovide](#neovide)); `nix profile install nixpkgs#nixd` for Zed's Nix extension ([Zed → Language servers](#zed)).
 8. **Open a new shell** (`exec zsh`). First launch clones antigen bundles (~20s); first `nvim` clones plugins + Mason servers (~1 min).
 9. **[Verify your setup](#verify-your-setup)** with the smoke test.
 
@@ -1657,9 +1657,10 @@ Stowed to `~/.config/zed/`:
   checker (it downloads its own `codebook-lsp`; its global dictionary is the
   stowed `~/.config/codebook/codebook.toml`, see [Codebook](#codebook), and a
   project `codebook.toml` is optional; see
-  [`plans/zed-spell-check.md`](plans/zed-spell-check.md)). If you ever set
+  [`plans/zed-spell-check.md`](plans/zed-spell-check.md)). If you set
   `language_servers` for a language in `languages`, end the list with `"..."`
-  or Codebook stops there (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas)). Go,
+  or Codebook stops there (see [`docs/zed.md` → Gotchas](docs/zed.md#gotchas));
+  `Nix` sets `["nixd", "!nil", "..."]` (see **Language servers** below). Go,
   Rust, TypeScript, Python are built in. The ACP agent entries
   (`agent_servers`) are registry-installed from Zed's agent panel, except
   `omp`, a `custom` entry that runs `/opt/homebrew/bin/omp acp --approval-mode yolo --config ~/.omp/agent/zed-models.yml` (needs omp
@@ -1711,6 +1712,22 @@ diff. Extensions themselves live in
 **First stow:** Zed creates a regular `~/.config/zed/settings.json` on first
 launch, which makes stow refuse. Move it aside first:
 `mv ~/.config/zed/settings.json ~/.config/zed/settings.json.bak`.
+
+**Language servers:** some extensions only look for their server on `PATH`
+(the `nix` extension), and others download it from GitHub's API without
+logging in when it's missing (`dockerfile`). Without the binaries, Zed shows
+`nil must be installed manually`, `nixd is not available in your
+environment (PATH)`, and `docker-language-server … status error 403 … API
+rate limit exceeded`. Install them once per machine:
+
+```bash
+brew install docker-language-server lua-language-server   # both in the Brewfile
+nix profile install nixpkgs#nixd                          # no brew formula; needs Nix
+```
+
+`settings.json` disables `nil` for Nix (`"!nil"`) because it duplicates
+`nixd` and has no brew formula. Zed reads `PATH` from a login shell once per
+project, so reopen the project (or restart Zed) after installing.
 
 **Local dev build:** with Zed checked out at `~/src/zed` (override with
 `ZED_SRC`) and built via `cargo build -p zed` (macOS needs Xcode's Metal

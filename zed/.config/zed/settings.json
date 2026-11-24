@@ -203,11 +203,12 @@
     // here beats the same key set globally.
     // Defaults drift; re-check before editing via `zed: open default settings`
     // (top-level keys + its "languages" block).
-    // CODEBOOK: no language below sets `language_servers`, which is why the
-    // Codebook spell checker (see auto_install_extensions) runs everywhere.
-    // If you add `language_servers` to a language, end the list with "..."
-    // (or add "codebook"), e.g. ["pyright", "ruff", "..."]; otherwise
-    // Codebook silently stops for that language. See docs/zed.md → Gotchas.
+    // CODEBOOK: only Nix below sets `language_servers`, and it ends with
+    // "..." so the Codebook spell checker (see auto_install_extensions) still
+    // runs there and everywhere else. If you add `language_servers` to a
+    // language, end the list with "..." (or add "codebook"), e.g.
+    // ["pyright", "ruff", "..."]; otherwise Codebook silently stops for that
+    // language. See docs/zed.md → Gotchas.
     //
     // Other keys accepted per language:
     //   formatting   formatter, format_on_save, code_actions_on_format
@@ -217,6 +218,13 @@
     //                semantic_tokens ("off"), colorize_brackets (false)
     //   save         remove_trailing_whitespace_on_save, ensure_final_newline_on_save
     "languages": {
+        "Nix": {
+            // The nix extension starts both nil and nixd and installs neither;
+            // each missing one raises a startup error. Run nixd only
+            // (`nix profile install nixpkgs#nixd`, see Brewfile → Zed LSP
+            // servers); nil has no brew formula and duplicates nixd.
+            "language_servers": ["nixd", "!nil", "..."],
+        },
         "Go": {
             // Built-in Go defaults: format_on_save on, hard_tabs, organizeImports
             // on format.

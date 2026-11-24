@@ -1216,9 +1216,10 @@ companion [`docs/zed-vim.md`](zed-vim.md).
   it without `"..."`.** The Codebook extension (installed by
   `auto_install_extensions`) attaches to every language it supports, but a
   per-language `language_servers` list replaces Zed's default server set, so
-  any server you leave out stops running there. Today `settings.json` sets
-  no `language_servers`, so Codebook works everywhere. When you add one,
-  end the list with `"..."` (keeps defaults, Codebook included) or name
+  any server you leave out stops running there. Today only `Nix` sets
+  `language_servers` (`["nixd", "!nil", "..."]`), so Codebook works
+  everywhere. When you add one, end the list with `"..."` (keeps defaults,
+  Codebook included) or name
   `"codebook"` explicitly, e.g. `["pyright", "ruff", "..."]`. Symptom of a
   miss: no spelling squiggles or quickfixes in that language; check
   `dev: open language server logs`. Codebook's own config, ignore patterns

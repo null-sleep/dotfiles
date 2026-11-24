@@ -81,6 +81,15 @@ brew "ruff"            # python format-on-save (README → "Format-on-save tools
 brew "lua-language-server"
 
 #-----------------------------------------------------------------------------
+# Zed LSP servers — Zed extensions look these up on PATH. Without
+# docker-language-server on PATH, the dockerfile extension downloads it from
+# GitHub's unauthenticated API and fails with a 403 once rate-limited.
+# The nix extension downloads nothing; nixd has no brew formula:
+#   nixd           nix profile install nixpkgs#nixd
+#-----------------------------------------------------------------------------
+brew "docker-language-server"
+
+#-----------------------------------------------------------------------------
 # Claude Code CLI. The @latest cask tracks newer builds than the stable
 # `claude-code` cask (which can lag behind by several releases). `claude update`
 # is a no-op on the @latest cask; run `brew upgrade --cask claude-code@latest`.
