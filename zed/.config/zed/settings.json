@@ -316,7 +316,7 @@
             "threshold": "70%"
         },
         "show_turn_stats": true,
-        "message_editor_min_lines": 4,
+        "message_editor_min_lines": 2,
         // Collapse thinking blocks (Zed Agent and ACP agents like omp);
         // click a block's header to expand it.
         "thinking_display": "always_collapsed",
