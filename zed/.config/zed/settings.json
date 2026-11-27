@@ -5,6 +5,11 @@
     "minimap": {
         "show": "never"
     },
+    // Scrollbar diagnostics: none, error, warning, information, or all.
+    // Each level includes more severe diagnostics; none hides all markers.
+    "scrollbar": {
+        "diagnostics": "error"
+    },
     "which_key": {
         "enabled": true
     },
